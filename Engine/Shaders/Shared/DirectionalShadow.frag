@@ -21,27 +21,29 @@ layout (std140) uniform LightSourceBlock
 #define_option CascadeLimitList
 #define_option DirectionalShadowSampleCount
 
-uniform sampler2DArray pre_shadowDirectional;
+uniform sampler2DArrayShadow pre_shadowDirectional;
 
 const float cascadePlaneDistances[CascadeCount] = float[](CascadeLimitList);
 
+// Vogel Spiral Disk: Inherently progressive (any N prefix is well-distributed)
+// Prevents shadow crawling when changing sample counts (2, 4, 8, 16)
 vec2 _poissonDisk[16] = vec2[](
-   vec2( -0.94201624, -0.39906216 ),
-   vec2( 0.94558609, -0.76890725 ),
-   vec2( -0.094184101, -0.92938870 ),
-   vec2( 0.34495938, 0.29387760 ),
-   vec2( -0.91588581, 0.45771432 ),
-   vec2( -0.81544232, -0.87912464 ),
-   vec2( -0.38277543, 0.27676845 ),
-   vec2( 0.97484398, 0.75648379 ),
-   vec2( 0.44323325, -0.97511554 ),
-   vec2( 0.53742981, -0.47373420 ),
-   vec2( -0.26496911, -0.41893023 ),
-   vec2( 0.79197514, 0.19090188 ),
-   vec2( -0.24188840, 0.99706507 ),
-   vec2( -0.81409955, 0.91437590 ),
-   vec2( 0.19984126, 0.78641367 ),
-   vec2( 0.14383161, -0.14100790 )
+    vec2(0.176461, 0.000000),
+    vec2(-0.225549, 0.207521),
+    vec2(-0.038166, -0.393450),
+    vec2(0.448074, 0.133241),
+    vec2(-0.525541, 0.073400),
+    vec2(0.301986, -0.502856),
+    vec2(0.096338, 0.629851),
+    vec2(-0.520445, -0.444280),
+    vec2(0.720896, 0.111956),
+    vec2(-0.536104, 0.552277),
+    vec2(0.030582, -0.809424),
+    vec2(0.596001, 0.604112),
+    vec2(-0.878486, -0.099182),
+    vec2(0.718361, -0.573210),
+    vec2(-0.210086, 0.927429),
+    vec2(-0.472145, -0.863390)
 );
 
 float _random(vec3 seed, int i){
@@ -61,13 +63,13 @@ float _SampleCascadeShadow(int lightIndex, int layer, vec3 world_space_frag_pos,
     float shadow = 0.0;
     vec2 texelSize = 1.0 / vec2(textureSize(pre_shadowDirectional, 0).xy);
     float filterRadius = 2.0 + float(layer) * 0.5;
+    float compareDepth = currentDepth - depthBias;
 
     for(int i = 0; i < DirectionalShadowSampleCount; ++i){
         vec2 offset = rot * _poissonDisk[i];
-        float pcfDepth = texture(pre_shadowDirectional, vec3(projectedCoordinates.xy + offset * texelSize * filterRadius, layer)).r;
-        if(currentDepth - depthBias > pcfDepth) {
-            shadow += 1.0;
-        }
+        // sampler2DArrayShadow returns 1.0 if not in shadow (compareDepth <= texture_depth), 0.0 if in shadow
+        float lit = texture(pre_shadowDirectional, vec4(projectedCoordinates.xy + offset * texelSize * filterRadius, layer, compareDepth));
+        shadow += (1.0 - lit);
     }
     return shadow / float(DirectionalShadowSampleCount);
 }

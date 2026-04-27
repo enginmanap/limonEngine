@@ -217,10 +217,18 @@ void OpenGLESGraphics::fillUniformAndOutputMaps(const GLuint program,
 
 Uniform::VariableTypes OpenGLESGraphics::getVariableType(const GLenum typeEnum) const {
     switch (typeEnum) {
-        case GL_SAMPLER_CUBE:               return Uniform::VariableTypes::CUBEMAP;
-        case GL_SAMPLER_CUBE_MAP_ARRAY_ARB: return Uniform::VariableTypes::CUBEMAP_ARRAY;
-        case GL_SAMPLER_2D:                 return Uniform::VariableTypes::TEXTURE_2D;
-        case GL_SAMPLER_2D_ARRAY:           return Uniform::VariableTypes::TEXTURE_2D_ARRAY;
+        case GL_SAMPLER_CUBE:
+        case GL_SAMPLER_CUBE_SHADOW:
+            return Uniform::VariableTypes::CUBEMAP;
+        case GL_SAMPLER_CUBE_MAP_ARRAY_ARB:
+        case GL_SAMPLER_CUBE_MAP_ARRAY_SHADOW:
+            return Uniform::VariableTypes::CUBEMAP_ARRAY;
+        case GL_SAMPLER_2D:
+        case GL_SAMPLER_2D_SHADOW:
+            return Uniform::VariableTypes::TEXTURE_2D;
+        case GL_SAMPLER_2D_ARRAY:
+        case GL_SAMPLER_2D_ARRAY_SHADOW:
+            return Uniform::VariableTypes::TEXTURE_2D_ARRAY;
         case GL_BOOL:                       return Uniform::VariableTypes::BOOL;
         case GL_INT:                        return Uniform::VariableTypes::INT;
         case GL_FLOAT:                      return Uniform::VariableTypes::FLOAT;
@@ -236,15 +244,19 @@ Uniform::VariableTypes OpenGLESGraphics::getSamplerVariableType(const GLint *que
     Uniform::VariableTypes variableType;
     switch (queryResults[0]) {
         case GL_SAMPLER_CUBE:
+        case GL_SAMPLER_CUBE_SHADOW:
             variableType = Uniform::VariableTypes::CUBEMAP;
             break;
         case GL_SAMPLER_CUBE_MAP_ARRAY_ARB:
+        case GL_SAMPLER_CUBE_MAP_ARRAY_SHADOW:
             variableType = Uniform::VariableTypes::CUBEMAP_ARRAY;
             break;
         case GL_SAMPLER_2D:
+        case GL_SAMPLER_2D_SHADOW:
             variableType = Uniform::VariableTypes::TEXTURE_2D;
             break;
         case GL_SAMPLER_2D_ARRAY:
+        case GL_SAMPLER_2D_ARRAY_SHADOW:
             variableType = Uniform::VariableTypes::TEXTURE_2D_ARRAY;
             break;
         case GL_INT:
@@ -1388,6 +1400,14 @@ uint32_t OpenGLESGraphics::createTexture(int height, int width, TextureTypes typ
         glTexParameteri(glTextureType, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
         glTexParameteri(glTextureType, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     }
+
+    if (format == FormatTypes::DEPTH) {
+        if (type == TextureTypes::T2D_ARRAY || type == TextureTypes::TCUBE_MAP_ARRAY) {
+            glTexParameteri(glTextureType, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
+            glTexParameteri(glTextureType, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
+        }
+    }
+
     glBindTexture(glTextureType, 0);
 
     checkErrors("Texture Constructor");
@@ -1521,6 +1541,12 @@ OpenGLESGraphics::loadTextureData(uint32_t textureID, int height, int width, Tex
     } else {
         glTexParameteri(glTextureType, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(glTextureType, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        if (format == FormatTypes::DEPTH) {
+            if (type == TextureTypes::T2D_ARRAY || type == TextureTypes::TCUBE_MAP_ARRAY) {
+                glTexParameteri(glTextureType, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
+                glTexParameteri(glTextureType, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
+            }
+        }
     }
     glBindTexture(glTextureType, 0);
 checkErrors("loadTextureData");

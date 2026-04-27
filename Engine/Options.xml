@@ -90,7 +90,7 @@
     <Parameter>
         <RequestType>FreeNumber</RequestType>
         <Description>DirectionalShadowSampleCount</Description>
-        <Value>16</Value>
+        <Value>8</Value>
         <valueType>Long</valueType>
         <IsSet>True</IsSet>
         <Index>2</Index>
