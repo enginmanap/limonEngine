@@ -92,7 +92,7 @@ float ShadowCalculationDirectional(int lightIndex, vec3 world_space_frag_pos, fl
     // Apply a slope-scaled normal offset bias in world space
     vec3 lightDirectory = normalize(-LightSources.lights[lightIndex].position);
     float NdotL = max(dot(normal, lightDirectory), 0.0);
-    float world_bias = max(1.5 * (1.0 - NdotL), 0.05);
+    float world_bias = max(0.005 * (1.0 - NdotL), 0.005);
     vec3 biased_fragPos = world_space_frag_pos + normal * world_bias;
 
     // Sample the primary cascade
