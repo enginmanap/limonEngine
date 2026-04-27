@@ -64,8 +64,8 @@
                 <DataType>FLOAT</DataType>
                 <Height>4096</Height>
                 <Width>4096</Width>
-                <HeightOption>shadowMapDirectionalHeight</HeightOption>
-                <WidthOption>shadowMapDirectionalWidth</WidthOption>
+                <HeightOption>shadowMapDirectionalSize</HeightOption>
+                <WidthOption>shadowMapDirectionalSize</WidthOption>
                 <Depth>4</Depth>
                 <DepthOption>CascadeCount</DepthOption>
                 <borderColor>
@@ -261,8 +261,8 @@
                     <X>1024</X>
                     <Y>1024</Y>
                 </DefaultRenderResolution>
-                <RenderHeightOption>shadowMapDirectionalHeight</RenderHeightOption>
-                <RenderWidthOption>shadowMapDirectionalWidth</RenderWidthOption>
+                <RenderHeightOption>shadowMapDirectionalSize</RenderHeightOption>
+                <RenderWidthOption>shadowMapDirectionalSize</RenderWidthOption>
                 <IterateLightType>1</IterateLightType>
                 <RenderMethodName>All directional shadows</RenderMethodName>
                 <OriginalOutputType>Texture</OriginalOutputType>

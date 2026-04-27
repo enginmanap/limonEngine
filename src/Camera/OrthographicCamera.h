@@ -5,6 +5,7 @@
 #ifndef LIMONENGINE_ORTHOGRAPHICCAMERA_H
 #define LIMONENGINE_ORTHOGRAPHICCAMERA_H
 
+#include <cmath>
 #include "Camera.h"
 #include "PhysicalRenderable.h"
 #include "limonAPI/CameraAttachment.h"
@@ -175,23 +176,41 @@ public:
         }
         centerToUse /= playerFrustumCascadeCorners.size();
 
+        float radius = 0.0f;
+        for (const auto& corner : playerFrustumCascadeCorners) {
+            float distance = glm::length(glm::vec3(corner) - centerToUse);
+            radius = std::max(radius, distance);
+        }
+        radius = std::ceil(radius * 16.0f) / 16.0f;
+
         lightViewMatrix = glm::lookAt(centerToUse,
-                                          position + centerToUse,
-                                          glm::vec3(0.0f, 1.0f, 0.0f));
-        float minX = std::numeric_limits<float>::max();
-        float maxX = std::numeric_limits<float>::lowest();
-        float minY = std::numeric_limits<float>::max();
-        float maxY = std::numeric_limits<float>::lowest();
+                                      position + centerToUse,
+                                      glm::vec3(0.0f, 1.0f, 0.0f));
+
+        // We are switching to square shadow map, because I could not figure out a way to rotate light rendering and not cause shadow crawling.
+        // If I find a way, we can switch back to rectangle shadow map.
+        long shadowMapSize = options->getOption<long>(HASH("shadowMapDirectionalSize")).getOrDefault(2048);
+        float texelSize = (2.0f * radius) / (float)shadowMapSize;
+
+        glm::vec3 viewTranslation = glm::vec3(lightViewMatrix[3]);
+        glm::vec2 viewTranslationSnapped = glm::vec2(
+            std::floor(viewTranslation.x / texelSize) * texelSize,
+            std::floor(viewTranslation.y / texelSize) * texelSize
+        );
+        glm::vec2 snapOffset = viewTranslationSnapped - glm::vec2(viewTranslation.x, viewTranslation.y);
+
+        lightViewMatrix[3][0] += snapOffset.x;
+        lightViewMatrix[3][1] += snapOffset.y;
+
+        float minX = -radius;
+        float maxX = radius;
+        float minY = -radius;
+        float maxY = radius;
+
         float minZ = std::numeric_limits<float>::max();
-        float maxZ = std::numeric_limits<float>::lowest();
         for (const auto& corner : playerFrustumCascadeCorners) {
             const auto trf = lightViewMatrix * corner;
-            minX = std::min(minX, trf.x);
-            maxX = std::max(maxX, trf.x);
-            minY = std::min(minY, trf.y);
-            maxY = std::max(maxY, trf.y);
             minZ = std::min(minZ, trf.z);
-            maxZ = std::max(maxZ, trf.z);
         }
 
         //because opengl assumes camera looks in -z direction, last 2 parameters are suppose to be -maxZ and -minZ

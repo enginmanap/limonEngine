@@ -62,8 +62,8 @@
             <DataType>FLOAT</DataType>
             <Height>4096</Height>
             <Width>4096</Width>
-            <HeightOption>shadowMapDirectionalHeight</HeightOption>
-            <WidthOption>shadowMapDirectionalWidth</WidthOption>
+            <HeightOption>shadowMapDirectionalSize</HeightOption>
+            <WidthOption>shadowMapDirectionalSize</WidthOption>
             <Depth>4</Depth>
             <DepthOption>CascadeCount</DepthOption>
             <borderColor>
@@ -349,8 +349,8 @@
             <GraphicsPipelineStage>
                 <DefaultRenderHeight>1024</DefaultRenderHeight>
                 <DefaultRenderWidth>1024</DefaultRenderWidth>
-                <RenderHeightOption>shadowMapDirectionalHeight</RenderHeightOption>
-                <RenderWidthOption>shadowMapDirectionalWidth</RenderWidthOption>
+                <RenderHeightOption>shadowMapDirectionalSize</RenderHeightOption>
+                <RenderWidthOption>shadowMapDirectionalSize</RenderWidthOption>
                 <BlendEnabled>False</BlendEnabled>
                 <ColorAttachment>False</ColorAttachment>
                 <DepthAttachment>True</DepthAttachment>

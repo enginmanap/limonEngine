@@ -49,15 +49,7 @@
     </Parameter>
     <Parameter>
         <RequestType>FreeNumber</RequestType>
-        <Description>shadowMapDirectionalWidth</Description>
-        <Value>2048</Value>
-        <valueType>Long</valueType>
-        <IsSet>True</IsSet>
-        <Index>2</Index>
-    </Parameter>
-    <Parameter>
-        <RequestType>FreeNumber</RequestType>
-        <Description>shadowMapDirectionalHeight</Description>
+        <Description>shadowMapDirectionalSize</Description>
         <Value>2048</Value>
         <valueType>Long</valueType>
         <IsSet>True</IsSet>
