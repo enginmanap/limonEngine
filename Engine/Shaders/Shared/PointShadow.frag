@@ -17,6 +17,8 @@ layout (std140) uniform LightSourceBlock
 } LightSources;
 #endif
 
+#define_option PointShadowSampleCount
+
 uniform samplerCubeArray pre_shadowPoint;
 
 vec3 _pointSampleOffsetDirections[20] = vec3[]
@@ -41,7 +43,7 @@ float ShadowCalculationPoint(vec3 world_space_frag_pos, float bias, float viewDi
 
     float currentDepth = fragDistance;
     float shadow = 0.0;
-    int samples  = 20;
+    int samples  = PointShadowSampleCount;
     float diskRadius = (1.0 + (viewDistance / LightSources.lights[lightIndex].farPlanePoint)) / 50.0;
 
     for(int i = 0; i < samples; ++i) {

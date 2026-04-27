@@ -19,8 +19,11 @@ layout (std140) uniform LightSourceBlock
 
 #define_option CascadeCount
 #define_option CascadeLimitList
+#define_option DirectionalShadowSampleCount
 
 uniform sampler2DArray pre_shadowDirectional;
+
+const float cascadePlaneDistances[CascadeCount] = float[](CascadeLimitList);
 
 vec2 _poissonDisk[16] = vec2[](
    vec2( -0.94201624, -0.39906216 ),
@@ -47,7 +50,7 @@ float _random(vec3 seed, int i){
     return fract(sin(dot_product) * 43758.5453);
 }
 
-float _SampleCascadeShadow(int lightIndex, int layer, vec3 world_space_frag_pos, float depthBias) {
+float _SampleCascadeShadow(int lightIndex, int layer, vec3 world_space_frag_pos, float depthBias, mat2 rot) {
     vec4 fragPosLightSpace = LightSources.lights[lightIndex].shadowMatrices[layer] * vec4(world_space_frag_pos, 1.0);
     vec3 projectedCoordinates = fragPosLightSpace.xyz / fragPosLightSpace.w;
     projectedCoordinates = projectedCoordinates * 0.5 + 0.5;
@@ -59,24 +62,17 @@ float _SampleCascadeShadow(int lightIndex, int layer, vec3 world_space_frag_pos,
     vec2 texelSize = 1.0 / vec2(textureSize(pre_shadowDirectional, 0).xy);
     float filterRadius = 2.0 + float(layer) * 0.5;
 
-    float rotAngle = _random(world_space_frag_pos, 0) * 6.28318530718;
-    float s = sin(rotAngle);
-    float c = cos(rotAngle);
-    mat2 rot = mat2(c, -s, s, c);
-
-    for(int i = 0; i < 16; ++i){
+    for(int i = 0; i < DirectionalShadowSampleCount; ++i){
         vec2 offset = rot * _poissonDisk[i];
         float pcfDepth = texture(pre_shadowDirectional, vec3(projectedCoordinates.xy + offset * texelSize * filterRadius, layer)).r;
         if(currentDepth - depthBias > pcfDepth) {
             shadow += 1.0;
         }
     }
-    return shadow / 16.0;
+    return shadow / float(DirectionalShadowSampleCount);
 }
 
 float ShadowCalculationDirectional(int lightIndex, vec3 world_space_frag_pos, float precise_view_z, vec3 normal){
-    float cascadePlaneDistances[CascadeCount] = float[](CascadeLimitList);
-
     int layer = -1;
     float splitDist = 0.0;
 
@@ -95,8 +91,14 @@ float ShadowCalculationDirectional(int lightIndex, vec3 world_space_frag_pos, fl
     float world_bias = max(0.005 * (1.0 - NdotL), 0.005);
     vec3 biased_fragPos = world_space_frag_pos + normal * world_bias;
 
+    // Calculate rotation matrix once per directional light
+    float rotAngle = _random(biased_fragPos, 0) * 6.28318530718;
+    float s = sin(rotAngle);
+    float c = cos(rotAngle);
+    mat2 rot = mat2(c, -s, s, c);
+
     // Sample the primary cascade
-    float shadow = _SampleCascadeShadow(lightIndex, layer, biased_fragPos, 0.0);
+    float shadow = _SampleCascadeShadow(lightIndex, layer, biased_fragPos, 0.0, rot);
 
     // Blend with the next cascade if within the transition zone
     if (layer < CascadeCount - 1) {
@@ -104,7 +106,7 @@ float ShadowCalculationDirectional(int lightIndex, vec3 world_space_frag_pos, fl
         float threshold = splitDist - blendRegion;
 
         if (precise_view_z > threshold) {
-            float nextShadow = _SampleCascadeShadow(lightIndex, layer + 1, biased_fragPos, 0.0);
+            float nextShadow = _SampleCascadeShadow(lightIndex, layer + 1, biased_fragPos, 0.0, rot);
             float factor = (precise_view_z - threshold) / blendRegion;
             factor = smoothstep(0.0, 1.0, factor);
             shadow = mix(shadow, nextShadow, factor);

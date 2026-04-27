@@ -81,6 +81,22 @@
     </Parameter>
     <Parameter>
         <RequestType>FreeNumber</RequestType>
+        <Description>PointShadowSampleCount</Description>
+        <Value>20</Value>
+        <valueType>Long</valueType>
+        <IsSet>True</IsSet>
+        <Index>2</Index>
+    </Parameter>
+    <Parameter>
+        <RequestType>FreeNumber</RequestType>
+        <Description>DirectionalShadowSampleCount</Description>
+        <Value>16</Value>
+        <valueType>Long</valueType>
+        <IsSet>True</IsSet>
+        <Index>2</Index>
+    </Parameter>
+    <Parameter>
+        <RequestType>FreeNumber</RequestType>
         <Description>debugDrawBufferSize</Description>
         <Value>1000</Value>
         <valueType>Long</valueType>
@@ -383,7 +399,7 @@
     <Parameter>
         <RequestType>FreeText</RequestType>
         <Description>StartingRenderPipeline</Description>
-        <Value>./Engine/forward_renderPipeline.xml</Value>
+        <Value>./Engine/forward__renderPipeline.xml</Value>
         <valueType>String</valueType>
         <IsSet>True</IsSet>
         <Index>0</Index>
