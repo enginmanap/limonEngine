@@ -126,8 +126,11 @@ std::shared_ptr<GraphicsInterface> SDL2Helper::loadGraphicsBackend(const std::st
 
 bool SDL2Helper::loadCustomTriggers(const std::string &fileName) {
     std::cout << "trying to load shared library " << fileName << std::endl;
-    void* objectHandle = nullptr;
-    objectHandle = SDL_LoadObject(fileName.c_str());
+    void* objectHandle = SDL_LoadObject(fileName.c_str());
+    if(objectHandle == nullptr) {
+        std::cerr << "Failed to load " << fileName << ": " << SDL_GetError() << std::endl;
+        return false;
+    }
     bool result = loadTriggers(objectHandle);
     result = loadActors(objectHandle) && result;
     result = loadPlayerExtensions(objectHandle) && result;

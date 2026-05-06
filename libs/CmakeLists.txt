@@ -68,6 +68,7 @@ if (NOT LIBS_EXTERNAL_BULLET)
 endif()
 
 set(TRACY_ON_DEMAND ON CACHE BOOL "Enable on-demand profiling" FORCE)
+set(TRACY_STATIC OFF CACHE BOOL "Build Tracy as a shared library" FORCE)
 add_subdirectory("libs/tracy")
 include("libs/tracy/cmake/vendor.cmake")
 include("libs/tracy/cmake/server.cmake")

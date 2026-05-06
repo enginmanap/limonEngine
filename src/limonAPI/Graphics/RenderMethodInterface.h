@@ -73,7 +73,7 @@ public:
     // Not virtual
     static std::vector<std::string> getRenderMethodNames() {
         std::vector<std::string> names;
-        for (auto & it : *RenderMethodsMap) {
+        for (auto & it : *getMap()) {
             names.push_back(it.first);
         }
         return names;

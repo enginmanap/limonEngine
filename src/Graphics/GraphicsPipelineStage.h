@@ -155,6 +155,8 @@ public:
     void activate(const std::map<std::shared_ptr<Texture>, std::pair<GraphicsInterface::FrameBufferAttachPoints, int>> &attachmentLayerMap, bool clear = false);
 
 
+    const std::string& getFoundName() const { return foundName; }
+
     std::vector<std::string> getCameraTags() const {
         return cameraTags;
     }

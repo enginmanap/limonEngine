@@ -1475,10 +1475,14 @@ void World::afterLoadFinished() {
     }
 
     if(!startingPlayer.extensionName.empty()) {
-        PlayerExtensionInterface *playerExtension =PlayerExtensionInterface::createExtension(startingPlayer.extensionName, apiInstance);
-        this->currentPlayer->setPlayerExtension(playerExtension);
-        this->currentPlayer->setCameraOverride(playerExtension->getCustomCameraAttachment());
-        playerCamera->setCameraAttachment(currentPlayer->getCameraAttachment());
+        PlayerExtensionInterface *playerExtension = PlayerExtensionInterface::createExtension(startingPlayer.extensionName, apiInstance);
+        if(playerExtension == nullptr) {
+            std::cerr << "Player extension '" << startingPlayer.extensionName << "' not found. Is the correct trigger library loaded?" << std::endl;
+        } else {
+            this->currentPlayer->setPlayerExtension(playerExtension);
+            this->currentPlayer->setCameraOverride(playerExtension->getCustomCameraAttachment());
+            playerCamera->setCameraAttachment(currentPlayer->getCameraAttachment());
+        }
     }
 }
 

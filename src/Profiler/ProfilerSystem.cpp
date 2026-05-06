@@ -69,7 +69,7 @@ void ProfilerSystem::Update() {
 #ifdef TRACY_ENABLE
 
     if (enableTracingServerOption.getOrDefault(true)) {
-        if (ProfilerState::traceOverallFrameTime || ProfilerState::traceSimulation || ProfilerState::traceVisibility || ProfilerState::traceRendering) {
+        if (ProfilerState::traceOverallFrameTime || ProfilerState::traceSimulation || ProfilerState::traceVisibility || ProfilerState::traceRendering || ProfilerState::traceGpuRendering) {
             if (!tracyWorker) {
                 tracyWorker = new tracy::Worker("127.0.0.1", 8086, -1);
             }
@@ -90,6 +90,8 @@ void ProfilerSystem::Update() {
             zoneTimeCount.clear();
             zoneLastProcessedIndex.clear();
             zoneNameCache.clear();
+            perThreadZoneLastProcessed.clear();
+            gpuZoneLastProcessed.clear();
         }
     }
 
@@ -145,9 +147,68 @@ void ProfilerSystem::Update() {
     collectZoneTime("Frame", ProfilerState::traceOverallFrameTime);
     collectZoneTime("World::play", ProfilerState::traceSimulation);
     collectZoneTime("VisibilityManager::update", ProfilerState::traceVisibility);
+    collectPerThreadZoneTime("fillVisibleObjectPerCamera", ProfilerState::traceVisibility);
     collectZoneTime("Render", ProfilerState::traceRendering);
+    collectAllGpuZones(ProfilerState::traceGpuRendering);
 #endif
 }
+
+#ifdef TRACY_ENABLE
+void ProfilerSystem::collectPerThreadZoneTime(const std::string& zoneName, bool enabled) {
+    std::lock_guard<std::mutex> lock(frameTimeMutex);
+    const std::string prefix = zoneName + "::";
+
+    if (!enabled) {
+        for (auto it = zoneTimeHistory.begin(); it != zoneTimeHistory.end(); ) {
+            if (it->first.compare(0, prefix.size(), prefix) == 0) {
+                zoneTimeHead.erase(it->first);
+                zoneTimeCount.erase(it->first);
+                it = zoneTimeHistory.erase(it);
+            } else {
+                ++it;
+            }
+        }
+        perThreadZoneLastProcessed.erase(zoneName);
+        zoneNameCache.erase(zoneName);
+        return;
+    }
+
+    int16_t srcLocId = getSourceLocation(zoneName.c_str());
+    if (srcLocId == -1) return;
+    if (!tracyWorker->AreSourceLocationZonesReady()) return;
+
+    const auto& zonesData = tracyWorker->GetZonesForSourceLocation(srcLocId);
+    const auto& zones = zonesData.zones;
+    size_t zoneCount = zones.size();
+    if (zoneCount == 0) return;
+
+    const auto& threadList = tracyWorker->GetThreadData();
+    size_t lastProcessed = perThreadZoneLastProcessed[zoneName];
+
+    for (size_t i = lastProcessed; i < zoneCount; ++i) {
+        const auto& ztd = zones[i];
+        if (!ztd.Zone()->IsEndValid()) continue;
+
+        uint16_t threadIdx = ztd.Thread();
+        if (threadIdx >= threadList.size()) continue;
+
+        const char* threadName = tracyWorker->GetThreadName(threadList[threadIdx]->id);
+        std::string threadKey = prefix + threadName;
+
+        int64_t durationNs = ztd.Zone()->End() - ztd.Zone()->Start();
+
+        auto& history = zoneTimeHistory[threadKey];
+        auto& head = zoneTimeHead[threadKey];
+        auto& count = zoneTimeCount[threadKey];
+
+        history[head] = static_cast<float>(durationNs) / 1000000.0f;
+        head = (head + 1) % frameTimeHistorySize;
+        if (count < frameTimeHistorySize) count++;
+
+        perThreadZoneLastProcessed[zoneName] = i + 1;
+    }
+}
+#endif
 
 std::vector<float> ProfilerSystem::GetFrameTimeHistory() const {
     return GetZoneTimeHistory("Frame");
@@ -286,4 +347,76 @@ float ProfilerSystem::GetZonePercentileFrameTime(const std::string& name, float 
 #else
     return 0.0f;
 #endif
+}
+
+std::vector<std::string> ProfilerSystem::GetZoneThreadNames(const std::string& zoneName) const {
+    std::vector<std::string> names;
+#ifdef TRACY_ENABLE
+    std::lock_guard<std::mutex> lock(frameTimeMutex);
+    const std::string prefix = zoneName + "::";
+    for (const auto& entry : zoneTimeHistory) {
+        if (entry.first.compare(0, prefix.size(), prefix) == 0) {
+            names.push_back(entry.first.substr(prefix.size()));
+        }
+    }
+#endif
+    return names;
+}
+
+#ifdef TRACY_ENABLE
+void ProfilerSystem::collectAllGpuZones(bool enabled) {
+    std::lock_guard<std::mutex> lock(frameTimeMutex);
+    constexpr std::string_view gpuPrefix = "GPU::";
+
+    if (!enabled) {
+        for (auto it = zoneTimeHistory.begin(); it != zoneTimeHistory.end(); ) {
+            if (it->first.compare(0, gpuPrefix.size(), gpuPrefix) == 0) {
+                zoneTimeHead.erase(it->first);
+                zoneTimeCount.erase(it->first);
+                it = zoneTimeHistory.erase(it);
+            } else {
+                ++it;
+            }
+        }
+        gpuZoneLastProcessed.clear();
+        return;
+    }
+
+    if (!tracyWorker->AreGpuSourceLocationZonesReady()) return;
+
+    const auto& gpuSourceLocZones = tracyWorker->GetGpuSourceLocationZones();
+    for (const auto& [srcLocId, gpuZoneData] : gpuSourceLocZones) {
+        const auto& srcLoc = tracyWorker->GetSourceLocation(srcLocId);
+        const char* zoneName = tracyWorker->GetZoneName(srcLoc);
+        if (!zoneName) continue;
+
+        const std::string key = std::string(gpuPrefix) + zoneName;
+        const auto& zones = gpuZoneData.zones;
+        const size_t zoneCount = zones.size();
+        if (zoneCount == 0) continue;
+
+        size_t lastProcessed = gpuZoneLastProcessed[key];
+        for (size_t i = lastProcessed; i < zoneCount; ++i) {
+            const auto* ev = zones[i].Zone();
+            if (ev->GpuEnd() < 0) continue; // query result not yet available
+
+            const int64_t durationNs = ev->GpuEnd() - ev->GpuStart();
+            if (durationNs < 0) continue;
+
+            auto& history = zoneTimeHistory[key];
+            auto& head = zoneTimeHead[key];
+            auto& count = zoneTimeCount[key];
+
+            history[head] = static_cast<float>(durationNs) / 1000000.0f;
+            head = (head + 1) % frameTimeHistorySize;
+            if (count < frameTimeHistorySize) count++;
+
+            gpuZoneLastProcessed[key] = i + 1;
+        }
+    }
+}
+#endif
+
+std::vector<std::string> ProfilerSystem::GetGpuZoneNames() const {
+    return GetZoneThreadNames("GPU");
 }

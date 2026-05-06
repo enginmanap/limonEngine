@@ -33,6 +33,9 @@ public:
     float GetZoneMaxFrameTime(const std::string& name) const;
     float GetZonePercentileFrameTime(const std::string& name, float percentile) const;
 
+    std::vector<std::string> GetZoneThreadNames(const std::string& zoneName) const;
+    std::vector<std::string> GetGpuZoneNames() const;
+
 private:
 #ifdef TRACY_ENABLE
     tracy::Worker* tracyWorker = nullptr;
@@ -49,8 +52,13 @@ private:
     std::unordered_map<std::string, size_t> zoneLastProcessedIndex;
     std::unordered_map<std::string, int16_t> zoneNameCache;
 
+    std::unordered_map<std::string, size_t> perThreadZoneLastProcessed;
+    std::unordered_map<std::string, size_t> gpuZoneLastProcessed;
+
     OptionsUtil::Options::Option<bool> enableTracingServerOption;
 
     int16_t getSourceLocation(const char* name);
+    void collectPerThreadZoneTime(const std::string& zoneName, bool enabled);
+    void collectAllGpuZones(bool enabled);
 #endif
 };

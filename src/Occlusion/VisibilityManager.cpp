@@ -172,6 +172,7 @@ void VisibilityManager::resetTagsAndRefillCulling() {
 }
 
 void VisibilityManager::fillVisibleObjectPerCamera(const void* visibilityRequestRaw) {
+    PROFILE_VISIBILITY("fillVisibleObjectPerCamera");
     const VisibilityRequest* visibilityRequest = static_cast<const VisibilityRequest *>(visibilityRequestRaw);
     std::vector<long> lodDistances = visibilityRequest->lodDistancesOption.get();
     float skipRenderDistance = 0, skipRenderSize = 0, maxSkipRenderSize = 0;

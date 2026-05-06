@@ -200,6 +200,13 @@ public:
     virtual void restoreLastState() = 0;
 
     virtual OptionsUtil::Options* getOptions() = 0;
+
+    // GPU profiling hooks. Default no-ops so backends without GPU profiling support compile unchanged.
+    // Vulkan backend should override these using TracyVkZone / vkCmdWriteTimestamp internally.
+    virtual void initGpuContext() {}
+    virtual void beginGpuProfileZone(const char* name [[gnu::unused]], bool active [[gnu::unused]]) {}
+    virtual void endGpuProfileZone() {}
+    virtual void collectGpuProfilingData() {}
 };
 
 #endif //LIMONENGINE_GRAPHICSINTERFACE_H

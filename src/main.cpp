@@ -196,6 +196,7 @@ GameEngine::GameEngine() {
         std::cerr << "failed to create graphics backend. Please check " << graphicsBackendFileName << std::endl;
         exit(1);
     }
+    graphicsWrapper->initGpuContext();
     graphicsWrapper->reshape();
 
 #ifdef _WIN32
@@ -256,6 +257,7 @@ void GameEngine::run() {
             currentWorld->render();
         }
         sdlHelper->swap();
+        graphicsWrapper->collectGpuProfilingData();
         if (profilerSystem) profilerSystem->Update();
         PROFILE_FRAME();
     }

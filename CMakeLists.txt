@@ -234,6 +234,9 @@ add_library(LimonAPI STATIC
         src/Options.cpp
         )
 disable_postfixes(LimonAPI)
+# All consumers of LimonAPI (backends, plugins) get TracyClient.dll linked in and
+# TRACY_IMPORTS defined automatically via this INTERFACE dependency.
+target_link_libraries(LimonAPI INTERFACE TracyClient)
 
 file(GLOB API_HEADERS
         "src/limonAPI/*.h"
@@ -283,9 +286,8 @@ add_library(customTriggers SHARED
         )
 disable_postfixes(customTriggers)
 
-TARGET_LINK_LIBRARIES(customTriggers ${CMAKE_BINARY_DIR}/$<TARGET_FILE_NAME:LimonAPI>)
-
-add_dependencies(customTriggers LimonAPI)
+TARGET_LINK_LIBRARIES(customTriggers LimonAPI)
+add_dependencies(LimonEngine customTriggers)
 
 set_target_properties(customTriggers PROPERTIES VERSION ${PROJECT_VERSION})
 set_target_properties(customTriggers PROPERTIES SOVERSION 1)
@@ -305,10 +307,9 @@ add_library(OpenGLGraphicsBackend SHARED
 disable_postfixes(OpenGLGraphicsBackend)
 target_precompile_headers(OpenGLGraphicsBackend PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src/stdafx.h)
 
-TARGET_LINK_LIBRARIES(OpenGLGraphicsBackend ${CMAKE_BINARY_DIR}/$<TARGET_FILE_NAME:LimonAPI> GLEW::GLEW ${OPENGL_LIBRARIES})
+TARGET_LINK_LIBRARIES(OpenGLGraphicsBackend LimonAPI GLEW::GLEW ${OPENGL_LIBRARIES})
 
 set_target_properties(OpenGLGraphicsBackend PROPERTIES VERSION ${PROJECT_VERSION} SOVERSION 1)
-add_dependencies(OpenGLGraphicsBackend LimonAPI)
 add_dependencies(LimonEngine OpenGLGraphicsBackend)
 # --- END OpenGL Backend ---
 
@@ -322,18 +323,15 @@ target_precompile_headers(OpenGLESGraphicsBackend PUBLIC ${CMAKE_CURRENT_SOURCE_
 
 if(WIN32)
     # On windows, WGL ES will resolve them ,nothing else needed.
-    TARGET_LINK_LIBRARIES(OpenGLESGraphicsBackend ${CMAKE_BINARY_DIR}/$<TARGET_FILE_NAME:LimonAPI> GLEW::GLEW ${OPENGL_LIBRARIES})
+    TARGET_LINK_LIBRARIES(OpenGLESGraphicsBackend LimonAPI GLEW::GLEW ${OPENGL_LIBRARIES})
 else()
     # Raspberry Pi / Linux needs native ES libraries
-    TARGET_LINK_LIBRARIES(OpenGLESGraphicsBackend ${CMAKE_BINARY_DIR}/$<TARGET_FILE_NAME:LimonAPI> GLEW::GLEW GLESv2 EGL)
+    TARGET_LINK_LIBRARIES(OpenGLESGraphicsBackend LimonAPI GLEW::GLEW GLESv2 EGL)
 endif()
 
 set_target_properties(OpenGLESGraphicsBackend PROPERTIES VERSION ${PROJECT_VERSION} SOVERSION 1)
-add_dependencies(OpenGLESGraphicsBackend LimonAPI)
 add_dependencies(LimonEngine OpenGLESGraphicsBackend)
 # --- END OpenGLES Backend ---
-
-add_dependencies(LimonEngine customTriggers)
 
 # Add the definition to all targets
 include(BundlePython)
