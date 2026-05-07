@@ -4,10 +4,10 @@
 #include "../Profiler/ProfilerState.h"
 
 #ifdef TRACY_ENABLE
-#define PROFILE_OVERALL(name) ZoneNamedN(___tracy_scoped_zone, name, ProfilerState::traceOverallFrameTime)
-#define PROFILE_SIMULATION(name) ZoneNamedN(___tracy_scoped_zone, name, ProfilerState::traceSimulation)
-#define PROFILE_VISIBILITY(name) ZoneNamedN(___tracy_scoped_zone, name, ProfilerState::traceVisibility)
-#define PROFILE_RENDERING(name) ZoneNamedN(___tracy_scoped_zone, name, ProfilerState::traceRendering)
+#define PROFILE_OVERALL(name) ZoneNamedN(___tracy_scoped_zone, name, ProfilerState::traceOverallFrameTime || ProfilerState::showFlameGraph)
+#define PROFILE_SIMULATION(name) ZoneNamedN(___tracy_scoped_zone, name, ProfilerState::traceSimulation || ProfilerState::showFlameGraph)
+#define PROFILE_VISIBILITY(name) ZoneNamedN(___tracy_scoped_zone, name, ProfilerState::traceVisibility || ProfilerState::showFlameGraph)
+#define PROFILE_RENDERING(name) ZoneNamedN(___tracy_scoped_zone, name, ProfilerState::traceRendering || ProfilerState::showFlameGraph)
 #define PROFILE_FRAME() FrameMark
 #else
 #define PROFILE_OVERALL(name)

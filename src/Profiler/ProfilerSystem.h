@@ -6,6 +6,7 @@
 #include <unordered_map>
 #include <mutex>
 #include "limonAPI/Options.h"
+#include "ProfilerEvent.h"
 
 namespace tracy {
     class Worker;
@@ -35,6 +36,9 @@ public:
 
     std::vector<std::string> GetZoneThreadNames(const std::string& zoneName) const;
     std::vector<std::string> GetGpuZoneNames() const;
+
+    std::vector<ProfileEvent> GetLastFrameEvents(FrameFilter filter = FrameFilter::All) const;
+    std::vector<std::string>  GetGpuDebugInfo(FrameFilter filter = FrameFilter::All) const;
 
 private:
 #ifdef TRACY_ENABLE

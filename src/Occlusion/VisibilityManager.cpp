@@ -174,6 +174,7 @@ void VisibilityManager::resetTagsAndRefillCulling() {
 void VisibilityManager::fillVisibleObjectPerCamera(const void* visibilityRequestRaw) {
     PROFILE_VISIBILITY("fillVisibleObjectPerCamera");
     const VisibilityRequest* visibilityRequest = static_cast<const VisibilityRequest *>(visibilityRequestRaw);
+    ZoneNameV(___tracy_scoped_zone, visibilityRequest->camera->getName().c_str(), visibilityRequest->camera->getName().size());
     std::vector<long> lodDistances = visibilityRequest->lodDistancesOption.get();
     float skipRenderDistance = 0, skipRenderSize = 0, maxSkipRenderSize = 0;
     float objectAverageDepth;

@@ -420,3 +420,314 @@ void ProfilerSystem::collectAllGpuZones(bool enabled) {
 std::vector<std::string> ProfilerSystem::GetGpuZoneNames() const {
     return GetZoneThreadNames("GPU");
 }
+
+std::vector<ProfileEvent> ProfilerSystem::GetLastFrameEvents(FrameFilter filter) const {
+    std::vector<ProfileEvent> result;
+#ifdef TRACY_ENABLE
+    std::lock_guard<std::mutex> lock(frameTimeMutex);
+
+    if (!tracyWorker || !tracyWorker->IsConnected() || !tracyWorker->HasData()) {
+        return result;
+    }
+    if (!tracyWorker->AreSourceLocationZonesReady()) {
+        return result;
+    }
+
+    const auto& allSrcLocs = tracyWorker->GetSourceLocationZones();
+
+    // Single pass: locate Frame and World::play zone data.
+    using ZoneDataT = std::remove_reference_t<decltype(allSrcLocs.begin()->second)>;
+    const ZoneDataT* frameZoneData = nullptr;
+    const ZoneDataT* worldPlayData = nullptr;
+    for (const auto& [id, zoneData] : allSrcLocs) {
+        const char* name = tracyWorker->GetZoneName(tracyWorker->GetSourceLocation(id));
+        if (!name) continue;
+        if (!frameZoneData && strcmp(name, "Frame") == 0)        frameZoneData = &zoneData;
+        if (!worldPlayData && strcmp(name, "World::play") == 0)  worldPlayData = &zoneData;
+        if (frameZoneData && worldPlayData) break;
+    }
+    if (!frameZoneData) return result;
+
+    // Search Frame zones newest to oldest for the first one matching the filter.
+    int64_t frameStart = -1, frameEnd = -1;
+    uint16_t mainThread = 0;
+    for (int i = (int)frameZoneData->zones.size() - 1; i >= 0; --i) {
+        if (!frameZoneData->zones[i].Zone()->IsEndValid()) continue;
+
+        const int64_t fStart = frameZoneData->zones[i].Zone()->Start();
+        const int64_t fEnd   = frameZoneData->zones[i].Zone()->End();
+
+        if (filter != FrameFilter::All) {
+            bool hasGameTick = false;
+            if (worldPlayData) {
+                const auto& wpZones = worldPlayData->zones;
+                for (int wi = (int)wpZones.size() - 1; wi >= 0; --wi) {
+                    const int64_t wStart = wpZones[wi].Zone()->Start();
+                    if (wStart < fStart) break;
+                    if (wStart < fEnd) { hasGameTick = true; break; }
+                }
+            }
+            if (filter == FrameFilter::GameTick  && !hasGameTick) continue;
+            if (filter == FrameFilter::RenderOnly &&  hasGameTick) continue;
+        }
+
+        frameStart = fStart;
+        frameEnd   = fEnd;
+        mainThread = frameZoneData->zones[i].Thread();
+        break;
+    }
+
+    if (frameStart == -1) return result;
+
+    constexpr double nsToMs = 1.0 / 1000000.0;
+
+    // Collect all zones from ALL threads that fall within [frameStart, frameEnd].
+    // Group by thread index so depths can be computed independently per thread.
+    std::unordered_map<uint16_t, std::vector<ProfileEvent>> perThread;
+
+    for (const auto& [srcLocId, zoneData] : allSrcLocs) {
+        const auto& zones = zoneData.zones;
+        for (int i = (int)zones.size() - 1; i >= 0; --i) {
+            const auto& ztd = zones[i];
+            int64_t start = ztd.Zone()->Start();
+            if (start < frameStart) break;
+
+            if (!ztd.Zone()->IsEndValid()) continue;
+            int64_t end = ztd.Zone()->End();
+            if (end > frameEnd) continue;
+
+            // Use GetZoneName(ZoneEvent) so per-zone name overrides (ZoneNameV) are respected.
+            const char* zoneName = tracyWorker->GetZoneName(*ztd.Zone());
+            if (!zoneName) continue;
+
+            ProfileEvent ev;
+            ev.Name      = zoneName;
+            ev.StartTime = (start - frameStart) * nsToMs;
+            ev.EndTime   = (end   - frameStart) * nsToMs;
+            ev.Depth     = 0;
+            perThread[ztd.Thread()].push_back(std::move(ev));
+        }
+    }
+
+    // Helper: sort events then assign depths via an end-time stack, offset by baseDepth.
+    // Returns the number of depth rows consumed by this thread's events.
+    auto assignDepths = [&](std::vector<ProfileEvent>& events, uint32_t baseDepth) -> uint32_t {
+        std::sort(events.begin(), events.end(), [](const ProfileEvent& a, const ProfileEvent& b) {
+            if (a.StartTime != b.StartTime) return a.StartTime < b.StartTime;
+            return (a.EndTime - a.StartTime) > (b.EndTime - b.StartTime);
+        });
+
+        std::vector<double> depthStack;
+        uint32_t maxLocal = 0;
+        for (auto& e : events) {
+            while (!depthStack.empty() && depthStack.back() <= e.StartTime)
+                depthStack.pop_back();
+            uint32_t local = static_cast<uint32_t>(depthStack.size());
+            maxLocal = std::max(maxLocal, local);
+            e.Depth  = baseDepth + local;
+            depthStack.push_back(e.EndTime);
+        }
+        return maxLocal + 1;
+    };
+
+    // Collect GPU zones. Tracy calibrates GpuStart/GpuEnd to the same CPU nanosecond epoch,
+    // so (GpuStart - frameStart) gives the correct frame-relative position directly.
+    // Forward scan with continue (not break) because GPU zones are sorted by GpuStart,
+    // not CpuStart, so a break on CpuStart would terminate early.
+    if (tracyWorker->AreGpuSourceLocationZonesReady()) {
+        const auto& gpuSrcLocs = tracyWorker->GetGpuSourceLocationZones();
+        for (const auto& [srcLocId, gpuZoneData] : gpuSrcLocs) {
+            const auto& srcLoc   = tracyWorker->GetSourceLocation(srcLocId);
+            const char* zoneName = tracyWorker->GetZoneName(srcLoc);
+            if (!zoneName) continue;
+
+            for (const auto& ztd : gpuZoneData.zones) {
+                const auto* ev = ztd.Zone();
+                if (ev->CpuStart() < frameStart || ev->CpuStart() > frameEnd) continue;
+                if (ev->GpuEnd() < 0)               continue;
+                if (ev->GpuEnd() <= ev->GpuStart()) continue;
+
+                const uint16_t gpuKey = static_cast<uint16_t>(0x8000u + ztd.Thread());
+                ProfileEvent gev;
+                gev.Name      = zoneName;
+                // GpuStart calibration has a systematic epoch offset vs the CPU clock,
+                // so use CpuStart (a real CPU timestamp) for position and GPU duration for width.
+                const double gpuDuration = (ev->GpuEnd() - ev->GpuStart()) * nsToMs;
+                gev.StartTime = (ev->CpuStart() - frameStart) * nsToMs;
+                gev.EndTime   = gev.StartTime + gpuDuration;
+                gev.Depth     = 0;
+                perThread[gpuKey].push_back(std::move(gev));
+            }
+        }
+    }
+
+    // Main thread first, then other CPU threads, then GPU context bands (keys ≥ 0x8000).
+    // Each band is separated by one blank row.
+    uint32_t base = 0;
+    if (auto it = perThread.find(mainThread); it != perThread.end()) {
+        base += assignDepths(it->second, base);
+        for (auto& e : it->second) result.push_back(std::move(e));
+    }
+    for (auto& [tid, events] : perThread) {
+        if (tid == mainThread) continue;
+        base += 1;
+        base += assignDepths(events, base);
+        for (auto& e : events) result.push_back(std::move(e));
+    }
+#endif
+    return result;
+}
+
+std::vector<std::string> ProfilerSystem::GetGpuDebugInfo(FrameFilter filter) const {
+    std::vector<std::string> lines;
+#ifdef TRACY_ENABLE
+    std::lock_guard<std::mutex> lock(frameTimeMutex);
+
+    if (!tracyWorker || !tracyWorker->IsConnected() || !tracyWorker->HasData()) {
+        lines.push_back("Tracy worker not ready.");
+        return lines;
+    }
+    if (!tracyWorker->AreSourceLocationZonesReady()) {
+        lines.push_back("Source location zones not ready.");
+        return lines;
+    }
+
+    const auto& allSrcLocs = tracyWorker->GetSourceLocationZones();
+
+    using ZoneDataT = std::remove_reference_t<decltype(allSrcLocs.begin()->second)>;
+    const ZoneDataT* frameZoneData = nullptr;
+    const ZoneDataT* worldPlayData = nullptr;
+    for (const auto& [id, zoneData] : allSrcLocs) {
+        const char* name = tracyWorker->GetZoneName(tracyWorker->GetSourceLocation(id));
+        if (!name) continue;
+        if (!frameZoneData && strcmp(name, "Frame") == 0)        frameZoneData = &zoneData;
+        if (!worldPlayData && strcmp(name, "World::play") == 0)  worldPlayData = &zoneData;
+        if (frameZoneData && worldPlayData) break;
+    }
+
+    int64_t frameStart = -1, frameEnd = -1;
+    if (frameZoneData) {
+        for (int i = (int)frameZoneData->zones.size() - 1; i >= 0; --i) {
+            if (!frameZoneData->zones[i].Zone()->IsEndValid()) continue;
+
+            const int64_t fStart = frameZoneData->zones[i].Zone()->Start();
+            const int64_t fEnd   = frameZoneData->zones[i].Zone()->End();
+
+            if (filter != FrameFilter::All) {
+                bool hasGameTick = false;
+                if (worldPlayData) {
+                    const auto& wpZones = worldPlayData->zones;
+                    for (int wi = (int)wpZones.size() - 1; wi >= 0; --wi) {
+                        const int64_t wStart = wpZones[wi].Zone()->Start();
+                        if (wStart < fStart) break;
+                        if (wStart < fEnd) { hasGameTick = true; break; }
+                    }
+                }
+                if (filter == FrameFilter::GameTick  && !hasGameTick) continue;
+                if (filter == FrameFilter::RenderOnly &&  hasGameTick) continue;
+            }
+
+            frameStart = fStart;
+            frameEnd   = fEnd;
+            break;
+        }
+    }
+
+    char buf[512];
+    if (frameStart == -1) {
+        lines.push_back("No completed Frame zone found for the selected filter.");
+        return lines;
+    }
+
+    constexpr double nsToMs = 1.0 / 1000000.0;
+    snprintf(buf, sizeof(buf), "Frame window: 0.000 to %.3f ms", (frameEnd - frameStart) * nsToMs);
+    lines.push_back(buf);
+
+    if (!tracyWorker->AreGpuSourceLocationZonesReady()) {
+        lines.push_back("GPU source location zones not ready.");
+        return lines;
+    }
+
+    const auto& gpuSrcLocs = tracyWorker->GetGpuSourceLocationZones();
+    snprintf(buf, sizeof(buf), "GPU source locations: %zu", gpuSrcLocs.size());
+    lines.push_back(buf);
+
+    for (const auto& [srcLocId, gpuZoneData] : gpuSrcLocs) {
+        const auto& srcLoc = tracyWorker->GetSourceLocation(srcLocId);
+        const char* zoneName = tracyWorker->GetZoneName(srcLoc);
+        if (!zoneName) {
+            lines.push_back("  [null name] skipped");
+            continue;
+        }
+
+        const auto& zones = gpuZoneData.zones;
+        int total = (int)zones.size();
+        int cpuOob = 0, gpuEndNeg = 0, gpuEndLeStart = 0, accepted = 0;
+        bool foundFirstAccepted = false;
+        bool foundFirstAllRejected = false;
+        double firstAccCpuStart = 0, firstAccGpuStart = 0, firstAccGpuEnd = 0;
+        double firstRejCpuStart = 0, firstRejGpuStart = 0, firstRejGpuEnd = 0;
+        std::string firstRejReason;
+
+        for (const auto& ztd : zones) {
+            const auto* ev = ztd.Zone();
+            if (ev->CpuStart() < frameStart || ev->CpuStart() > frameEnd) {
+                cpuOob++;
+                if (!foundFirstAllRejected) {
+                    foundFirstAllRejected = true;
+                    firstRejReason    = "CpuStart OOB";
+                    firstRejCpuStart  = (ev->CpuStart() - frameStart) * nsToMs;
+                    firstRejGpuStart  = (ev->GpuStart() - frameStart) * nsToMs;
+                    firstRejGpuEnd    = (ev->GpuEnd() >= 0) ? (ev->GpuEnd() - frameStart) * nsToMs : (double)ev->GpuEnd();
+                }
+                continue;
+            }
+            if (ev->GpuEnd() < 0) {
+                gpuEndNeg++;
+                if (!foundFirstAllRejected) {
+                    foundFirstAllRejected = true;
+                    firstRejReason    = "GpuEnd<0";
+                    firstRejCpuStart  = (ev->CpuStart() - frameStart) * nsToMs;
+                    firstRejGpuStart  = (ev->GpuStart() - frameStart) * nsToMs;
+                    firstRejGpuEnd    = (double)ev->GpuEnd();
+                }
+                continue;
+            }
+            if (ev->GpuEnd() <= ev->GpuStart()) {
+                gpuEndLeStart++;
+                if (!foundFirstAllRejected) {
+                    foundFirstAllRejected = true;
+                    firstRejReason    = "GpuEnd<=GpuStart";
+                    firstRejCpuStart  = (ev->CpuStart() - frameStart) * nsToMs;
+                    firstRejGpuStart  = (ev->GpuStart() - frameStart) * nsToMs;
+                    firstRejGpuEnd    = (ev->GpuEnd() - frameStart) * nsToMs;
+                }
+                continue;
+            }
+            accepted++;
+            if (!foundFirstAccepted) {
+                foundFirstAccepted = true;
+                firstAccCpuStart = (ev->CpuStart() - frameStart) * nsToMs;
+                firstAccGpuStart = (ev->GpuStart() - frameStart) * nsToMs;
+                firstAccGpuEnd   = (ev->GpuEnd()   - frameStart) * nsToMs;
+            }
+        }
+
+        snprintf(buf, sizeof(buf), "  [%s] total=%d cpuOOB=%d gpuNeg=%d gpuLe=%d accepted=%d",
+            zoneName, total, cpuOob, gpuEndNeg, gpuEndLeStart, accepted);
+        lines.push_back(buf);
+
+        if (foundFirstAccepted) {
+            snprintf(buf, sizeof(buf), "    first-acc: cpu=%.3fms gpu=[%.3f, %.3f]ms dur=%.3fms",
+                firstAccCpuStart, firstAccGpuStart, firstAccGpuEnd, firstAccGpuEnd - firstAccGpuStart);
+            lines.push_back(buf);
+        }
+        if (accepted == 0 && foundFirstAllRejected) {
+            snprintf(buf, sizeof(buf), "    first-rej(%s): cpu=%.3fms gpu=[%.3f, %.3f]ms",
+                firstRejReason.c_str(), firstRejCpuStart, firstRejGpuStart, firstRejGpuEnd);
+            lines.push_back(buf);
+        }
+    }
+#endif
+    return lines;
+}

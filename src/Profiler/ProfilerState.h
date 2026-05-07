@@ -6,4 +6,5 @@ namespace ProfilerState {
     inline bool traceVisibility = false;
     inline bool traceRendering = false;
     inline bool traceGpuRendering = false;
+    inline bool showFlameGraph = false;
 }
