@@ -30,7 +30,7 @@ For features, check out features video:
 
 Step 1) Open Terminal, then copy and paste the following command
 ```bash
-$ sudo apt install cmake git libassimp-dev libbullet-dev libsdl2-dev libsdl2-image-dev libfreetype6-dev libtinyxml2-dev libglew-dev build-essential libglm-dev
+$ sudo apt install cmake git libassimp-dev libbullet-dev libsdl2-dev libsdl2-image-dev libfreetype6-dev libtinyxml2-dev libglew-dev build-essential libglm-dev libssl-dev
 ```
 Step 2) Since GitHub is limiting LFS bandwidth, it is removed. Cloning the LimonEngine repository should also include all data needed:
 ```bash
@@ -49,7 +49,7 @@ $ cd build && make && cp -a ../Data .
 
 Windows platform is compiled using MSYS2. after installing MSYS2 as any Windows application,  open up the msys2-terminal, and install the dependencies:
 ```bash
-$ pacman -S cmake mingw-w64-x86_64-make mingw-w64-x86_64-gcc mingw-w64-x86_64-gdb cmake mingw-w64-x86_64-assimp cmake mingw-w64-x86_64-bullet mingw-w64-x86_64-SDL2 mingw-w64-x86_64-SDL2_image mingw-w64-x86_64-tinyxml2 mingw-w64-x86_64-glew mingw-w64-x86_64-glm mingw-w64-x86_64-freetype
+$ pacman -S cmake mingw-w64-x86_64-make mingw-w64-x86_64-gcc mingw-w64-x86_64-gdb cmake mingw-w64-x86_64-assimp cmake mingw-w64-x86_64-bullet mingw-w64-x86_64-SDL2 mingw-w64-x86_64-SDL2_image mingw-w64-x86_64-tinyxml2 mingw-w64-x86_64-glew mingw-w64-x86_64-glm mingw-w64-x86_64-freetype mingw-w64-x86_64-openssl
 ```
 
 after that, you can use step 2 - 4 of Ubuntu instructions, on the same terminal.
