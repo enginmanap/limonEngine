@@ -28,3 +28,6 @@
 [submodule "libs/snapdragon-oc"]
 	path = libs/snapdragon-oc
 	url = https://github.com/enginmanap/snapdragon-oc.git
+[submodule "libs/tracy"]
+	path = libs/tracy
+	url = https://github.com/wolfpld/tracy.git

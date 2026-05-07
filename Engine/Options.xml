@@ -383,8 +383,16 @@
     <Parameter>
         <RequestType>FreeText</RequestType>
         <Description>StartingRenderPipeline</Description>
-        <Value>./Engine/forward_renderPipeline.xml</Value>
+        <Value>./Engine/forward_-renderPipeline.xml</Value>
         <valueType>String</valueType>
+        <IsSet>True</IsSet>
+        <Index>0</Index>
+    </Parameter>
+    <Parameter>
+        <RequestType>FreeText</RequestType>
+        <Description>Profiler.EnableServer</Description>
+        <Value>True</Value>
+        <valueType>Boolean</valueType>
         <IsSet>True</IsSet>
         <Index>0</Index>
     </Parameter>

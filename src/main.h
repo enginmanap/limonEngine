@@ -22,6 +22,7 @@ class SDL2Helper;
 class LimonAPI;
 class GUIImage;
 class ScriptManager;
+class ProfilerSystem;
 
 class GameEngine {
     WorldLoader* worldLoader = nullptr;
@@ -34,6 +35,7 @@ class GameEngine {
     InputHandler* inputHandler = nullptr;
     std::shared_ptr<AssetManager> assetManager = nullptr;
     SDL2Helper* sdlHelper = nullptr;
+    ProfilerSystem* profilerSystem = nullptr;
 
     std::unordered_map<std::string, std::pair<World*, LimonAPI*>> loadedWorlds;
 
