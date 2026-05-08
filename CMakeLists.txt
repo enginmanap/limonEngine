@@ -229,6 +229,7 @@ add_library(LimonAPI STATIC
         src/limonAPI/ActorInterface.cpp
         src/limonAPI/LimonAPI.cpp
         src/limonAPI/InputStates.cpp
+        src/limonAPI/ProfileScope.cpp
         src/limonAPI/LimonConverter.h
         src/limonAPI/LimonTypes.h
         src/Options.cpp

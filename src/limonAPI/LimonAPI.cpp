@@ -3,6 +3,7 @@
 //
 
 #include "LimonAPI.h"
+#include "ProfileScope.h"
 
 const OptionsUtil::Options * LimonAPI::getOptions() {
     return limonGetOptions();
@@ -264,4 +265,8 @@ bool LimonAPI::addObjectOrientation(uint32_t objectID, const LimonTypes::Vec4 &o
 
 bool LimonAPI::setObjectTemporary(uint32_t modelID, bool temporary) {
     return worldSetModelTemporary(modelID, temporary);
+}
+
+ProfileScope LimonAPI::profileScope(const std::string& name) {
+    return ProfileScope(this, worldBeginProfileZone(name.c_str(), name.size()));
 }

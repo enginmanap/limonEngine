@@ -10,13 +10,16 @@ class SimpleGuardActor(ActorInterface):
     """
     counter = 0
 
-    def __init__(self, limon_api):
-        super().__init__(limon_api)
-        self._limon_api = limon_api
+    def __init__(self, actor_id: int, limon_api):
+        super().__init__(actor_id, limon_api)
         self._state = "patrol"
         self._last_player_seen_time = 0
         self._alert_duration = 5000  # 5 seconds in milliseconds
         self._patrol_direction = 1
+        # Per-instance zone names built once here so each actor appears separately
+        # in the profiler (e.g. "SimpleGuardActor::play[3]"), matching the C++ pattern.
+        self._play_zone_name = f"SimpleGuardActor::play[{actor_id}]"
+        self._interaction_zone_name = f"SimpleGuardActor::interaction[{actor_id}]"
         
     def get_name(self) -> str:
         """Return the name of this actor."""
@@ -25,53 +28,58 @@ class SimpleGuardActor(ActorInterface):
     def play(self, time: int, actor_information) -> None:
         """
         Main update function called each game tick.
-        
+
         Args:
             time: Current game time in milliseconds
             actor_information: ActorInformation with environment state
         """
-        self.counter += 1
-        if self.counter % 120 == 0:
-            # Check if player is detected
-            if actor_information.can_see_player_directly and actor_information.is_player_front and not actor_information.player_dead:
-                self._handle_player_sighted(time, actor_information)
-            else:
-                self._handle_patrol(time, actor_information)
+        # Use as a context manager so the zone closes at a deterministic point
+        # rather than waiting for the garbage collector. C++ uses RAII (destructor);
+        # Python achieves the same guarantee via the 'with' statement.
+        with self.limon_api.profile_scope(self._play_zone_name):
+            self.counter += 1
+            if self.counter % 120 == 0:
+                # Check if player is detected
+                if actor_information.can_see_player_directly and actor_information.is_player_front and not actor_information.player_dead:
+                    self._handle_player_sighted(time, actor_information)
+                else:
+                    self._handle_patrol(time, actor_information)
     
     def interaction(self, interaction_data) -> bool:
         """
         Handle interaction with this actor. Might be sent from Player or other AI, or Triggers.
-        
+
         Args:
             interaction_data: List of GenericParameter objects
-            
+
         Returns:
             bool: True if interaction was successful
         """
-        print(f"{self.get_name()}: Interaction received!")
-        try:
-            if interaction_data and len(interaction_data) > 0:
-                for param in interaction_data:
-                    if param.description == "action" and param.is_set:
-                        action = param.value
-                        if action == "alert":
-                            self._state = "alert"
-                            print(f"{self.get_name()}: Put on high alert!")
-                            return True
-                        elif action == "reset":
-                            self._state = "patrol"
-                            self._last_player_seen_time = 0
-                            print(f"{self.get_name()}: Reset to patrol state")
-                            return True
-                        else:
-                            print(f"{self.get_name()}: Unknown action '{action}'")
-                            return False
-                return True
-            print(f"{self.get_name()}: No interaction data received")
-            return False
-        except Exception as e:
-            print(f"{self.get_name()}: Error in interaction: {e}")
-            return False
+        with self.limon_api.profile_scope(self._interaction_zone_name):
+            print(f"{self.get_name()}: Interaction received!")
+            try:
+                if interaction_data and len(interaction_data) > 0:
+                    for param in interaction_data:
+                        if param.description == "action" and param.is_set:
+                            action = param.value
+                            if action == "alert":
+                                self._state = "alert"
+                                print(f"{self.get_name()}: Put on high alert!")
+                                return True
+                            elif action == "reset":
+                                self._state = "patrol"
+                                self._last_player_seen_time = 0
+                                print(f"{self.get_name()}: Reset to patrol state")
+                                return True
+                            else:
+                                print(f"{self.get_name()}: Unknown action '{action}'")
+                                return False
+                    return True
+                print(f"{self.get_name()}: No interaction data received")
+                return False
+            except Exception as e:
+                print(f"{self.get_name()}: Error in interaction: {e}")
+                return False
 
     def get_parameters(self):
         """
@@ -150,7 +158,7 @@ class SimpleGuardActor(ActorInterface):
             interaction_params.append(attack_param)
             
             # This would interact with nearby objects/players
-            # self._limon_api.interact_with_ai(self.model_id, interaction_params)
+            # self.limon_api.interact_with_ai(self.model_id, interaction_params)
             
         elif distance < 15.0:
             self._state = "alert"
@@ -215,4 +223,4 @@ class SimpleGuardActor(ActorInterface):
 # Register the actor type
 def register_as_actor(actor_map):
     """Register this actor with the engine."""
-    actor_map["SimpleGuardActor"] = lambda id, api: SimpleGuardActor(api)
+    actor_map["SimpleGuardActor"] = lambda id, api: SimpleGuardActor(id, api)

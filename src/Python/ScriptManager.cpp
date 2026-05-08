@@ -467,6 +467,15 @@ PYBIND11_EMBEDDED_MODULE(limon, m, pybind11::multiple_interpreters::per_interpre
             .def_readwrite("z", &LimonTypes::Vec4::z)
             .def_readwrite("w", &LimonTypes::Vec4::w);
 
+    // Bind ProfileScope — non-constructable from Python; obtained only via LimonAPI.profile_scope()
+    pybind11::class_<ProfileScope>(m, "ProfileScope")
+        .def("__enter__", [](ProfileScope& self) -> ProfileScope& { return self; },
+             pybind11::return_value_policy::reference)
+        .def("__exit__", [](ProfileScope& self, pybind11::object, pybind11::object, pybind11::object) {
+            self.endZone();
+            return false;
+        });
+
     // Bind LimonAPI
     pybind11::class_<LimonAPI> limon(m, "LimonAPI");
 
@@ -710,7 +719,13 @@ PYBIND11_EMBEDDED_MODULE(limon, m, pybind11::multiple_interpreters::per_interpre
                 std::vector<LimonTypes::GenericParameter> result = self.getResultOfTrigger(trigger_object_id, trigger_code_id);
                 return GenericParameterConverter::convertGenericParameterVectorToObjects(result);
             }, "Get result of a trigger",
-                 pybind11::arg("trigger_object_id"), pybind11::arg("trigger_code_id"));
+                 pybind11::arg("trigger_object_id"), pybind11::arg("trigger_code_id"))
+
+            // Profiling
+            .def("profile_scope", [](LimonAPI& self, const std::string& name) {
+                return self.profileScope(name);
+            }, "Begin a named profiling zone; use as context manager",
+                 pybind11::arg("name"));
 
     // Animation methods
     limon.def("animate_model", &LimonAPI::animateModel,
@@ -1288,8 +1303,8 @@ ActorInterface* ScriptManager::CreateActorWrapper(uint32_t id, LimonAPI* api, si
                 // Create the instance using __new__ and __init__ separately
                 pybind11::object instance = pyClass.attr("__new__")(pyClass);
 
-                // Now call __init__ with the API
-                instance.attr("__init__")(pybind11::cast(api, pybind11::return_value_policy::reference));
+                // Now call __init__ with id and api, matching C++ ActorInterface(uint32_t id, LimonAPI*)
+                instance.attr("__init__")(id, pybind11::cast(api, pybind11::return_value_policy::reference));
 
                 // Verify the object has required methods
                 if (!pybind11::hasattr(instance, "get_name") ||

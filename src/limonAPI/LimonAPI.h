@@ -14,6 +14,7 @@
 #include "Options.h"
 #include "InputStates.h"
 #include "LimonTypes.h"
+#include "ProfileScope.h"
 
 class Model;
 class AnimationCustom;
@@ -157,6 +158,8 @@ public:
 
     bool changeRenderPipeline(const std::string& pipelineFileName);
 
+    ProfileScope profileScope(const std::string& name);
+
     bool loadAndSwitchWorld(const std::string& worldFileName);
     bool returnToWorld(const std::string& worldFileName);//if world is not loaded, loads first
     bool LoadAndRemove(const std::string& worldFileName); // removes current world after loading the new one
@@ -200,6 +203,7 @@ public:
     }
 private:
     friend class WorldLoader;
+    friend class ProfileScope;
 
     std::map<std::string, LimonTypes::GenericParameter> variableStore;
 
@@ -267,6 +271,9 @@ private:
     std::function<bool(uint32_t, float)> worldSetModelAnimationSpeed;
 
     std::function<bool(const std::string&)> worldChangeRenderPipeline;
+
+    std::function<uint64_t(const char*, size_t)> worldBeginProfileZone;
+    std::function<void(uint64_t)> worldEndProfileZone;
 
     /*** Non World API calls *******************************************************/
     std::function<const OptionsUtil::Options*()> limonGetOptions;

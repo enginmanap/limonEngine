@@ -7,8 +7,12 @@
 #include <glm/ext.hpp>
 #include "CowboyEnemyAI.h"
 #include "limonAPI/LimonConverter.h"
+#include "limonAPI/ProfileScope.h"
 
 void CowboyEnemyAI::play(long time, ActorInterface::ActorInformation &information) {
+    // Zone name is per-instance (built in constructor from worldID) so each enemy
+    // appears as a distinct entry in the profiler, e.g. "CowboyEnemyAI::play[3]".
+    ProfileScope scope = limonAPI->profileScope(playZoneName);
     //first, check the information and decide if a state change is required
     /**
      * state changes would occur on following conditions:
@@ -237,6 +241,7 @@ void CowboyEnemyAI::play(long time, ActorInterface::ActorInformation &informatio
 }
 
 bool CowboyEnemyAI::interaction(std::vector<LimonTypes::GenericParameter> &interactionInformation) {
+    ProfileScope scope = limonAPI->profileScope(interactionZoneName);
     if(interactionInformation.size() < 1) {
         return false;
     }

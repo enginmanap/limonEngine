@@ -85,8 +85,12 @@ class CowboyEnemyAI : public ActorInterface {
     std::uniform_real_distribution<float> randomFloats;
     std::default_random_engine generator;
     ActorInterface::ActorInformation latestInformation;
+    std::string playZoneName;
+    std::string interactionZoneName;
 public:
-    CowboyEnemyAI(uint32_t id, LimonAPI *limonAPI) : ActorInterface(id, limonAPI) {
+    CowboyEnemyAI(uint32_t id, LimonAPI *limonAPI) : ActorInterface(id, limonAPI),
+        playZoneName("CowboyEnemyAI::play[" + std::to_string(id) + "]"),
+        interactionZoneName("CowboyEnemyAI::interaction[" + std::to_string(id) + "]") {
         randomFloats = std::uniform_real_distribution<float>(0.0f, 1.0f); // generates random floats between 0.0 and 1.0
     };
 

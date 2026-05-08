@@ -12,6 +12,11 @@
 #include "GameObjects/TriggerObject.h"
 
 #include "limonAPI/LimonAPI.h"
+
+#ifdef TRACY_ENABLE
+#include <cstring>
+#include "tracy/TracyC.h"
+#endif
 #include "Assets/Animations/AnimationLoader.h"
 #include "Assets/Animations/AnimationCustom.h"
 #include "GUI/GUITextBase.h"
@@ -134,6 +139,24 @@ void WorldLoader::attachedAPIMethodsToWorld(World *world, LimonAPI *limonAPI) co
     limonAPI->worldSetLightColor     =   std::bind(&World::setLightColorAPI,       world, std::placeholders::_1, std::placeholders::_2);
 
     world->apiInstance = limonAPI;
+
+#ifdef TRACY_ENABLE
+    limonAPI->worldBeginProfileZone = [](const char* name, size_t nameLen) -> uint64_t {
+        uint64_t srcloc = ___tracy_alloc_srcloc_name(0, "", 0, "", 0, name, nameLen, 0);
+        ___tracy_c_zone_context ctx = ___tracy_emit_zone_begin_alloc(srcloc, 1);
+        uint64_t result = 0;
+        std::memcpy(&result, &ctx, sizeof(ctx));
+        return result;
+    };
+    limonAPI->worldEndProfileZone = [](uint64_t zoneContext) {
+        ___tracy_c_zone_context ctx;
+        std::memcpy(&ctx, &zoneContext, sizeof(ctx));
+        ___tracy_emit_zone_end(ctx);
+    };
+#else
+    limonAPI->worldBeginProfileZone = [](const char*, size_t) -> uint64_t { return 0; };
+    limonAPI->worldEndProfileZone   = [](uint64_t) {};
+#endif
 }
 
 
