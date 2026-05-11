@@ -845,6 +845,8 @@ void World::removeActiveCustomAnimation(const AnimationCustom &animationToRemove
 }
 
 World::~World() {
+    // Stop visibility threads, otherwise race condition.
+    visibilityManager->stop();
 
     if(!routeThreads.empty()) {
         std::cout << "Waiting for AI route threads to finish. " << std::endl;
@@ -1484,6 +1486,7 @@ void World::afterLoadFinished() {
             playerCamera->setCameraAttachment(currentPlayer->getCameraAttachment());
         }
     }
+    this->visibilityManager->start();
 }
 
 bool World::disconnectObjectFromPhysics(uint32_t objectWorldID) {
@@ -1643,12 +1646,21 @@ void World::setupForPlay(InputHandler &inputHandler) {
 }
 
 void World::setupForPauseOrStop() {
+    visibilityManager->stop(); // Stop visibility threads when the world is paused or stopped
     if(this->music != nullptr) {
         this->music->pause();
     }
 }
 
+void World::setupForUnpause() {
+    this->visibilityManager->start();
+    if(this->music != nullptr) {
+        this->music->resume();
+    }
+}
+
 bool World::handleQuitRequest() {
+    visibilityManager->stop();
     switch(currentQuitResponse) {
         case QuitResponse::LOAD_WORLD:
             apiInstance->returnToWorld(quitWorldName);

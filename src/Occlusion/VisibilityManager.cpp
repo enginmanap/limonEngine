@@ -12,6 +12,10 @@ VisibilityManager::VisibilityManager(World* world) : world(world) {
 }
 
 VisibilityManager::~VisibilityManager() {
+    stop();
+}
+
+void VisibilityManager::stop() {
     for (auto &item: visibilityThreadPool) {
         item.first->running = false;
     }
@@ -22,6 +26,32 @@ VisibilityManager::~VisibilityManager() {
             SDL_WaitThread(item.second, NULL);
         }
         delete item.first;
+    }
+    visibilityThreadPool.clear();
+}
+
+void VisibilityManager::start() {
+    if(multiThreadedCulling) {
+        if (visibilityThreadPool.empty()) {
+            visibilityThreadPool = occlusionThreadManager();
+            bool isAllThreadsStarted = false;
+            while (!isAllThreadsStarted) {
+                bool allThreadStarted = true;
+                for (const auto &item: visibilityThreadPool) {
+                    if (!item.first->started) {
+                        allThreadStarted = false;
+                    }
+                }
+                isAllThreadsStarted = allThreadStarted;
+            }
+        }
+    } else {
+        if(visibilityThreadPool.empty()) {
+            for (auto &cameraVisibility: cullingResults) {
+                VisibilityRequest* request = new VisibilityRequest(cameraVisibility.first, &world->objects, cameraVisibility.second, world->currentPlayer->getPosition(), world->options);
+                visibilityThreadPool[request] = nullptr;
+            }
+        }
     }
 }
 
@@ -56,21 +86,8 @@ void VisibilityManager::fillVisibleObjectsUsingTags() {
         }
     }
     if(multiThreadedCulling) {
-        if (visibilityThreadPool.empty()) {
-            visibilityThreadPool = occlusionThreadManager();
-            bool isAllThreadsStarted = false;
-            while (!isAllThreadsStarted) {
-                bool allThreadStarted = true;
-                for (const auto &item: visibilityThreadPool) {
-                    if (!item.first->started) {
-                        allThreadStarted = false;
-                    }
-                }
-                isAllThreadsStarted = allThreadStarted;
-            }
-            //std::this_thread::sleep_for(std::chrono::milliseconds(1000));//make sure all threads are started before continuing.
-        }
-
+        // The start() method now handles the initial thread creation.
+        // We only need to signal and wait for processing here.
         //std::cout << "          new frame, trigger occlusion threads" << std::endl;
         VisibilityRequest::waitMainThreadCondition.signalWaiting();
         while (true) {
@@ -98,12 +115,7 @@ void VisibilityManager::fillVisibleObjectsUsingTags() {
             item.first->inProgressLock.unlock();
         }
     } else {
-        if(visibilityThreadPool.empty()) {
-            for (auto &cameraVisibility: cullingResults) {
-                VisibilityRequest* request = new VisibilityRequest(cameraVisibility.first, &world->objects, cameraVisibility.second, world->currentPlayer->getPosition(), world->options);
-                visibilityThreadPool[request] = nullptr;
-            }
-        }
+        // The start() method now handles the initial request creation.
         for (const auto &item: visibilityThreadPool) {
             item.first->playerPosition = world->currentPlayer->getPosition();
             fillVisibleObjectPerCamera(item.first);

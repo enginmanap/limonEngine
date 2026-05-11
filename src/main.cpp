@@ -76,6 +76,7 @@ bool GameEngine::returnOrLoadMap(const std::string &worldFile) {
                 currentWorld->setupForPauseOrStop();
             }
             currentWorld = loadedWorlds[worldFile].first;
+            currentWorld->setupForUnpause();
             // Activate the corresponding interpreter when switching to this world
             scriptManager->setActiveSubInterpreter(worldFile);
         }

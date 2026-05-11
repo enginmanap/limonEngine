@@ -44,6 +44,9 @@ public:
     explicit VisibilityManager(World* world);
     ~VisibilityManager();
 
+    void stop();
+    void start();
+
     void update();
     void onPipelineChange();
     std::unordered_map<Camera*, std::unordered_map<std::vector<uint64_t>, RenderList, VisibilityRequest::uint64_vector_hasher>*>& getCullingResults();

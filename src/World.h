@@ -548,6 +548,8 @@ public:
 
     void setupForPauseOrStop();
 
+    void setupForUnpause();
+
     void checkAndRunTimedEvents();
 
     void animateCustomAnimations();
