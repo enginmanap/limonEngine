@@ -934,7 +934,7 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
                                     for (auto entry:world->visibilityManager->visibilityThreadPool) {
                                         if (entry.first->camera == camera) {
                                             entry.first->running = false;
-                                            VisibilityRequest::waitMainThreadCondition.signalWaiting();
+                                            world->visibilityManager->wakeThreadsCondition.signalWaiting();
                                             SDL_WaitThread(entry.second, nullptr);
                                             auto visRequest = entry.first;
                                             world->visibilityManager->visibilityThreadPool.erase(visRequest);

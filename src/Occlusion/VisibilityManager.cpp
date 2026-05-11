@@ -21,7 +21,7 @@ void VisibilityManager::stop() {
     }
     for (auto &item: visibilityThreadPool) {
 
-        item.first->waitMainThreadCondition.signalWaiting();
+        wakeThreadsCondition.signalWaiting();
         if (item.second) {
             SDL_WaitThread(item.second, NULL);
         }
@@ -48,7 +48,7 @@ void VisibilityManager::start() {
     } else {
         if(visibilityThreadPool.empty()) {
             for (auto &cameraVisibility: cullingResults) {
-                VisibilityRequest* request = new VisibilityRequest(cameraVisibility.first, &world->objects, cameraVisibility.second, world->currentPlayer->getPosition(), world->options);
+                VisibilityRequest* request = new VisibilityRequest(cameraVisibility.first, &world->objects, cameraVisibility.second, world->currentPlayer->getPosition(), world->options, &wakeThreadsCondition);
                 visibilityThreadPool[request] = nullptr;
             }
         }
@@ -94,7 +94,7 @@ void VisibilityManager::fillVisibleObjectsUsingTags() {
         for (const auto &item: visibilityThreadPool) {
             item.first->cameraIsDirty = item.first->camera->isDirty();
         }
-        VisibilityRequest::waitMainThreadCondition.signalWaiting();
+        wakeThreadsCondition.signalWaiting();
         while (true) {
             bool allDone = true;
             for (const auto &item: visibilityThreadPool) {
@@ -148,7 +148,7 @@ void VisibilityManager::fillVisibleObjectsUsingTags() {
 std::map<VisibilityRequest*, SDL_Thread *> VisibilityManager::occlusionThreadManager() {
     std::map<VisibilityRequest*, SDL_Thread*> visibilityProcessing;
     for (auto &cameraVisibility: cullingResults) {
-        VisibilityRequest* request = new VisibilityRequest(cameraVisibility.first, &world->objects, cameraVisibility.second, world->currentPlayer->getPosition(), world->options);
+        VisibilityRequest* request = new VisibilityRequest(cameraVisibility.first, &world->objects, cameraVisibility.second, world->currentPlayer->getPosition(), world->options, &wakeThreadsCondition);
         SDL_Thread* thread = SDL_CreateThread(staticOcclusionThread, request->camera->getName().c_str(), request);
         visibilityProcessing[request] = thread;
     }
@@ -345,7 +345,7 @@ int VisibilityManager::staticOcclusionThread(void* visibilityRequestRaw) {
     visibilityRequest->started = true;
 
     while(visibilityRequest->running) {
-        VisibilityRequest::waitMainThreadCondition.waitCondition(visibilityRequest->blockMutex);
+        visibilityRequest->wakeCondition->waitCondition(visibilityRequest->blockMutex);
         if(!visibilityRequest->running) {
             break;
         }

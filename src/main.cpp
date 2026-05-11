@@ -138,6 +138,7 @@ void GameEngine::returnPreviousMap() {
         }
         currentWorld = returnWorldStack[returnWorldStack.size()-1];
         scriptManager->setActiveSubInterpreter(currentWorld->getName());
+        currentWorld->setupForUnpause();
         currentWorld->setupForPlay(*inputHandler);
     }
     previousGameTime = SDL_GetTicks64();

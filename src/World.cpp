@@ -1653,6 +1653,7 @@ void World::setupForPauseOrStop() {
 }
 
 void World::setupForUnpause() {
+    apiInstance->worldSwitchRequested = false;
     this->visibilityManager->start();
     if(this->music != nullptr) {
         this->music->resume();
