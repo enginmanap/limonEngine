@@ -392,6 +392,11 @@ APISerializer::deserializeTriggerCode(tinyxml2::XMLElement *triggersNode, tinyxm
         tinyxml2::XMLElement* triggerCodeAttribute = triggerAttribute->FirstChildElement("Name");
         triggerCode = TriggerInterface::createTrigger(triggerCodeAttribute->GetText(), limonAPI);
 
+        // Seed parameters with the trigger's current defaults so that XMLs saved
+        // before a parameter was added still produce a fully-sized vector.
+        parameters = triggerCode->getParameters();
+        std::vector<bool> parametersIsSet(parameters.size(), false);
+
         triggerCodeAttribute = triggerAttribute->FirstChildElement("parameters");
 
         tinyxml2::XMLElement* triggerCodeParameter = triggerCodeAttribute->FirstChildElement("Parameter");
@@ -404,10 +409,20 @@ APISerializer::deserializeTriggerCode(tinyxml2::XMLElement *triggersNode, tinyxm
                 delete triggerCode;
                 return nullptr;
             }
-            parameters.insert(parameters.begin() + index, *request);
+            if(index < parameters.size()) {
+                parameters[index] = *request; // overwrite default with saved value
+                parametersIsSet[index] = true;
+            } else {
+                std::cerr << "Trigger found parameter " << index << " that is not used by the trigger [" << triggerCode->getName() << "]" << std::endl;
+            }
             triggerCodeParameter = triggerCodeParameter->NextSiblingElement("Parameter");
         } // end of while (Trigger parameters)
 
+        for (bool isParameterSet: parametersIsSet) {
+            if (!isParameterSet) {
+                std::cerr << "Trigger parameter not set in XML, using default value." << std::endl;
+            }
+        }
         triggerCodeAttribute = triggerAttribute->FirstChildElement("Enabled");
         if (triggerCodeAttribute == nullptr) {
             std::cerr << "Trigger Didn't have enabled set, defaulting to False." << std::endl;
