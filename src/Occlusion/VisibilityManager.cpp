@@ -89,6 +89,11 @@ void VisibilityManager::fillVisibleObjectsUsingTags() {
         // The start() method now handles the initial thread creation.
         // We only need to signal and wait for processing here.
         //std::cout << "          new frame, trigger occlusion threads" << std::endl;
+        // Main thread is checking dirty state, because python player/camera access from other threads
+        // require GIL
+        for (const auto &item: visibilityThreadPool) {
+            item.first->cameraIsDirty = item.first->camera->isDirty();
+        }
         VisibilityRequest::waitMainThreadCondition.signalWaiting();
         while (true) {
             bool allDone = true;
@@ -230,7 +235,7 @@ void VisibilityManager::fillVisibleObjectPerCamera(const void* visibilityRequest
     float maxScreenSize = 0.0;
     std::string maxScreenSizeObjectName;
     for (auto objectIt = visibilityRequest->objects->begin(); objectIt != visibilityRequest->objects->end(); ++objectIt) {
-        if(!visibilityRequest->camera->isDirty() && !objectIt->second->isDirtyForFrustum() && skipOcclusionCulling) {
+        if(!visibilityRequest->cameraIsDirty && !objectIt->second->isDirtyForFrustum() && skipOcclusionCulling) {
             continue; //if neither object nor camera dirty, no need to recalculate
         }
         Model *currentModel = dynamic_cast<Model *>(objectIt->second);
@@ -335,20 +340,20 @@ void VisibilityManager::fillVisibleObjectPerCamera(const void* visibilityRequest
 
 int VisibilityManager::staticOcclusionThread(void* visibilityRequestRaw) {
     VisibilityRequest* visibilityRequest = static_cast<VisibilityRequest *>(visibilityRequestRaw);
-    //std::cout << "Thread for  " << visibilityRequest->camera->getName() << " launched, waiting for condition" << std::endl;
-    //std::cout << "Thread for  " << visibilityRequest->camera->getName() << " started" << std::endl;
+    // We are re ordering the logic so these threads are started and can be used,
+    // but they are blocked until gameplay logic actually starts to request updates.
+    visibilityRequest->started = true;
 
     while(visibilityRequest->running) {
+        VisibilityRequest::waitMainThreadCondition.waitCondition(visibilityRequest->blockMutex);
+        if(!visibilityRequest->running) {
+            break;
+        }
         visibilityRequest->inProgressLock.lock();
-        visibilityRequest->started = true;
         fillVisibleObjectPerCamera(visibilityRequestRaw);
         visibilityRequest->processingDone = true;
         visibilityRequest->inProgressLock.unlock();
-        //std::cout << "Processing done for camera " << visibilityRequest->camera->getName() << " now waiting for condition" << std::endl;
-        VisibilityRequest::waitMainThreadCondition.waitCondition(visibilityRequest->blockMutex);
-        //std::cout << "signal received by " << visibilityRequest->camera->getName() << " starting processing again" << std::endl;
     }
-    visibilityRequest->inProgressLock.unlock();
     return 0;
 }
 
