@@ -59,6 +59,8 @@ public:
 
     void setActiveSubInterpreter(const std::string& worldName);
 
+    void runGC();
+
     static TriggerInterface* CreateTriggerWrapper(LimonAPI* api, size_t index);
     static PlayerExtensionInterface* CreatePlayerExtensionWrapper(LimonAPI* api, size_t index);
     static ActorInterface* CreateActorWrapper(uint32_t id, LimonAPI* api, size_t index);

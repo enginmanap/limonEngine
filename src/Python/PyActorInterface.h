@@ -18,41 +18,63 @@ public:
         : ActorInterface(id, api), pyObj(obj) {}
 
     ~PyActorInterface() override {
-        pyObj = pybind11::none(); // Release Python reference
+        pyObj = pybind11::none();
     }
 
-    std::string getName() const override {
-        return pyObj.attr("get_name")().cast<std::string>();
-    }
-
-    void play(long time, ActorInterface::ActorInformation &information) override {
-        pyObj.attr("play")(time, information);
-    }
-
-    bool interaction(std::vector<LimonTypes::GenericParameter> &interactionInformation) override {
-        pybind11::list param_list;
-        for (const auto& param : interactionInformation) {
-            param_list.append(param);
-        }
-        return pyObj.attr("interaction")(param_list).cast<bool>();
-    }
-
-    std::vector<LimonTypes::GenericParameter> getParameters() const override {
+    [[nodiscard]] std::string getName() const noexcept override {
         try {
-            pybind11::object py_result = pyObj.attr("get_parameters")();
-            return GenericParameterConverter::convertPythonListToGenericParameterVector(py_result);
+            return pyObj.attr("get_name")().cast<std::string>();
         } catch (const std::exception& e) {
-            std::cerr << "Error in PyActorInterface::getParameters: " << e.what() << std::endl;
-            return std::vector<LimonTypes::GenericParameter>();
+            std::cerr << "[PyActor] get_name: " << e.what() << std::endl;
+            PyErr_Clear();
+            return "<error>";
         }
     }
 
-    void setParameters(std::vector<LimonTypes::GenericParameter> parameters) override {
-        pybind11::list param_list;
-        for (const auto& param : parameters) {
-            param_list.append(param);
+    void play(long time, ActorInterface::ActorInformation &information) noexcept override {
+        try {
+            pyObj.attr("play")(time, information);
+        } catch (const std::exception& e) {
+            std::cerr << "[PyActor] play: " << e.what() << std::endl;
+            PyErr_Clear();
         }
-        pyObj.attr("set_parameters")(param_list);
+    }
+
+    bool interaction(std::vector<LimonTypes::GenericParameter> &interactionInformation) noexcept override {
+        try {
+            pybind11::list param_list;
+            for (const auto& param : interactionInformation) {
+                param_list.append(param);
+            }
+            return pyObj.attr("interaction")(param_list).cast<bool>();
+        } catch (const std::exception& e) {
+            std::cerr << "[PyActor] interaction: " << e.what() << std::endl;
+            PyErr_Clear();
+            return false;
+        }
+    }
+
+    std::vector<LimonTypes::GenericParameter> getParameters() const noexcept override {
+        try {
+            return GenericParameterConverter::convertPythonListToGenericParameterVector(pyObj.attr("get_parameters")());
+        } catch (const std::exception& e) {
+            std::cerr << "[PyActor] get_parameters: " << e.what() << std::endl;
+            PyErr_Clear();
+            return {};
+        }
+    }
+
+    void setParameters(std::vector<LimonTypes::GenericParameter> parameters) noexcept override {
+        try {
+            pybind11::list param_list;
+            for (const auto& param : parameters) {
+                param_list.append(param);
+            }
+            pyObj.attr("set_parameters")(param_list);
+        } catch (const std::exception& e) {
+            std::cerr << "[PyActor] set_parameters: " << e.what() << std::endl;
+            PyErr_Clear();
+        }
     }
 };
 

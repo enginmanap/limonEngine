@@ -1078,7 +1078,31 @@ ScriptManager::~ScriptManager() {
     }
     try {
         if (!subInterpreters.empty()) {
-            std::cerr << "[ScriptManager] WARNING: " << subInterpreters.size() << " subinterpreters were not properly cleaned up!" << std::endl;
+            std::cerr << "[ScriptManager] WARNING: " << subInterpreters.size() << " subinterpreters were not properly cleaned up, cleaning up now" << std::endl;
+            std::vector<PythonCallback>& callbacks = GetCallbacks();
+            while (!subInterpreters.empty()) {
+                auto it = subInterpreters.begin();
+                WorldInterpreter* wi = it->second;
+                subInterpreters.erase(it);
+                // Activate the sub-interpreter to release callbacks and run GC in
+                // the correct context before destroying it, so pybind11 instances
+                // held externally (e.g. in callbacks) are released while internals
+                // are still valid.
+                if (Py_IsInitialized() && wi->subInterpreter) {
+                    try {
+                        pybind11::subinterpreter_scoped_activate temp(*wi->subInterpreter);
+                        for (auto& cb : callbacks) {
+                            try { cb.pyClass = pybind11::none(); } catch (...) {}
+                        }
+                        try {
+                            pybind11::module_ gc = pybind11::module_::import("gc");
+                            gc.attr("collect")();
+                        } catch (...) {}
+                    } catch (...) {}
+                }
+                delete wi;  // ~WorldInterpreter will re-activate and call Py_EndInterpreter
+            }
+            callbacks.clear();
         }
         std::vector<PythonCallback>& callbacks = GetCallbacks();
         std::cout << "[ScriptManager] Cleaning up " << callbacks.size() << " static Python callback objects" << std::endl;
@@ -1092,6 +1116,11 @@ ScriptManager::~ScriptManager() {
         callbacks.clear();
 
         if (mainInterpreterGuard && Py_IsInitialized()) {
+            // Run GC before finalization to collect any pybind11-wrapped instances that
+            // survived via cycles (e.g. actor/trigger objects holding self-references).
+            // If they are collected now (while pybind11 internals are still valid), the
+            // assert(!types->empty()) in pybind11's clear_instance will not fire.
+            runGC();
             delete mainInterpreterGuard;
             mainInterpreterGuard = nullptr;
         }
@@ -1377,7 +1406,13 @@ WorldInterpreter* ScriptManager::createWorldInterpreter(const std::string& world
 
         } catch (const std::exception& e) {
             std::cerr << "[ScriptManager] Error during sub-interpreter phase 2 initialization: " << e.what() << std::endl;
+            delete worldInterpreter;  // prevent sub-interpreter from floating to Py_Finalize()
             throw;
+        }
+        if (subInterpreters.count(worldName)) {
+            std::cerr << "[ScriptManager] WARNING: interpreter for '" << worldName << "' already exists, destroying old one" << std::endl;
+            removeWorldInterpreterInternal(subInterpreters[worldName]);
+            subInterpreters.erase(worldName);
         }
         subInterpreters[worldName] = worldInterpreter;
         //and of course load the scripts
@@ -1413,6 +1448,17 @@ void ScriptManager::removeWorldInterpreterInternal(WorldInterpreter* world_inter
     }
     
     delete world_interpreter;
+}
+
+void ScriptManager::runGC() {
+    if (!Py_IsInitialized()) {
+        return;
+    }
+    try {
+        pybind11::module_ gc = pybind11::module_::import("gc");
+        gc.attr("collect")();
+        gc.attr("collect")();
+    } catch (...) {}
 }
 
 // New methods that take world names

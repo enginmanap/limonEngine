@@ -4,6 +4,7 @@
 
 #ifndef LIMONENGINE_PYPLAYEREXTENSIONINTERFACE_H
 #define LIMONENGINE_PYPLAYEREXTENSIONINTERFACE_H
+#include <iostream>
 #include "PyCameraAttachment.h"
 #include "limonAPI/InputStates.h"
 #include "limonAPI/LimonTypes.h"
@@ -19,27 +20,49 @@ public:
         : PlayerExtensionInterface(api), pyObj(obj) {}
 
     ~PyPlayerExtensionInterface() override {
-        pyObj = pybind11::none(); // Release Python reference
+        pyObj = pybind11::none();
     }
 
-    void processInput(const InputStates& input, const PlayerInformation& playerInfo, long time) override {
-        pyObj.attr("process_input")(input, playerInfo, time);
+    void processInput(const InputStates& input, const PlayerInformation& playerInfo, long time) noexcept override {
+        try {
+            pyObj.attr("process_input")(input, playerInfo, time);
+        } catch (const std::exception& e) {
+            std::cerr << "[PyPlayer] process_input: " << e.what() << std::endl;
+            PyErr_Clear();
+        }
     }
 
-    void interact(std::vector<LimonTypes::GenericParameter>& interactionData) override {
-        pyObj.attr("interact")(interactionData);
+    void interact(std::vector<LimonTypes::GenericParameter>& interactionData) noexcept override {
+        try {
+            pyObj.attr("interact")(interactionData);
+        } catch (const std::exception& e) {
+            std::cerr << "[PyPlayer] interact: " << e.what() << std::endl;
+            PyErr_Clear();
+        }
     }
 
-    std::string getName() const override {
-        return pyObj.attr("get_name")().cast<std::string>();
+    [[nodiscard]] std::string getName() const noexcept override {
+        try {
+            return pyObj.attr("get_name")().cast<std::string>();
+        } catch (const std::exception& e) {
+            std::cerr << "[PyPlayer] get_name: " << e.what() << std::endl;
+            PyErr_Clear();
+            return "<error>";
+        }
     }
 
-    CameraAttachment* getCustomCameraAttachment() override {
-        pybind11::object pyCam = pyObj.attr("get_custom_camera_attachment")();
-        if (pyCam.is_none()) {
+    CameraAttachment* getCustomCameraAttachment() noexcept override {
+        try {
+            pybind11::object pyCam = pyObj.attr("get_custom_camera_attachment")();
+            if (pyCam.is_none()) {
+                return nullptr;
+            }
+            return new PyCameraAttachment(limonAPI, pyCam);
+        } catch (const std::exception& e) {
+            std::cerr << "[PyPlayer] get_custom_camera_attachment: " << e.what() << std::endl;
+            PyErr_Clear();
             return nullptr;
         }
-    return new PyCameraAttachment(limonAPI, pyCam);
     }
 };
 

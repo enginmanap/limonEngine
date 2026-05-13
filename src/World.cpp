@@ -1653,7 +1653,6 @@ void World::setupForPauseOrStop() {
 }
 
 void World::setupForUnpause() {
-    apiInstance->worldSwitchRequested = false;
     this->visibilityManager->start();
     if(this->music != nullptr) {
         this->music->resume();
@@ -1661,7 +1660,6 @@ void World::setupForUnpause() {
 }
 
 bool World::handleQuitRequest() {
-    visibilityManager->stop();
     switch(currentQuitResponse) {
         case QuitResponse::LOAD_WORLD:
             apiInstance->returnToWorld(quitWorldName);

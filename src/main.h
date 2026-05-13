@@ -40,12 +40,29 @@ class GameEngine {
     std::unordered_map<std::string, std::pair<World*, LimonAPI*>> loadedWorlds;
 
     std::vector<World*> returnWorldStack;//stack doesn't have clear, so I am using vector
+
+    // Worlds queued for deletion after the current play() frame completes.
+    // LoadNewAndRemoveCurrent defers deletion here instead of deleting mid-play()
+    // to prevent use-after-free when a trigger causes a world switch while
+    // World::play() is still on the stack.
+    struct PendingDelete { std::string name; World* world; LimonAPI* api; };
+    std::vector<PendingDelete> pendingWorldDeletes;
     GUIImage* loadingImage = nullptr;
     uint64_t previousGameTime = 0;
 
     ScriptManager* scriptManager = nullptr;
-public:
 
+    // World switch requested by an API call during play(). Applied after the tick
+    // completes so play() always runs to the end of the tick.
+    enum class PendingSwitchType { NONE, LOAD_AND_CHANGE, RETURN_OR_LOAD, LOAD_NEW_REMOVE_CURRENT, RETURN_PREVIOUS };
+    struct PendingSwitch {
+        PendingSwitchType type = PendingSwitchType::NONE;
+        std::string worldFile;
+    } pendingSwitch;
+
+    void applyPendingSwitch();
+
+public:
     GameEngine();
     ~GameEngine();
 

@@ -268,5 +268,5 @@ bool LimonAPI::setObjectTemporary(uint32_t modelID, bool temporary) {
 }
 
 ProfileScope LimonAPI::profileScope(const std::string& name) {
-    return ProfileScope(this, worldBeginProfileZone(name.c_str(), name.size()));
+    return ProfileScope(worldEndProfileZone, worldBeginProfileZone(name.c_str(), name.size()));
 }

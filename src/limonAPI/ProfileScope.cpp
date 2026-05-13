@@ -1,9 +1,8 @@
 #include "ProfileScope.h"
-#include "LimonAPI.h"
 
 void ProfileScope::endZone() {
     if (context) {
-        limonAPI->worldEndProfileZone(context);
+        endZoneFunc(context);
         context = 0;
     }
 }
