@@ -11,6 +11,12 @@ add_definitions(-DMAX_PYTHON_SCRIPT_COUNT=64)
 add_definitions(-DPYTHON_DEBUGGING)
 add_definitions(-DSDOC_STATIC)
 add_definitions(-DGLM_FORCE_ALIGNED_GTC)
+add_definitions(-DTRACY_ENABLE)
+
+option(TRACY_SERVER_ENABLED "Enable the embedded Tracy server" ON)
+if(TRACY_SERVER_ENABLED)
+    add_definitions(-DTRACY_SERVER_ENABLED)
+endif()
 
 #set(CMAKE_VERBOSE_MAKEFILE ON)
 
@@ -30,9 +36,13 @@ ENDFUNCTION()
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 #include(cotire)
 
+# Use CMake's standard way to set C++ version
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64")
-        set(SIMD_FLAGS "-msse4.1")
+        set(SIMD_FLAGS "-msse4.1 -mlzcnt")
     elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "arm")
         # For 32-bit arm, neon is optional
         set(SIMD_FLAGS "-mfpu=neon")
@@ -43,11 +53,11 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
 endif()
 
 IF (WIN32)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -mconsole -Wall -Wextra -Wnon-virtual-dtor -pedantic -fdiagnostics-all-candidates ${SIMD_FLAGS}")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mconsole -Wall -Wextra -Wnon-virtual-dtor -pedantic -fdiagnostics-all-candidates ${SIMD_FLAGS}")
     set(CMAKE_EXE_LINKER_FLAGS "-fuse-ld=lld ${CMAKE_EXE_LINKER_FLAGS}")
     set(WINDOWS_SPECIFIC_LINK_LIBRARIES "imm32")
 else()
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -Wall -Wextra -Wnon-virtual-dtor -pedantic ${SIMD_FLAGS}")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wnon-virtual-dtor -pedantic ${SIMD_FLAGS}")
 ENDIF()
 
 IF (UNIX AND ${CMAKE_VERSION} VERSION_GREATER "3.11.0")
@@ -101,8 +111,8 @@ include(libs/CmakeLists.txt)
 include_directories(libs/ImGui)
 include_directories(${CMAKE_SOURCE_DIR}/src)
 
-file(GLOB_RECURSE SOURCE_FILES
-        src/*.cpp)
+file(GLOB_RECURSE SOURCE_FILES src/*.cpp)
+list(FILTER SOURCE_FILES EXCLUDE REGEX "ProfilerSystem\\.cpp$")
 
 add_executable(LimonEngine ${SOURCE_FILES})
 
@@ -205,7 +215,7 @@ add_custom_target(copyData
         ${CMAKE_SOURCE_DIR}/Engine ${CMAKE_BINARY_DIR}/Engine)
 add_dependencies(LimonEngine copyData)
 
-TARGET_LINK_LIBRARIES(LimonEngine ImGui ImGuizmo OpenAL meshoptimizer nodeGraph assimp pybind11::embed SDOC.quic ${WINDOWS_SPECIFIC_LINK_LIBRARIES} ${TinyXML2_LIBRARIES} ${BULLET_LIBRARIES} ${SDL2_LIBRARY} ${FREETYPE_LIBRARIES} ${SDL2_IMAGE_LIBRARIES})
+TARGET_LINK_LIBRARIES(LimonEngine ProfilerSystemLib ImGui ImGuizmo OpenAL meshoptimizer nodeGraph assimp pybind11::embed SDOC.quic TracyClient TracyServer ${WINDOWS_SPECIFIC_LINK_LIBRARIES} ${TinyXML2_LIBRARIES} ${BULLET_LIBRARIES} ${SDL2_LIBRARY} ${FREETYPE_LIBRARIES} ${SDL2_IMAGE_LIBRARIES})
 target_precompile_headers(LimonEngine PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src/stdafx.h)
 
 IF (WIN32)
@@ -219,11 +229,15 @@ add_library(LimonAPI STATIC
         src/limonAPI/ActorInterface.cpp
         src/limonAPI/LimonAPI.cpp
         src/limonAPI/InputStates.cpp
+        src/limonAPI/ProfileScope.cpp
         src/limonAPI/LimonConverter.h
         src/limonAPI/LimonTypes.h
         src/Options.cpp
         )
 disable_postfixes(LimonAPI)
+# All consumers of LimonAPI (backends, plugins) get TracyClient.dll linked in and
+# TRACY_IMPORTS defined automatically via this INTERFACE dependency.
+target_link_libraries(LimonAPI INTERFACE TracyClient)
 
 file(GLOB API_HEADERS
         "src/limonAPI/*.h"
@@ -273,9 +287,8 @@ add_library(customTriggers SHARED
         )
 disable_postfixes(customTriggers)
 
-TARGET_LINK_LIBRARIES(customTriggers ${CMAKE_BINARY_DIR}/$<TARGET_FILE_NAME:LimonAPI>)
-
-add_dependencies(customTriggers LimonAPI)
+TARGET_LINK_LIBRARIES(customTriggers LimonAPI)
+add_dependencies(LimonEngine customTriggers)
 
 set_target_properties(customTriggers PROPERTIES VERSION ${PROJECT_VERSION})
 set_target_properties(customTriggers PROPERTIES SOVERSION 1)
@@ -295,10 +308,9 @@ add_library(OpenGLGraphicsBackend SHARED
 disable_postfixes(OpenGLGraphicsBackend)
 target_precompile_headers(OpenGLGraphicsBackend PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src/stdafx.h)
 
-TARGET_LINK_LIBRARIES(OpenGLGraphicsBackend ${CMAKE_BINARY_DIR}/$<TARGET_FILE_NAME:LimonAPI> GLEW::GLEW ${OPENGL_LIBRARIES})
+TARGET_LINK_LIBRARIES(OpenGLGraphicsBackend LimonAPI GLEW::GLEW ${OPENGL_LIBRARIES})
 
 set_target_properties(OpenGLGraphicsBackend PROPERTIES VERSION ${PROJECT_VERSION} SOVERSION 1)
-add_dependencies(OpenGLGraphicsBackend LimonAPI)
 add_dependencies(LimonEngine OpenGLGraphicsBackend)
 # --- END OpenGL Backend ---
 
@@ -312,18 +324,15 @@ target_precompile_headers(OpenGLESGraphicsBackend PUBLIC ${CMAKE_CURRENT_SOURCE_
 
 if(WIN32)
     # On windows, WGL ES will resolve them ,nothing else needed.
-    TARGET_LINK_LIBRARIES(OpenGLESGraphicsBackend ${CMAKE_BINARY_DIR}/$<TARGET_FILE_NAME:LimonAPI> GLEW::GLEW ${OPENGL_LIBRARIES})
+    TARGET_LINK_LIBRARIES(OpenGLESGraphicsBackend LimonAPI GLEW::GLEW ${OPENGL_LIBRARIES})
 else()
     # Raspberry Pi / Linux needs native ES libraries
-    TARGET_LINK_LIBRARIES(OpenGLESGraphicsBackend ${CMAKE_BINARY_DIR}/$<TARGET_FILE_NAME:LimonAPI> GLEW::GLEW GLESv2 EGL)
+    TARGET_LINK_LIBRARIES(OpenGLESGraphicsBackend LimonAPI GLEW::GLEW GLESv2 EGL)
 endif()
 
 set_target_properties(OpenGLESGraphicsBackend PROPERTIES VERSION ${PROJECT_VERSION} SOVERSION 1)
-add_dependencies(OpenGLESGraphicsBackend LimonAPI)
 add_dependencies(LimonEngine OpenGLESGraphicsBackend)
 # --- END OpenGLES Backend ---
-
-add_dependencies(LimonEngine customTriggers)
 
 # Add the definition to all targets
 include(BundlePython)

@@ -3,5 +3,3 @@
 //
 #include "VisibilityRequest.h"
 #include "SDL2MultiThreading.h"
-
-SDL2MultiThreading::Condition VisibilityRequest::waitMainThreadCondition;

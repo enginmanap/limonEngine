@@ -8,7 +8,8 @@ class ActorInterface:
     Implement this to create custom actor behaviors.
     """
 
-    def __init__(self, limon_api):
+    def __init__(self, actor_id: int, limon_api):
+        self.actor_id = actor_id
         self.limon_api = limon_api
 
     def get_name(self) -> str:

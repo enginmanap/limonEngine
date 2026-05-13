@@ -31,6 +31,7 @@
 #include "GameObjects/GUIButton.h"
 #include "GameObjects/GUIAnimation.h"
 #include "Occlusion/VisibilityManager.h"
+#include "ProfilerUI.h"
 
 std::shared_ptr<const Material> EditorNS::selectedMeshesMaterial = nullptr;
 std::shared_ptr<Material> EditorNS::selectedFromListMaterial = nullptr;
@@ -716,6 +717,7 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
 
 
         }
+        ProfilerUI::DrawProfilerUI(world->profilerSystem);
         if(ImGui::CollapsingHeader("List materials")) {
             //listing
             static size_t selectedHash = 0;
@@ -932,7 +934,7 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
                                     for (auto entry:world->visibilityManager->visibilityThreadPool) {
                                         if (entry.first->camera == camera) {
                                             entry.first->running = false;
-                                            VisibilityRequest::waitMainThreadCondition.signalWaiting();
+                                            world->visibilityManager->wakeThreadsCondition.signalWaiting();
                                             SDL_WaitThread(entry.second, nullptr);
                                             auto visRequest = entry.first;
                                             world->visibilityManager->visibilityThreadPool.erase(visRequest);

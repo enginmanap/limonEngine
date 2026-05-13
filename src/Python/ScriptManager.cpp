@@ -467,6 +467,15 @@ PYBIND11_EMBEDDED_MODULE(limon, m, pybind11::multiple_interpreters::per_interpre
             .def_readwrite("z", &LimonTypes::Vec4::z)
             .def_readwrite("w", &LimonTypes::Vec4::w);
 
+    // Bind ProfileScope — non-constructable from Python; obtained only via LimonAPI.profile_scope()
+    pybind11::class_<ProfileScope>(m, "ProfileScope")
+        .def("__enter__", [](ProfileScope& self) -> ProfileScope& { return self; },
+             pybind11::return_value_policy::reference)
+        .def("__exit__", [](ProfileScope& self, pybind11::object, pybind11::object, pybind11::object) {
+            self.endZone();
+            return false;
+        });
+
     // Bind LimonAPI
     pybind11::class_<LimonAPI> limon(m, "LimonAPI");
 
@@ -710,7 +719,13 @@ PYBIND11_EMBEDDED_MODULE(limon, m, pybind11::multiple_interpreters::per_interpre
                 std::vector<LimonTypes::GenericParameter> result = self.getResultOfTrigger(trigger_object_id, trigger_code_id);
                 return GenericParameterConverter::convertGenericParameterVectorToObjects(result);
             }, "Get result of a trigger",
-                 pybind11::arg("trigger_object_id"), pybind11::arg("trigger_code_id"));
+                 pybind11::arg("trigger_object_id"), pybind11::arg("trigger_code_id"))
+
+            // Profiling
+            .def("profile_scope", [](LimonAPI& self, const std::string& name) {
+                return self.profileScope(name);
+            }, "Begin a named profiling zone; use as context manager",
+                 pybind11::arg("name"));
 
     // Animation methods
     limon.def("animate_model", &LimonAPI::animateModel,
@@ -1063,7 +1078,31 @@ ScriptManager::~ScriptManager() {
     }
     try {
         if (!subInterpreters.empty()) {
-            std::cerr << "[ScriptManager] WARNING: " << subInterpreters.size() << " subinterpreters were not properly cleaned up!" << std::endl;
+            std::cerr << "[ScriptManager] WARNING: " << subInterpreters.size() << " subinterpreters were not properly cleaned up, cleaning up now" << std::endl;
+            std::vector<PythonCallback>& callbacks = GetCallbacks();
+            while (!subInterpreters.empty()) {
+                auto it = subInterpreters.begin();
+                WorldInterpreter* wi = it->second;
+                subInterpreters.erase(it);
+                // Activate the sub-interpreter to release callbacks and run GC in
+                // the correct context before destroying it, so pybind11 instances
+                // held externally (e.g. in callbacks) are released while internals
+                // are still valid.
+                if (Py_IsInitialized() && wi->subInterpreter) {
+                    try {
+                        pybind11::subinterpreter_scoped_activate temp(*wi->subInterpreter);
+                        for (auto& cb : callbacks) {
+                            try { cb.pyClass = pybind11::none(); } catch (...) {}
+                        }
+                        try {
+                            pybind11::module_ gc = pybind11::module_::import("gc");
+                            gc.attr("collect")();
+                        } catch (...) {}
+                    } catch (...) {}
+                }
+                delete wi;  // ~WorldInterpreter will re-activate and call Py_EndInterpreter
+            }
+            callbacks.clear();
         }
         std::vector<PythonCallback>& callbacks = GetCallbacks();
         std::cout << "[ScriptManager] Cleaning up " << callbacks.size() << " static Python callback objects" << std::endl;
@@ -1077,6 +1116,11 @@ ScriptManager::~ScriptManager() {
         callbacks.clear();
 
         if (mainInterpreterGuard && Py_IsInitialized()) {
+            // Run GC before finalization to collect any pybind11-wrapped instances that
+            // survived via cycles (e.g. actor/trigger objects holding self-references).
+            // If they are collected now (while pybind11 internals are still valid), the
+            // assert(!types->empty()) in pybind11's clear_instance will not fire.
+            runGC();
             delete mainInterpreterGuard;
             mainInterpreterGuard = nullptr;
         }
@@ -1288,8 +1332,8 @@ ActorInterface* ScriptManager::CreateActorWrapper(uint32_t id, LimonAPI* api, si
                 // Create the instance using __new__ and __init__ separately
                 pybind11::object instance = pyClass.attr("__new__")(pyClass);
 
-                // Now call __init__ with the API
-                instance.attr("__init__")(pybind11::cast(api, pybind11::return_value_policy::reference));
+                // Now call __init__ with id and api, matching C++ ActorInterface(uint32_t id, LimonAPI*)
+                instance.attr("__init__")(id, pybind11::cast(api, pybind11::return_value_policy::reference));
 
                 // Verify the object has required methods
                 if (!pybind11::hasattr(instance, "get_name") ||
@@ -1362,7 +1406,13 @@ WorldInterpreter* ScriptManager::createWorldInterpreter(const std::string& world
 
         } catch (const std::exception& e) {
             std::cerr << "[ScriptManager] Error during sub-interpreter phase 2 initialization: " << e.what() << std::endl;
+            delete worldInterpreter;  // prevent sub-interpreter from floating to Py_Finalize()
             throw;
+        }
+        if (subInterpreters.count(worldName)) {
+            std::cerr << "[ScriptManager] WARNING: interpreter for '" << worldName << "' already exists, destroying old one" << std::endl;
+            removeWorldInterpreterInternal(subInterpreters[worldName]);
+            subInterpreters.erase(worldName);
         }
         subInterpreters[worldName] = worldInterpreter;
         //and of course load the scripts
@@ -1398,6 +1448,17 @@ void ScriptManager::removeWorldInterpreterInternal(WorldInterpreter* world_inter
     }
     
     delete world_interpreter;
+}
+
+void ScriptManager::runGC() {
+    if (!Py_IsInitialized()) {
+        return;
+    }
+    try {
+        pybind11::module_ gc = pybind11::module_::import("gc");
+        gc.attr("collect")();
+        gc.attr("collect")();
+    } catch (...) {}
 }
 
 // New methods that take world names

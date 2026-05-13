@@ -7,6 +7,7 @@
 #include "GraphicsProgramLoader.h"
 #include "limonAPI/Graphics/RenderMethodInterface.h"
 #include "Utils/StringUtils.hpp"
+#include "../Profiler/ProfilerState.h"
 
 //Static initialize of the vector
 std::vector<std::string> GraphicsPipeline::renderMethodNames{"None", "All directional shadows", "All point shadows", "Render Tagged Objects", "Render Opaque Objects",
@@ -20,6 +21,22 @@ void GraphicsPipeline::initialize() {
         stageInfo.stage->activate(stageInfo.clear);
         for(auto& renderMethod:stageInfo.renderMethods) {
             renderMethod.initialize(std::vector<LimonTypes::GenericParameter>());
+        }
+    }
+}
+
+void GraphicsPipeline::render() {
+    for(auto& stageInfo:pipelineStages) {
+        lastStageInfo = &stageInfo;
+        if (graphicsWrapper) {
+            graphicsWrapper->beginGpuProfileZone(stageInfo.stage->getFoundName().c_str(), ProfilerState::traceGpuRendering);
+        }
+        stageInfo.stage->activate(stageInfo.clear);
+        for(auto& renderMethod:stageInfo.renderMethods) {
+            renderMethod();
+        }
+        if (graphicsWrapper) {
+            graphicsWrapper->endGpuProfileZone();
         }
     }
 }
@@ -186,6 +203,7 @@ GraphicsPipeline::deserialize(const std::string &graphicsPipelineFileName, Graph
         stageInfoElement =  stageInfoElement->NextSiblingElement("StageInformation");
     }
 
+    graphicsPipeline->setGraphicsWrapper(graphicsWrapper);
     graphicsPipeline->initialize();
     return graphicsPipeline;
 }
@@ -304,7 +322,7 @@ GraphicsPipeline::StageInfo::deserialize(tinyxml2::XMLElement *stageInfoElement,
             method.setCameraName(StringUtils::join(newStageInfo.cameraTags, ","));
             newStageInfo.addRenderMethod(method);
             if(!isFound) {
-                std::cerr << "Render method build failed, please check!" << std::endl;
+                std::cerr << "Render method '" << methodName << "' not found. If this is a dynamic method, ensure the plugin DLL is loaded before the pipeline deserializes." << std::endl;
                 return false;
             }
         }

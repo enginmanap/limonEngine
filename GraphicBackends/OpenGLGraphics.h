@@ -31,6 +31,10 @@
 #include "limonAPI/Options.h"
 #include "limonAPI/Graphics/GraphicsInterface.h"
 
+#ifdef TRACY_ENABLE
+namespace tracy { class GpuCtxScope; }
+#endif
+
 class Material;
 
 class Light;
@@ -191,6 +195,9 @@ private:
     GLenum error;
     GLint maxTextureImageUnits;
     OpenglState *state;
+#ifdef TRACY_ENABLE
+    tracy::GpuCtxScope* currentGpuZone = nullptr;
+#endif
 
     unsigned int screenHeight, screenWidth;
     float aspect;
@@ -371,6 +378,11 @@ public:
     void backupCurrentState();
 
     void restoreLastState();
+
+    void initGpuContext() override;
+    void beginGpuProfileZone(const char* name, bool active) override;
+    void endGpuProfileZone() override;
+    void collectGpuProfilingData() override;
 
     void clearFrame() {
 

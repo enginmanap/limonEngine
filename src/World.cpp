@@ -36,8 +36,10 @@
 #include "Occlusion/RenderList.h"
 #include "snapdragon-oc/Source/app/FuzzyCulling/API/SDOCAPI.h"
 #include "Occlusion/VisibilityManager.h"
+#include "Profiler/ProfilerMacros.h"
+#include "Editor/ProfilerUI.h"
 
-   const std::map<World::PlayerInfo::Types, std::string> World::PlayerInfo::typeNames =
+const std::map<World::PlayerInfo::Types, std::string> World::PlayerInfo::typeNames =
     {
             { Types::PHYSICAL_PLAYER, "Physical"},
             { Types::DEBUG_PLAYER, "Debug"},
@@ -49,8 +51,8 @@ void World::setupRenderForPipeline() const {
 }
 
 World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandler *inputHandler,
-                std::shared_ptr<AssetManager> assetManager, OptionsUtil::Options *options)
-        : assetManager(assetManager), options(options),
+                std::shared_ptr<AssetManager> assetManager, OptionsUtil::Options *options, ProfilerSystem* profilerSystem)
+        : assetManager(assetManager), options(options), profilerSystem(profilerSystem),
         graphicsWrapper(assetManager->getGraphicsWrapper()), alHelper(assetManager->getAlHelper()), name(name),
         fontManager(graphicsWrapper), startingPlayer(startingPlayerType) {
     editor = std::make_unique<Editor>(this);
@@ -214,7 +216,7 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
   * @return
   */
  void World::play(Uint32 simulationTimeFrame, InputHandler &inputHandler, uint64_t wallTime) {
-
+    PROFILE_SIMULATION("World::play");
      editor->update(inputHandler);
 
      this->wallTime = wallTime;
@@ -843,6 +845,8 @@ void World::removeActiveCustomAnimation(const AnimationCustom &animationToRemove
 }
 
 World::~World() {
+    // Stop visibility threads, otherwise race condition.
+    visibilityManager->stop();
 
     if(!routeThreads.empty()) {
         std::cout << "Waiting for AI route threads to finish. " << std::endl;
@@ -1473,11 +1477,16 @@ void World::afterLoadFinished() {
     }
 
     if(!startingPlayer.extensionName.empty()) {
-        PlayerExtensionInterface *playerExtension =PlayerExtensionInterface::createExtension(startingPlayer.extensionName, apiInstance);
-        this->currentPlayer->setPlayerExtension(playerExtension);
-        this->currentPlayer->setCameraOverride(playerExtension->getCustomCameraAttachment());
-        playerCamera->setCameraAttachment(currentPlayer->getCameraAttachment());
+        PlayerExtensionInterface *playerExtension = PlayerExtensionInterface::createExtension(startingPlayer.extensionName, apiInstance);
+        if(playerExtension == nullptr) {
+            std::cerr << "Player extension '" << startingPlayer.extensionName << "' not found. Is the correct trigger library loaded?" << std::endl;
+        } else {
+            this->currentPlayer->setPlayerExtension(playerExtension);
+            this->currentPlayer->setCameraOverride(playerExtension->getCustomCameraAttachment());
+            playerCamera->setCameraAttachment(currentPlayer->getCameraAttachment());
+        }
     }
+    this->visibilityManager->start();
 }
 
 bool World::disconnectObjectFromPhysics(uint32_t objectWorldID) {
@@ -1637,8 +1646,16 @@ void World::setupForPlay(InputHandler &inputHandler) {
 }
 
 void World::setupForPauseOrStop() {
+    visibilityManager->stop(); // Stop visibility threads when the world is paused or stopped
     if(this->music != nullptr) {
         this->music->pause();
+    }
+}
+
+void World::setupForUnpause() {
+    this->visibilityManager->start();
+    if(this->music != nullptr) {
+        this->music->resume();
     }
 }
 

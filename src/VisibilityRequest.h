@@ -60,7 +60,7 @@ public:
             }
         };
 
-        static SDL2MultiThreading::Condition waitMainThreadCondition;
+        SDL2MultiThreading::Condition* wakeCondition = nullptr;
         SDL_mutex* blockMutex = SDL_CreateMutex();
         const Camera* const camera;
         glm::vec3 playerPosition;
@@ -82,10 +82,11 @@ public:
         bool running = true;
         bool started = false;
         bool processingDone = false;
+        bool cameraIsDirty = true; // cached by main thread before each signal; avoids Python GIL call from background thread
         SDL2MultiThreading::SpinLock inProgressLock;
 
-        VisibilityRequest(Camera* camera, std::unordered_map<uint32_t, PhysicalRenderable *>* objects, std::unordered_map<std::vector<uint64_t>, RenderList, uint64_vector_hasher> * visibility, const glm::vec3& playerPosition, const OptionsUtil::Options* options) :
-                camera(camera), playerPosition(playerPosition), options(options),
+        VisibilityRequest(Camera* camera, std::unordered_map<uint32_t, PhysicalRenderable *>* objects, std::unordered_map<std::vector<uint64_t>, RenderList, uint64_vector_hasher> * visibility, const glm::vec3& playerPosition, const OptionsUtil::Options* options, SDL2MultiThreading::Condition* wakeCondition) :
+                wakeCondition(wakeCondition), camera(camera), playerPosition(playerPosition), options(options),
                 lodDistancesOption(options->getOption<std::vector<long>>(HASH("LodDistanceList"))),
                 skipRenderDistanceOption(options->getOption<double>(HASH("SkipRenderDistance"))),
                 skipRenderSizeOption(options->getOption<double>(HASH("SkipRenderSize"))),

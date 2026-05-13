@@ -69,6 +69,7 @@ private:
     friend class SDL2Helper;
     GraphicsPipeline() = default;//used for deserialize
     GraphicsPipeline::StageInfo* lastStageInfo = nullptr;
+    GraphicsInterface* graphicsWrapper = nullptr;
 
 public:
     static std::vector<std::string> renderMethodNames;//This is not array, because custom effects might be loaded on runtime as extensions.
@@ -131,15 +132,9 @@ public:
 
     void initialize();
 
-    inline void render() {
-        for(auto& stageInfo:pipelineStages) {
-            lastStageInfo = &stageInfo;
-            stageInfo.stage->activate(stageInfo.clear);
-            for(auto& renderMethod:stageInfo.renderMethods) {
-                renderMethod();
-            }
-        }
-    }
+    void setGraphicsWrapper(GraphicsInterface* gw) { graphicsWrapper = gw; }
+
+    void render();
 
     void reActivateLastStage() {
         //if something injected some state changes (Like editor) this will be need

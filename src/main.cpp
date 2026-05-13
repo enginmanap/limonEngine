@@ -9,7 +9,9 @@
 #include "WorldLoader.h"
 #include "GameObjects/GUIImage.h"
 #include "Python/ScriptManager.h"
+#include "Profiler/ProfilerSystem.h"
 #include <pthread.h>
+#include "Profiler/ProfilerMacros.h"
 
 const std::string PROGRAM_NAME = "LimonEngine";
 const std::string RELEASE_FILE = "./Data/Release.xml";
@@ -36,6 +38,7 @@ bool GameEngine::loadAndChangeWorld(const std::string &worldFile) {
     
     if(newWorld == nullptr) {
         delete apiInstance;
+        scriptManager->removeWorldInterpreter(worldFile);
         return false;
     }
 
@@ -74,6 +77,7 @@ bool GameEngine::returnOrLoadMap(const std::string &worldFile) {
                 currentWorld->setupForPauseOrStop();
             }
             currentWorld = loadedWorlds[worldFile].first;
+            currentWorld->setupForUnpause();
             // Activate the corresponding interpreter when switching to this world
             scriptManager->setActiveSubInterpreter(worldFile);
         }
@@ -89,6 +93,7 @@ bool GameEngine::returnOrLoadMap(const std::string &worldFile) {
         World* newWorld = worldLoader->loadWorld(worldFile, apiInstance);
         if(newWorld == nullptr) {
             delete apiInstance;
+            scriptManager->removeWorldInterpreter(worldFile);
             return false;
         }
 
@@ -110,18 +115,21 @@ bool GameEngine::LoadNewAndRemoveCurrent(const std::string &worldFile) {
     renderLoadingImage();
     World* temp = currentWorld;
     LimonAPI* tempAPI = loadedWorlds[temp->getName()].second;
-    loadedWorlds.erase(temp->getName());
+    std::string oldWorldName = temp->getName();
+    loadedWorlds.erase(oldWorldName);
     if(returnOrLoadMap(worldFile)) {
         //means success
         returnWorldStack.clear();
         returnWorldStack.push_back(currentWorld);
-        delete tempAPI;
-        delete temp;
+        // Defer deletion: if this was called from inside World::play() (e.g. via a
+        // trigger), deleting temp here would free the object whose play() is still
+        // on the stack.  Queue it for deletion after play() returns instead.
+        pendingWorldDeletes.push_back({oldWorldName, temp, tempAPI});
     } else {
         //means new world load failed
         std::cerr << "World load for file " << worldFile << " failed" << std::endl;
-        loadedWorlds[temp->getName()].first = temp;
-        loadedWorlds[temp->getName()].second = tempAPI;
+        loadedWorlds[oldWorldName].first = temp;
+        loadedWorlds[oldWorldName].second = tempAPI;
     }
     previousGameTime = SDL_GetTicks64();
     return true;
@@ -135,6 +143,7 @@ void GameEngine::returnPreviousMap() {
         }
         currentWorld = returnWorldStack[returnWorldStack.size()-1];
         scriptManager->setActiveSubInterpreter(currentWorld->getName());
+        currentWorld->setupForUnpause();
         currentWorld->setupForPlay(*inputHandler);
     }
     previousGameTime = SDL_GetTicks64();
@@ -147,6 +156,7 @@ GameEngine::GameEngine() {
 
     options->loadOptionsNew(OPTIONS_FILE);
     std::cout << "Options loaded successfully" << std::endl;
+    profilerSystem = new ProfilerSystem(options);
 
     sdlHelper = new SDL2Helper(options);
 
@@ -193,6 +203,7 @@ GameEngine::GameEngine() {
         std::cerr << "failed to create graphics backend. Please check " << graphicsBackendFileName << std::endl;
         exit(1);
     }
+    graphicsWrapper->initGpuContext();
     graphicsWrapper->reshape();
 
 #ifdef _WIN32
@@ -208,19 +219,39 @@ GameEngine::GameEngine() {
     inputHandler = new InputHandler(sdlHelper->getWindow(), options);
     assetManager = std::make_shared<AssetManager>(graphicsWrapper.get(), alHelper);
 
-    worldLoader = new WorldLoader(assetManager, inputHandler, options);
+    worldLoader = new WorldLoader(assetManager, inputHandler, options, profilerSystem);
+}
+
+void GameEngine::applyPendingSwitch() {
+    PendingSwitch ps = pendingSwitch;
+    pendingSwitch = {};
+    switch (ps.type) {
+        case PendingSwitchType::LOAD_AND_CHANGE:         loadAndChangeWorld(ps.worldFile);       break;
+        case PendingSwitchType::RETURN_OR_LOAD:          returnOrLoadMap(ps.worldFile);           break;
+        case PendingSwitchType::LOAD_NEW_REMOVE_CURRENT: LoadNewAndRemoveCurrent(ps.worldFile);   break;
+        case PendingSwitchType::RETURN_PREVIOUS:         returnPreviousMap();                     break;
+        default: break;
+    }
 }
 
 LimonAPI *GameEngine::getNewLimonAPI() {
-    std::function<bool(const std::string &)> limonLoadWorld =
-            bind(&GameEngine::loadAndChangeWorld, this, std::placeholders::_1);
-    std::function<bool(const std::string &)> limonReturnOrLoadWorld =
-            bind(&GameEngine::returnOrLoadMap, this, std::placeholders::_1);
-    std::function<bool(const std::string &)> limonLoadNewAndRemoveCurrentWorld =
-            bind(&GameEngine::LoadNewAndRemoveCurrent, this, std::placeholders::_1);
-    std::function<void()> limonExitGame = [&] { setWorldQuit(); };
-    std::function<void()> limonReturnPrevious = [&] { returnPreviousMap(); };
-    std::function<const OptionsUtil::Options*()> limonGetOptions = [&] { return options; };
+    std::function<bool(const std::string &)> limonLoadWorld = [this](const std::string& worldFile) {
+        pendingSwitch = {PendingSwitchType::LOAD_AND_CHANGE, worldFile};
+        return true;
+    };
+    std::function<bool(const std::string &)> limonReturnOrLoadWorld = [this](const std::string& worldFile) {
+        pendingSwitch = {PendingSwitchType::RETURN_OR_LOAD, worldFile};
+        return true;
+    };
+    std::function<bool(const std::string &)> limonLoadNewAndRemoveCurrentWorld = [this](const std::string& worldFile) {
+        pendingSwitch = {PendingSwitchType::LOAD_NEW_REMOVE_CURRENT, worldFile};
+        return true;
+    };
+    std::function<void()> limonExitGame = [this] { setWorldQuit(); };
+    std::function<void()> limonReturnPrevious = [this] {
+        pendingSwitch = {PendingSwitchType::RETURN_PREVIOUS, ""};
+    };
+    std::function<const OptionsUtil::Options*()> limonGetOptions = [this] { return options; };
 
     return new LimonAPI(limonLoadWorld, limonReturnOrLoadWorld, limonLoadNewAndRemoveCurrentWorld, limonExitGame,
                             limonReturnPrevious, limonGetOptions);
@@ -233,6 +264,7 @@ void GameEngine::run() {
     previousGameTime = SDL_GetTicks64();
     uint64_t currentGameTime, frameTime, accumulatedTime = 0;
     while (!worldQuit) {
+        PROFILE_OVERALL("Frame");
         currentGameTime = SDL_GetTicks64();
         frameTime = currentGameTime - previousGameTime;
         previousGameTime = currentGameTime;
@@ -244,17 +276,51 @@ void GameEngine::run() {
             //FIXME this does not account for long operations/low framerate
             currentWorld->play(worldUpdateTime, *inputHandler, SDL_GetTicks64());
             accumulatedTime -= worldUpdateTime;
+
+            if (pendingSwitch.type != PendingSwitchType::NONE && !worldQuit) {
+                applyPendingSwitch();
+            }
+
+            // Process worlds that were queued for deletion during play().
+            // Must happen after play() returns so we never delete a World whose
+            // play() method is still on the call stack.
+            if (!pendingWorldDeletes.empty()) {
+                for (auto& pd : pendingWorldDeletes) {
+                    scriptManager->setActiveSubInterpreter(pd.name);
+                    delete pd.api;
+                    delete pd.world;
+                    scriptManager->removeWorldInterpreter(pd.name);
+                }
+                pendingWorldDeletes.clear();
+                // Restore the current world's interpreter after cleanup
+                if (currentWorld != nullptr) {
+                    scriptManager->setActiveSubInterpreter(currentWorld->getName());
+                }
+            }
         }
         graphicsWrapper->clearFrame();
-        currentWorld->setupRender();
-        currentWorld->render();
+        {
+            PROFILE_RENDERING("Render");
+            currentWorld->setupRender();
+            currentWorld->render();
+        }
         sdlHelper->swap();
+        graphicsWrapper->collectGpuProfilingData();
+        if (profilerSystem) profilerSystem->Update();
+        PROFILE_FRAME();
     }
 }
 
 GameEngine::~GameEngine() {
     for (auto iterator = loadedWorlds.begin(); iterator != loadedWorlds.end(); ++iterator) {
         scriptManager->setActiveSubInterpreter(iterator->first);
+        // Run GC before deleting the world so that cyclic Python references (e.g. actor
+        // objects holding a ref to themselves via a callback) are broken while the
+        // sub-interpreter's pybind11 internals and C++ objects are still alive.
+        // Without this, those cyclic objects survive until Py_Finalize() in the main
+        // interpreter, where the pybind11 internals are gone and all_type_info() returns
+        // an empty vector, triggering assert(!types->empty()) in clear_instance().
+        scriptManager->runGC();
         delete iterator->second.first;//delete world
         delete iterator->second.second;//delete API
         scriptManager->removeWorldInterpreter(iterator->first);
@@ -267,6 +333,7 @@ GameEngine::~GameEngine() {
     delete alHelper;
     graphicsWrapper = nullptr;//FIXME this should be part of SdlHelper, because it is created and deleted by it. now it is order dependent because if it.
     delete sdlHelper;
+    delete profilerSystem;
     delete options;
 }
 

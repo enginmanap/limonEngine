@@ -40,9 +40,13 @@ class VisibilityManager {
 
 public:
     std::map<VisibilityRequest*, SDL_Thread *> visibilityThreadPool;
+    SDL2MultiThreading::Condition wakeThreadsCondition;
 
     explicit VisibilityManager(World* world);
     ~VisibilityManager();
+
+    void stop();
+    void start();
 
     void update();
     void onPipelineChange();

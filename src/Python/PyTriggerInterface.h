@@ -8,6 +8,7 @@
 #include "limonAPI/TriggerInterface.h"
 #include "pybind11/cast.h"
 #include "pybind11/pytypes.h"
+#include "GenericParameterConverter.h"
 
 
 class PyTriggerInterface : public TriggerInterface {
@@ -24,27 +25,44 @@ public:
         pyObj = pybind11::none(); // Release Python reference
     }
 
-    std::vector<LimonTypes::GenericParameter> getParameters() override {
-        pybind11::list pyParams = pyObj.attr("get_parameters")();
-        std::vector<LimonTypes::GenericParameter> params;
-        params.reserve(pybind11::len(pyParams));
-
-        for (auto item : pyParams) {
-            params.push_back(item.cast<LimonTypes::GenericParameter>());
+    std::vector<LimonTypes::GenericParameter> getParameters() noexcept override {
+        try {
+            return GenericParameterConverter::convertPythonListToGenericParameterVector(pyObj.attr("get_parameters")());
+        } catch (const std::exception& e) {
+            std::cerr << "[PyTrigger] get_parameters: " << e.what() << std::endl;
+            PyErr_Clear();
+            return {};
         }
-        return params;
     }
 
-    bool run(std::vector<LimonTypes::GenericParameter> parameters) override {
-        return pyObj.attr("run")(parameters).cast<bool>();
+    bool run(std::vector<LimonTypes::GenericParameter> parameters) noexcept override {
+        try {
+            return pyObj.attr("run")(GenericParameterConverter::convertGenericParameterVectorToObjects(parameters)).cast<bool>();
+        } catch (const std::exception& e) {
+            std::cerr << "[PyTrigger] run: " << e.what() << std::endl;
+            PyErr_Clear();
+            return false;
+        }
     }
 
-    std::vector<LimonTypes::GenericParameter> getResults() override {
-        return pyObj.attr("get_results")().cast<std::vector<LimonTypes::GenericParameter>>();
+    std::vector<LimonTypes::GenericParameter> getResults() noexcept override {
+        try {
+            return GenericParameterConverter::convertPythonListToGenericParameterVector(pyObj.attr("get_results")());
+        } catch (const std::exception& e) {
+            std::cerr << "[PyTrigger] get_results: " << e.what() << std::endl;
+            PyErr_Clear();
+            return {};
+        }
     }
 
-    std::string getName() const override {
-        return pyObj.attr("get_name")().cast<std::string>();
+    [[nodiscard]] std::string getName() const noexcept override {
+        try {
+            return pyObj.attr("get_name")().cast<std::string>();
+        } catch (const std::exception& e) {
+            std::cerr << "[PyTrigger] get_name: " << e.what() << std::endl;
+            PyErr_Clear();
+            return "<error>";
+        }
     }
 };
 

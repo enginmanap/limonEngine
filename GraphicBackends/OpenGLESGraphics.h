@@ -39,6 +39,10 @@ class Light;
 class GraphicsProgram;
 class Texture;
 
+#ifdef TRACY_ENABLE
+namespace tracy { class GpuCtxScope; }
+#endif
+
 extern "C" std::shared_ptr<GraphicsInterface> createGraphicsBackend(OptionsUtil::Options* options);
 
 const char* getEGLErrorString(GLenum error) {
@@ -248,6 +252,11 @@ private:
     bool isProgramInterfaceQuerySupported = false;
     bool isFrameBufferParameterSupported = false;
     bool isDebugOutputSupported = false;
+    bool isTimerQuerySupported = false;
+
+#ifdef TRACY_ENABLE
+    tracy::GpuCtxScope* currentGpuZone = nullptr;
+#endif
 
 public:
 
@@ -392,6 +401,11 @@ public:
     void backupCurrentState();
 
     void restoreLastState();
+
+    void initGpuContext() override;
+    void beginGpuProfileZone(const char* name, bool active) override;
+    void endGpuProfileZone() override;
+    void collectGpuProfilingData() override;
 
     void clearFrame() {
 

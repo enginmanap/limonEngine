@@ -12,6 +12,11 @@
 #include "GameObjects/TriggerObject.h"
 
 #include "limonAPI/LimonAPI.h"
+
+#ifdef TRACY_ENABLE
+#include <cstring>
+#include "tracy/TracyC.h"
+#endif
 #include "Assets/Animations/AnimationLoader.h"
 #include "Assets/Animations/AnimationCustom.h"
 #include "GUI/GUITextBase.h"
@@ -29,12 +34,13 @@
 #include "GameObjects/ModelGroup.h"
 #include "GamePlay/APISerializer.h"
 
-WorldLoader::WorldLoader(std::shared_ptr<AssetManager> assetManager, InputHandler *inputHandler, OptionsUtil::Options *options) :
+WorldLoader::WorldLoader(std::shared_ptr<AssetManager> assetManager, InputHandler *inputHandler, OptionsUtil::Options *options, ProfilerSystem* profilerSystem) :
         options(options),
         graphicsWrapper(assetManager->getGraphicsWrapper()),
         alHelper(assetManager->getAlHelper()),
         assetManager(assetManager),
-        inputHandler(inputHandler)
+        inputHandler(inputHandler),
+        profilerSystem(profilerSystem)
 {}
 
 World * WorldLoader::loadWorld(const std::string &worldFile, LimonAPI *limonAPI) const {
@@ -133,6 +139,24 @@ void WorldLoader::attachedAPIMethodsToWorld(World *world, LimonAPI *limonAPI) co
     limonAPI->worldSetLightColor     =   std::bind(&World::setLightColorAPI,       world, std::placeholders::_1, std::placeholders::_2);
 
     world->apiInstance = limonAPI;
+
+#ifdef TRACY_ENABLE
+    limonAPI->worldBeginProfileZone = [](const char* name, size_t nameLen) -> uint64_t {
+        uint64_t srcloc = ___tracy_alloc_srcloc_name(0, "", 0, "", 0, name, nameLen, 0);
+        ___tracy_c_zone_context ctx = ___tracy_emit_zone_begin_alloc(srcloc, 1);
+        uint64_t result = 0;
+        std::memcpy(&result, &ctx, sizeof(ctx));
+        return result;
+    };
+    limonAPI->worldEndProfileZone = [](uint64_t zoneContext) {
+        ___tracy_c_zone_context ctx;
+        std::memcpy(&ctx, &zoneContext, sizeof(ctx));
+        ___tracy_emit_zone_end(ctx);
+    };
+#else
+    limonAPI->worldBeginProfileZone = [](const char*, size_t) -> uint64_t { return 0; };
+    limonAPI->worldEndProfileZone   = [](uint64_t) {};
+#endif
 }
 
 
@@ -223,7 +247,7 @@ World * WorldLoader::loadMapFromXML(const std::string &worldFileName, LimonAPI *
         }
     }
 
-    World* world = new World(std::string(worldName->GetText()), startingPlayer, inputHandler, assetManager, options);
+    World* world = new World(std::string(worldName->GetText()), startingPlayer, inputHandler, assetManager, options, profilerSystem);
 
     attachedAPIMethodsToWorld(world, limonAPI);
     world->loadingImage = loadingImageStr;
@@ -1384,7 +1408,7 @@ bool WorldLoader::loadGPUParticleEmitters(tinyxml2::XMLNode *GPUEmittersNode, Wo
             } else {
                 std::cerr << "GPU Particle Emitter SpeedOffset missing y." << std::endl;
             }
-            emitterAttributeAttributeElement = emitterAttributeElement->FirstChildElement("Z");
+            emitterAttributeAttributeElement = emitterAttributeAttributeElement->FirstChildElement("Z");
             if (emitterAttributeAttributeElement != nullptr) {
                 speedOffset.z = std::stof(emitterAttributeAttributeElement->GetText());
             } else {

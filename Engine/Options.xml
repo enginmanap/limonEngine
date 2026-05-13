@@ -42,7 +42,7 @@
     <Parameter>
         <RequestType>FreeText</RequestType>
         <Description>fullScreen</Description>
-        <Value>True</Value>
+        <Value>False</Value>
         <valueType>Boolean</valueType>
         <IsSet>True</IsSet>
         <Index>2</Index>
@@ -391,7 +391,7 @@
     <Parameter>
         <RequestType>FreeText</RequestType>
         <Description>GraphicsBackend</Description>
-        <Value>libOpenGLESGraphicsBackend</Value>
+        <Value>libOpenGLGraphicsBackend</Value>
         <valueType>String</valueType>
         <IsSet>True</IsSet>
         <Index>0</Index>
@@ -399,8 +399,16 @@
     <Parameter>
         <RequestType>FreeText</RequestType>
         <Description>StartingRenderPipeline</Description>
-        <Value>./Engine/forward__renderPipeline.xml</Value>
+        <Value>./Engine/forward_renderPipeline.xml</Value>
         <valueType>String</valueType>
+        <IsSet>True</IsSet>
+        <Index>0</Index>
+    </Parameter>
+    <Parameter>
+        <RequestType>FreeText</RequestType>
+        <Description>Profiler.EnableServer</Description>
+        <Value>True</Value>
+        <valueType>Boolean</valueType>
         <IsSet>True</IsSet>
         <Index>0</Index>
     </Parameter>

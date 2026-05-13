@@ -8,6 +8,10 @@
 #include "Material.h"
 #include "Graphics/Texture.h"
 
+#ifdef TRACY_ENABLE
+#include "tracy/TracyOpenGL.hpp"
+#endif
+
 std::shared_ptr<GraphicsInterface> createGraphicsBackend(OptionsUtil::Options* options) {
     return std::make_shared<OpenGLESGraphics>(options);
 }
@@ -436,8 +440,12 @@ bool OpenGLESGraphics::createGraphicsBackend() {
             isDebugOutputSupported = true;
             ++foundExtensionCount;
         }
+        if(std::strcmp(extensionNameBuffer, "GL_EXT_disjoint_timer_query") == 0) {
+            isTimerQuerySupported = true;
+            ++foundExtensionCount;
+        }
 
-        if (foundExtensionCount == 4) {
+        if (foundExtensionCount == 5) {
             break;
         }
     }
@@ -1794,4 +1802,34 @@ bool OpenGLESGraphics::verifyContext() {
     }
     std::cerr << "OpenGLES context version is too low. Required: 3.1, Got: " << major << "." << minor << std::endl;
     return false;
+}
+
+void OpenGLESGraphics::initGpuContext() {
+#ifdef TRACY_ENABLE
+    if (isTimerQuerySupported) {
+        TracyGpuContext;
+    }
+#endif
+}
+
+void OpenGLESGraphics::beginGpuProfileZone(const char* name, bool active) {
+#ifdef TRACY_ENABLE
+    if (!active || !isTimerQuerySupported) return;
+    currentGpuZone = new tracy::GpuCtxScope(0, "", 0, "", 0, name, strlen(name), true);
+#endif
+}
+
+void OpenGLESGraphics::endGpuProfileZone() {
+#ifdef TRACY_ENABLE
+    delete currentGpuZone;
+    currentGpuZone = nullptr;
+#endif
+}
+
+void OpenGLESGraphics::collectGpuProfilingData() {
+#ifdef TRACY_ENABLE
+    if (isTimerQuerySupported) {
+        TracyGpuCollect;
+    }
+#endif
 }

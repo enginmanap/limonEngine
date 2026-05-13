@@ -4,6 +4,7 @@
 #include "Graphics/GraphicsPipeline.h"
 #include "GameObjects/Model.h"
 #include "GameObjects/Players/Player.h"
+#include "../Profiler/ProfilerMacros.h"
 
 VisibilityManager::VisibilityManager(World* world) : world(world) {
     OptionsUtil::Options::Option<bool> multiThreadCullingOption = world->options->getOption<bool>(HASH("multiThreadedCulling"));
@@ -11,20 +12,51 @@ VisibilityManager::VisibilityManager(World* world) : world(world) {
 }
 
 VisibilityManager::~VisibilityManager() {
+    stop();
+}
+
+void VisibilityManager::stop() {
     for (auto &item: visibilityThreadPool) {
         item.first->running = false;
     }
     for (auto &item: visibilityThreadPool) {
 
-        item.first->waitMainThreadCondition.signalWaiting();
+        wakeThreadsCondition.signalWaiting();
         if (item.second) {
             SDL_WaitThread(item.second, NULL);
         }
         delete item.first;
     }
+    visibilityThreadPool.clear();
+}
+
+void VisibilityManager::start() {
+    if(multiThreadedCulling) {
+        if (visibilityThreadPool.empty()) {
+            visibilityThreadPool = occlusionThreadManager();
+            bool isAllThreadsStarted = false;
+            while (!isAllThreadsStarted) {
+                bool allThreadStarted = true;
+                for (const auto &item: visibilityThreadPool) {
+                    if (!item.first->started) {
+                        allThreadStarted = false;
+                    }
+                }
+                isAllThreadsStarted = allThreadStarted;
+            }
+        }
+    } else {
+        if(visibilityThreadPool.empty()) {
+            for (auto &cameraVisibility: cullingResults) {
+                VisibilityRequest* request = new VisibilityRequest(cameraVisibility.first, &world->objects, cameraVisibility.second, world->currentPlayer->getPosition(), world->options, &wakeThreadsCondition);
+                visibilityThreadPool[request] = nullptr;
+            }
+        }
+    }
 }
 
 void VisibilityManager::update() {
+    PROFILE_VISIBILITY("VisibilityManager::update");
     fillVisibleObjectsUsingTags();
 }
 
@@ -54,23 +86,15 @@ void VisibilityManager::fillVisibleObjectsUsingTags() {
         }
     }
     if(multiThreadedCulling) {
-        if (visibilityThreadPool.empty()) {
-            visibilityThreadPool = occlusionThreadManager();
-            bool isAllThreadsStarted = false;
-            while (!isAllThreadsStarted) {
-                bool allThreadStarted = true;
-                for (const auto &item: visibilityThreadPool) {
-                    if (!item.first->started) {
-                        allThreadStarted = false;
-                    }
-                }
-                isAllThreadsStarted = allThreadStarted;
-            }
-            //std::this_thread::sleep_for(std::chrono::milliseconds(1000));//make sure all threads are started before continuing.
-        }
-
+        // The start() method now handles the initial thread creation.
+        // We only need to signal and wait for processing here.
         //std::cout << "          new frame, trigger occlusion threads" << std::endl;
-        VisibilityRequest::waitMainThreadCondition.signalWaiting();
+        // Main thread is checking dirty state, because python player/camera access from other threads
+        // require GIL
+        for (const auto &item: visibilityThreadPool) {
+            item.first->cameraIsDirty = item.first->camera->isDirty();
+        }
+        wakeThreadsCondition.signalWaiting();
         while (true) {
             bool allDone = true;
             for (const auto &item: visibilityThreadPool) {
@@ -96,12 +120,7 @@ void VisibilityManager::fillVisibleObjectsUsingTags() {
             item.first->inProgressLock.unlock();
         }
     } else {
-        if(visibilityThreadPool.empty()) {
-            for (auto &cameraVisibility: cullingResults) {
-                VisibilityRequest* request = new VisibilityRequest(cameraVisibility.first, &world->objects, cameraVisibility.second, world->currentPlayer->getPosition(), world->options);
-                visibilityThreadPool[request] = nullptr;
-            }
-        }
+        // The start() method now handles the initial request creation.
         for (const auto &item: visibilityThreadPool) {
             item.first->playerPosition = world->currentPlayer->getPosition();
             fillVisibleObjectPerCamera(item.first);
@@ -129,7 +148,7 @@ void VisibilityManager::fillVisibleObjectsUsingTags() {
 std::map<VisibilityRequest*, SDL_Thread *> VisibilityManager::occlusionThreadManager() {
     std::map<VisibilityRequest*, SDL_Thread*> visibilityProcessing;
     for (auto &cameraVisibility: cullingResults) {
-        VisibilityRequest* request = new VisibilityRequest(cameraVisibility.first, &world->objects, cameraVisibility.second, world->currentPlayer->getPosition(), world->options);
+        VisibilityRequest* request = new VisibilityRequest(cameraVisibility.first, &world->objects, cameraVisibility.second, world->currentPlayer->getPosition(), world->options, &wakeThreadsCondition);
         SDL_Thread* thread = SDL_CreateThread(staticOcclusionThread, request->camera->getName().c_str(), request);
         visibilityProcessing[request] = thread;
     }
@@ -170,7 +189,9 @@ void VisibilityManager::resetTagsAndRefillCulling() {
 }
 
 void VisibilityManager::fillVisibleObjectPerCamera(const void* visibilityRequestRaw) {
+    PROFILE_VISIBILITY("fillVisibleObjectPerCamera");
     const VisibilityRequest* visibilityRequest = static_cast<const VisibilityRequest *>(visibilityRequestRaw);
+    ZoneNameV(___tracy_scoped_zone, visibilityRequest->camera->getName().c_str(), visibilityRequest->camera->getName().size());
     std::vector<long> lodDistances = visibilityRequest->lodDistancesOption.get();
     float skipRenderDistance = 0, skipRenderSize = 0, maxSkipRenderSize = 0;
     float objectAverageDepth;
@@ -214,7 +235,7 @@ void VisibilityManager::fillVisibleObjectPerCamera(const void* visibilityRequest
     float maxScreenSize = 0.0;
     std::string maxScreenSizeObjectName;
     for (auto objectIt = visibilityRequest->objects->begin(); objectIt != visibilityRequest->objects->end(); ++objectIt) {
-        if(!visibilityRequest->camera->isDirty() && !objectIt->second->isDirtyForFrustum() && skipOcclusionCulling) {
+        if(!visibilityRequest->cameraIsDirty && !objectIt->second->isDirtyForFrustum() && skipOcclusionCulling) {
             continue; //if neither object nor camera dirty, no need to recalculate
         }
         Model *currentModel = dynamic_cast<Model *>(objectIt->second);
@@ -319,20 +340,20 @@ void VisibilityManager::fillVisibleObjectPerCamera(const void* visibilityRequest
 
 int VisibilityManager::staticOcclusionThread(void* visibilityRequestRaw) {
     VisibilityRequest* visibilityRequest = static_cast<VisibilityRequest *>(visibilityRequestRaw);
-    //std::cout << "Thread for  " << visibilityRequest->camera->getName() << " launched, waiting for condition" << std::endl;
-    //std::cout << "Thread for  " << visibilityRequest->camera->getName() << " started" << std::endl;
+    // We are re ordering the logic so these threads are started and can be used,
+    // but they are blocked until gameplay logic actually starts to request updates.
+    visibilityRequest->started = true;
 
     while(visibilityRequest->running) {
+        visibilityRequest->wakeCondition->waitCondition(visibilityRequest->blockMutex);
+        if(!visibilityRequest->running) {
+            break;
+        }
         visibilityRequest->inProgressLock.lock();
-        visibilityRequest->started = true;
         fillVisibleObjectPerCamera(visibilityRequestRaw);
         visibilityRequest->processingDone = true;
         visibilityRequest->inProgressLock.unlock();
-        //std::cout << "Processing done for camera " << visibilityRequest->camera->getName() << " now waiting for condition" << std::endl;
-        VisibilityRequest::waitMainThreadCondition.waitCondition(visibilityRequest->blockMutex);
-        //std::cout << "signal received by " << visibilityRequest->camera->getName() << " starting processing again" << std::endl;
     }
-    visibilityRequest->inProgressLock.unlock();
     return 0;
 }
 

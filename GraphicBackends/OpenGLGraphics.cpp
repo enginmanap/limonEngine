@@ -8,6 +8,10 @@
 #include "Material.h"
 #include "Graphics/Texture.h"
 
+#ifdef TRACY_ENABLE
+#include "tracy/TracyOpenGL.hpp"
+#endif
+
 std::shared_ptr<GraphicsInterface> createGraphicsBackend(OptionsUtil::Options* options) {
     return std::make_shared<OpenGLGraphics>(options);
 }
@@ -1674,4 +1678,35 @@ bool OpenGLGraphics::verifyContext() {
     }
     std::cerr << "OpenGL context version is too low. Required: 3.3, Got: " << major << "." << minor << std::endl;
     return false;
+}
+
+void OpenGLGraphics::initGpuContext() {
+#ifdef TRACY_ENABLE
+    TracyGpuContext;
+#endif
+}
+
+void OpenGLGraphics::beginGpuProfileZone(const char* name, bool active) {
+#ifdef TRACY_ENABLE
+    if (!active) return;
+    // GpuCtxScope transient constructor: records glQueryCounter at begin
+    currentGpuZone = new tracy::GpuCtxScope(0, "", 0, "", 0, name, strlen(name), true);
+#endif
+}
+
+void OpenGLGraphics::endGpuProfileZone() {
+#ifdef TRACY_ENABLE
+    if (!currentGpuZone) return;
+    // Destructor records glQueryCounter at end
+    delete currentGpuZone;
+    currentGpuZone = nullptr;
+#endif
+}
+
+void OpenGLGraphics::collectGpuProfilingData() {
+#ifdef TRACY_ENABLE
+    // Drain completed GL timestamp queries into the Tracy ring buffer.
+    // Must be called every frame to prevent the 64K query pool overflowing.
+    TracyGpuCollect;
+#endif
 }
