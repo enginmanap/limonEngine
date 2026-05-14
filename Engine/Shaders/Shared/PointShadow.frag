@@ -23,7 +23,7 @@ uniform samplerCubeArrayShadow pre_shadowPoint;
 
 // 3D Fibonacci Spiral (Progressive): any prefix N is well-distributed on a sphere.
 // Prevents shadow crawling when changing PointShadowSampleCount.
-vec3 _pointSampleOffsetDirections[20] = vec3[](
+const vec3 _pointSampleOffsetDirections[20] = vec3[](
     vec3(0.000000, 0.000000, 1.000000),
     vec3(0.254181, 0.231940, 0.938883),
     vec3(-0.354146, 0.353381, 0.865917),
@@ -46,7 +46,7 @@ vec3 _pointSampleOffsetDirections[20] = vec3[](
     vec3(-0.334053, 0.749007, -1.071661)
 );
 
-float ShadowCalculationPoint(vec3 world_space_frag_pos, float bias, float viewDistance, int lightIndex)
+float ShadowCalculationPoint(vec3 world_space_frag_pos, float viewDistance, int lightIndex)
 {
     vec3 fragToLight = world_space_frag_pos - LightSources.lights[lightIndex].position;
     float fragDistance = length(fragToLight);
@@ -54,32 +54,35 @@ float ShadowCalculationPoint(vec3 world_space_frag_pos, float bias, float viewDi
         return 1.0; // Occluded if beyond the light's far plane
     }
 
-    // The shadow map stores distance normalized by farPlanePoint
+    // Early-out: skip all texture samples if light contribution is negligible (<1%)
+    float attenuationFactor = LightSources.lights[lightIndex].attenuation.x +
+                              (LightSources.lights[lightIndex].attenuation.y * fragDistance) +
+                              (LightSources.lights[lightIndex].attenuation.z * fragDistance * fragDistance);
+    if(attenuationFactor > 100.0) {
+        return 1.0;
+    }
+
     float normalizedFragDistance = fragDistance / LightSources.lights[lightIndex].farPlanePoint;
 
-    // Sample the closest depth (hardware comparison returns 1.0 if normalizedFragDistance <= texture_depth)
-    float closestDepthLit = texture(pre_shadowPoint, vec4(fragToLight, lightIndex), normalizedFragDistance);
+    // Early-out: center sample fully lit — skip full PCF loop
+    float centerLit = texture(pre_shadowPoint, vec4(fragToLight, lightIndex), normalizedFragDistance);
+    if(centerLit == 1.0) {
+        float attenuation = clamp(1.0 / attenuationFactor, 0.0, 1.0);
+        return 1.0 - attenuation;
+    }
 
-    float currentDepth = fragDistance;
     float shadow = 0.0;
     int samples  = PointShadowSampleCount;
     float diskRadius = (1.0 + (viewDistance / LightSources.lights[lightIndex].farPlanePoint)) / 50.0;
-    float compareDepth = (currentDepth - bias) / LightSources.lights[lightIndex].farPlanePoint;
 
     for(int i = 0; i < samples; ++i) {
         // samplerCubeArrayShadow returns 1.0 if not in shadow (compareDepth <= texture_depth), 0.0 if in shadow
-        float lit = texture(pre_shadowPoint, vec4(fragToLight + _pointSampleOffsetDirections[i] * diskRadius, lightIndex), compareDepth);
+        float lit = texture(pre_shadowPoint, vec4(fragToLight + _pointSampleOffsetDirections[i] * diskRadius, lightIndex), normalizedFragDistance);
         shadow += (1.0 - lit);
     }
     shadow /= float(samples);
 
-    // Attenuation
-    float attenuation = 1.0 / (LightSources.lights[lightIndex].attenuation.x +
-                              (LightSources.lights[lightIndex].attenuation.y * fragDistance) +
-                               (LightSources.lights[lightIndex].attenuation.z * fragDistance * fragDistance));
-    attenuation = clamp(attenuation, 0.0, 1.0);
-    attenuation = 1.0 - attenuation;
-
-    // Combine shadow and attenuation
-    return max(shadow, attenuation);
+    // Combine shadow and attenuation, reusing precomputed attenuationFactor
+    float attenuation = clamp(1.0 / attenuationFactor, 0.0, 1.0);
+    return max(shadow, 1.0 - attenuation);
 }

@@ -18,13 +18,11 @@ uniform sampler2D pre_gAmbientMap;     // Ambient Map (rgb)
 uniform sampler2D pre_ssao;
 uniform sampler2D pre_depthMap;
 
-vec3 ReconstructWorldPos(vec2 texCoords, float depth) {
-    float z = depth * 2.0 - 1.0;
-    vec4 clipSpacePosition = vec4(texCoords * 2.0 - 1.0, z, 1.0);
+// Returns view-space position (w=1 after divide). Caller derives world pos and view-z from this.
+vec4 ReconstructViewPos(vec2 texCoords, float depth) {
+    vec4 clipSpacePosition = vec4(texCoords * 2.0 - 1.0, depth * 2.0 - 1.0, 1.0);
     vec4 viewSpacePosition = playerTransforms.inverseProjection * clipSpacePosition;
-    viewSpacePosition /= viewSpacePosition.w;
-    vec4 worldSpacePosition = playerTransforms.inverseCamera * viewSpacePosition;
-    return worldSpacePosition.xyz;
+    return viewSpacePosition / viewSpacePosition.w;
 }
 
 vec3 unpackNormal(vec2 pa) {
@@ -47,7 +45,11 @@ vec3 unpackNormal(vec2 pa) {
 void main()
 {
     float depth = texture(pre_depthMap, from_vs.textureCoordinates).r;
-    vec3 fragPos = ReconstructWorldPos(from_vs.textureCoordinates, depth);
+    vec4 viewSpacePos = ReconstructViewPos(from_vs.textureCoordinates, depth);
+    float precise_view_z = abs(viewSpacePos.z);
+    vec3 fragPos = (playerTransforms.inverseCamera * viewSpacePos).xyz;
+    float viewDistance = length(viewSpacePos.xyz); // camera is at origin in view space
+
     vec3 normal = unpackNormal(texture(pre_gNormalMap, from_vs.textureCoordinates).xy);
     vec4 albedoSpec = texture(pre_gAlbedoSpecMap, from_vs.textureCoordinates);
     vec3 albedo = albedoSpec.rgb;
@@ -63,11 +65,6 @@ void main()
     }
 
     float ssao = texture(pre_ssao, from_vs.textureCoordinates).r;
-
-    vec4 clip_space_pos = vec4(from_vs.textureCoordinates * 2.0 - 1.0, depth * 2.0 - 1.0, 1.0);
-    vec4 view_space_pos = playerTransforms.inverseProjection * clip_space_pos;
-    float precise_view_z = abs(view_space_pos.z / view_space_pos.w);
-    float viewDistance = length(playerTransforms.position - fragPos);
 
     vec3 totalAmbient;
     vec3 fullyLitColor = calculateLighting(fragPos, normal, albedo, shininess, materialAmbient, viewDistance, precise_view_z, depth, totalAmbient);
