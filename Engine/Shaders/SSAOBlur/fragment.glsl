@@ -1,4 +1,6 @@
 
+#define_option SSAOBlurRadius
+
 layout (location = 1) out float occlusion;
 
 in VS_FS {
@@ -8,41 +10,36 @@ in VS_FS {
 uniform sampler2D pre_ssaoResult;
 uniform sampler2D pre_depthMap;
 
-// Gaussian kernel weights
-const float gaussian_kernel[25] = float[](
-    1.0,  4.0,  7.0,  4.0,  1.0,
-    4.0, 16.0, 26.0, 16.0,  4.0,
-    7.0, 26.0, 41.0, 26.0,  7.0,
-    4.0, 16.0, 26.0, 16.0,  4.0,
-    1.0,  4.0,  7.0,  4.0,  1.0
-);
-
-
 void main() {
+    vec2  texelSize = 1.0 / vec2(textureSize(pre_ssaoResult, 0));
     float selfDepth = texture(pre_depthMap, from_vs.textureCoordinates).r;
 
-    vec2 texelSize = 1.0 / vec2(textureSize(pre_ssaoResult, 0));
-    float result = 0.0;
+    float result      = 0.0;
     float totalWeight = 0.0;
 
-    for (int x = -2; x <= 2; ++x) {
-        for (int y = -2; y <= 2; ++y) {
-            vec2 offset = vec2(float(x), float(y)) * texelSize;
-            vec2 sampleCoords = from_vs.textureCoordinates + offset;
+    // sigma = SSAOBlurRadius so the Gaussian widens naturally with the kernel size.
+    // SSAOBlurRadius is a compile-time constant, so the compiler unrolls the loops
+    // and constant-folds all exp() evaluations.
+    const float sigma2 = 2.0 * float(SSAOBlurRadius * SSAOBlurRadius);
 
-            float sampleDepth = texture(pre_depthMap, sampleCoords).r;
+    for (int x = -SSAOBlurRadius; x <= SSAOBlurRadius; ++x) {
+        for (int y = -SSAOBlurRadius; y <= SSAOBlurRadius; ++y) {
+            vec2 coords = from_vs.textureCoordinates + vec2(float(x), float(y)) * texelSize;
 
-            if(abs(sampleDepth - selfDepth) < 0.02) {
-                float weight = gaussian_kernel[(x + 2) * 5 + (y + 2)];
-                result += texture(pre_ssaoResult, sampleCoords).r * weight;
-                totalWeight += weight;
-            }
+            // Both reads issued before any arithmetic so the GPU can pipeline them together
+            float sampleDepth = texture(pre_depthMap,  coords).r;
+            float sampleSSAO  = texture(pre_ssaoResult, coords).r;
+
+            // Bilateral depth weight: zero if sample is from a different surface
+            float depthWeight    = 1.0 - step(0.02, abs(sampleDepth - selfDepth));
+            float gaussianWeight = exp(-float(x * x + y * y) / sigma2);
+            float weight         = gaussianWeight * depthWeight;
+            result      += sampleSSAO * weight;
+            totalWeight += weight;
         }
     }
 
-    if(totalWeight >= 41.0) {
-        occlusion = result / totalWeight;
-    } else {
-        occlusion = 0.0;
-    }
+    // Center always passes depth test (distance to itself = 0), so totalWeight > 0 always.
+    // The guard handles degenerate cases (e.g. sky pixels with depth = 1).
+    occlusion = (totalWeight > 0.0) ? result / totalWeight : 0.0;
 }
