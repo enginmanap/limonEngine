@@ -224,7 +224,10 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
      if(currentPlayersSettings->worldSimulation) {
          //every time we call this method, we increase the time only by simulationTimeframe
          gameTime += simulationTimeFrame;
-         dynamicsWorld->stepSimulation(simulationTimeFrame / 1000.0f);
+         {
+             PROFILE_SIMULATION("World::play::PhysicsSimulation");
+             dynamicsWorld->stepSimulation(simulationTimeFrame / 1000.0f);
+         }
          currentPlayer->processPhysicsWorld(dynamicsWorld);
      }
      checkAndRunTimedEvents();//no londer requires to be in world simulation, because it checks both game time and wall time now
@@ -332,6 +335,7 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
 }
 
 void World::animateCustomAnimations() {
+    PROFILE_SIMULATION("World::animateCustomAnimations");
     // ATTENTION iterator is not increased in for, it is done manually.
     for(auto animIt = activeAnimations.begin(); animIt != activeAnimations.end();) {
         AnimationStatus* animationStatus = animIt->second;
@@ -422,6 +426,7 @@ void World::setPlayerAttachmentsForChangedBoneTransforms(Model *playerAttachment
 }
 
 ActorInterface::ActorInformation World::fillActorInformation(ActorInterface *actor) {
+    PROFILE_SIMULATION("World::fillActorInformation");
     ActorInterface::ActorInformation information;
     Model* actorModel = dynamic_cast<Model*>(objects[actor->getModelID()]);
     if(actorModel != nullptr) {
@@ -514,6 +519,7 @@ ActorInterface::ActorInformation World::fillActorInformation(ActorInterface *act
 
 std::vector<LimonTypes::GenericParameter>
 World::fillRouteInformation(std::vector<LimonTypes::GenericParameter> parameters) const {
+    PROFILE_SIMULATION("World::fillRouteInformation");
     glm::vec3 fromPosition = glm::vec3(GLMConverter::LimonToGLM(parameters[0].value.vectorValue));
     uint32_t actorID = (uint32_t)parameters[1].value.longValues[1];
     uint32_t maximumDistance = (uint32_t)parameters[1].value.longValues[2];
@@ -622,10 +628,12 @@ World::fillRouteInformation(std::vector<LimonTypes::GenericParameter> parameters
 }
 
 void World::render() {
+    PROFILE_RENDERING("World::render");
     renderPipeline->render();
 }
 
 void World::renderGUIImages(const std::shared_ptr<GraphicsProgram>& renderProgram, const std::string &cameraName [[gnu::unused]], const std::vector<HashUtil::HashedString> &tags [[gnu::unused]]) const {
+    PROFILE_RENDERING("World::renderGUIImages");
     cursor->renderWithProgram(renderProgram, 0);
 
     for (auto it = guiLayers.begin(); it != guiLayers.end(); ++it) {
@@ -637,6 +645,7 @@ void World::renderGUIImages(const std::shared_ptr<GraphicsProgram>& renderProgra
 }
 
 void World::renderGUITexts(const std::shared_ptr<GraphicsProgram>& renderProgram, const std::string &cameraName [[gnu::unused]], const std::vector<HashUtil::HashedString> &tags [[gnu::unused]]) const {
+    PROFILE_RENDERING("World::renderGUITexts");
     for (auto it = guiLayers.begin(); it != guiLayers.end(); ++it) {
         (*it)->renderTextWithProgram(renderProgram);
     }
@@ -656,18 +665,21 @@ void World::renderGUITexts(const std::shared_ptr<GraphicsProgram>& renderProgram
 }
 
 void World::renderParticleEmitters(const std::shared_ptr<GraphicsProgram>& renderProgram, const std::string &cameraName [[gnu::unused]], const std::vector<HashUtil::HashedString> &tags [[gnu::unused]]) const {
+     PROFILE_RENDERING("World::renderParticleEmitters");
      for(const auto& emitter:emitters) {
          emitter.second->renderWithProgram(renderProgram, 0);
      }
 }
 
 void World::renderGPUParticleEmitters(const std::shared_ptr<GraphicsProgram>& renderProgram, const std::string &cameraName [[gnu::unused]], const std::vector<HashUtil::HashedString> &tags [[gnu::unused]]) const {
+   PROFILE_RENDERING("World::renderGPUParticleEmitters");
    for(const auto& gpuParticleEmitter:gpuParticleEmitters) {
        gpuParticleEmitter.second->renderWithProgram(renderProgram, 0);
    }
 }
 
 void World::renderDebug(const std::shared_ptr<GraphicsProgram>& renderProgram [[gnu::unused]], const std::string &cameraName [[gnu::unused]], const std::vector<HashUtil::HashedString> &tags [[gnu::unused]]) const {
+   PROFILE_RENDERING("World::renderDebug");
    dynamicsWorld->debugDrawWorld();
     for (const auto &drawLinePair: options->getLogger()->getDrawLines()) {
         if(!drawLinePair.second.empty()) {
@@ -687,6 +699,7 @@ void World::renderDebug(const std::shared_ptr<GraphicsProgram>& renderProgram [[
 }
 
 void World::renderCameraByTag(const std::shared_ptr<GraphicsProgram> &renderProgram, const std::string &cameraName, const std::vector<HashUtil::HashedString> &tags) const {
+    PROFILE_RENDERING("World::renderCameraByTag");
     uint64_t hashedCameraTag = HashUtil::hashString(cameraName);
     tempRenderedObjectsSet.clear();
     for (const auto &visibilityEntry: visibilityManager->getCullingResults()) {
@@ -744,12 +757,14 @@ void World::renderPlayerAttachmentsRecursiveByTag(PhysicalRenderable *attachment
  }
 
 void World::renderSky(const std::shared_ptr<GraphicsProgram>& renderProgram, const std::string &cameraName [[gnu::unused]], const std::vector<HashUtil::HashedString> &tags [[gnu::unused]]) const {
+   PROFILE_RENDERING("World::renderSky");
    if (sky != nullptr) {
        sky->renderWithProgram(renderProgram, 0);
    }
 }
 
 void World::renderLight(unsigned int lightIndex, unsigned int renderLayer, const std::shared_ptr<GraphicsProgram> &renderProgram, const std::vector<HashUtil::HashedString> &tags) const {
+    PROFILE_RENDERING("World::renderLight");
     Light* selectedLight = activeLights[lightIndex];
     Camera* lightCamera = selectedLight->getCameras()[renderLayer];
     if (lightCamera->isDirty()) {
@@ -773,6 +788,7 @@ void World::renderLight(unsigned int lightIndex, unsigned int renderLayer, const
  * It also fills the windows with relevant parameters.
  */
 void World::ImGuiFrameSetup(std::shared_ptr<GraphicsProgram> graphicsProgram, const std::string &cameraName [[gnu::unused]], const std::vector<HashUtil::HashedString> &tags [[gnu::unused]]) {//TODO not const because it removes the object. Should be separated
+   PROFILE_RENDERING("World::ImGuiFrameSetup");
    if(!currentPlayersSettings->editorShown) {
        return;
    }

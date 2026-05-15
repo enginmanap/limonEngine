@@ -304,7 +304,10 @@ void GameEngine::run() {
             currentWorld->setupRender();
             currentWorld->render();
         }
-        sdlHelper->swap();
+        {
+            PROFILE_RENDERING("swap");
+            sdlHelper->swap();
+        }
         graphicsWrapper->collectGpuProfilingData();
         if (profilerSystem) profilerSystem->Update();
         PROFILE_FRAME();
