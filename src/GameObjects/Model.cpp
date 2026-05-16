@@ -563,6 +563,15 @@ Model::Model(const Model &otherModel, uint32_t objectID) :
     this->animationName = otherModel.animationName;
     this->animationTimeScale = otherModel.animationTimeScale;
     this->animationTime = otherModel.animationTime;
+
+    for (const auto& override : otherModel.getNewMeshMaterials()) {
+        for (auto& meshMeta : this->meshMetaData) {
+            if (meshMeta->mesh->getName() == override.first) {
+                meshMeta->material = override.second;
+                break;
+            }
+        }
+    }
 }
 
 ImGuiResult Model::putAIonGUI(ActorInterface *actorInterface,
