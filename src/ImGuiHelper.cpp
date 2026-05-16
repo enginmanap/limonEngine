@@ -143,14 +143,44 @@ bool ImGuiHelper::ProcessEvent(const InputHandler& inputHandler) {
     const InputStates& inputStates =inputHandler.getInputStates();
 
     ImGuiIO& io = ImGui::GetIO();
-    if(io.WantCaptureKeyboard || io.WantCaptureMouse) {
+
+    // Always route keyboard events to ImGui when it has a focused widget (e.g. active InputText).
+    // This is kept independent of mouse capture so that keyboard-only focus does not block
+    // mouse clicks from reaching the world.
+    if(io.WantCaptureKeyboard) {
+        if(inputStates.getInputEvents(InputStates::Inputs::TEXT_INPUT)) {
+            io.AddInputCharactersUTF8(inputStates.getText());
+        }
+        if(inputStates.getInputEvents(InputStates::Inputs::KEY_SHIFT)) {
+            io.KeyShift = ((SDL_GetModState() & KMOD_SHIFT) != 0);
+        }
+        if(inputStates.getInputEvents(InputStates::Inputs::KEY_SUPER)) {
+            io.KeySuper = ((SDL_GetModState() & KMOD_GUI) != 0);
+        }
+        if(inputStates.getInputEvents(InputStates::Inputs::KEY_CTRL)) {
+            io.KeyCtrl = ((SDL_GetModState() & KMOD_CTRL) != 0);
+        }
+        if(inputStates.getInputEvents(InputStates::Inputs::KEY_ALT)) {
+            io.KeyAlt = ((SDL_GetModState() & KMOD_ALT) != 0);
+        }
+        for (size_t i = 0; i < InputStates::keyBufferSize; i++) {
+            ImGuiKey key = SDL2KeyEventToImGuiKey(i);
+            if (key == ImGuiKey_None) {
+                 key = SDL2KeyEventToImGuiKey(SDL_SCANCODE_TO_KEYCODE(i));
+            }
+            io.AddKeyEvent(key, inputStates.getRawKeyStates()[i]);
+        }
+    }
+
+    // Mouse events are only owned by ImGui when the mouse is actually over an ImGui window.
+    // WantCaptureKeyboard alone (focused text field, etc.) must not swallow mouse clicks.
+    if(io.WantCaptureMouse) {
         if(inputStates.getInputEvents(InputStates::Inputs::MOUSE_WHEEL_UP)) {
             g_MouseWheel = 1;
         }
         if(inputStates.getInputEvents(InputStates::Inputs::MOUSE_WHEEL_DOWN)) {
             g_MouseWheel = -1;
         }
-
         if(inputStates.getInputStatus(InputStates::Inputs::MOUSE_BUTTON_LEFT)) {
             g_MousePressed[0] = true;
         } else {
@@ -166,35 +196,10 @@ bool ImGuiHelper::ProcessEvent(const InputHandler& inputHandler) {
         } else {
             g_MousePressed[2] = false;
         }
-
-        if(inputStates.getInputEvents(InputStates::Inputs::TEXT_INPUT)) {
-            io.AddInputCharactersUTF8(inputStates.getText());
-        }
-
-        if(inputStates.getInputEvents(InputStates::Inputs::KEY_SHIFT)) {
-            io.KeyShift = ((SDL_GetModState() & KMOD_SHIFT) != 0);
-        }
-        if(inputStates.getInputEvents(InputStates::Inputs::KEY_SUPER)) {
-            io.KeySuper = ((SDL_GetModState() & KMOD_GUI) != 0);
-        }
-        if(inputStates.getInputEvents(InputStates::Inputs::KEY_CTRL)) {
-            io.KeyCtrl = ((SDL_GetModState() & KMOD_CTRL) != 0);
-        }
-        if(inputStates.getInputEvents(InputStates::Inputs::KEY_ALT)) {
-            io.KeyAlt = ((SDL_GetModState() & KMOD_ALT) != 0);
-        }
-
-        for (size_t i = 0; i < InputStates::keyBufferSize; i++) {
-            ImGuiKey key = SDL2KeyEventToImGuiKey(i);
-            if (key == ImGuiKey_None) {
-                 key = SDL2KeyEventToImGuiKey(SDL_SCANCODE_TO_KEYCODE(i));
-            }
-            io.AddKeyEvent(key, inputStates.getRawKeyStates()[i]);
-        }
         return true;
-    } else {
-        return false;
     }
+
+    return false;
 }
 
 ImGuiKey ImGuiHelper::SDL2KeyEventToImGuiKey(const uint32_t keycodeInt){
