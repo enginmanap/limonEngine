@@ -721,8 +721,12 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
         if(ImGui::CollapsingHeader("List materials")) {
             //listing
             static size_t selectedHash = 0;
+            static bool syncWithObjectSelection = true;
+            ImGui::Checkbox("follow model material selection", &syncWithObjectSelection);
             if (EditorNS::selectedMeshesMaterial != nullptr) {
-                selectedHash = EditorNS::selectedMeshesMaterial->getHash();
+                if (syncWithObjectSelection) {
+                    selectedHash = EditorNS::selectedMeshesMaterial->getHash();
+                }
                 EditorNS::selectedMeshesMaterial = nullptr;
             }
             bool isSelected = false;
