@@ -296,8 +296,6 @@ World * WorldLoader::loadMapFromXML(const std::string &worldFileName, LimonAPI *
     //load Skymap
     loadSkymap(worldNode, world);
 
-    //load lights
-    loadLights(worldNode, world);
     //load emitters
     loadParticleEmitters(worldNode, world);
     //load GPU emitters
@@ -307,6 +305,17 @@ World * WorldLoader::loadMapFromXML(const std::string &worldFileName, LimonAPI *
 
     //load triggers
     loadTriggers(worldNode, world);
+
+    //We are changing the light ID generation, so we need to make sure:
+    // 1) All objects are loaded before lights
+    // 2) The World did finish ID verification
+    // After some time, this can be dropped, it is here only for backwards compatibility
+    if (!world->verifyIDs()) {
+        std::cerr << "World ID verification failed before light loading." << std::endl;
+        delete world;
+        return nullptr;
+    }
+    loadLights(worldNode, world);
 
     //load onloadActions
     loadOnLoadActions(worldNode, world);
@@ -779,10 +788,15 @@ bool WorldLoader::loadLights(tinyxml2::XMLNode *lightsNode, World* world) const 
 
         lightAttribute =  lightNode->FirstChildElement("ID");
         if (lightAttribute == nullptr) {
-            std::cerr << "Light does not have ID. This is depricated, and will be removed!" << std::endl;
-            lightID = (uint32_t)world->lights.size();
+            lightID = world->getNextObjectID();
+            std::cerr << "Light does not have ID. This is deprecated. Assigning " << lightID << ". Re-save the world to make this permanent." << std::endl;
         } else {
             lightID = std::stoul(lightAttribute->GetText());
+            if (world->isIDUsed(lightID)) {
+                uint32_t newID = world->getNextObjectID();
+                std::cerr << "Light ID " << lightID << " is already in use. Assigning " << newID << ". Re-save the world to make this permanent." << std::endl;
+                lightID = newID;
+            }
         }
 
         lightAttribute = lightNode->FirstChildElement("Position");

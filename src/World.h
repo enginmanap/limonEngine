@@ -317,6 +317,7 @@ private:
          * @return true if everything ok, false if not
          */
     bool verifyIDs();
+    bool isIDUsed(uint32_t id) const;
 
     bool handlePlayerInput(InputHandler &inputHandler);
 

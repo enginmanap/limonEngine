@@ -1506,14 +1506,34 @@ bool World::addPlayerAttachmentUsedIDs(const PhysicalRenderable *attachment, std
     return true;
 }
 
+bool World::isIDUsed(uint32_t id) const {
+    if (id < 2) return true; // 0 is invalid, 1 is reserved for the physical player
+    if (sky != nullptr && sky->getWorldObjectID() == id) return true;
+    if (objects.count(id)) return true;
+    if (triggers.count(id)) return true;
+    if (actors.count(id)) return true;
+    if (guiElements.count(id)) return true;
+    if (modelGroups.count(id)) return true;
+    for (const Light* l : lights) {
+        if (l->getWorldObjectID() == id) return true;
+    }
+    return false;
+}
+
+
 bool World::verifyIDs() {
     std::set<uint32_t > usedIDs;
     uint32_t maxID = 0;
     usedIDs.insert(1);//reserved for physicalPlayer
-    /** there are 3 places that has IDs,
+    /** Places that have IDs:
      * 1) sky
      * 2) objects
-     * 3) AIs
+     * 3) triggers
+     * 4) actors
+     * 5) GUI elements
+     * 6) model groups
+     * 7) player attachments
+     * 8) lights
      */
     //put sky first, since it is guaranteed to be single
     if(this->sky != nullptr) {
@@ -1568,6 +1588,16 @@ bool World::verifyIDs() {
 
     if (!addPlayerAttachmentUsedIDs(startingPlayer.attachedModel, usedIDs, maxID)) {
         return false;
+    }
+
+    for (Light* light : lights) {
+        uint32_t lightID = light->getWorldObjectID();
+        auto result = usedIDs.insert(lightID);
+        if (!result.second) {
+            std::cerr << "world ID repetition on light detected! with id " << lightID << std::endl;
+            return false;
+        }
+        maxID = std::max(maxID, lightID);
     }
 
     uint32_t unusedIDCount = 0;
