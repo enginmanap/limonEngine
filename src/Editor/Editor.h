@@ -13,6 +13,7 @@
 #include <unordered_map>
 #include <glm/glm.hpp>
 #include "Editor/ImGuiRequest.h"
+#include "limonAPI/LimonTypes.h"
 
 #define MAX_PRELOAD_MODEL_COUNT_EDITOR 10
 class InputHandler;
@@ -72,6 +73,7 @@ public:
 
     Editor(World* world);
     ~Editor();
+    bool generateEditorElementsForParameters(std::vector<LimonTypes::GenericParameter> &runParameters, uint32_t index);
     void renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram);
 
     void addGUITextControls();

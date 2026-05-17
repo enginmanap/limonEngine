@@ -135,6 +135,14 @@ void LimonAPI::simulateInput(const InputStates& input) {
     this->worldSimulateInput(input);
 }
 
+uint32_t LimonAPI::addLight(uint32_t lightType, const LimonTypes::Vec4 &position, const LimonTypes::Vec4 &color) {
+    return worldAddLight(lightType, position, color);
+}
+
+bool LimonAPI::removeLight(uint32_t lightID) {
+    return worldRemoveLight(lightID);
+}
+
 bool LimonAPI::addLightTranslate(uint32_t lightID, const LimonTypes::Vec4 &position) {
     return worldAddLightTranslate(lightID, position);
 }

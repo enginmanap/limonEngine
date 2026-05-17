@@ -153,6 +153,8 @@ public:
     void simulateInput(const InputStates& input);
 
 
+    uint32_t addLight(uint32_t lightType, const LimonTypes::Vec4& position, const LimonTypes::Vec4& color);
+    bool removeLight(uint32_t lightID);
     bool addLightTranslate(uint32_t lightID, const LimonTypes::Vec4& translate);
     bool setLightColor(uint32_t lightID, const LimonTypes::Vec4& color);
 
@@ -244,6 +246,8 @@ private:
     std::function<void (std::vector<LimonTypes::GenericParameter>&)> worldInteractWithPlayer;
     std::function<void (InputStates)> worldSimulateInput;
 
+    std::function<uint32_t(uint32_t, const LimonTypes::Vec4&, const LimonTypes::Vec4&)> worldAddLight;
+    std::function<bool(uint32_t)> worldRemoveLight;
     std::function<bool (uint32_t, const LimonTypes::Vec4&)> worldAddLightTranslate;
     std::function<bool (uint32_t, const LimonTypes::Vec4&)> worldSetLightColor;
 

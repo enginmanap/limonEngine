@@ -69,7 +69,37 @@ std::unordered_map<Camera*, std::unordered_map<std::vector<uint64_t>, RenderList
 }
 
 void VisibilityManager::addCamera(Camera* camera) {
-    cullingResults.insert(std::make_pair(camera, new std::unordered_map<std::vector<uint64_t>, RenderList, VisibilityRequest::uint64_vector_hasher>()));
+    auto* tagMap = new std::unordered_map<std::vector<uint64_t>, RenderList, VisibilityRequest::uint64_vector_hasher>();
+    cullingResults.insert(std::make_pair(camera, tagMap));
+
+    // If threads are already running (world loaded and playing), wire up the new camera fully.
+    // During initial load the pool is empty; onPipelineChange()+start() handle setup after loadLights().
+    if (!visibilityThreadPool.empty()) {
+        // Populate render-tag sets from the current pipeline, same logic as resetCameraTagsFromPipeline
+        for (const auto& pipelineEntry : world->renderPipeline->getCameraTagToRenderTagSetMap()) {
+            if (camera->hasTag(HashUtil::hashString(pipelineEntry.first))) {
+                for (const std::set<std::string>& tagSet : pipelineEntry.second) {
+                    std::vector<uint64_t> hashList;
+                    for (const std::string& tag : tagSet) {
+                        hashList.emplace_back(HashUtil::hashString(tag));
+                    }
+                    tagMap->insert(std::make_pair(hashList, RenderList()));
+                }
+            }
+        }
+
+        // Create a thread entry so fillVisibleObjectsUsingTags processes this camera
+        VisibilityRequest* request = new VisibilityRequest(camera, &world->objects, tagMap,
+                                                           world->currentPlayer->getPosition(),
+                                                           world->options, &wakeThreadsCondition);
+        if (multiThreadedCulling) {
+            SDL_Thread* thread = SDL_CreateThread(staticOcclusionThread, camera->getName().c_str(), request);
+            while (!request->started) {} // wait for thread to signal ready
+            visibilityThreadPool[request] = thread;
+        } else {
+            visibilityThreadPool[request] = nullptr;
+        }
+    }
 }
 
 void VisibilityManager::removeCamera(Camera* camera) {

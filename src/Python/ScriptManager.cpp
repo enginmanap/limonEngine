@@ -598,6 +598,20 @@ PYBIND11_EMBEDDED_MODULE(limon, m, pybind11::multiple_interpreters::per_interpre
             .def("add_object_orientation", &LimonAPI::addObjectOrientation,
                  "Add to an object's orientation",
                  pybind11::arg("object_id"), pybind11::arg("orientation"))
+            .def("get_object_transformation", [](LimonAPI& self, uint32_t object_id) -> pybind11::list {
+                std::vector<LimonTypes::GenericParameter> result = self.getObjectTransformation(object_id);
+                return GenericParameterConverter::convertGenericParameterVectorToObjects(result);
+            }, "Get an object's transformation as [translate, scale, orientation] Vec4 parameters. Returns empty list if not found.",
+                 pybind11::arg("object_id"))
+            .def("set_object_translate", &LimonAPI::setObjectTranslate,
+                 "Set an object's world position. Returns false if object not found.",
+                 pybind11::arg("object_id"), pybind11::arg("position"))
+            .def("set_object_scale", &LimonAPI::setObjectScale,
+                 "Set an object's scale. Returns false if object not found.",
+                 pybind11::arg("object_id"), pybind11::arg("scale"))
+            .def("set_object_orientation", &LimonAPI::setObjectOrientation,
+                 "Set an object's orientation as a quaternion Vec4 (x, y, z, w). Returns false if object not found.",
+                 pybind11::arg("object_id"), pybind11::arg("orientation"))
             .def("get_object_transformation_matrix", [](LimonAPI& self, uint32_t object_id) -> pybind11::list {
                 std::vector<LimonTypes::GenericParameter> result = self.getObjectTransformationMatrix(object_id);
                 return GenericParameterConverter::convertGenericParameterVectorToObjects(result);
@@ -619,7 +633,12 @@ PYBIND11_EMBEDDED_MODULE(limon, m, pybind11::multiple_interpreters::per_interpre
                  pybind11::arg("sound_path"), pybind11::arg("position"),
                  pybind11::arg("position_relative") = false, pybind11::arg("looped") = false)
 
-            // AI Interaction
+            // AI / Player Interaction
+            .def("interact_with_player", [](LimonAPI& self, pybind11::object py_params) {
+                std::vector<LimonTypes::GenericParameter> params = GenericParameterConverter::convertPythonListToGenericParameterVector(py_params);
+                self.interactWithPlayer(params);
+            }, "Send interaction data to the active player extension",
+                 pybind11::arg("interaction_information"))
             .def("interact_with_ai", [](LimonAPI& self, uint32_t ai_id, pybind11::object py_params) -> bool {
                 // Convert Python list to C++ vector using shared converter
                 std::vector<LimonTypes::GenericParameter> params = GenericParameterConverter::convertPythonListToGenericParameterVector(py_params);
@@ -670,6 +689,12 @@ PYBIND11_EMBEDDED_MODULE(limon, m, pybind11::multiple_interpreters::per_interpre
          pybind11::arg("start"), pybind11::arg("direction"))
 
             // Lighting
+            .def("add_light", &LimonAPI::addLight,
+                 "Add a light. lightType: 1=directional, 2=point. Returns light ID, or 0 on failure.",
+                 pybind11::arg("light_type"), pybind11::arg("position"), pybind11::arg("color"))
+            .def("remove_light", &LimonAPI::removeLight,
+                 "Remove a light by ID. Returns true on success.",
+                 pybind11::arg("light_id"))
             .def("add_light_translate", &LimonAPI::addLightTranslate,
                  "Translate a light",
                  pybind11::arg("light_id"), pybind11::arg("translation"))

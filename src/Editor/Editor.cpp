@@ -5,6 +5,7 @@
 #include <Assets/Animations/AnimationLoader.h>
 #include "Editor.h"
 #include "World.h"
+#include "../WorldAPIAccessor.h"
 #include "ImGuiHelper.h"
 #include "Camera/PerspectiveCamera.h"
 #include "GameObjects/Model.h"
@@ -59,6 +60,251 @@ Editor::~Editor() {
     delete iterationExtension;
     delete imgGuiHelper;
     delete request;
+}
+
+bool Editor::generateEditorElementsForParameters(std::vector<LimonTypes::GenericParameter> &runParameters, uint32_t index) {
+    bool isAllSet = true;
+    std::set<std::string> passDescriptions;
+    for (size_t i = 0; i < runParameters.size(); ++i) {
+        LimonTypes::GenericParameter& parameter = runParameters[i];
+        if(passDescriptions.find(parameter.description) != passDescriptions.end()) {
+            continue;
+        }
+        switch(parameter.requestType) {
+
+            case LimonTypes::GenericParameter::RequestParameterTypes::MULTI_SELECT: {
+                parameter.valueType = LimonTypes::GenericParameter::ValueTypes::STRING;
+                if (ImGui::BeginCombo((parameter.description + "##triggerParam" + std::to_string(i) + "##" + std::to_string(index)).c_str(), parameter.value.stringValue)) {
+                    for (size_t j = i+1; j < runParameters.size(); ++j) {
+                        if(runParameters[j].requestType == LimonTypes::GenericParameter::RequestParameterTypes::MULTI_SELECT && runParameters[j].description == runParameters[i].description) {
+                            bool isThisElementSelected = (std::strcmp(runParameters[j].value.stringValue,parameter.value.stringValue) == 0);
+
+                            if (ImGui::Selectable(runParameters[j].value.stringValue, isThisElementSelected)) {
+                                strncpy(parameter.value.stringValue,runParameters[j].value.stringValue, sizeof(runParameters[j].value.stringValue));
+                                parameter.isSet = true;
+                            }
+                            if(isThisElementSelected) {
+                                ImGui::SetItemDefaultFocus();
+                            }
+                        }
+                    }
+                    ImGui::EndCombo();
+                }
+            }
+            passDescriptions.insert(parameter.description);
+            break;
+            case LimonTypes::GenericParameter::RequestParameterTypes::MODEL: {
+                parameter.valueType = LimonTypes::GenericParameter::ValueTypes::LONG;
+                std::string currentObject;
+                if (parameter.isSet) {
+                    if(world->objects.find((uint32_t) (parameter.value.longValue)) != world->objects.end()) {
+                        currentObject = dynamic_cast<Model *>(world->objects[(uint32_t) (parameter.value.longValue)])->getName();
+                    } else {
+                        parameter.isSet = false;
+                        currentObject = "Not selected";
+                        isAllSet = false;
+                    }
+                } else {
+                    currentObject = "Not selected";
+                    isAllSet = false;
+                }
+                if (ImGui::BeginCombo((parameter.description + "##triggerParam" + std::to_string(i) + "##" + std::to_string(index)).c_str(),
+                                      currentObject.c_str())) {
+                    for (auto it = world->objects.begin(); it != world->objects.end(); it++) {
+                        Model* currentModel = dynamic_cast<Model *>(it->second);
+                        if(currentModel == nullptr) {
+                            std::cerr << "Object cast to model failed" << std::endl;
+                            continue;
+                        }
+                        bool isThisModelSelected = (currentObject == currentModel->getName());
+
+                        if (ImGui::Selectable(currentModel->getName().c_str(), isThisModelSelected)) {
+                            parameter.value.longValue = static_cast<long>(currentModel->getWorldObjectID());
+                            parameter.isSet = true;
+                        }
+                        if(isThisModelSelected) {
+                            ImGui::SetItemDefaultFocus();
+                        }
+                    }
+                    ImGui::EndCombo();
+                }
+            }
+                break;
+            case LimonTypes::GenericParameter::RequestParameterTypes::ANIMATION: {
+                parameter.valueType = LimonTypes::GenericParameter::ValueTypes::LONG;
+                std::string currentAnimation;
+                if (parameter.isSet) {
+                    currentAnimation = world->loadedAnimations[static_cast<uint32_t>(parameter.value.longValue)].getName();
+                } else {
+                    currentAnimation = "Not selected";
+                    isAllSet = false;
+                }
+                if (ImGui::BeginCombo((parameter.description + "##triggerParam" + std::to_string(i) + "##" + std::to_string(index)).c_str(),
+                                      currentAnimation.c_str())) {
+                    for (uint32_t j = 0; j < world->loadedAnimations.size(); ++j) {
+
+                        bool isThisAnimationSelected = (currentAnimation == world->loadedAnimations[j].getName().c_str());
+
+                        if (ImGui::Selectable(world->loadedAnimations[j].getName().c_str(), isThisAnimationSelected)) {
+                            parameter.value.longValue = static_cast<long>(j);
+                            parameter.isSet = true;
+                        }
+
+                        if(isThisAnimationSelected) {
+                            ImGui::SetItemDefaultFocus();
+                        }
+
+                    }
+                    ImGui::EndCombo();
+                }
+                break;
+            }
+            case LimonTypes::GenericParameter::RequestParameterTypes::GUI_TEXT: {
+                parameter.valueType = LimonTypes::GenericParameter::ValueTypes::LONG;
+                std::string currentGUIText;
+                if (parameter.isSet) {
+                    if(world->guiElements.find(static_cast<uint32_t>(parameter.value.longValue)) != world->guiElements.end()) {
+                        GameObject* guiGameObject = dynamic_cast<GameObject*>(world->guiElements[static_cast<uint32_t>(parameter.value.longValue)]);
+                        if(guiGameObject != nullptr && guiGameObject->getTypeID() == GameObject::ObjectTypes::GUI_TEXT) {
+                            currentGUIText = guiGameObject->getName();
+                        }
+                    } else {
+                        parameter.isSet = false;
+                        currentGUIText = "Not selected";
+                        isAllSet = false;
+                    }
+                } else {
+                    currentGUIText = "Not selected";
+                    isAllSet = false;
+                }
+                if (ImGui::BeginCombo((parameter.description + "##triggerParam" + std::to_string(i) + "##" + std::to_string(index)).c_str(),
+                                      currentGUIText.c_str())) {
+                    for(auto it = world->guiElements.begin(); it != world->guiElements.end(); it++) {
+                        bool isThisGUITextSelected = false;
+                        GameObject* guiGameObject = dynamic_cast<GameObject*>(it->second);
+                        if(guiGameObject != nullptr && guiGameObject->getTypeID() == GameObject::ObjectTypes::GUI_TEXT) {
+                            isThisGUITextSelected = currentGUIText == guiGameObject->getName();
+                            if (ImGui::Selectable(guiGameObject->getName().c_str(), isThisGUITextSelected)) {
+                                parameter.value.longValue = static_cast<long>(it->first);
+                                parameter.isSet = true;
+                            }
+
+                            if(isThisGUITextSelected) {
+                                ImGui::SetItemDefaultFocus();
+                            }
+                        }
+                    }
+                    ImGui::EndCombo();
+                }
+            }
+                break;
+            case LimonTypes::GenericParameter::RequestParameterTypes::SWITCH: {
+                parameter.valueType = LimonTypes::GenericParameter::ValueTypes::BOOLEAN;
+                bool isSelected;
+                if (parameter.isSet) {
+                    isSelected = parameter.value.boolValue;
+                } else {
+                    isSelected = false;
+                    isAllSet = false;
+                }
+                if (ImGui::Checkbox((parameter.description + "##triggerParam" + std::to_string(i) + "##" + std::to_string(index)).c_str(),
+                                    &isSelected)) {
+                    parameter.isSet = true;
+                    parameter.value.boolValue = isSelected;
+                };
+            }
+                break;
+            case LimonTypes::GenericParameter::RequestParameterTypes::FREE_TEXT: {
+                parameter.valueType = LimonTypes::GenericParameter::ValueTypes::STRING;
+                if (!parameter.isSet) {
+                    isAllSet = false;
+                }
+                if (ImGui::InputText((parameter.description + "##triggerParam" + std::to_string(i) + "##" + std::to_string(index)).c_str(),
+                                     parameter.value.stringValue, sizeof(parameter.value.stringValue))) {
+                    parameter.isSet = true;
+                };
+            }
+                break;
+            case LimonTypes::GenericParameter::RequestParameterTypes::FREE_NUMBER: {
+                switch (parameter.valueType) {
+                    case LimonTypes::GenericParameter::ValueTypes::DOUBLE: {
+                        parameter.valueType = LimonTypes::GenericParameter::ValueTypes::DOUBLE;
+                        if (!parameter.isSet) {
+                            isAllSet = false;
+                        }
+                        float value = parameter.value.doubleValue;
+                        if (ImGui::DragFloat((parameter.description + "##triggerParam" + std::to_string(i) + "##" +
+                                              std::to_string(index)).c_str(),
+                                             &value, sizeof(parameter.value.doubleValue))) {
+                            parameter.value.doubleValue = value;
+                            parameter.isSet = true;
+                        };
+                    }
+                    break;
+                    case LimonTypes::GenericParameter::ValueTypes::LONG:
+                    default: {
+                        parameter.valueType = LimonTypes::GenericParameter::ValueTypes::LONG;
+                        if (!parameter.isSet) {
+                            isAllSet = false;
+                        }
+                        int value = parameter.value.longValue;
+                        if (ImGui::DragInt((parameter.description + "##triggerParam" + std::to_string(i) + "##" +
+                                            std::to_string(index)).c_str(),
+                                           &value, sizeof(parameter.value.longValue))) {
+                            parameter.value.longValue = value;
+                            parameter.isSet = true;
+                        };
+                    }
+                        break;
+                }
+            }
+            break;
+            case LimonTypes::GenericParameter::RequestParameterTypes::TRIGGER: {
+                parameter.valueType = LimonTypes::GenericParameter::ValueTypes::LONG_ARRAY;
+                parameter.value.longValues[0] = 3;
+                std::string currentObject;
+                if (parameter.isSet) {
+                    currentObject = dynamic_cast<TriggerObject*>(world->triggers[(uint32_t)(parameter.value.longValues[1])])->getName();
+                } else {
+                    currentObject = "Not selected";
+                    isAllSet = false;
+                }
+                std::string label = parameter.description + "##triggerParam" + std::to_string(i) + "##" + std::to_string(index);
+                if (ImGui::BeginCombo(label.c_str(), currentObject.c_str())) {
+                    for (auto it = world->triggers.begin(); it != world->triggers.end(); it++) {
+
+                        bool isThisTriggerSelected = currentObject == it->second->getName();
+
+                        if (ImGui::Selectable((it->second)->getName().c_str(), isThisTriggerSelected)) {
+                            parameter.value.longValues[1] = static_cast<long>((it->second)->getWorldObjectID());
+                            parameter.isSet = true;
+                        }
+
+                        if(isThisTriggerSelected) {
+                            ImGui::SetItemDefaultFocus();
+                        }
+
+                    }
+                    ImGui::EndCombo();
+
+                }
+                int RadioButtonValue = parameter.value.longValues[2];
+                ImGui::BeginGroup();
+                ImGui::RadioButton(("First Enter##" + label).c_str(), &RadioButtonValue, 1);
+                ImGui::RadioButton(("Enter##" + label).c_str(), &RadioButtonValue, 2);
+                ImGui::RadioButton(("Exit##" + label).c_str(), &RadioButtonValue, 3);
+                ImGui::EndGroup();
+                parameter.value.longValues[2] = RadioButtonValue;
+            }
+            break;
+
+            case LimonTypes::GenericParameter::RequestParameterTypes::COORDINATE:
+            case LimonTypes::GenericParameter::RequestParameterTypes::TRANSFORM:
+                std::cerr << "These parameter types are not handled!" << std::endl;
+
+        }
+    }
+    return isAllSet;
 }
 
 //This method is used only for ImGui loaded animations list generation
@@ -254,7 +500,7 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
 
                 if(world->onLoadAnimations.find(pickedModel) != world->onLoadAnimations.end() &&
                         world->activeAnimations.find(pickedModel) != world->activeAnimations.end()) {
-                    world->addAnimationToObject(newModel->getWorldObjectID(), world->activeAnimations[pickedModel]->animationIndex,
+                    world->apiAccessor->addAnimationToObject(newModel->getWorldObjectID(), world->activeAnimations[pickedModel]->animationIndex,
                                          true, true);
                 }
                 if(this->pickedObject != nullptr ) {
@@ -651,7 +897,7 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
             }
             //before saving, set the connection state
             for (auto objectIt = world->disconnectedModels.begin(); objectIt != world->disconnectedModels.end(); ++objectIt) {
-                world->disconnectObjectFromPhysics(*objectIt);
+                world->apiAccessor->disconnectObjectFromPhysics(*objectIt);
             }
 
             if(WorldSaver::saveWorld(this->worldSaveNameBuffer, world)) {
@@ -661,7 +907,7 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
             }
             //after save, set the states back
             for (auto objectIt = world->disconnectedModels.begin(); objectIt != world->disconnectedModels.end(); ++objectIt) {
-                world->reconnectObjectToPhysics(*objectIt);
+                world->apiAccessor->reconnectObjectToPhysics(*objectIt);
             }
 
         }
@@ -797,7 +1043,7 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
 
                             }
                             if (!wasDisconnected) {
-                                world->reconnectObjectToPhysics(selectedObject->getWorldObjectID());//multiple redirection but should be fine as this is single object in editor mode
+                                world->apiAccessor->reconnectObjectToPhysics(selectedObject->getWorldObjectID());//multiple redirection but should be fine as this is single object in editor mode
                                 world->dynamicsWorld->updateSingleAabb(selectedObject->getRigidBody());
                             }
                             world->updatedModels.push_back(selectedObject);
@@ -918,25 +1164,25 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
                 case GameObject::ObjectTypes::MODEL: {
                     if (world->disconnectedModels.find(this->pickedObject->getWorldObjectID()) != world->disconnectedModels.end()) {
                         if (ImGui::Button("reconnect to physics")) {
-                            world->reconnectObjectToPhysicsRequest(static_cast<Model *>(this->pickedObject)->getWorldObjectID());//Request because that action will not be carried out on editor mode
+                            world->apiAccessor->reconnectObjectToPhysicsRequest(static_cast<Model *>(this->pickedObject)->getWorldObjectID());//Request because that action will not be carried out on editor mode
                         }
                     } else {
                         if (ImGui::Button("Disconnect from physics")) {
-                            world->disconnectObjectFromPhysicsRequest(static_cast<Model *>(this->pickedObject)->getWorldObjectID());
+                            world->apiAccessor->disconnectObjectFromPhysicsRequest(static_cast<Model *>(this->pickedObject)->getWorldObjectID());
                         }
                         ImGui::Text(
                                 "If object is placed in trigger volume, \ndisconnecting drastically improve performance.");
                     }
 
                     if (ImGui::Button("Remove This Object")) {
-                        world->removeObject(this->pickedObject->getWorldObjectID());
+                        world->apiAccessor->removeObject(this->pickedObject->getWorldObjectID());
                         this->pickedObject = nullptr;
                     }
                 }
                     break;
                 case GameObject::ObjectTypes::TRIGGER: {
                     if (ImGui::Button("Remove This Trigger")) {
-                        world->removeTriggerObject(this->pickedObject->getWorldObjectID());
+                        world->apiAccessor->removeTriggerObject(this->pickedObject->getWorldObjectID());
                         this->pickedObject = nullptr;
                     }
                 }
@@ -955,34 +1201,9 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
                     break;
                 case GameObject::ObjectTypes::LIGHT: {
                     if(objectEditorResult.remove) {
-                        for (auto iterator = world->lights.begin(); iterator != world->lights.end(); ++iterator) {
-                            if((*iterator)->getWorldObjectID() == this->pickedObject->getWorldObjectID()) {
-                                world->unusedIDs.push(this->pickedObject->getWorldObjectID());
-                                const std::vector<Camera*>& cameras = (*iterator)->getCameras();
-                                for (auto camera:cameras) {
-                                    for (auto entry:world->visibilityManager->visibilityThreadPool) {
-                                        if (entry.first->camera == camera) {
-                                            entry.first->running = false;
-                                            world->visibilityManager->wakeThreadsCondition.signalWaiting();
-                                            SDL_WaitThread(entry.second, nullptr);
-                                            auto visRequest = entry.first;
-                                            world->visibilityManager->visibilityThreadPool.erase(visRequest);
-                                            delete visRequest;
-                                            break;
-                                        }
-                                    }
-                                    world->visibilityManager->getCullingResults().erase(camera);
-                                }
-                                world->lights.erase(iterator);
-                                break;
-                            }
-                        }
-                        if(static_cast<Light*>(this->pickedObject)->getLightType() == Light::LightTypes::DIRECTIONAL) {
-                            world->directionalLightIndex = -1;
-                        }
-                        delete this->pickedObject;
-                        world->updateActiveLights(true);
+                        uint32_t lightID = this->pickedObject->getWorldObjectID();
                         this->pickedObject = nullptr;
+                        world->apiAccessor->removeLightAPI(lightID);
                     }
                 }
                     break;
@@ -1039,7 +1260,7 @@ void Editor::addAnimationDefinitionToEditor() {
                            static_cast<void *>(&world->loadedAnimations), world->loadedAnimations.size(), 10);
 
             if (ImGui::Button("Apply selected")) {
-                world->addAnimationToObject(this->pickedObject->getWorldObjectID(), listbox_item_current,
+                world->apiAccessor->addAnimationToObject(this->pickedObject->getWorldObjectID(), listbox_item_current,
                                      true, true);
             }
 
@@ -1063,7 +1284,7 @@ void Editor::addAnimationDefinitionToEditor() {
             if (finished) {
                 world->loadedAnimations.push_back(AnimationCustom(*world->animationInProgress->buildAnimationFromCurrentItems()));
 
-                world->addAnimationToObject(this->pickedObject->getWorldObjectID(),
+                world->apiAccessor->addAnimationToObject(this->pickedObject->getWorldObjectID(),
                                      world->loadedAnimations.size() - 1, true, true);
                 delete world->animationInProgress;
                 world->animationInProgress = nullptr;
@@ -1844,14 +2065,14 @@ void Editor::drawNodeEditor() {
         ImGui::Separator();
 
         if (ImGui::Button("Keep", ImVec2(120, 0))) {
-            world->cancelTimedEventAPI(handleId);
+            world->apiAccessor->cancelTimedEventAPI(handleId);
             handleId = 0;
             ImGui::CloseCurrentPopup();
         }
         ImGui::SetItemDefaultFocus();
         ImGui::SameLine();
         if (ImGui::Button("Revert", ImVec2(120, 0))) {
-            world->cancelTimedEventAPI(handleId);
+            world->apiAccessor->cancelTimedEventAPI(handleId);
             world->renderPipeline = world->renderPipelineBackup;
             world->renderPipelineBackup = nullptr;
             handleId = 0;
@@ -1871,7 +2092,7 @@ void Editor::drawNodeEditor() {
                 }
             }
             std::vector<LimonTypes::GenericParameter> empty;
-            handleId = world->addTimedEventAPI(10000, true,
+            handleId = world->apiAccessor->addTimedEventAPI(10000, true,
                                         [&](const std::vector<LimonTypes::GenericParameter> &) {
                                             world->renderPipeline = world->renderPipelineBackup;
                                             world->renderPipelineBackup = nullptr;

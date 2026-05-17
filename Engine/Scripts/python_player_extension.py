@@ -79,6 +79,29 @@ class PythonPlayerExtension(limon.PlayerExtensionInterface):
                     callback=self.remove_muzzle_flash,
                     parameters=param_vector
                 )
+                # Add muzzle flash light at player position
+                light_position = limon.Vec4(0.0, 2.0, 0.0, 0.0)
+                if self.playerAttachedModelID != -1:
+                    transform = self._limon_api.get_object_transformation(self.playerAttachedModelID)
+                    if transform and len(transform) > 0:
+                        pos = transform[0].value
+                        light_position = limon.Vec4(pos[0], pos[1], pos[2], 0.0)
+                muzzle_light_id = self._limon_api.add_light(2, light_position, limon.Vec4(1.0, 0.6, 0.1, 1.0))
+                if muzzle_light_id != 0:
+                    light_param = GenericParameter(
+                        request_type=RequestParameterType.FREE_NUMBER,
+                        description="light id",
+                        value_type=ValueType.LONG,
+                        value=muzzle_light_id,
+                        is_set=True
+                    )
+                    self._limon_api.add_timed_event(
+                        wait_time=600,
+                        use_wall_time=False,
+                        callback=self.remove_muzzle_flash_light,
+                        parameters=[light_param]
+                    )
+
                 ray_result = self._limon_api.ray_cast_to_cursor()
                 if ray_result:
                     print("Ray cast result: ", ray_result)
@@ -137,6 +160,18 @@ class PythonPlayerExtension(limon.PlayerExtensionInterface):
             print(f"Error in remove_muzzle_flash: {str(e)}")
             import traceback
             traceback.print_exc()
+    def remove_muzzle_flash_light(self, parameters):
+        try:
+            if not parameters or len(parameters) == 0:
+                return
+            param = parameters[0]
+            light_id = int(param.value)
+            self._limon_api.remove_light(light_id)
+        except Exception as e:
+            print(f"Error in remove_muzzle_flash_light: {str(e)}")
+            import traceback
+            traceback.print_exc()
+
     def interact(self, interaction_data: List['GenericParameter']) -> None:
         """Handle interaction with the player."""
         pass
