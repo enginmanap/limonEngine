@@ -1171,15 +1171,15 @@ void ScriptManager::LoadScript(WorldInterpreter * worldInterpreter, const std::s
             std::cout << "[ScriptManager] Skipping limon import in subinterpreter (not main interpreter)" << std::endl;
         }
 
-        pybind11::module_ module;
+        pybind11::module_ pybindModule;
         try {
-            module = pybind11::module_::import(moduleName.c_str());
+            pybindModule = pybind11::module_::import(moduleName.c_str());
         } catch (const pybind11::error_already_set& e) {
             std::cerr << "[ScriptManager] Failed to import module " << moduleName << ": " << e.what() << std::endl;
             PyErr_Print();
             return;
         }
-        pybind11::list moduleItemsDict = pybind11::list(module.attr("__dict__").attr("items")());
+        pybind11::list moduleItemsDict = pybind11::list(pybindModule.attr("__dict__").attr("items")());
         for (pybind11::handle item: moduleItemsDict) {
             std::pair<std::string, pybind11::object> pair = item.cast<std::pair<std::string, pybind11::object>>();
             std::string name = pair.first;
