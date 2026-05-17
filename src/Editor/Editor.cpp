@@ -48,6 +48,7 @@ Editor::Editor(World *world) : world(world){
     backgroundRenderStage->setOutput(GraphicsInterface::FrameBufferAttachPoints::DEPTH, depthTexture, true);
     wrapper = new ImGuiImageWrapper();
     imgGuiHelper = new ImGuiHelper(world->assetManager, world->options);
+    world->getName().copy(worldSaveNameBuffer, sizeof(worldSaveNameBuffer));
 
 }
 
