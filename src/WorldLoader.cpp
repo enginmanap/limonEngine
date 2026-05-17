@@ -419,8 +419,14 @@ bool WorldLoader::loadObjectsFromXML(tinyxml2::XMLNode *objectsNode, World *worl
             continue;
         }
         std::string modelFile = objectAttribute->GetText();
+        tinyxml2::XMLElement *flipAttributeForPreload = objectNodeForPreload->FirstChildElement("Flip");
+        std::string flipAxesForPreload;
+        if (flipAttributeForPreload != nullptr && flipAttributeForPreload->GetText() != nullptr) {
+            flipAxesForPreload = flipAttributeForPreload->GetText();
+        }
+        std::string assetKeyForPreload = flipAxesForPreload.empty() ? modelFile : modelFile + "?flip" + flipAxesForPreload;
         std::vector<std::string> temp;
-        temp.emplace_back(modelFile);
+        temp.emplace_back(assetKeyForPreload);
         preloadAssetFiles.emplace_back(temp);
         objectNodeForPreload = objectNodeForPreload->NextSiblingElement("Object");
     }
@@ -520,8 +526,15 @@ WorldLoader::loadObject( std::shared_ptr<AssetManager> assetManager, tinyxml2::X
                 //std::cout << "Object disconnect status is unknown. defaulting to False" << std::endl;
             }
         }
+
+    std::string flipAxes;
+    tinyxml2::XMLElement *flipAttribute = objectNode->FirstChildElement("Flip");
+    if (flipAttribute != nullptr && flipAttribute->GetText() != nullptr) {
+        flipAxes = flipAttribute->GetText();
+    }
+
     std::unique_ptr<ObjectInformation> loadedObjectInformation = std::make_unique<ObjectInformation>();
-    loadedObjectInformation->model = new Model(id, assetManager, modelMass, modelFile, disconnected);
+    loadedObjectInformation->model = new Model(id, assetManager, modelMass, modelFile, disconnected, flipAxes);
 
     int32_t parentBoneID = -1;
     objectAttribute =  objectNode->FirstChildElement("ParentBoneID");

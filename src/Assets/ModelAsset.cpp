@@ -3,6 +3,7 @@
 //
 
 #include <set>
+#include <limits>
 
 #include "ModelAsset.h"
 #include "../Utils/GLMUtils.h"
@@ -10,6 +11,21 @@
 #include "limonAPI/Graphics/GraphicsInterface.h"
 #include "Animations/AnimationAssimpSection.h"
 #include "../../libs/ImGui/imgui.h"
+
+std::string ModelAsset::stripFlipSuffix(const std::string &path, bool &outFlipX, bool &outFlipY, bool &outFlipZ) {
+    outFlipX = outFlipY = outFlipZ = false;
+    size_t pos = path.rfind("?flip");
+    if (pos == std::string::npos) {
+        return path;
+    }
+    std::string suffix = path.substr(pos + 5);
+    for (char c : suffix) {
+        if (c == 'X') outFlipX = true;
+        else if (c == 'Y') outFlipY = true;
+        else if (c == 'Z') outFlipZ = true;
+    }
+    return path.substr(0, pos);
+}
 
 ModelAsset::ModelAsset(AssetManager *assetManager, uint32_t assetID, const std::vector<std::string> &fileList)
         : Asset(assetManager, assetID,
@@ -20,7 +36,8 @@ ModelAsset::ModelAsset(AssetManager *assetManager, uint32_t assetID, const std::
         std::cerr << "Model load failed because file name vector is empty." << std::endl;
         exit(-1);
     }
-    name = fileList[0];
+    name = stripFlipSuffix(fileList[0], flipX, flipY, flipZ);
+    reverseWinding = (int(flipX) + int(flipY) + int(flipZ)) % 2 == 1;
     if (fileList.size() > 1) {
         std::cerr << "multiple files are sent to Model constructor, extra elements ignored." << std::endl;
     }
@@ -78,15 +95,36 @@ void ModelAsset::loadCPUPart() {
 
     this->rootNode = loadNodeTree(scene->mRootNode);
 
-    createMeshes(scene, scene->mRootNode, glm::mat4(1.0f));
+    glm::mat4 initialTransform(1.0f);
+    if (flipX || flipY || flipZ) {
+        if (this->hasAnimation) {
+            std::cerr << "WARNING: flip requested for animated model " << name << " — flip is not supported for animated meshes, ignoring." << std::endl;
+        } else {
+            initialTransform = glm::scale(initialTransform, glm::vec3(flipX ? -1.0f : 1.0f, flipY ? -1.0f : 1.0f, flipZ ? -1.0f : 1.0f));
+        }
+    }
+    createMeshes(scene, scene->mRootNode, initialTransform);
     if(this->hasAnimation) {
         fillAnimationSet(scene->mNumAnimations, scene->mAnimations);
     }
-    aiVector3D min, max;
-    AssimpUtils::get_bounding_box(scene, &min, &max);
-    boundingBoxMax = GLMConverter::AssimpToGLM(max);
-    boundingBoxMin = GLMConverter::AssimpToGLM(min);
-    centerOffset = glm::vec3((max.x + min.x) / 2, (max.y + min.y) / 2, (max.z + min.z) / 2);
+
+    if ((flipX || flipY || flipZ) && !this->hasAnimation) {
+        boundingBoxMin = glm::vec3(std::numeric_limits<float>::max());
+        boundingBoxMax = glm::vec3(std::numeric_limits<float>::lowest());
+        for (const auto &mesh : meshes) {
+            for (const auto &vertex : mesh->getVertices()) {
+                boundingBoxMin = glm::min(boundingBoxMin, vertex);
+                boundingBoxMax = glm::max(boundingBoxMax, vertex);
+            }
+        }
+        centerOffset = (boundingBoxMin + boundingBoxMax) / 2.0f;
+    } else {
+        aiVector3D min, max;
+        AssimpUtils::get_bounding_box(scene, &min, &max);
+        boundingBoxMax = GLMConverter::AssimpToGLM(max);
+        boundingBoxMin = GLMConverter::AssimpToGLM(min);
+        centerOffset = glm::vec3((max.x + min.x) / 2, (max.y + min.y) / 2, (max.z + min.z) / 2);
+    }
     //std::cout << "Model asset: " << name << "Assimp bounding box is " << GLMUtils::vectorToString(boundingBoxMin) << ", " <<  GLMUtils::vectorToString(boundingBoxMax) << std::endl;
     //Implicit call to import.FreeScene(), and removal of scene.
 
@@ -343,7 +381,7 @@ void ModelAsset::createMeshes(const aiScene *scene, aiNode *aiNode, glm::mat4 pa
         std::shared_ptr<Material> meshMaterial = loadMaterials(scene, currentMesh->mMaterialIndex);
         std::shared_ptr<MeshAsset> mesh;
         mesh = std::make_shared<MeshAsset>(currentMesh, aiNode->mName.C_Str(), rootNode,
-                                           parentTransform, hasAnimation);
+                                           parentTransform, hasAnimation, reverseWinding);
         meshMaterialMap[mesh] = meshMaterial;
         if((*mesh->getTriangleCount()) == 0) {
             continue;

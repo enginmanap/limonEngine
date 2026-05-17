@@ -177,6 +177,13 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
             ImGui::NewLine();
             ImGui::SliderFloat("Weight", &newObjectWeight, 0.0f, 100.0f);
             ImGui::NewLine();
+            static bool addFlipX = false, addFlipY = false, addFlipZ = false;
+            ImGui::Checkbox("Flip X##AddObject", &addFlipX);
+            ImGui::SameLine();
+            ImGui::Checkbox("Flip Y##AddObject", &addFlipY);
+            ImGui::SameLine();
+            ImGui::Checkbox("Flip Z##AddObject", &addFlipZ);
+            ImGui::NewLine();
             if(selectedAsset == nullptr) {
                 ImGui::Button("Add Object");
                 ImGui::SameLine();
@@ -212,8 +219,12 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
                     modelAssetsWaitingCPULoad[selectedAsset->fullPath] = world->assetManager->partialLoadAssetAsync<ModelAsset>({selectedAsset->fullPath});
                 }
                 if(ImGui::Button("Add Object")) {
+                    std::string newFlipAxes;
+                    if (addFlipX) newFlipAxes += 'X';
+                    if (addFlipY) newFlipAxes += 'Y';
+                    if (addFlipZ) newFlipAxes += 'Z';
                     Model* newModel = new Model(world->getNextObjectID(), world->assetManager, newObjectWeight,
-                                                selectedAsset->fullPath, false);
+                                                selectedAsset->fullPath, false, newFlipAxes);
                     newModel->getTransformation()->setTranslate(newObjectPosition);
                     world->addModelToWorld(newModel);
                     newModel->getRigidBody()->activate();
@@ -825,6 +836,19 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
                         if (removedActorID != 0) {
                             world->unusedIDs.push(removedActorID);
                         }
+                    }
+                    if (objectEditorResult.flipChanged) {
+                        Model *selectedObject = static_cast<Model *>(this->pickedObject);
+                        for (auto &perCameraVisibility: world->visibilityManager->getCullingResults()) {
+                            for (auto perTagVisibilityIt = perCameraVisibility.second->begin(); perTagVisibilityIt != perCameraVisibility.second->end(); ++perTagVisibilityIt) {
+                                perTagVisibilityIt->second.removeModelFromAll(selectedObject->getWorldObjectID());
+                            }
+                        }
+                        selectedObject->reloadWithFlip(objectEditorResult.newFlipAxes);
+                        if (!selectedObject->isDisconnected()) {
+                            world->dynamicsWorld->updateSingleAabb(selectedObject->getRigidBody());
+                        }
+                        world->updatedModels.push_back(selectedObject);
                     }
                 }
                     /* fall through */

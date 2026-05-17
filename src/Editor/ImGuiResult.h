@@ -18,7 +18,9 @@ struct ImGuiResult {
     bool materialChanged = false;
     bool recalculateTranslateForOnTop = false;
     bool putOnTop = false;
+    bool flipChanged = false;
     std::string actorTypeName;
+    std::string newFlipAxes;
 };
 
 

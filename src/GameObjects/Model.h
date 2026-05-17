@@ -48,6 +48,7 @@ private:
     long lastSetupTime = 0;
     float animationTimeScale = 1.0f;
     std::string name;
+    std::string flipAxes;
     bool animated = false;
     bool isAIParametersDirty = true;
     bool temporary = false;
@@ -99,9 +100,11 @@ public:
                                                                                                                 0, modelFile, false) {};
 
     Model(uint32_t objectID,  std::shared_ptr<AssetManager> assetManager, const float mass, const std::string &modelFile,
-              bool disconnected);
+              bool disconnected, const std::string &flipAxes = "");
 
     Model(const Model& otherModel, uint32_t objectID); //kind of copy constructor, except ID
+
+    void reloadWithFlip(const std::string &newFlipAxes);
 
     /**
      * This method returns a copy of compound shape, composed of convex shapes for sweep test. It is used for raycast and other sweep tests.

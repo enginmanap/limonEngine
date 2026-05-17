@@ -15,15 +15,16 @@
 #include <cereal/archives/binary.hpp>
 #endif
 Model::Model(uint32_t objectID,  std::shared_ptr<AssetManager> assetManager, const float mass, const std::string &modelFile,
-             bool disconnected = false) :
+             bool disconnected, const std::string &flipAxes) :
         PhysicalRenderable(assetManager->getGraphicsWrapper(), mass, disconnected), objectID(objectID), assetManager(assetManager),
-        name(modelFile) {
+        name(modelFile), flipAxes(flipAxes) {
 
     transformation.setUpdateCallback(std::bind(&Model::transformChangeCallback, this));
 
     //this is required because the shader has fixed size arrays
     boneTransforms.resize(128);
-    modelAsset = assetManager->loadAsset<ModelAsset>({modelFile});
+    std::string assetKey = flipAxes.empty() ? modelFile : modelFile + "?flip" + flipAxes;
+    modelAsset = assetManager->loadAsset<ModelAsset>({assetKey});
     //set up the rigid body
     this->triangleCount = 0;
     this->vao = 0;
@@ -222,6 +223,12 @@ bool Model::fillObjects(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *o
     tinyxml2::XMLElement *currentElement = document.NewElement("File");
     currentElement->SetText(name.c_str());
     objectElement->InsertEndChild(currentElement);
+
+    if (!flipAxes.empty()) {
+        currentElement = document.NewElement("Flip");
+        currentElement->SetText(flipAxes.c_str());
+        objectElement->InsertEndChild(currentElement);
+    }
 
     if(animated) {
         currentElement = document.NewElement("Animation");
@@ -458,6 +465,27 @@ ImGuiResult Model::addImGuiEditorElements(const ImGuiRequest &request) {
             ImGuiHelper::ShowHelpMarker("No sound asset selected");
         }
     }
+    if (!animated) {
+        if (ImGui::CollapsingHeader("Flip axes")) {
+            bool flipX = flipAxes.find('X') != std::string::npos;
+            bool flipY = flipAxes.find('Y') != std::string::npos;
+            bool flipZ = flipAxes.find('Z') != std::string::npos;
+            bool flipChanged = false;
+            flipChanged |= ImGui::Checkbox("Flip X##ModelFlip", &flipX);
+            ImGui::SameLine();
+            flipChanged |= ImGui::Checkbox("Flip Y##ModelFlip", &flipY);
+            ImGui::SameLine();
+            flipChanged |= ImGui::Checkbox("Flip Z##ModelFlip", &flipZ);
+            if (flipChanged) {
+                std::string newFlipAxes;
+                if (flipX) newFlipAxes += 'X';
+                if (flipY) newFlipAxes += 'Y';
+                if (flipZ) newFlipAxes += 'Z';
+                result.flipChanged = true;
+                result.newFlipAxes = newFlipAxes;
+            }
+        }
+    }
     if (ImGui::CollapsingHeader("Material properties")) {
         //add material listing
         static int32_t selectedIndex = -1;
@@ -546,11 +574,12 @@ Model::~Model() {
     for (size_t i = 0; i < children.size(); ++i) {
         children[i]->setParentObject(nullptr);
     }
-    assetManager->freeAsset({name});
+    std::string assetKey = flipAxes.empty() ? name : name + "?flip" + flipAxes;
+    assetManager->freeAsset({assetKey});
 }
 
 Model::Model(const Model &otherModel, uint32_t objectID) :
-        Model(objectID, otherModel.assetManager, otherModel.mass, otherModel.name, otherModel.disconnected) {
+        Model(objectID, otherModel.assetManager, otherModel.mass, otherModel.name, otherModel.disconnected, otherModel.flipAxes) {
     //we have constructed the object, now set the properties that might have been changed
     this->transformation.setTransformationsNotPropagate(
             otherModel.transformation.getTranslate(),
@@ -679,6 +708,53 @@ void Model::attachAI(ActorInterface *AIActor) {
     //after this, clearing the AI is job of the model.
     this->AIActor = AIActor;
     lastSelectedAIName = AIActor->getName();
+}
+
+void Model::reloadWithFlip(const std::string &newFlipAxes) {
+    if (animated) {
+        std::cerr << "WARNING: flip change requested for animated model " << name << " — flip is not supported for animated meshes, ignoring." << std::endl;
+        return;
+    }
+
+    std::string oldKey = flipAxes.empty() ? name : name + "?flip" + flipAxes;
+    std::string newKey = newFlipAxes.empty() ? name : name + "?flip" + newFlipAxes;
+    flipAxes = newFlipAxes;
+
+    std::shared_ptr<ModelAsset> newModelAsset = assetManager->loadAsset<ModelAsset>({newKey});
+    assetManager->freeAsset({oldKey});
+    modelAsset = newModelAsset;
+
+    this->centerOffset = modelAsset->getCenterOffset();
+    this->centerOffsetMatrix = glm::translate(glm::mat4(1.0f), centerOffset);
+    this->transformation.markDirty();
+
+    delete compoundShape;
+    for (btCollisionShape *shape : childrenPhysicsShapes) { delete shape; }
+    childrenPhysicsShapes.clear();
+    boneIdCompoundChildMap.clear();
+
+    compoundShape = modelAsset->getCompoundShapeForMass(this->mass, this->boneIdCompoundChildMap, childrenPhysicsShapes);
+    rigidBody->setCollisionShape(compoundShape);
+    glm::vec3 currentScale = transformation.getScale();
+    rigidBody->getCollisionShape()->setLocalScaling(btVector3(currentScale.x, currentScale.y, currentScale.z));
+
+    if (this->mass > 0) {
+        btVector3 fallInertia(0, 0, 0);
+        compoundShape->calculateLocalInertia(mass, fallInertia);
+        rigidBody->setMassProps(mass, fallInertia);
+    }
+
+    for (size_t i = 0; i < meshMetaData.size(); ++i) { delete meshMetaData[i]; }
+    meshMetaData.clear();
+    for (auto &mesh : modelAsset->getMeshes()) {
+        MeshMeta *meshMeta = new MeshMeta();
+        meshMeta->mesh = mesh;
+        meshMeta->material = modelAsset->getMeshMaterial(mesh);
+        meshMetaData.push_back(meshMeta);
+    }
+
+    this->dirtyForFrustum = true;
+    graphicsWrapper->setModel(this->getWorldObjectID(), this->transformation.getWorldTransform());
 }
 
 void Model::convertAssetToLimon(std::set<std::vector<std::string>> &convertedModels [[gnu::unused]]) {

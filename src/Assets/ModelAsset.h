@@ -62,6 +62,9 @@ class ModelAsset : public Asset {
     };
 
     std::string name;
+    bool flipX = false, flipY = false, flipZ = false;
+    bool reverseWinding = false;
+
     std::map<std::string, std::shared_ptr<AnimationInterface>> animations;//shared for animation sections
     std::shared_ptr<BoneNode> rootNode = nullptr;//bones are shared with meshes
     int_fast32_t boneIDCounter, boneIDCounterPerMesh;
@@ -130,6 +133,8 @@ class ModelAsset : public Asset {
     ModelAsset() : Asset(nullptr, 0, std::vector<std::string>()) {};
 
 public:
+    static std::string stripFlipSuffix(const std::string &path, bool &outFlipX, bool &outFlipY, bool &outFlipZ);
+
     ModelAsset(AssetManager *assetManager, uint32_t assetID, const std::vector<std::string> &fileList);
 #ifdef CEREAL_SUPPORT
     ModelAsset(AssetManager *assetManager, uint32_t assetID, const std::vector<std::string> &fileList, cereal::BinaryInputArchive& binaryArchive) :

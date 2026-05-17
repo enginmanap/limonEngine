@@ -56,6 +56,8 @@ class MeshAsset {
     std::map<uint32_t, btTransform> bulletParentTransformMap;
     std::vector<btTriangleMesh *> shapeCopies;
 
+    bool reverseWinding = false;
+
     std::vector<uint32_t> bufferObjects;
     bool setTriangles(const aiMesh *currentMesh);
 
@@ -66,7 +68,7 @@ class MeshAsset {
     MeshAsset(){}
 public:
     MeshAsset(const aiMesh *currentMesh, std::string name, std::shared_ptr<const BoneNode> meshSkeleton,
-              const glm::mat4 &parentTransform, const bool isPartOfAnimated);
+              const glm::mat4 &parentTransform, const bool isPartOfAnimated, bool reverseWinding = false);
     void buildBulletMesh();
     /**
      * This method sets GPU side of the deserialization, and uses AssetManager to access GPU with getGraphicsWrapper

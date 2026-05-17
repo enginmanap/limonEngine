@@ -10,8 +10,8 @@
 #include "../../libs/meshoptimizer/src/meshoptimizer.h"
 
 MeshAsset::MeshAsset(const aiMesh *currentMesh, std::string name, std::shared_ptr<const BoneNode> meshSkeleton,
-                     const glm::mat4 &parentTransform, const bool isPartOfAnimated)
-        : name(name), parentTransform(parentTransform), isPartOfAnimated(isPartOfAnimated) {
+                     const glm::mat4 &parentTransform, const bool isPartOfAnimated, bool reverseWinding)
+        : name(name), parentTransform(parentTransform), isPartOfAnimated(isPartOfAnimated), reverseWinding(reverseWinding) {
     if (!currentMesh->HasPositions()) {
         throw "No position found"; //Not going to process if mesh is empty
     }
@@ -173,12 +173,21 @@ bool MeshAsset::setTriangles(const aiMesh *currentMesh) {
             }
         }
     }
-
-    for (unsigned int j = 0; j < currentMesh->mNumFaces; ++j) {
-        if(currentMesh->mFaces[j].mNumIndices == 3) {
-            faces.push_back(glm::vec3(currentMesh->mFaces[j].mIndices[0],
-                                      currentMesh->mFaces[j].mIndices[1],
-                                      currentMesh->mFaces[j].mIndices[2]));
+    if (!reverseWinding) { //if the asset is regular
+        for (unsigned int j = 0; j < currentMesh->mNumFaces; ++j) {
+            if(currentMesh->mFaces[j].mNumIndices == 3) {
+                faces.push_back(glm::vec3(currentMesh->mFaces[j].mIndices[0],
+                                          currentMesh->mFaces[j].mIndices[1],
+                                          currentMesh->mFaces[j].mIndices[2]));
+            }
+        }
+    } else { // if the asset is flipped, we flip vertice 2 and 1.
+        for (unsigned int j = 0; j < currentMesh->mNumFaces; ++j) {
+            if(currentMesh->mFaces[j].mNumIndices == 3) {
+                faces.push_back(glm::vec3(currentMesh->mFaces[j].mIndices[0],
+                                          currentMesh->mFaces[j].mIndices[2],
+                                          currentMesh->mFaces[j].mIndices[1]));
+            }
         }
     }
     triangleCount[0] = faces.size();

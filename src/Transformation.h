@@ -443,6 +443,10 @@ public:
         return worldTransform;
     }
 
+    void markDirty() {
+        isDirty = true;
+    }
+
     bool addImGuiEditorElements(const glm::mat4 &cameraMatrix, const glm::mat4 &perspectiveMatrix, bool is2D = false);
 
     bool addImGuizmoElements(const ImGuizmoState &editorState, const glm::mat4 &cameraMatrix,
