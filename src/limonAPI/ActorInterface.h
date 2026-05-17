@@ -38,6 +38,8 @@ protected:
         return typeMap;
     }
 
+    ActorInterface(uint32_t id, LimonAPI *limonAPI) : worldID(id), limonAPI(limonAPI) {}
+
     uint32_t worldID;
     uint32_t modelID = 0;
     InformationRequest informationRequest;
@@ -69,8 +71,6 @@ public:
         }
         return names;
     }
-
-    ActorInterface(uint32_t id, LimonAPI *limonAPI) : worldID(id), limonAPI(limonAPI) {}
 
     static void registerType(const std::string& typeName, ActorInterface*(*constructor)(uint32_t, LimonAPI*)) {
         (*getMap())[typeName] = constructor;
