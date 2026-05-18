@@ -798,7 +798,7 @@ void World::ImGuiFrameSetup(std::shared_ptr<GraphicsProgram> graphicsProgram, co
    }
    delete editor->request;
    editor->request = new ImGuiRequest(playerCamera->getCameraMatrix(), playerCamera->getProjectionMatrix(),
-                              graphicsWrapper->getGUIOrthogonalProjectionMatrix(), options->getScreenHeight(), options->getScreenWidth(), playerCamera, apiInstance);
+                              graphicsWrapper->getGUIOrthogonalProjectionMatrix(), options->getScreenHeight(), options->getScreenWidth(), playerCamera, apiInstance, editor->imgGuiHelper);
 
    //Render Trigger volumes
    for (auto it = triggers.begin(); it != triggers.end(); ++it) {

@@ -440,9 +440,11 @@ ImGuiResult Model::addImGuiEditorElements(const ImGuiRequest &request) {
                        ::tolower);
         const AssetManager::AvailableAssetsNode *filteredAssets = assetManager->getAvailableAssetsTreeFiltered(
                 AssetManager::Asset_type_SOUND, stepOnSoundFilterStr);
-        ImGuiHelper::buildTreeFromAssets(filteredAssets, AssetManager::Asset_type_SOUND,
-                                          "StepOnSound",
-                                          &selectedSoundAsset);
+        if(request.imgGuiHelper != nullptr) {
+            request.imgGuiHelper->buildTreeFromAssets(filteredAssets, AssetManager::Asset_type_SOUND,
+                                                      "StepOnSound",
+                                                      &selectedSoundAsset);
+        }
 
         if (this->stepOnSound != nullptr) {
             ImGui::Text("step On Sound: %s", this->stepOnSound->getName().c_str());

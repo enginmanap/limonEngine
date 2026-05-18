@@ -837,7 +837,7 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
                 std::string loadingImageAssetFilterStr = loadingImageAssetFilter;
                 std::transform(loadingImageAssetFilterStr.begin(), loadingImageAssetFilterStr.end(), loadingImageAssetFilterStr.begin(), ::tolower);
                 const AssetManager::AvailableAssetsNode* filteredAssets = world->assetManager->getAvailableAssetsTreeFiltered(AssetManager::Asset_type_TEXTURE, loadingImageAssetFilterStr);
-                imgGuiHelper->buildTreeFromAssets(filteredAssets, AssetManager::Asset_type_TEXTURE, "LoadingImage", &selectedLoadingImageAsset);
+                imgGuiHelper->buildTreeFromAssets(filteredAssets, AssetManager::Asset_type_TEXTURE, "LoadingImage", &selectedLoadingImageAsset, ImGuiHelper::PreviewMode::Preview);
 
                 if(selectedLoadingImageAsset == nullptr) {
                     ImGui::Button("Set Loading Image");
@@ -1625,7 +1625,7 @@ void Editor::addGUIImageControls() {
     const AssetManager::AvailableAssetsNode* filteredAssets = world->assetManager->getAvailableAssetsTreeFiltered(AssetManager::Asset_type_TEXTURE, textureAssetFilterStr);
     imgGuiHelper->buildTreeFromAssets(filteredAssets, AssetManager::Asset_type_TEXTURE,
                                       "GUIImage",
-                                      &selectedAsset);
+                                      &selectedAsset, ImGuiHelper::PreviewMode::Preview);
 
     static size_t selectedLayerIndex = 0;
     if (world->guiLayers.size() == 0) {
@@ -1679,7 +1679,7 @@ void Editor::addGUIButtonControls() {
     const AssetManager::AvailableAssetsNode* filteredAssets = world->assetManager->getAvailableAssetsTreeFiltered(AssetManager::Asset_type_TEXTURE, textureAssetFilterStr);
     imgGuiHelper->buildTreeFromAssets(filteredAssets, AssetManager::Asset_type_TEXTURE,
                                       "GUIButton",
-                                      &selectedAssetForGUIButton);
+                                      &selectedAssetForGUIButton, ImGuiHelper::PreviewMode::Preview);
 
     static char GUIButtonNormalFileName[256] = {0};
     ImGui::InputText("Normal image", GUIButtonNormalFileName, sizeof(GUIButtonNormalFileName));
@@ -1816,7 +1816,7 @@ void Editor::addGUIAnimationControls() {
 
     imgGuiHelper->buildTreeFromAssets(filteredAssets,
                                       AssetManager::AssetTypes::Asset_type_TEXTURE, "GUIAnimation",
-                                      &selectedAsset);
+                                      &selectedAsset, ImGuiHelper::PreviewMode::Preview);
 
     static size_t selectedLayerIndex = 0;
     if (world->guiLayers.size() == 0) {
@@ -1881,7 +1881,7 @@ void Editor::addParticleEmitterEditor() {
     const AssetManager::AvailableAssetsNode* filteredAssets = world->assetManager->getAvailableAssetsTreeFiltered(AssetManager::Asset_type_TEXTURE, textureAssetFilterStr);
     imgGuiHelper->buildTreeFromAssets(filteredAssets, AssetManager::Asset_type_TEXTURE,
                                       "ParticleEmitter",
-                                      &selectedAsset);
+                                      &selectedAsset, ImGuiHelper::PreviewMode::Preview);
     static char particleEmitterName[32] = {0};
     ImGui::InputText("Particle Emitter Name", particleEmitterName, sizeof(particleEmitterName), ImGuiInputTextFlags_CharsNoBlank);
     static glm::vec3 startPosition;
@@ -1931,7 +1931,7 @@ void Editor::addSkyBoxControls() {
             selectedAssetDirectory = selectedSkyBoxAsset;
         }
     } else {
-        imgGuiHelper->buildTreeFromAssets(selectedAssetDirectory, AssetManager::Asset_type_TEXTURE, "SkyBox", &selectedSkyBoxAsset);
+        imgGuiHelper->buildTreeFromAssets(selectedAssetDirectory, AssetManager::Asset_type_TEXTURE, "SkyBox", &selectedSkyBoxAsset, ImGuiHelper::PreviewMode::Preview);
         if(ImGui::Button("Reset Directory##SkyBox")) {
             selectedAssetDirectory = nullptr;
             selectedSkyBoxAsset = nullptr;

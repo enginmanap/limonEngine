@@ -399,7 +399,23 @@ void    ImGuiHelper::InvalidateDeviceObjects() {
     }
 }
 
-ImGuiHelper::ImGuiHelper(std::shared_ptr<AssetManager> assetManager, OptionsUtil::Options* options) : assetManager(assetManager), graphicsWrapper(assetManager->getGraphicsWrapper()), options(options) {
+void ImGuiHelper::showTexturePreviewTooltip(const AssetManager::AvailableAssetsNode* node) {
+    ImGuiImageWrapper* wrapper = previewCache.get(node->name);
+    if (wrapper == nullptr || wrapper->texture == nullptr) return;
+
+    constexpr float maxPreviewSize = 256.0f;
+    float w = (float)wrapper->texture->getWidth();
+    float h = (float)wrapper->texture->getHeight();
+    if (w <= 0 || h <= 0) return;
+
+    float scale = maxPreviewSize / (w > h ? w : h);
+    ImGui::BeginTooltip();
+    ImGui::Image((ImTextureID)(intptr_t)wrapper, ImVec2(w * scale, h * scale));
+    ImGui::EndTooltip();
+}
+
+ImGuiHelper::ImGuiHelper(std::shared_ptr<AssetManager> assetManager, OptionsUtil::Options* options)
+        : assetManager(assetManager), previewCache(assetManager.get()), graphicsWrapper(assetManager->getGraphicsWrapper()), options(options) {
 
     context = ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO();

@@ -34,7 +34,7 @@ void Material::loadGPUSide(AssetManager *assetManager) {
     deserialized = true;
 }
 
-ImGuiResult Material::addImGuiEditorElements(const ImGuiRequest &request [[gnu::unused]]) {
+ImGuiResult Material::addImGuiEditorElements(const ImGuiRequest &request) {
     bool dirty = false;
     ImGuiResult result;
 
@@ -100,9 +100,12 @@ ImGuiResult Material::addImGuiEditorElements(const ImGuiRequest &request [[gnu::
     ImGui::SetNextWindowSize(ImVec2(400.0f, 400.0f));
     if (ImGui::BeginPopup("Select Texture##TextureSelectorPopup", ImGuiWindowFlags_AlwaysAutoResize)) {
         const AssetManager::AvailableAssetsNode* filteredAssets = assetManager->getAvailableAssetsTreeFiltered(AssetManager::Asset_type_TEXTURE, "");
-        ImGuiHelper::buildTreeFromAssets(filteredAssets, AssetManager::Asset_type_TEXTURE,
-                                          "Texture Selector",
-                                          &selectedAsset);
+        if(request.imgGuiHelper != nullptr) {
+            request.imgGuiHelper->buildTreeFromAssets(filteredAssets, AssetManager::Asset_type_TEXTURE,
+                                                      "Texture Selector",
+                                                      &selectedAsset,
+                                                      ImGuiHelper::PreviewMode::Preview);
+        }
         if(selectedAsset != nullptr) {
             switch(selectedTextureIndex) {
                 case 1:

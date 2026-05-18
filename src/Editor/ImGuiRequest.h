@@ -9,6 +9,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 class PerspectiveCamera;
 class LimonAPI;
+class ImGuiHelper;
 
 struct ImGuiRequest {
     const glm::mat4& perspectiveCameraMatrix;
@@ -21,12 +22,14 @@ struct ImGuiRequest {
 
     const PerspectiveCamera* playerCamera;
     LimonAPI* limonAPI = nullptr;
+    ImGuiHelper* imgGuiHelper = nullptr;
 
     ImGuiRequest(const glm::mat4 &perspectiveCameraMatrix, const glm::mat4 &perspectiveMatrix,
                  const glm::mat4 &orthogonalMatrix, const uint32_t &screenHeight, const uint32_t &screenWidth,
-                 const PerspectiveCamera* playerCamera, LimonAPI* limonAPI)
+                 const PerspectiveCamera* playerCamera, LimonAPI* limonAPI, ImGuiHelper* imgGuiHelper)
             : perspectiveCameraMatrix(perspectiveCameraMatrix), perspectiveMatrix(perspectiveMatrix),
-              orthogonalMatrix(orthogonalMatrix), screenHeight(screenHeight), screenWidth(screenWidth), playerCamera(playerCamera), limonAPI(limonAPI) {}
+              orthogonalMatrix(orthogonalMatrix), screenHeight(screenHeight), screenWidth(screenWidth),
+              playerCamera(playerCamera), limonAPI(limonAPI), imgGuiHelper(imgGuiHelper) {}
 };
 
 

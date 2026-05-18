@@ -9,9 +9,12 @@
 // https://github.com/ocornut/imgui
 
 #include <cstdint>
+#include <list>
 #include <string>
+#include <unordered_map>
 #include "../libs/ImGui/imgui.h"
 #include "Assets/AssetManager.h"
+#include "Assets/TextureAsset.h"
 #include "limonAPI/Graphics/GraphicsInterface.h"
 
 struct SDL_Window;
@@ -27,7 +30,10 @@ struct ImGuiImageWrapper {
 };
 
 class ImGuiHelper {
+public:
+    enum class PreviewMode { NoPreview, Preview };
 
+private:
     ImGuiImageWrapper fontTexture;
     // ImGUI Data
     uint64_t     g_Time = 0.0f;
@@ -39,7 +45,49 @@ class ImGuiHelper {
     uint32_t     g_VboHandle = 0, g_colorHandle, g_UVHandle, g_VaoHandle = 0, g_ElementsHandle = 0;
     // ImGUI Data end"
 
+    struct TexturePreviewCache {
+        static constexpr size_t MAX_SIZE = 10;
+
+        struct Entry {
+            std::string name;
+            ImGuiImageWrapper wrapper;
+        };
+
+        std::list<Entry> entries;
+        std::unordered_map<std::string, std::list<Entry>::iterator> index;
+        AssetManager* assetManager;
+
+        explicit TexturePreviewCache(AssetManager* am) : assetManager(am) {}
+
+        ~TexturePreviewCache() {
+            for (auto& e : entries) {
+                assetManager->freeAsset({e.name});
+            }
+        }
+
+        ImGuiImageWrapper* get(const std::string& name) {
+            auto mapIt = index.find(name);
+            if (mapIt != index.end()) {
+                entries.splice(entries.begin(), entries, mapIt->second);
+                return &entries.front().wrapper;
+            }
+            auto asset = assetManager->loadAsset<TextureAsset>({name});
+            if (!asset || !asset->getTexture()) return nullptr;
+
+            if (entries.size() >= MAX_SIZE) {
+                assetManager->freeAsset({entries.back().name});
+                index.erase(entries.back().name);
+                entries.pop_back();
+            }
+
+            entries.push_front({name, {asset->getTexture(), 0}});
+            index[name] = entries.begin();
+            return &entries.front().wrapper;
+        }
+    };
+
     std::shared_ptr<AssetManager> assetManager;
+    TexturePreviewCache previewCache;
     GraphicsInterface* graphicsWrapper = nullptr;
     OptionsUtil::Options* options;
 
@@ -47,9 +95,11 @@ class ImGuiHelper {
     void CreateFontsTexture();
     static const char* GetClipboardText(void*);
     static void SetClipboardText(void*, const char* text);
+    void showTexturePreviewTooltip(const AssetManager::AvailableAssetsNode* node);
 
-    static void buildTreeFromAssetsRecursive(const AssetManager::AvailableAssetsNode* assetsNode, AssetManager::AssetTypes typeToShow,
-                                             const std::string &customPrefix, const AssetManager::AvailableAssetsNode **selectedNode) {
+    void buildTreeFromAssetsRecursive(const AssetManager::AvailableAssetsNode* assetsNode, AssetManager::AssetTypes typeToShow,
+                                             const std::string &customPrefix, const AssetManager::AvailableAssetsNode **selectedNode,
+                                             PreviewMode showPreview = PreviewMode::NoPreview) {
         if(assetsNode->assetType == AssetManager::Asset_type_UNKNOWN) {
             return;
         }
@@ -63,14 +113,14 @@ class ImGuiHelper {
                         }
                     }
                     for (size_t i = 0; i < assetsNode->children.size(); ++i) {
-                        buildTreeFromAssetsRecursive(assetsNode->children[i], typeToShow, customPrefix, selectedNode);
+                        buildTreeFromAssetsRecursive(assetsNode->children[i], typeToShow, customPrefix, selectedNode, showPreview);
                     }
                     ImGui::TreePop();
                 }
             } else {
                 if (ImGui::TreeNode((assetsNode->name + "##" + customPrefix + assetsNode->fullPath).c_str())) {
                     for (size_t i = 0; i < assetsNode->children.size(); ++i) {
-                        buildTreeFromAssetsRecursive(assetsNode->children[i], typeToShow, customPrefix, selectedNode);
+                        buildTreeFromAssetsRecursive(assetsNode->children[i], typeToShow, customPrefix, selectedNode, showPreview);
                     }
                     ImGui::TreePop();
                 }
@@ -82,6 +132,9 @@ class ImGuiHelper {
                 if(*selectedNode != assetsNode) {
                     *selectedNode = assetsNode;
                 }
+            }
+            if(showPreview == PreviewMode::Preview && typeToShow == AssetManager::Asset_type_TEXTURE && ImGui::IsItemHovered()) {
+                showTexturePreviewTooltip(assetsNode);
             }
         }
     }
@@ -105,12 +158,13 @@ public:
      * @param customPrefix Imgui mandates each item should have unique labels. If multiple trees are going to be created, different prefixes must be passed.
      * @param selectedNode The node that was selected. Null if nothing selected, or invalid node
      */
-    static void buildTreeFromAssets(const AssetManager::AvailableAssetsNode* assetsNode, AssetManager::AssetTypes typeToShow,
-                                             const std::string &customPrefix, const AssetManager::AvailableAssetsNode **selectedNode) {
+    void buildTreeFromAssets(const AssetManager::AvailableAssetsNode* assetsNode, AssetManager::AssetTypes typeToShow,
+                                             const std::string &customPrefix, const AssetManager::AvailableAssetsNode **selectedNode,
+                                             PreviewMode showPreview = PreviewMode::NoPreview) {
         ImGui::Separator();
         ImGui::BeginChild(("Asset Selector##" + customPrefix).c_str(), ImVec2(0, 300), true, ImGuiWindowFlags_HorizontalScrollbar);
         if(assetsNode != nullptr) {//possible because of filtering
-            buildTreeFromAssetsRecursive(assetsNode, typeToShow, customPrefix, selectedNode);
+            buildTreeFromAssetsRecursive(assetsNode, typeToShow, customPrefix, selectedNode, showPreview);
         }
         ImGui::EndChild();
         ImGui::Separator();
