@@ -12,18 +12,19 @@
 #include "limonAPI/LimonAPI.h"
 #include "Editor/ImGuiRequest.h"
 #include "Editor/ImGuiResult.h"
+#include "Editor/EditorRenderable.h"
 #include "Utils/HashUtil.h"
 
 /**
  * This class is used to provide a polymorphic way of determining type and name of the object.
  */
-class GameObject {
+class GameObject : public EditorRenderable {
 public:
     enum class ObjectTypes { PLAYER, LIGHT, MODEL, SKYBOX, TRIGGER, GUI_TEXT, GUI_IMAGE, GUI_BUTTON, GUI_ANIMATION, SOUND, MODEL_GROUP, PARTICLE_EMITTER, GPU_PARTICLE_EMITTER };
 
     virtual ObjectTypes getTypeID() const = 0;
     virtual std::string getName() const = 0;
-    virtual ImGuiResult addImGuiEditorElements(const ImGuiRequest &request [[gnu::unused]]) {ImGuiResult imGuiResult; return imGuiResult;};
+    virtual ImGuiResult addImGuiEditorElements(const ImGuiRequest &request [[gnu::unused]]) override {ImGuiResult imGuiResult; return imGuiResult;};
 
     virtual void interact(LimonAPI *limonAPI [[gnu::unused]], std::vector<LimonTypes::GenericParameter> &interactionData [[gnu::unused]]) {};
 

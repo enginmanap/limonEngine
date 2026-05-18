@@ -15,9 +15,10 @@
 
 #include "Editor/ImGuiRequest.h"
 #include "Editor/ImGuiResult.h"
+#include "Editor/EditorRenderable.h"
 
 
-class Material {
+class Material : public EditorRenderable {
 private:
     std::string name;
 
@@ -306,7 +307,7 @@ public:
     }
 
 
-    ImGuiResult addImGuiEditorElements(const ImGuiRequest &request);
+    ImGuiResult addImGuiEditorElements(const ImGuiRequest &request) override;
 
     bool serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *materialsNode) const;
     static std::shared_ptr<Material> deserialize(AssetManager* assetManager, tinyxml2::XMLElement *materialNode);
