@@ -11,12 +11,22 @@ void Light::setPosition(glm::vec3 position, const PerspectiveCamera* playerCamer
     switch (lightType) {
         case LightTypes::NONE:
             return;
-        case LightTypes::POINT: this->frustumChanged = true; static_cast<CubeCamera*>(cubeCameras[0])->getCameraMatrix(); this->frustumChanged = true;
+        case LightTypes::POINT:
+            this->frustumChanged = true;
+            static_cast<CubeCamera*>(cubeCameras[0])->getCameraMatrix();
+            this->frustumChanged = true;
             break;
         case LightTypes::DIRECTIONAL:
             this->position = glm::normalize(position);
             updateLightView(playerCamera);
-        break;
+            break;
+    }
+    // Store as local offset when attached, world position otherwise.
+    if(parentObject != nullptr) {
+        const glm::mat4 parentInvWorld = glm::inverse(parentObject->getAttachmentTransformFor(parentBoneID)->getWorldTransform());
+        attachTransformation.setTranslate(glm::vec3(parentInvWorld * glm::vec4(this->position, 1.0f)));
+    } else {
+        attachTransformation.setTranslate(this->position);
     }
 }
 
@@ -80,7 +90,9 @@ ImGuiResult Light::addImGuiEditorElements(const ImGuiRequest &request) {
     ImGui::SameLine();
     ImGui::InputFloat3("Snap", &(snap[0]));
 
-    glm::mat4 objectMatrix = glm::translate(glm::mat4(1.0f), position);
+    const bool isAttached = (parentObject != nullptr);
+    glm::mat4 objectMatrix = isAttached ? attachTransformation.getWorldTransform()
+                                        : glm::translate(glm::mat4(1.0f), position);
     ImGuizmo::BeginFrame();
     static ImGuizmo::MODE mCurrentGizmoMode(ImGuizmo::WORLD);
 
@@ -88,8 +100,14 @@ ImGuiResult Light::addImGuiEditorElements(const ImGuiRequest &request) {
     ImGuizmo::SetRect(0, 0, io.DisplaySize.x, io.DisplaySize.y);
     ImGuizmo::Manipulate(glm::value_ptr(request.perspectiveCameraMatrix), glm::value_ptr(request.perspectiveMatrix), ImGuizmo::TRANSLATE, mCurrentGizmoMode, glm::value_ptr(objectMatrix), NULL, useSnap ? &(snap[0]) : NULL);
 
-    //now we should have object matrix updated, update the object
-    this->setPosition(glm::vec3(objectMatrix[3][0], objectMatrix[3][1], objectMatrix[3][2]), request.playerCamera);
+    const glm::vec3 newWorldPos(objectMatrix[3][0], objectMatrix[3][1], objectMatrix[3][2]);
+    if(isAttached) {
+        // Convert world-space gizmo result to local, then let the callback update this->position.
+        const glm::mat4 parentInvWorld = glm::inverse(parentObject->getAttachmentTransformFor(parentBoneID)->getWorldTransform());
+        attachTransformation.setTranslate(glm::vec3(parentInvWorld * glm::vec4(newWorldPos, 1.0f)));
+    } else {
+        this->setPosition(newWorldPos, request.playerCamera);
+    }
 
     if(ImGui::Button("Remove light")) {
         result.remove = true;

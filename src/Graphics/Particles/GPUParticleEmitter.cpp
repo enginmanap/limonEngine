@@ -49,6 +49,9 @@ GPUParticleEmitter::GPUParticleEmitter(long worldObjectId, std::string name, std
 }
 
 GPUParticleEmitter::~GPUParticleEmitter() {
+    if(parentObject != nullptr) {
+        detach();
+    }
     particleDataTexture.reset();
     assetManager->freeAsset(textureAsset->getName());
 }

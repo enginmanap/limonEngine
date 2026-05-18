@@ -26,6 +26,7 @@ static const int SKIP_LOD_LEVEL = 9999;
 #include "GameObjects/Players/Player.h"
 #include "SDL2Helper.h"
 #include "Graphics/GraphicsPipeline.h"
+#include "Attachable.h"
 #include "PhysicalRenderable.h"
 #include "VisibilityRequest.h"
 #include "GameObjects/Model.h"
@@ -309,7 +310,7 @@ private:
     std::map<uint32_t, std::shared_ptr<GPUParticleEmitter>> gpuParticleEmitters;
     std::unique_ptr<VisibilityManager> visibilityManager;
 
-    static bool addPlayerAttachmentUsedIDs(const PhysicalRenderable *attachment, std::set<uint32_t> &usedIDs, uint32_t &maxID);
+    static bool addPlayerAttachmentUsedIDs(const Attachable *attachment, std::set<uint32_t> &usedIDs, uint32_t &maxID);
 
     /**
          * This method checks, if IDs assigned without any empty space, and any collision
@@ -366,6 +367,7 @@ private:
     //API methods
     Model* findModelByID(uint32_t modelID) const;
     Model* findModelByIDChildren(PhysicalRenderable* parent ,uint32_t modelID) const;
+    Attachable* findAttachableByID(uint32_t objectID) const;
 
     std::vector<LimonTypes::GenericParameter>
     fillRouteInformation(std::vector<LimonTypes::GenericParameter> parameters) const;

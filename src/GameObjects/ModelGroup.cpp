@@ -9,7 +9,8 @@
 void ModelGroup::renderWithProgram(std::shared_ptr<GraphicsProgram> program, uint32_t lodLevel) {
     std::cerr << "Model Groups render with program used, it was not planned, nor tested." << std::endl;
     for (auto renderable = children.begin(); renderable != children.end(); ++renderable) {
-        (*renderable)->renderWithProgram(program, lodLevel);
+        Renderable* r = dynamic_cast<Renderable*>(*renderable);
+        if(r != nullptr) r->renderWithProgram(program, lodLevel);
     }
 }
 
@@ -48,7 +49,8 @@ bool ModelGroup::fillObjects(tinyxml2::XMLDocument &document, tinyxml2::XMLEleme
 void ModelGroup::setupForTime(long time) {
     std::cerr << "Model Groups setup for time used, it was not planned, nor tested." << std::endl;
     for (auto renderable = children.begin(); renderable != children.end(); ++renderable) {
-        (*renderable)->setupForTime(time);
+        Renderable* r = dynamic_cast<Renderable*>(*renderable);
+        if(r != nullptr) r->setupForTime(time);
     }
 }
 

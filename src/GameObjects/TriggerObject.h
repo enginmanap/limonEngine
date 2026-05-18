@@ -11,11 +11,12 @@
 #include "../Utils/GLMConverter.h"
 #include "GameObject.h"
 #include "../Transformation.h"
+#include "../Attachable.h"
 #include "limonAPI/LimonAPI.h"
 #include "limonAPI/TriggerInterface.h"
 #include "../BulletDebugDrawer.h"
 
-class TriggerObject : public GameObject {
+class TriggerObject : public GameObject, public Attachable {
     std::string name;
     Transformation transformation;
     std::vector<LimonTypes::GenericParameter> firstEnterParameters;
@@ -41,12 +42,18 @@ class TriggerObject : public GameObject {
     btPairCachingGhostObject *ghostObject = new btPairCachingGhostObject();
 
     void updatePhysicsFromTransform() {
-        //std::cout << "updatePhysicsFromTransform transform call " << std::endl;
         ghostObject->getCollisionShape()->setLocalScaling(btVector3(transformation.getScale().x, transformation.getScale().y, transformation.getScale().z));
 
-        btTransform transform = ghostObject->getWorldTransform();
-        transform.setOrigin(btVector3(transformation.getTranslate().x, transformation.getTranslate().y, transformation.getTranslate().z));
-        transform.setRotation(GLMConverter::GLMToBlt(transformation.getOrientation()));
+        const glm::mat4 worldMat = transformation.getWorldTransform();
+        const glm::vec3 worldPos(worldMat[3]);
+        const glm::quat worldRot = glm::quat_cast(glm::mat3(
+            glm::normalize(glm::vec3(worldMat[0])),
+            glm::normalize(glm::vec3(worldMat[1])),
+            glm::normalize(glm::vec3(worldMat[2]))
+        ));
+        btTransform transform;
+        transform.setOrigin(btVector3(worldPos.x, worldPos.y, worldPos.z));
+        transform.setRotation(GLMConverter::GLMToBlt(worldRot));
         ghostObject->setWorldTransform(transform);
     }
 
@@ -66,6 +73,9 @@ public:
     }
 
     ~TriggerObject() override {
+        if(parentObject != nullptr) {
+            detach();
+        }
         delete ghostObject;
         delete ghostShape;
         delete this->firstEnterTriggerCode;
@@ -77,9 +87,8 @@ public:
         return ghostObject;
     }
 
-    Transformation* getTransformation() {
-        return &transformation;
-    }
+    Transformation* getTransformation() override { return &transformation; }
+    const Transformation* getTransformation() const override { return &transformation; }
 
     void render(BulletDebugDrawer *debugDrawer);
 

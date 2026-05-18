@@ -181,36 +181,26 @@ bool WorldAPIAccessor::setModelTemporaryAPI(uint32_t modelID, bool temporary) {
 }
 
 bool WorldAPIAccessor::attachObjectToObject(uint32_t objectID, uint32_t objectToAttachToID) {
-    PhysicalRenderable* objectToAttach;
-    PhysicalRenderable* objectToAttachTo;
     if(objectID == objectToAttachToID) {
         return false;
     }
 
-    Transformation* transform1,* transform2;
-
-    objectToAttach = world->findModelByID(objectID);
+    Attachable* objectToAttach = world->findAttachableByID(objectID);
     if(objectToAttach == nullptr) {
         return false;
     }
-    transform1 = objectToAttach->getTransformation();
 
-    objectToAttachTo = world->findModelByID(objectToAttachToID);
+    Attachable* objectToAttachTo = world->findAttachableByID(objectToAttachToID);
     if(objectToAttachTo == nullptr) {
         return false;
     }
-    transform2 = objectToAttachTo->getTransformation();
 
-    transform1->addTranslate(-1 * objectToAttachTo->getCenterOffset());
+    PhysicalRenderable* physicalParent = dynamic_cast<PhysicalRenderable*>(objectToAttachTo);
+    if(physicalParent != nullptr) {
+        objectToAttach->getTransformation()->addTranslate(-1 * physicalParent->getCenterOffset());
+    }
 
-    transform1->setParentTransform(transform2);
-    objectToAttach->setParentObject(objectToAttachTo);
-    objectToAttachTo->addChild(objectToAttach);
-
-    glm::vec3 translate, scale;
-    glm::quat orientation;
-    objectToAttachTo->getTransformation()->getDifferenceStacked(*(transform1), translate, scale, orientation);
-    GLMUtils::printVector(translate);
+    objectToAttach->attachTo(objectToAttachTo);
     return true;
 }
 
@@ -221,9 +211,7 @@ bool WorldAPIAccessor::removeObject(uint32_t objectID, const bool &removeChildre
     }
     world->clearWorldRefsBeforeAttachment(modelToRemove, removeChildren);
     if(removeChildren) {
-        std::vector<PhysicalRenderable *> children = modelToRemove->getChildren();
-        for(auto it = children.begin(); it != children.end(); ++it) {
-        }
+        // clearWorldRefsBeforeAttachment already handles child removal recursively
     }
     delete modelToRemove;
     return true;
@@ -577,7 +565,7 @@ std::vector<uint32_t> WorldAPIAccessor::getModelChildrenAPI(uint32_t modelID) {
     std::vector<uint32_t> result;
     Model* model = world->findModelByID(modelID);
     if(model != nullptr) {
-        std::vector<PhysicalRenderable*> children = model->getChildren();
+        std::vector<Attachable*> children = model->getChildren();
         for(auto child = children.begin(); child != children.end(); ++child) {
             Model* childModel = dynamic_cast<Model*>(*child);
             if(childModel != nullptr) {

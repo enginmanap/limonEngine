@@ -291,8 +291,7 @@ bool Model::fillObjects(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *o
        for (size_t i = 0; i < children.size(); ++i) {
            tinyxml2::XMLElement *childNode = document.NewElement("Child");
            childNode->SetAttribute("Index", (uint32_t)i);
-           PhysicalRenderable* child = children[i];
-           if(child->fillObjects(document, childNode)) {
+           if(children[i]->fillObjects(document, childNode)) {
                childrenNode->InsertEndChild(childNode);
            }
         }
@@ -573,6 +572,8 @@ Model::~Model() {
         delete meshMetaData[i];
     }
 
+    // Null out children's parent pointer so they don't dangle; their own
+    // destructors will handle transform cleanup.
     for (size_t i = 0; i < children.size(); ++i) {
         children[i]->setParentObject(nullptr);
     }

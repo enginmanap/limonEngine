@@ -447,8 +447,12 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
                     Model* model = getModelAndMoveToEnd(selectedAsset->fullPath);
                     if(model == nullptr) {
                         this->createRenderAndAddModelToLRU(selectedAsset->fullPath, newObjectPosition, graphicsProgram);
-                        modelAssetsPreloaded.erase(selectedAsset->fullPath);
-                        world->assetManager->freeAsset({selectedAsset->fullPath});
+                        if(modelAssetsPreloaded.count(selectedAsset->fullPath)) {
+                            // Only release the editor-side preload reference; if the asset was
+                            // already in the world we have no extra counter to balance.
+                            modelAssetsPreloaded.erase(selectedAsset->fullPath);
+                            world->assetManager->freeAsset({selectedAsset->fullPath});
+                        }
                     } else {
                         setTransformToModel(model, newObjectPosition);
                         renderSelectedObject(model, graphicsProgram);
@@ -510,55 +514,58 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
                 this->pickedObject->addTag(HardCodedTags::PICKED_OBJECT);
             }
 
-            if(ImGui::Button("Attach this object to another")) {
-
-                this->objectToAttach = dynamic_cast<Model*>(this->pickedObject);
-            }
-            if(this->objectToAttach != nullptr) {
-                ImGui::SameLine();
-                ImGuiHelper::ShowHelpMarker("Saved Object: " + this->objectToAttach->getName());
-            }
-            if(this->objectToAttach!= nullptr && this->objectToAttach->getWorldObjectID() != this->pickedObject->getWorldObjectID()) {
-                std::string savedObjectName = this->objectToAttach->getName();
-                if (ImGui::Button("Attach saved object to current")) {
-                    Model *pickedModel = dynamic_cast<Model *>(this->pickedObject);
-                    int32_t attachedBoneID;
-                    Transformation* pickedModelTransformation = pickedModel->getAttachmentTransform(attachedBoneID);
-
-                    glm::vec3 translate, scale;
-                    glm::quat orientation;
-                    pickedModelTransformation->getDifferenceStacked(*this->objectToAttach->getTransformation(), translate,
-                                                                     scale, orientation);
-                    this->objectToAttach->getTransformation()->setTranslate(translate);
-                    this->objectToAttach->getTransformation()->setScale(scale);
-                    this->objectToAttach->getTransformation()->setOrientation(orientation);
-                    this->objectToAttach->getTransformation()->setParentTransform(pickedModelTransformation);
-                    this->objectToAttach->setParentObject(pickedModel, attachedBoneID);
-                    pickedModel->addChild(this->objectToAttach);
-                    this->objectToAttach = nullptr;
+        }
+        // Generic attachment controls — available for any Attachable object type
+        if(this->pickedObject != nullptr) {
+            Attachable* pickedAttachable = world->findAttachableByID(this->pickedObject->getWorldObjectID());
+            if(pickedAttachable != nullptr) {
+                if(ImGui::Button("Attach this object to another")) {
+                    this->objectToAttach = pickedAttachable;
                 }
-                ImGui::SameLine();
-                ImGuiHelper::ShowHelpMarker("Saved Object: " + savedObjectName);
-                ImGui::SameLine();
-                ImGuiHelper::ShowHelpMarker("Current Object: " + this->pickedObject->getName());
-            }
-
-            if(this->pickedObject != nullptr && this->pickedObject->getTypeID() == GameObject::ObjectTypes::MODEL) {
-                Model *pickedModel = dynamic_cast<Model *>(this->pickedObject);
-                if(pickedModel->getParentObject() != nullptr) {
-                    if (ImGui::Button("Detach object from parent")) {
-                        pickedModel->getTransformation()->removeParentTransform();
-                        pickedModel->removeParentObject();
+                GameObject* savedGO = dynamic_cast<GameObject*>(this->objectToAttach);
+                if(savedGO != nullptr) {
+                    ImGui::SameLine();
+                    ImGuiHelper::ShowHelpMarker("Saved Object: " + savedGO->getName());
+                }
+                if(savedGO != nullptr && savedGO->getWorldObjectID() != this->pickedObject->getWorldObjectID()) {
+                    std::string savedObjectName = savedGO->getName();
+                    if(ImGui::Button("Attach saved object to current")) {
+                        int32_t attachedBoneID = -1;
+                        Transformation* parentAttachTransform;
+                        Model* pickedModel = dynamic_cast<Model*>(this->pickedObject);
+                        if(pickedModel != nullptr) {
+                            parentAttachTransform = pickedModel->getAttachmentTransform(attachedBoneID);
+                        } else {
+                            parentAttachTransform = pickedAttachable->getTransformation();
+                        }
+                        glm::vec3 translate, scale;
+                        glm::quat orientation;
+                        parentAttachTransform->getDifferenceStacked(*this->objectToAttach->getTransformation(), translate, scale, orientation);
+                        this->objectToAttach->getTransformation()->setTranslate(translate);
+                        this->objectToAttach->getTransformation()->setScale(scale);
+                        this->objectToAttach->getTransformation()->setOrientation(orientation);
+                        this->objectToAttach->attachTo(pickedAttachable, attachedBoneID);
+                        this->objectToAttach = nullptr;
+                    }
+                    ImGui::SameLine();
+                    ImGuiHelper::ShowHelpMarker("Saved Object: " + savedObjectName);
+                    ImGui::SameLine();
+                    ImGuiHelper::ShowHelpMarker("Current Object: " + this->pickedObject->getName());
+                }
+                if(pickedAttachable->getParentObject() != nullptr) {
+                    if(ImGui::Button("Detach from parent")) {
+                        pickedAttachable->detach();
                     }
                 }
             }
         }
         if(this->pickedObject != nullptr && this->pickedObject->getTypeID() == GameObject::ObjectTypes::PLAYER) {
-            if(this->objectToAttach!= nullptr && this->objectToAttach->getWorldObjectID() != this->pickedObject->getWorldObjectID()) {
+            Model* modelToAttach = dynamic_cast<Model*>(this->objectToAttach);
+            if(modelToAttach != nullptr && modelToAttach->getWorldObjectID() != this->pickedObject->getWorldObjectID()) {
                 if (ImGui::Button("Attach saved object to Player")) {
-                    world->physicalPlayer->setAttachedModel(this->objectToAttach);
-                    world->clearWorldRefsBeforeAttachment(this->objectToAttach, true);
-                    world->startingPlayer.attachedModel = this->objectToAttach;
+                    world->physicalPlayer->setAttachedModel(modelToAttach);
+                    world->clearWorldRefsBeforeAttachment(modelToAttach, true);
+                    world->startingPlayer.attachedModel = modelToAttach;
                     this->objectToAttach = nullptr;
                 }
             }

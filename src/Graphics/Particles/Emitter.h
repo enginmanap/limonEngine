@@ -12,17 +12,24 @@
 #include <utility>
 #include <Renderable.h>
 #include "../../Assets/TextureAsset.h"
+#include "../../Attachable.h"
 
-class Emitter : public Renderable, public GameObject {
+class Emitter : public Renderable, public GameObject, public Attachable {
 public:
     struct TimedColorMultiplier {
         glm::uvec4 colorMultiplier = glm::uvec4(255,255,255,255);
         long time;
     };
     ~Emitter() {
+        if(parentObject != nullptr) {
+            detach();
+        }
         particleDataTexture.reset();
         assetManager->freeAsset(textureAsset->getName());
     }
+
+    Transformation* getTransformation() override { return &transformation; }
+    const Transformation* getTransformation() const override { return &transformation; }
 private:
     std::shared_ptr<AssetManager> assetManager;
     std::vector<glm::vec4> positions;

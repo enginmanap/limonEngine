@@ -12,9 +12,10 @@
 #include <utility>
 #include <Renderable.h>
 #include "../../Assets/TextureAsset.h"
+#include "../../Attachable.h"
 
 // This is a partial implementation I did just to check the performance difference, it is not ready to use
-class GPUParticleEmitter : public Renderable, public GameObject {
+class GPUParticleEmitter : public Renderable, public GameObject, public Attachable {
 public:
     struct TimedColorMultiplier {
         glm::uvec4 colorMultiplier = glm::uvec4(255,255,255,255);
@@ -70,6 +71,9 @@ public:
             long lifeTime, long startTime, float particlePerMs = -1);
 
     ~GPUParticleEmitter() override;
+
+    Transformation* getTransformation() override { return &transformation; }
+    const Transformation* getTransformation() const override { return &transformation; }
 
     void setupForTime(long time) override {
         if(dirty) {

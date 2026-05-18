@@ -306,6 +306,15 @@ bool WorldSaver::fillLights(tinyxml2::XMLDocument &document, tinyxml2::XMLElemen
         currentElement->SetText(ambientColor.z);
         parent->InsertEndChild(currentElement);
         lightElement->InsertEndChild(parent);
+
+        if((*it)->getParentObject() != nullptr) {
+            GameObject* parentGO = dynamic_cast<GameObject*>((*it)->getParentObject());
+            if(parentGO != nullptr) {
+                currentElement = document.NewElement("ParentID");
+                currentElement->SetText(std::to_string(parentGO->getWorldObjectID()).c_str());
+                lightElement->InsertEndChild(currentElement);
+            }
+        }
     }
     return true;
 }
@@ -451,6 +460,15 @@ bool WorldSaver::fillEmitters(tinyxml2::XMLDocument &document, tinyxml2::XMLElem
             parent->InsertEndChild(timedColorElement);
         }
         emitterElement->InsertEndChild(parent);
+
+        if(currentEmitter->getParentObject() != nullptr) {
+            GameObject* parentGO = dynamic_cast<GameObject*>(currentEmitter->getParentObject());
+            if(parentGO != nullptr) {
+                currentElement = document.NewElement("ParentID");
+                currentElement->SetText(std::to_string(parentGO->getWorldObjectID()).c_str());
+                emitterElement->InsertEndChild(currentElement);
+            }
+        }
     }
     return true;
 }

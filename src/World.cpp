@@ -739,7 +739,7 @@ void World::renderPlayerAttachmentsRecursiveByTag(PhysicalRenderable *attachment
         attachment->renderWithProgram(renderProgram, 0);
         return;
     }
-    std::vector<PhysicalRenderable *> children;
+    std::vector<Attachable *> children;
     if(attachmentObject->getTypeID() == GameObject::ObjectTypes::MODEL) {
         children = (static_cast<Model*>(attachment))->getChildren();
     } else if(attachmentObject->getTypeID() == GameObject::ObjectTypes::MODEL_GROUP) {
@@ -753,7 +753,10 @@ void World::renderPlayerAttachmentsRecursiveByTag(PhysicalRenderable *attachment
         }
     }
     for (const auto &child: children) {
-        renderPlayerAttachmentsRecursiveByTag(child, renderTag, renderProgram, alreadyRenderedModelIds);
+        PhysicalRenderable* physChild = dynamic_cast<PhysicalRenderable*>(child);
+        if(physChild != nullptr) {
+            renderPlayerAttachmentsRecursiveByTag(physChild, renderTag, renderProgram, alreadyRenderedModelIds);
+        }
     }
  }
 
@@ -1325,7 +1328,8 @@ Model* World::findModelByIDChildren(PhysicalRenderable* parent,uint32_t modelID)
             return model;
         }else {
             for (auto iterator = model->getChildren().begin(); iterator != model->getChildren().end(); ++iterator) {
-                Model* child = findModelByIDChildren(*iterator, modelID);
+                PhysicalRenderable* physChild = dynamic_cast<PhysicalRenderable*>(*iterator);
+                Model* child = findModelByIDChildren(physChild, modelID);
                 if(child != nullptr) {
                     return child;
                 }
@@ -1347,6 +1351,35 @@ Model* World::findModelByIDChildren(PhysicalRenderable* parent,uint32_t modelID)
         Model* model = dynamic_cast<Model*>(objects.at(modelID));
         if(model != nullptr) {
             return model;
+        }
+    }
+    return nullptr;
+}
+
+Attachable* World::findAttachableByID(uint32_t objectID) const {
+    auto objectIt = objects.find(objectID);
+    if(objectIt != objects.end()) {
+        return objectIt->second;
+    }
+    auto groupIt = modelGroups.find(objectID);
+    if(groupIt != modelGroups.end()) {
+        return groupIt->second;
+    }
+    auto triggerIt = triggers.find(objectID);
+    if(triggerIt != triggers.end()) {
+        return triggerIt->second;
+    }
+    auto emitterIt = emitters.find(objectID);
+    if(emitterIt != emitters.end()) {
+        return emitterIt->second.get();
+    }
+    auto gpuEmitterIt = gpuParticleEmitters.find(objectID);
+    if(gpuEmitterIt != gpuParticleEmitters.end()) {
+        return gpuEmitterIt->second.get();
+    }
+    for(Light* light : lights) {
+        if(light->getWorldObjectID() == objectID) {
+            return light;
         }
     }
     return nullptr;
@@ -1467,11 +1500,10 @@ void World::updateActiveLights(bool forceUpdate) {
            }
            //remove its children
            if (removeChildren) {
-               std::vector<PhysicalRenderable *> children = objects[modelToClear->getWorldObjectID()]->getChildren();
+               std::vector<Attachable*> children(objects[modelToClear->getWorldObjectID()]->getChildren());
                for (auto child = children.begin(); child != children.end(); ++child) {
                    Model *model = dynamic_cast<Model *>(*child);
                    if (model != nullptr) {
-                       //FIXME this eliminates non model children
                        clearWorldRefsBeforeAttachment(model, removeChildren);
                    }
                }
@@ -1482,7 +1514,7 @@ void World::updateActiveLights(bool forceUpdate) {
        }
    }
 
-bool World::addPlayerAttachmentUsedIDs(const PhysicalRenderable *attachment, std::set<uint32_t> &usedIDs,
+bool World::addPlayerAttachmentUsedIDs(const Attachable *attachment, std::set<uint32_t> &usedIDs,
                                        uint32_t &maxID) {
     if(attachment == nullptr) {
         return true;

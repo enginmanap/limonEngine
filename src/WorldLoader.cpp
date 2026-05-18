@@ -876,6 +876,18 @@ bool WorldLoader::loadLights(tinyxml2::XMLNode *lightsNode, World* world) const 
         }
 
         world->addLight(xmlLight);
+
+        tinyxml2::XMLElement* lightParentIDElement = lightNode->FirstChildElement("ParentID");
+        if(lightParentIDElement != nullptr && lightParentIDElement->GetText() != nullptr) {
+            uint32_t parentID = std::stoul(lightParentIDElement->GetText());
+            Attachable* parent = world->findAttachableByID(parentID);
+            if(parent != nullptr) {
+                xmlLight->attachTo(parent);
+            } else {
+                std::cerr << "Light parent ID " << parentID << " not found, attachment skipped." << std::endl;
+            }
+        }
+
         lightNode =  lightNode->NextSiblingElement("Light");
     }
     return true;
@@ -1186,6 +1198,18 @@ bool WorldLoader::loadParticleEmitters(tinyxml2::XMLNode *EmittersNode, World* w
         emitter->setContinuousEmit(continuousEmit);
         emitter->setEnabled(enabled);
         world->emitters[emitter->getWorldObjectID()] = emitter;
+
+        emitterAttributeElement = EmitterNode->FirstChildElement("ParentID");
+        if(emitterAttributeElement != nullptr && emitterAttributeElement->GetText() != nullptr) {
+            uint32_t parentID = std::stoul(emitterAttributeElement->GetText());
+            Attachable* parent = world->findAttachableByID(parentID);
+            if(parent != nullptr) {
+                emitter->attachTo(parent);
+            } else {
+                std::cerr << "Emitter parent ID " << parentID << " not found, attachment skipped." << std::endl;
+            }
+        }
+
         EmitterNode =  EmitterNode->NextSiblingElement("Emitter");
     }
     return true;
@@ -1563,6 +1587,18 @@ bool WorldLoader::loadTriggers(tinyxml2::XMLNode *worldNode, World *world) const
         //FIXME adding the collision object should not be here
         world->dynamicsWorld->addCollisionObject(triggerObject->getGhostObject(), btBroadphaseProxy::SensorTrigger,
                                                 btBroadphaseProxy::AllFilter & ~btBroadphaseProxy::SensorTrigger);
+
+        tinyxml2::XMLElement* triggerParentIDElement = triggerNode->FirstChildElement("ParentID");
+        if(triggerParentIDElement != nullptr && triggerParentIDElement->GetText() != nullptr) {
+            uint32_t parentID = std::stoul(triggerParentIDElement->GetText());
+            Attachable* parent = world->findAttachableByID(parentID);
+            if(parent != nullptr) {
+                triggerObject->attachTo(parent);
+            } else {
+                std::cerr << "Trigger parent ID " << parentID << " not found, attachment skipped." << std::endl;
+            }
+        }
+
         triggerNode = triggerNode->NextSiblingElement("Trigger");
     } // end of while (Triggers)
     return true;

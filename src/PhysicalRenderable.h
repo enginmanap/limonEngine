@@ -7,21 +7,19 @@
 
 
 #include "Renderable.h"
+#include "Attachable.h"
 #include "Utils/GLMConverter.h"
 #include "GameObjects/Sound.h"
 #include <memory>
 
-class PhysicalRenderable : public Renderable {
+class PhysicalRenderable : public Renderable, public Attachable {
 protected:
     glm::mat4 centerOffsetMatrix;
     glm::vec3 centerOffset;//init by list for constructor
     glm::vec3 aabbMax, aabbMin;
     const float mass;
     btRigidBody *rigidBody = nullptr;
-    PhysicalRenderable* parentObject = nullptr; //this points to ModelGroup if this is part of a group.
-    int32_t parentBoneID = -1;
     bool disconnected = false;
-    std::vector<PhysicalRenderable*> children;
     std::unique_ptr<Sound> soundAttachment2 = nullptr;
     const float NOT_SCALE_LIMIT = 0.01;
     bool isScaled = true;
@@ -33,6 +31,28 @@ public:
         transformation.setUpdateCallback(std::bind(&PhysicalRenderable::updatePhysicsFromTransform, this));
     };
 
+    // --- Attachable interface ---
+    Transformation* getTransformation() override { return &transformation; }
+    const Transformation* getTransformation() const override { return &transformation; }
+
+    // Covariant override — callers that hold PhysicalRenderable* still get a typed pointer back.
+    PhysicalRenderable* getParentObject() const override {
+        return dynamic_cast<PhysicalRenderable*>(parentObject);
+    }
+
+    // Typed convenience wrappers so existing call sites (Model, ModelGroup, Editor) compile unchanged.
+    void addChild(PhysicalRenderable* child) {
+        Attachable::addChild(static_cast<Attachable*>(child));
+    }
+    bool removeChild(PhysicalRenderable* child) {
+        return Attachable::removeChild(static_cast<Attachable*>(child));
+    }
+
+    void setParentObject(PhysicalRenderable* parentObject, int32_t parentBoneID = -1) {
+        Attachable::setParentObject(static_cast<Attachable*>(parentObject), parentBoneID);
+    }
+
+    // --- Physics ---
     btRigidBody *getRigidBody() { return rigidBody; };
 
     bool isDisconnected() const {
@@ -56,16 +76,11 @@ public:
         updateAABB();
     }
 
-    /**
-     * If there were any change with transform, trigger this
-     */
     glm::mat4 processTransformForPyhsics() {
-        //if animated, then the transform information will be updated according to bone transforms. Then we apply current center offset
         if(centerOffset.x == 0.0f && centerOffset.y == 0.0f && centerOffset.z == 0.0f) {
             return glm::translate(glm::mat4(1.0f), transformation.getTranslateSingle()) * glm::mat4_cast(transformation.getOrientationSingle()) *
                    glm::scale(glm::mat4(1.0f), transformation.getScaleSingle());
         } else {
-            //difference is the center offset
             return glm::translate(glm::mat4(1.0f), transformation.getTranslateSingle()) *
                    glm::mat4_cast(transformation.getOrientationSingle()) *
                    glm::scale(glm::mat4(1.0f), transformation.getScaleSingle()) *
@@ -108,6 +123,7 @@ public:
         return aabbMin;
     }
 
+    // Redeclare as pure virtual so Model and ModelGroup must still implement it.
     virtual bool fillObjects(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *objectsNode) const = 0;
 
     void updateAABB() {
@@ -132,48 +148,6 @@ public:
     void detachSound() {
         this->soundAttachment2->stop();
         this->soundAttachment2.reset(nullptr);
-    }
-
-    PhysicalRenderable *getParentObject() const {
-        return parentObject;
-
-    }
-
-    void setParentObject(PhysicalRenderable *parentObject, int32_t parentBoneID = -1){
-        this->parentObject = parentObject;
-        this->parentBoneID = parentBoneID;
-    }
-
-    void removeParentObject() {
-        if(this->parentObject == nullptr) {
-            return;
-        }
-        this->parentObject->removeChild(this);
-        this->parentObject = nullptr;
-        this->parentBoneID = -1;
-    }
-
-    virtual void addChild(PhysicalRenderable* otherModel) {
-        this->children.push_back(otherModel);
-    }
-
-    virtual bool removeChild(PhysicalRenderable* otherModel) {
-        for (auto iterator = children.begin();
-             iterator != children.end(); ++iterator) {
-            if((*iterator) == otherModel) {
-                children.erase(iterator);
-                return true;
-            }
-        }
-        return false;
-    }
-
-    const std::vector<PhysicalRenderable*> &getChildren() const {
-        return children;
-    }
-
-    bool hasChildren() const {
-        return !children.empty();
     }
 
     const glm::vec3 &getCenterOffset() const {

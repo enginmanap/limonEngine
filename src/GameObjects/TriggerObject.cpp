@@ -147,6 +147,15 @@ void TriggerObject::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElem
         APISerializer::serializeTriggerCode(*exitTriggerCode, document, triggerNode, "ExitTriggerCode", exitParameters,
                                               enabledExitTrigger);
     }
+
+    if(parentObject != nullptr) {
+        GameObject* parentGO = dynamic_cast<GameObject*>(parentObject);
+        if(parentGO != nullptr) {
+            tinyxml2::XMLElement* parentIDElement = document.NewElement("ParentID");
+            parentIDElement->SetText(parentGO->getWorldObjectID());
+            triggerNode->InsertEndChild(parentIDElement);
+        }
+    }
 }
 
 

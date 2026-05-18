@@ -17,6 +17,7 @@
 
 #define MAX_PRELOAD_MODEL_COUNT_EDITOR 10
 class InputHandler;
+class Attachable;
 class GameObject;
 class World;
 class PhysicalRenderable;
@@ -65,7 +66,7 @@ public:
 
     GameObject* pickedObject = nullptr;
     uint32_t pickedObjectID = 0xFFFFFFFF;
-    Model* objectToAttach = nullptr;
+    Attachable* objectToAttach = nullptr;
 
     char worldSaveNameBuffer[256] = {0};
     char quitWorldNameBuffer[256] = {0};

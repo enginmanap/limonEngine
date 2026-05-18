@@ -299,6 +299,11 @@ public:
         return getAttachmentTransform(attachmentBoneID);
     }
 
+    // Attachable override: routes to the bone-aware transform selection.
+    Transformation* getAttachmentTransformFor(int32_t boneID) override {
+        return getAttachmentTransformForKnownBone(boneID);
+    }
+
     bool isTemporary() const {
         return temporary;
     }

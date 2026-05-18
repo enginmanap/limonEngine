@@ -126,6 +126,7 @@ protected:
             if((*iterator)->updateCallback != nullptr) {
                 (*iterator)->isDirty = true;
                 (*iterator)->rotated = this->rotated;
+                (*iterator)->getWorldTransform(); // recompute translate/orientation before callback reads them
                 (*iterator)->updateCallback();
             }
         }
@@ -356,6 +357,7 @@ public:
 
         for (auto childTransform = childTransforms.begin(); childTransform != childTransforms.end(); ++childTransform) {
             (*childTransform)->isDirty = true;
+            (*childTransform)->getWorldTransform();
             (*childTransform)->updateCallback();
         }
         isDirty = true;
@@ -371,6 +373,7 @@ public:
         }
         for (auto childTransform = childTransforms.begin(); childTransform != childTransforms.end(); ++childTransform) {
             (*childTransform)->isDirty = true;
+            (*childTransform)->getWorldTransform();
             (*childTransform)->updateCallback();
         }
         isDirty = true;
@@ -390,6 +393,7 @@ public:
 
         for (auto childTransform = childTransforms.begin(); childTransform != childTransforms.end(); ++childTransform) {
             (*childTransform)->isDirty = true;
+            (*childTransform)->getWorldTransform();
             (*childTransform)->updateCallback();
         }
         isDirty = true;
@@ -405,6 +409,7 @@ public:
         }
         for (auto childTransform = childTransforms.begin(); childTransform != childTransforms.end(); ++childTransform) {
             (*childTransform)->isDirty = true;
+            (*childTransform)->getWorldTransform();
             (*childTransform)->updateCallback();
         }
         isDirty = true;
@@ -425,6 +430,7 @@ public:
 
         for (auto childTransform = childTransforms.begin(); childTransform != childTransforms.end(); ++childTransform) {
             (*childTransform)->isDirty = true;
+            (*childTransform)->getWorldTransform();
             (*childTransform)->updateCallback();
         }
         isDirty = true;

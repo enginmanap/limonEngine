@@ -32,14 +32,12 @@ public:
         return worldObjectID;
     }
 
-    void addChild(PhysicalRenderable *renderable) override;
+    void addChild(PhysicalRenderable *renderable);
 
-    bool removeChild(PhysicalRenderable* renderable) override {
+    bool removeChild(PhysicalRenderable* renderable) {
         for (auto element = children.begin(); element != children.end(); ++element) {
-            if((*element) == renderable) {
+            if((*element) == static_cast<Attachable*>(renderable)) {
                 children.erase(element);
-
-                // Use the Transformation class's built-in world transform preservation (now default behavior)
                 renderable->getTransformation()->removeParentTransform();
                 renderable->setParentObject(nullptr);
                 return true;
@@ -65,8 +63,11 @@ public:
     std::vector<std::shared_ptr<Material>> getMaterials() const override {
         std::vector<std::shared_ptr<Material>> materials;
         for(const auto& element:this->children){
-            std::vector<std::shared_ptr<Material>> childMaterials = element->getMaterials();
-            materials.insert(std::end(materials), std::begin(childMaterials), std::end(childMaterials));
+            PhysicalRenderable* pr = dynamic_cast<PhysicalRenderable*>(element);
+            if(pr != nullptr) {
+                std::vector<std::shared_ptr<Material>> childMaterials = pr->getMaterials();
+                materials.insert(std::end(materials), std::begin(childMaterials), std::end(childMaterials));
+            }
         }
         return materials;
     }

@@ -9,6 +9,7 @@
 #include <glm/gtx/norm.hpp>
 #include "glm/glm.hpp"
 #include "GameObject.h"
+#include "../Attachable.h"
 #include "limonAPI/CameraAttachment.h"
 #include "limonAPI/Graphics/GraphicsInterface.h"
 #include "../../libs/ImGui/imgui.h"
@@ -18,7 +19,7 @@
 #include "../Utils/HardCodedTags.h"
 #include "Camera/PerspectiveCamera.h"
 
-class Light : public GameObject, public CameraAttachment {
+class Light : public GameObject, public Attachable, public CameraAttachment {
 public:
     enum class LightTypes {
         NONE, DIRECTIONAL, POINT
@@ -28,6 +29,8 @@ private:
     GraphicsInterface* graphicsWrapper;
 
     uint32_t objectID;
+    // position keeps the world-space value used by shadow cameras and ImGui editing.
+    // When attached to an object, it is kept in sync by the Transformation update callback.
     glm::vec3 position, color;
     glm::vec3 playerPosition;
     glm::vec3 attenuation = glm::vec3(1,0.1,0.01);//const, linear, exponential
@@ -39,7 +42,11 @@ private:
     bool frustumChanged = true;
     OptionsUtil::Options::Option<std::vector<long>> cascadeStaggerIntervalListOption;
     OptionsUtil::Options::Option<std::vector<long>> cascadeStaggerOffsetListOption;
-    long frameCounter = 0; //This feels hackish. Maybe it should be on the step function for the world?
+    long frameCounter = 0;
+
+    // Transformation used purely for the attachment hierarchy.
+    // Its translate is kept in sync with position.
+    Transformation attachTransformation;
 
     void updateLightView(const PerspectiveCamera* playerCamera) {
         frustumChanged = true;
@@ -62,9 +69,8 @@ private:
             if (shouldUpdate) {
                 static_cast<OrthographicCamera*>(directionalCamera)->getCameraMatrix();
                 static_cast<OrthographicCamera*>(directionalCamera)->recalculateView(playerCamera);
-                //getCameraMatrix automatically flags the camera as dirty
             } else {
-                directionalCamera->clearDirty();//do not render if not needed
+                directionalCamera->clearDirty();
             }
             i++;
         }
@@ -84,7 +90,6 @@ public:
 
         if(lightType == LightTypes::DIRECTIONAL) {
             this->position = glm::normalize(position);
-            //we wanna create as many cameras as the cascade levels
             const OptionsUtil::Options::Option<long> cascadeCountOption = graphicsWrapper->getOptions()->getOption<long>(HASH("CascadeCount"));
             long cascadeCount = cascadeCountOption.getOrDefault(4L);
             cascadeStaggerIntervalListOption = graphicsWrapper->getOptions()->getOption<std::vector<long>>(HASH("CascadeStaggerIntervals"));
@@ -104,11 +109,23 @@ public:
 
             cubeCameras[0]->getCameraMatrix();
             cubeCameras[0]->addTag(HardCodedTags::CAMERA_LIGHT_POINT);
-
         }
-        //FIXME we are not rendering transparent objects when working with lights, yet.
+
+        // Seed the attachment transformation with the current position.
+        attachTransformation.setTranslate(this->position);
+
+        // When a parent moves us, sync position from the world transform so shadow cameras stay correct.
+        attachTransformation.setUpdateCallback([this]() {
+            this->position = glm::vec3(this->attachTransformation.getWorldTransform()[3]);
+            this->frustumChanged = true;
+        });
+
         frustumChanged = true;
     }
+
+    // --- Attachable interface ---
+    Transformation* getTransformation() override { return &attachTransformation; }
+    const Transformation* getTransformation() const override { return &attachTransformation; }
 
     const std::vector<Camera*>& getCameras() const {
         switch (this->lightType) {
@@ -132,6 +149,9 @@ public:
     void step(long time [[gnu::unused]], PerspectiveCamera* playerCamera) {
         if(lightType == LightTypes::DIRECTIONAL) {
             updateLightView(playerCamera);
+        } else if(lightType == LightTypes::POINT && frustumChanged) {
+            // Refresh shadow matrices whenever the light has moved (attached or free).
+            static_cast<CubeCamera*>(cubeCameras[0])->getCameraMatrix();
         }
     }
 
@@ -141,7 +161,7 @@ public:
 
     void setColor(glm::vec3 color) {
         this->color = color;
-        this->setFrustumChanged(true);//the change is not frustum, but at this point this flag is a general dirty flag
+        this->setFrustumChanged(true);
     }
 
     LightTypes getLightType() const {
@@ -172,7 +192,6 @@ public:
 
     void setFrustumChanged(bool frustumChanged) {
         Light::frustumChanged = frustumChanged;
-        //If frustum changed, we automatically set it, so this is only for clear
         if(!frustumChanged) {
             switch (this->lightType) {
                 case LightTypes::NONE:
@@ -189,6 +208,9 @@ public:
     }
 
     ~Light() {
+        if(parentObject != nullptr) {
+            detach();
+        }
         for (auto cam: directionalCameras) {
             delete cam;
         }
@@ -238,7 +260,7 @@ public:
         if(this->lightType == LightTypes::POINT) {
             return static_cast<CubeCamera*>(cubeCameras[0])->getActiveDistance();
         }
-        return 0.0f;//Only used by point lights
+        return 0.0f;
     }
 
     const glm::vec3 &getAmbientColor() const {
