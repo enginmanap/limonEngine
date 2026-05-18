@@ -118,6 +118,7 @@ bool AssetManager::loadAssetList() {
     availableAssetsRootNode->assetType = Asset_type_DIRECTORY;
     availableAssetsRootNode->fullPath = ".";
     availableAssetsRootNode->nameLower = "";
+    availableAssetsRootNode->name = "Assets";
     AvailableAssetsNode* data = new AvailableAssetsNode;
     addAssetsRecursively("./Data", "Data", fileExtensions, data);
     availableAssetsRootNode->children.push_back(data);
