@@ -52,6 +52,7 @@ class PythonPlayerExtension(limon.PlayerExtensionInterface):
             soundOffset.y = 0.0
             soundOffset.z = 0.0
             if input_states.get_input_events(limon.Inputs.MOUSE_BUTTON_LEFT) and input_states.get_input_status(limon.Inputs.MOUSE_BUTTON_LEFT):
+                self._limon_api.log(limon.LogSubsystem.INPUT, limon.LogLevel.INFO, "player shoot")
                 self._limon_api.play_sound("./Data/Sounds/EasyFPS/shot.wav", soundOffset, False, False)
                 self._limon_api.set_model_animation(self.playerAttachedModelID, "Shooting|", False)
                 self._limon_api.set_model_animation_speed(self.playerAttachedModelID, 1.5)

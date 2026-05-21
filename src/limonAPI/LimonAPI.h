@@ -162,6 +162,17 @@ public:
 
     ProfileScope profileScope(const std::string& name);
 
+    void log(Logger::Subsystem subsystem, Logger::Level level, const std::string& text);
+
+    uint32_t drawDebugLine(const LimonTypes::Vec4& from, const LimonTypes::Vec4& to,
+                           const LimonTypes::Vec4& fromColor, const LimonTypes::Vec4& toColor,
+                           bool requireCameraTransform);
+    bool addToDebugLine(uint32_t bufferIndex,
+                        const LimonTypes::Vec4& from, const LimonTypes::Vec4& to,
+                        const LimonTypes::Vec4& fromColor, const LimonTypes::Vec4& toColor,
+                        bool requireCameraTransform);
+    bool clearDebugLines(uint32_t bufferIndex);
+
     bool loadAndSwitchWorld(const std::string& worldFileName);
     bool returnToWorld(const std::string& worldFileName);//if world is not loaded, loads first
     bool LoadAndRemove(const std::string& worldFileName); // removes current world after loading the new one
@@ -278,6 +289,11 @@ private:
 
     std::function<uint64_t(const char*, size_t)> worldBeginProfileZone;
     std::function<void(uint64_t)> worldEndProfileZone;
+
+    std::function<void(Logger::Subsystem, Logger::Level, const std::string&)> worldLog;
+    std::function<uint32_t(const LimonTypes::Vec4&, const LimonTypes::Vec4&, const LimonTypes::Vec4&, const LimonTypes::Vec4&, bool)> worldDrawDebugLine;
+    std::function<bool(uint32_t, const LimonTypes::Vec4&, const LimonTypes::Vec4&, const LimonTypes::Vec4&, const LimonTypes::Vec4&, bool)> worldAddToDebugLine;
+    std::function<bool(uint32_t)> worldClearDebugLines;
 
     /*** Non World API calls *******************************************************/
     std::function<const OptionsUtil::Options*()> limonGetOptions;

@@ -129,6 +129,30 @@ void WorldLoader::attachedAPIMethodsToWorld(World *world, LimonAPI *limonAPI) co
     limonAPI->worldAddLightTranslate = std::bind(&WorldAPIAccessor::addLightTranslateAPI, world->apiAccessor, std::placeholders::_1, std::placeholders::_2);
     limonAPI->worldSetLightColor     = std::bind(&WorldAPIAccessor::setLightColorAPI,     world->apiAccessor, std::placeholders::_1, std::placeholders::_2);
 
+    limonAPI->worldLog = [world](Logger::Subsystem subsystem, Logger::Level level, const std::string& text) {
+        world->options->getLogger()->log(subsystem, level, text);
+    };
+    limonAPI->worldDrawDebugLine = [world](const LimonTypes::Vec4& from, const LimonTypes::Vec4& to,
+                                           const LimonTypes::Vec4& fromColor, const LimonTypes::Vec4& toColor,
+                                           bool requireCameraTransform) -> uint32_t {
+        return world->options->getLogger()->drawLine(
+            glm::vec3(from.x, from.y, from.z), glm::vec3(to.x, to.y, to.z),
+            glm::vec3(fromColor.x, fromColor.y, fromColor.z), glm::vec3(toColor.x, toColor.y, toColor.z),
+            requireCameraTransform);
+    };
+    limonAPI->worldAddToDebugLine = [world](uint32_t bufferIndex,
+                                            const LimonTypes::Vec4& from, const LimonTypes::Vec4& to,
+                                            const LimonTypes::Vec4& fromColor, const LimonTypes::Vec4& toColor,
+                                            bool requireCameraTransform) -> bool {
+        return world->options->getLogger()->drawLine(bufferIndex,
+            glm::vec3(from.x, from.y, from.z), glm::vec3(to.x, to.y, to.z),
+            glm::vec3(fromColor.x, fromColor.y, fromColor.z), glm::vec3(toColor.x, toColor.y, toColor.z),
+            requireCameraTransform);
+    };
+    limonAPI->worldClearDebugLines = [world](uint32_t bufferIndex) -> bool {
+        return world->options->getLogger()->clearLineBuffer(bufferIndex);
+    };
+
     world->apiInstance = limonAPI;
 
 #ifdef TRACY_ENABLE

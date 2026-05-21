@@ -274,6 +274,26 @@ PYBIND11_EMBEDDED_MODULE(limon, m, pybind11::multiple_interpreters::per_interpre
     std::cout << "[limon module] Module initialization started" << std::endl;
 #endif
 
+    // Logger enums
+    pybind11::enum_<Logger::Subsystem>(m, "LogSubsystem")
+        .value("RENDER",    Logger::log_Subsystem_RENDER)
+        .value("MODEL",     Logger::log_Subsystem_MODEL)
+        .value("INPUT",     Logger::log_Subsystem_INPUT)
+        .value("SETTINGS",  Logger::log_Subsystem_SETTINGS)
+        .value("AI",        Logger::log_Subsystem_AI)
+        .value("LOAD_SAVE", Logger::log_Subsystem_LOAD_SAVE)
+        .value("EDITOR",    Logger::log_Subsystem_EDITOR)
+        .value("ANIMATION", Logger::log_Subsystem_ANIMATION)
+        .export_values();
+
+    pybind11::enum_<Logger::Level>(m, "LogLevel")
+        .value("TRACE", Logger::log_level_TRACE)
+        .value("DEBUG", Logger::log_level_DEBUG)
+        .value("INFO",  Logger::log_level_INFO)
+        .value("WARN",  Logger::log_level_WARN)
+        .value("ERROR", Logger::log_level_ERROR)
+        .export_values();
+
     // Note: ValueType and RequestParameterType are now defined in Python (generic_parameter.py)
     // We no longer bind the C++ enums to avoid initialization order issues
 
@@ -745,6 +765,30 @@ PYBIND11_EMBEDDED_MODULE(limon, m, pybind11::multiple_interpreters::per_interpre
                 return GenericParameterConverter::convertGenericParameterVectorToObjects(result);
             }, "Get result of a trigger",
                  pybind11::arg("trigger_object_id"), pybind11::arg("trigger_code_id"))
+
+            // Logging
+            .def("log", &LimonAPI::log,
+                 "Write a message to the engine log",
+                 pybind11::arg("subsystem"), pybind11::arg("level"), pybind11::arg("text"))
+
+            // Debug line drawing
+            .def("draw_debug_line",
+                 &LimonAPI::drawDebugLine,
+                 "Create a new persistent debug line buffer with one line; returns buffer ID",
+                 pybind11::arg("from_pos"), pybind11::arg("to_pos"),
+                 pybind11::arg("from_color"), pybind11::arg("to_color"),
+                 pybind11::arg("require_camera_transform") = true)
+            .def("add_to_debug_line",
+                 &LimonAPI::addToDebugLine,
+                 "Append a line segment to an existing debug line buffer",
+                 pybind11::arg("buffer_id"),
+                 pybind11::arg("from_pos"), pybind11::arg("to_pos"),
+                 pybind11::arg("from_color"), pybind11::arg("to_color"),
+                 pybind11::arg("require_camera_transform") = true)
+            .def("clear_debug_lines",
+                 &LimonAPI::clearDebugLines,
+                 "Remove a debug line buffer; returns false if buffer_id was not found",
+                 pybind11::arg("buffer_id"))
 
             // Profiling
             .def("profile_scope", [](LimonAPI& self, const std::string& name) {

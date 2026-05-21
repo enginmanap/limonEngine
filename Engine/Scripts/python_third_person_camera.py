@@ -18,6 +18,7 @@ class ThirdPersonCamera:
         self.height = 2.0    # Height above target
         self.target = Vec3(0.0, 0.0, 0.0)  # Look at origin by default
         self.up = Vec3(0.0, 1.0, 0.0)     # World up vector
+        self._raycast_line_buffer = 0      # Debug line buffer ID; 0 = none
 
     def isDirty(self) -> bool:  # Note: Must match C++ method name exactly
         """Return True if the camera parameters have changed."""
@@ -70,6 +71,8 @@ class ThirdPersonCamera:
             # Perform raycast
             hit_details = self.limon_api.ray_cast(start_pos, dir_vec)
 
+            hit_blocked = False
+
             # hit_details already contains GenericParameter objects from C++
             for detail in hit_details:
                 if detail.description == "hit coordinates" and detail.is_vec4():
@@ -87,6 +90,39 @@ class ThirdPersonCamera:
                         desired_pos.x = hit_coords_vec.x - dir_vec_normalized.x * 0.1  # 10% buffer so camera won't clip
                         desired_pos.y = hit_coords_vec.y - dir_vec_normalized.y * 0.1
                         desired_pos.z = hit_coords_vec.z - dir_vec_normalized.z * 0.1
+                        hit_blocked = True
+
+            # --- Debug line drawing: visualise the camera raycast ---
+            # Clear the previous frame's lines first
+            if self._raycast_line_buffer != 0:
+                self.limon_api.clear_debug_lines(self._raycast_line_buffer)
+                self._raycast_line_buffer = 0
+
+            # Look-at point: camera position + view direction scaled to camera_distance
+            look_at_x = desired_pos.x + view_dir_vec.x * camera_distance
+            look_at_y = desired_pos.y + view_dir_vec.y * camera_distance
+            look_at_z = desired_pos.z + view_dir_vec.z * camera_distance
+
+            cam_v4    = limon.Vec4(start_pos.x, start_pos.y, start_pos.z, 1.0)
+            lookat_v4 = limon.Vec4(look_at_x,     look_at_y,     look_at_z,     1.0)
+
+            if hit_blocked:
+                # Green: camera → look-at point (ray was clipped, show normal view line)
+                green = limon.Vec4(0.0, 1.0, 0.0, 1.0)
+                self._raycast_line_buffer = self.limon_api.draw_debug_line(
+                    cam_v4, lookat_v4, green, green, True)
+                # Red: clipped camera position → original desired position (blocked portion)
+                original_v4 = limon.Vec4(camera_pos.x, camera_pos.y, camera_pos.z, 1.0)
+                red = limon.Vec4(1.0, 0.0, 0.0, 1.0)
+                self.limon_api.add_to_debug_line(
+                    self._raycast_line_buffer,
+                    cam_v4, original_v4, red, red, True)
+            else:
+                # White: camera → look-at point (unobstructed)
+                white = limon.Vec4(1.0, 1.0, 1.0, 1.0)
+                self._raycast_line_buffer = self.limon_api.draw_debug_line(
+                    cam_v4, lookat_v4, white, white, True)
+            # --------------------------------------------------------
 
             # Update the Vec3 objects directly
             position.x = float(desired_pos.x)

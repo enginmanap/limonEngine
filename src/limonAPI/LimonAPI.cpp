@@ -278,3 +278,24 @@ bool LimonAPI::setObjectTemporary(uint32_t modelID, bool temporary) {
 ProfileScope LimonAPI::profileScope(const std::string& name) {
     return ProfileScope(worldEndProfileZone, worldBeginProfileZone(name.c_str(), name.size()));
 }
+
+void LimonAPI::log(Logger::Subsystem subsystem, Logger::Level level, const std::string& text) {
+    worldLog(subsystem, level, text);
+}
+
+uint32_t LimonAPI::drawDebugLine(const LimonTypes::Vec4& from, const LimonTypes::Vec4& to,
+                                  const LimonTypes::Vec4& fromColor, const LimonTypes::Vec4& toColor,
+                                  bool requireCameraTransform) {
+    return worldDrawDebugLine(from, to, fromColor, toColor, requireCameraTransform);
+}
+
+bool LimonAPI::addToDebugLine(uint32_t bufferIndex,
+                               const LimonTypes::Vec4& from, const LimonTypes::Vec4& to,
+                               const LimonTypes::Vec4& fromColor, const LimonTypes::Vec4& toColor,
+                               bool requireCameraTransform) {
+    return worldAddToDebugLine(bufferIndex, from, to, fromColor, toColor, requireCameraTransform);
+}
+
+bool LimonAPI::clearDebugLines(uint32_t bufferIndex) {
+    return worldClearDebugLines(bufferIndex);
+}
