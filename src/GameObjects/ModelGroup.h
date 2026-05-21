@@ -35,11 +35,17 @@ public:
         return worldObjectID;
     }
 
+    void addChild(Attachable* child) override {
+        auto* pr = dynamic_cast<PhysicalRenderable*>(child);
+        if(pr) addChild(pr);
+    }
     void addChild(PhysicalRenderable *renderable);
 
-    bool removeChild(PhysicalRenderable* renderable) {
+    bool removeChild(Attachable* child) override {
+        auto* renderable = dynamic_cast<PhysicalRenderable*>(child);
+        if(!renderable) return Attachable::removeChild(child);
         for (auto element = children.begin(); element != children.end(); ++element) {
-            if((*element) == static_cast<Attachable*>(renderable)) {
+            if((*element) == child) {
                 children.erase(element);
                 renderable->getTransformation()->removeParentTransform();
                 renderable->setParentObject(nullptr);

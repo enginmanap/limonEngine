@@ -44,18 +44,6 @@ public:
         return dynamic_cast<PhysicalRenderable*>(parentObject);
     }
 
-    // Typed convenience wrappers so existing call sites (Model, ModelGroup, Editor) compile unchanged.
-    void addChild(PhysicalRenderable* child) {
-        Attachable::addChild(static_cast<Attachable*>(child));
-    }
-    bool removeChild(PhysicalRenderable* child) {
-        return Attachable::removeChild(static_cast<Attachable*>(child));
-    }
-
-    void setParentObject(PhysicalRenderable* parentObject, int32_t parentBoneID = -1) {
-        Attachable::setParentObject(static_cast<Attachable*>(parentObject), parentBoneID);
-    }
-
     // --- Physics ---
     btRigidBody *getRigidBody() { return rigidBody; };
 
