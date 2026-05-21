@@ -11,13 +11,15 @@
 #include "../libs/ImGui/imgui.h"
 #include "../libs/ImGuizmo/ImGuizmo.h"
 
-
 bool
-Transformation::addImGuiEditorElements(const glm::mat4 &cameraMatrix, const glm::mat4 &perspectiveMatrix, bool is2D) {
+Transformation::addImGuiEditorElements(const glm::mat4 &cameraMatrix, const glm::mat4 &perspectiveMatrix, bool is2D, bool hasAttachableParent) {
     static ImGuizmoState editorState;
-    static glm::vec3 preciseTranslatePoint = translateSingle;
+    static glm::vec3 preciseTranslatePoint = translate;
 
-    if(this->parentTransform != nullptr) {
+    // True only when there is a genuine hierarchy parent (not an animation-internal parent).
+    const bool isChildWithParent = (this->parentTransform != nullptr) && hasAttachableParent;
+
+    if(isChildWithParent) {
         ImGui::Text("This transform has a parent, and it is relative.");
     }
 
@@ -48,35 +50,42 @@ Transformation::addImGuiEditorElements(const glm::mat4 &cameraMatrix, const glm:
 
     switch (editorState.mode) {
         case TRANSLATE_MODE: {
-            if(this->parentTransform != nullptr ) {
-                ImGui::Text("Current Total Translate X: %s", std::to_string(translate.x).c_str());
-                ImGui::Text("Current Total Translate Y: %s", std::to_string(translate.y).c_str());
-                ImGui::Text("Current Total Translate Z: %s", std::to_string(translate.z).c_str());
+            if(isChildWithParent) {
+                ImGui::Text("World Translate X: %s", std::to_string(translate.x).c_str());
+                ImGui::Text("World Translate Y: %s", std::to_string(translate.y).c_str());
+                ImGui::Text("World Translate Z: %s", std::to_string(translate.z).c_str());
             }
-            glm::vec3 tempTranslate = translateSingle;
+            // Children show local offset; roots (and animation-internal parents) show world position.
+            glm::vec3 tempTranslate = isChildWithParent ? translateSingle : translate;
+            const char* posLabel = isChildWithParent ? "Local Position X" : "Precise Position X";
             updated =
-                    ImGui::DragFloat("Precise Position X", &(tempTranslate.x), 0.01f, preciseTranslatePoint.x - 5.0f,
+                    ImGui::DragFloat(posLabel, &(tempTranslate.x), 0.01f, preciseTranslatePoint.x - 5.0f,
                                      preciseTranslatePoint.x + 5.0f) || updated;
+            posLabel = isChildWithParent ? "Local Position Y" : "Precise Position Y";
             updated =
-                    ImGui::DragFloat("Precise Position Y", &(tempTranslate.y), 0.01f, preciseTranslatePoint.y - 5.0f,
+                    ImGui::DragFloat(posLabel, &(tempTranslate.y), 0.01f, preciseTranslatePoint.y - 5.0f,
                                      preciseTranslatePoint.y + 5.0f) || updated;
             if(!is2D) {
-                updated = ImGui::DragFloat("Precise Position Z", &(tempTranslate.z), 0.01f,
+                posLabel = isChildWithParent ? "Local Position Z" : "Precise Position Z";
+                updated = ImGui::DragFloat(posLabel, &(tempTranslate.z), 0.01f,
                                            preciseTranslatePoint.z - 5.0f,
                                            preciseTranslatePoint.z + 5.0f) || updated;
                 ImGui::NewLine();
+                posLabel = isChildWithParent ? "Crude Local X" : "Crude Position X";
                 crudeUpdated =
-                        ImGui::SliderFloat("Crude Position X", &(tempTranslate.x), -100.0f, 100.0f) || crudeUpdated;
+                        ImGui::SliderFloat(posLabel, &(tempTranslate.x), -100.0f, 100.0f) || crudeUpdated;
+                posLabel = isChildWithParent ? "Crude Local Y" : "Crude Position Y";
                 crudeUpdated =
-                        ImGui::SliderFloat("Crude Position Y", &(tempTranslate.y), -100.0f, 100.0f) || crudeUpdated;
+                        ImGui::SliderFloat(posLabel, &(tempTranslate.y), -100.0f, 100.0f) || crudeUpdated;
+                posLabel = isChildWithParent ? "Crude Local Z" : "Crude Position Z";
                 crudeUpdated =
-                        ImGui::SliderFloat("Crude Position Z", &(tempTranslate.z), -100.0f, 100.0f) || crudeUpdated;
+                        ImGui::SliderFloat(posLabel, &(tempTranslate.z), -100.0f, 100.0f) || crudeUpdated;
             }
             if (updated || crudeUpdated) {
                 setTranslate(tempTranslate);
             }
             if (crudeUpdated) {
-                preciseTranslatePoint = translateSingle;
+                preciseTranslatePoint = isChildWithParent ? translateSingle : translate;
             }
             ImGui::NewLine();
             ImGui::Checkbox("##SnapCheckBox", &(editorState.useSnap));
@@ -91,13 +100,13 @@ Transformation::addImGuiEditorElements(const glm::mat4 &cameraMatrix, const glm:
             break;
         }
         case ROTATE_MODE: {
-            if(this->parentTransform != nullptr ) {
-                ImGui::Text("Current Total Rotate X: %s",  std::to_string(orientation.x).c_str());
-                ImGui::Text("Current Total Rotate Y: %s",  std::to_string(orientation.y).c_str());
-                ImGui::Text("Current Total Rotate Z: %s",  std::to_string(orientation.z).c_str());
-                ImGui::Text("Current Total Rotate W: %s",  std::to_string(orientation.w).c_str());
+            if(isChildWithParent) {
+                ImGui::Text("World Rotate X: %s",  std::to_string(orientation.x).c_str());
+                ImGui::Text("World Rotate Y: %s",  std::to_string(orientation.y).c_str());
+                ImGui::Text("World Rotate Z: %s",  std::to_string(orientation.z).c_str());
+                ImGui::Text("World Rotate W: %s",  std::to_string(orientation.w).c_str());
             }
-            glm::quat tempOrientation = orientationSingle;
+            glm::quat tempOrientation = isChildWithParent ? orientationSingle : orientation;
             if(!is2D) {
                 updated = ImGui::DragFloat("Rotate X", &(tempOrientation.x), 0.001f, -1.0f, 1.0f) || updated;
                 updated = ImGui::DragFloat("Rotate Y", &(tempOrientation.y), 0.001f, -1.0f, 1.0f) || updated;
@@ -116,13 +125,13 @@ Transformation::addImGuiEditorElements(const glm::mat4 &cameraMatrix, const glm:
             break;
         }
         case SCALE_MODE: {
-            if(this->parentTransform != nullptr ) {
-                ImGui::Text("Current Total Scale X: %s", std::to_string(scale.x).c_str());
-                ImGui::Text("Current Total Scale Y: %s", std::to_string(scale.y).c_str());
-                ImGui::Text("Current Total Scale Z: %s", std::to_string(scale.z).c_str());
+            if(isChildWithParent) {
+                ImGui::Text("World Scale X: %s", std::to_string(scale.x).c_str());
+                ImGui::Text("World Scale Y: %s", std::to_string(scale.y).c_str());
+                ImGui::Text("World Scale Z: %s", std::to_string(scale.z).c_str());
             }
 
-            glm::vec3 tempScale = scaleSingle;
+            glm::vec3 tempScale = isChildWithParent ? scaleSingle : scale;
             updated = ImGui::DragFloat("Scale X", &(tempScale.x), 0.01, 0.01f, 10.0f) || updated;
             updated = ImGui::DragFloat("Scale Y", &(tempScale.y), 0.01, 0.01f, 10.0f) || updated;
             if(!is2D) {
@@ -270,40 +279,40 @@ bool Transformation::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLEle
 
     tinyxml2::XMLElement *parent = document.NewElement("Scale");
     currentElement = document.NewElement("X");
-    currentElement->SetText(scaleSingle.x);
+    currentElement->SetText(scale.x);
     parent->InsertEndChild(currentElement);
     currentElement = document.NewElement("Y");
-    currentElement->SetText(scaleSingle.y);
+    currentElement->SetText(scale.y);
     parent->InsertEndChild(currentElement);
     currentElement = document.NewElement("Z");
-    currentElement->SetText(scaleSingle.z);
+    currentElement->SetText(scale.z);
     parent->InsertEndChild(currentElement);
     classNode->InsertEndChild(parent);
 
     parent = document.NewElement("Translate");
     currentElement = document.NewElement("X");
-    currentElement->SetText(translateSingle.x);
+    currentElement->SetText(translate.x);
     parent->InsertEndChild(currentElement);
     currentElement = document.NewElement("Y");
-    currentElement->SetText(translateSingle.y);
+    currentElement->SetText(translate.y);
     parent->InsertEndChild(currentElement);
     currentElement = document.NewElement("Z");
-    currentElement->SetText(translateSingle.z);
+    currentElement->SetText(translate.z);
     parent->InsertEndChild(currentElement);
     classNode->InsertEndChild(parent);
 
     parent = document.NewElement("Rotate");
     currentElement = document.NewElement("X");
-    currentElement->SetText(orientationSingle.x);
+    currentElement->SetText(orientation.x);
     parent->InsertEndChild(currentElement);
     currentElement = document.NewElement("Y");
-    currentElement->SetText(orientationSingle.y);
+    currentElement->SetText(orientation.y);
     parent->InsertEndChild(currentElement);
     currentElement = document.NewElement("Z");
-    currentElement->SetText(orientationSingle.z);
+    currentElement->SetText(orientation.z);
     parent->InsertEndChild(currentElement);
     currentElement = document.NewElement("W");
-    currentElement->SetText(orientationSingle.w);
+    currentElement->SetText(orientation.w);
     parent->InsertEndChild(currentElement);
     classNode->InsertEndChild(parent);
 
@@ -313,56 +322,45 @@ bool Transformation::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLEle
 bool Transformation::deserialize(tinyxml2::XMLElement *transformationNode) {
     tinyxml2::XMLElement* transformationAttribute;
     tinyxml2::XMLElement* transformationAttributeAttribute;
+
+    glm::vec3 scale(1.0f, 1.0f, 1.0f);
+    glm::vec3 translate(0.0f, 0.0f, 0.0f);
+    glm::quat orientation(1.0f, 0.0f, 0.0f, 0.0f);
+
     transformationAttribute =  transformationNode->FirstChildElement("Scale");
     if (transformationAttribute == nullptr) {
         std::cout << "Transformation does not have scale." << std::endl;
     } else {
-        glm::vec3 scale;
         transformationAttributeAttribute =  transformationAttribute->FirstChildElement("X");
         if(transformationAttributeAttribute != nullptr) {
             scale.x = std::stof(transformationAttributeAttribute->GetText());
-        } else {
-            scale.x = 1.0;
         }
         transformationAttributeAttribute =  transformationAttribute->FirstChildElement("Y");
         if(transformationAttributeAttribute != nullptr) {
             scale.y = std::stof(transformationAttributeAttribute->GetText());
-        } else {
-            scale.y = 1.0;
         }
         transformationAttributeAttribute =  transformationAttribute->FirstChildElement("Z");
         if(transformationAttributeAttribute != nullptr) {
             scale.z = std::stof(transformationAttributeAttribute->GetText());
-        } else {
-            scale.z = 1.0;
         }
-        setScale(scale);
     }
 
     transformationAttribute =  transformationNode->FirstChildElement("Translate");
     if (transformationAttribute == nullptr) {
         std::cout << "Transformation does not have translate." << std::endl;
     } else {
-        glm::vec3 translate;
         transformationAttributeAttribute =  transformationAttribute->FirstChildElement("X");
         if(transformationAttributeAttribute != nullptr) {
             translate.x = std::stof(transformationAttributeAttribute->GetText());
-        } else {
-            translate.x = 0.0;
         }
         transformationAttributeAttribute =  transformationAttribute->FirstChildElement("Y");
         if(transformationAttributeAttribute != nullptr) {
             translate.y = std::stof(transformationAttributeAttribute->GetText());
-        } else {
-            translate.y = 0.0;
         }
         transformationAttributeAttribute =  transformationAttribute->FirstChildElement("Z");
         if(transformationAttributeAttribute != nullptr) {
             translate.z = std::stof(transformationAttributeAttribute->GetText());
-        } else {
-            translate.z = 0.0;
         }
-        setTranslate(translate);
     }
 
     transformationAttribute =  transformationNode->FirstChildElement("Rotate");
@@ -370,34 +368,25 @@ bool Transformation::deserialize(tinyxml2::XMLElement *transformationNode) {
         std::cout << "Transformation does not have Rotation." << std::endl;
     } else {
         transformationAttributeAttribute =  transformationAttribute->FirstChildElement("X");
-        glm::quat orientation;
         if(transformationAttributeAttribute != nullptr) {
             orientation.x = std::stof(transformationAttributeAttribute->GetText());
-        } else {
-            orientation.x = 0.0;
         }
         transformationAttributeAttribute =  transformationAttribute->FirstChildElement("Y");
         if(transformationAttributeAttribute != nullptr) {
             orientation.y = std::stof(transformationAttributeAttribute->GetText());
-        } else {
-            orientation.y = 0.0;
         }
         transformationAttributeAttribute =  transformationAttribute->FirstChildElement("Z");
         if(transformationAttributeAttribute != nullptr) {
             orientation.z = std::stof(transformationAttributeAttribute->GetText());
-        } else {
-            orientation.z = 0.0;
         }
         transformationAttributeAttribute =  transformationAttribute->FirstChildElement("W");
         if(transformationAttributeAttribute != nullptr) {
             orientation.w = std::stof(transformationAttributeAttribute->GetText());
-        } else {
-            orientation.w = 0.0;
         }
-        setOrientation(orientation);
     }
-    //now propagate the load
-    propagateUpdate();
+
+    // Apply all values at once — a single propagateUpdate fires with a consistent TRS state.
+    setTransformations(translate, scale, orientation);
     return true;
 }
 

@@ -531,19 +531,10 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
                     std::string savedObjectName = savedGO->getName();
                     if(ImGui::Button("Attach saved object to current")) {
                         int32_t attachedBoneID = -1;
-                        Transformation* parentAttachTransform;
                         Model* pickedModel = dynamic_cast<Model*>(this->pickedObject);
                         if(pickedModel != nullptr) {
-                            parentAttachTransform = pickedModel->getAttachmentTransform(attachedBoneID);
-                        } else {
-                            parentAttachTransform = pickedAttachable->getTransformation();
+                            pickedModel->getAttachmentTransform(attachedBoneID);
                         }
-                        glm::vec3 translate, scale;
-                        glm::quat orientation;
-                        parentAttachTransform->getDifferenceStacked(*this->objectToAttach->getTransformation(), translate, scale, orientation);
-                        this->objectToAttach->getTransformation()->setTranslate(translate);
-                        this->objectToAttach->getTransformation()->setScale(scale);
-                        this->objectToAttach->getTransformation()->setOrientation(orientation);
                         this->objectToAttach->attachTo(pickedAttachable, attachedBoneID);
                         this->objectToAttach = nullptr;
                     }

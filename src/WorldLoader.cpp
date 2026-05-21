@@ -386,6 +386,16 @@ bool WorldLoader::loadObjectGroupsFromXML(tinyxml2::XMLNode *worldNode, World *w
 }
 
 bool WorldLoader::loadObjectsFromXML(tinyxml2::XMLNode *objectsNode, World *world, LimonAPI *limonAPI) const {
+    tinyxml2::XMLElement* versionElement = objectsNode->FirstChildElement("SaveVersion");
+    int saveVersion = 1;
+    if(versionElement != nullptr && versionElement->GetText() != nullptr) {
+        saveVersion = std::stoi(versionElement->GetText());
+    }
+    if(saveVersion == 2) {
+        return loadObjectsFromXMLV2(objectsNode, world, limonAPI);
+    }
+
+    // TODO: Remove this v1 backwards-compatible path once all world files have been resaved as v2.
     std::vector<std::vector<std::string>> preloadAssetFiles; //used to load the assets in parallel instead of serial
     std::vector<Model*> notStaticObjects;
     bool isAIGridStartPointSet = false;
@@ -674,6 +684,232 @@ WorldLoader::loadObject( std::shared_ptr<AssetManager> assetManager, tinyxml2::X
     return loadedObjects;
 }
 
+// V2 object loader: loads a single object with no parent/children handling.
+// Attachment is deferred to loadObjectsFromXMLV2 which calls attachTo() after all objects are in the world.
+std::vector<std::unique_ptr<WorldLoader::ObjectInformation>>
+WorldLoader::loadObjectV2(std::shared_ptr<AssetManager> assetManager, tinyxml2::XMLElement *objectNode,
+                          std::unordered_map<std::string, std::shared_ptr<Sound>> &requiredSounds, LimonAPI *limonAPI) {
+    std::vector<std::unique_ptr<WorldLoader::ObjectInformation>> loadedObjects;
+
+    tinyxml2::XMLElement *objectAttribute = objectNode->FirstChildElement("File");
+    if (objectAttribute == nullptr) {
+        std::cerr << "Object must have a source file." << std::endl;
+        return loadedObjects;
+    }
+    std::string modelFile = objectAttribute->GetText();
+
+    objectAttribute = objectNode->FirstChildElement("Mass");
+    float modelMass = 0;
+    if (objectAttribute != nullptr) {
+        modelMass = std::stof(objectAttribute->GetText());
+    }
+
+    int id;
+    objectAttribute = objectNode->FirstChildElement("ID");
+    if (objectAttribute == nullptr) {
+        std::cerr << "Object does not have ID. Can't be loaded" << std::endl;
+        return loadedObjects;
+    }
+    id = std::stoi(objectAttribute->GetText());
+
+    bool disconnected = false;
+    objectAttribute = objectNode->FirstChildElement("Disconnected");
+    if (objectAttribute != nullptr && objectAttribute->GetText() != nullptr) {
+        disconnected = (std::string(objectAttribute->GetText()) == "True");
+    }
+
+    std::string flipAxes;
+    tinyxml2::XMLElement *flipAttribute = objectNode->FirstChildElement("Flip");
+    if (flipAttribute != nullptr && flipAttribute->GetText() != nullptr) {
+        flipAxes = flipAttribute->GetText();
+    }
+
+    std::unique_ptr<ObjectInformation> loadedObjectInformation = std::make_unique<ObjectInformation>();
+    loadedObjectInformation->model = new Model(id, assetManager, modelMass, modelFile, disconnected, flipAxes);
+
+    objectAttribute = objectNode->FirstChildElement("StepOnSound");
+    if (objectAttribute != nullptr) {
+        std::string stepOnSound = objectAttribute->GetText();
+        if(requiredSounds.find(stepOnSound) == requiredSounds.end()) {
+            requiredSounds[stepOnSound] = std::make_shared<Sound>(0, assetManager, stepOnSound);
+            requiredSounds[stepOnSound]->changeGain(0.125f);
+        }
+        loadedObjectInformation->model->setPlayerStepOnSound(requiredSounds[stepOnSound]);
+    }
+
+    objectAttribute = objectNode->FirstChildElement("Transformation");
+    if(objectAttribute == nullptr) {
+        std::cerr << "Object does not have transformation. Can't be loaded" << std::endl;
+        delete loadedObjectInformation->model;
+        return loadedObjects;
+    }
+    loadedObjectInformation->model->getTransformation()->deserialize(objectAttribute);
+
+    objectAttribute = objectNode->FirstChildElement("Actor");
+    if (objectAttribute != nullptr) {
+        ActorInterface* actor = APISerializer::deserializeActorInterface(objectAttribute, limonAPI);
+        loadedObjectInformation->aiGridStartPoint = GLMConverter::BltToGLM(loadedObjectInformation->model->getRigidBody()->getCenterOfMassPosition()) +
+                                                    glm::vec3(0, 2.0f, 0);
+        loadedObjectInformation->isAIGridStartPointSet = true;
+        if(actor != nullptr) {
+            loadedObjectInformation->modelActor = actor;
+            loadedObjectInformation->modelActor->setModel(loadedObjectInformation->model->getWorldObjectID());
+            loadedObjectInformation->model->attachAI(loadedObjectInformation->modelActor);
+        }
+    }
+
+    objectAttribute = objectNode->FirstChildElement("Animation");
+    if (objectAttribute != nullptr && objectAttribute->GetText() != nullptr) {
+        loadedObjectInformation->model->setAnimation(objectAttribute->GetText());
+    }
+
+    std::vector<std::pair<std::string, std::shared_ptr<Material>>> custumizedMeshMaterialList;
+    tinyxml2::XMLElement* meshMaterialListNode = objectNode->FirstChildElement("MeshMaterialList");
+    if (meshMaterialListNode != nullptr) {
+        tinyxml2::XMLElement *meshMaterialNode = meshMaterialListNode->FirstChildElement("MeshMaterial");
+        while (meshMaterialNode != nullptr) {
+            if (meshMaterialNode->Attribute("MeshName") != nullptr) {
+                std::string meshName = meshMaterialNode->Attribute("MeshName");
+                tinyxml2::XMLElement *materialNode = meshMaterialNode->FirstChildElement("Material");
+                if (materialNode != nullptr) {
+                    std::shared_ptr<Material> newMaterial = Material::deserialize(assetManager.get(), materialNode);
+                    custumizedMeshMaterialList.emplace_back(meshName, newMaterial);
+                } else {
+                    std::cerr << "A mesh material definition with no Material found. Can't be processed. Skipping." << std::endl;
+                }
+            } else {
+                std::cerr << "A mesh material definition with no MeshName found. Can't be processed. Skipping." << std::endl;
+            }
+            meshMaterialNode = meshMaterialNode->NextSiblingElement("MeshMaterial");
+        }
+    }
+    if (!custumizedMeshMaterialList.empty()) {
+        loadedObjectInformation->model->loadOverriddenMeshMaterial(custumizedMeshMaterialList);
+    }
+
+    tinyxml2::XMLElement* customTagsNode = objectNode->FirstChildElement("CustomTags");
+    if (customTagsNode != nullptr) {
+        tinyxml2::XMLElement *customTagNode = customTagsNode->FirstChildElement("CustomTag");
+        while (customTagNode != nullptr) {
+            if (customTagNode->GetText() != nullptr) {
+                loadedObjectInformation->model->addTag(customTagNode->GetText());
+            }
+            customTagNode = customTagNode->NextSiblingElement("CustomTag");
+        }
+    }
+
+    loadedObjects.push_back(std::move(loadedObjectInformation));
+    return loadedObjects;
+}
+
+bool WorldLoader::loadObjectsFromXMLV2(tinyxml2::XMLNode *objectsNode, World *world, LimonAPI *limonAPI) const {
+    struct PendingAttachment {
+        Model* child;
+        uint32_t parentID;
+        int32_t parentBoneID;
+    };
+
+    std::vector<std::vector<std::string>> preloadAssetFiles;
+    std::vector<Model*> notStaticObjects;
+    bool isAIGridStartPointSet = false;
+    glm::vec3 aiGridStartPoint = glm::vec3(0,0,0);
+    std::vector<PendingAttachment> pendingAttachments;
+
+    loadObjectGroupsFromXML(objectsNode, world, limonAPI, notStaticObjects, isAIGridStartPointSet, aiGridStartPoint);
+
+    tinyxml2::XMLElement* objectsListNode = objectsNode->FirstChildElement("Objects");
+    if (objectsListNode == nullptr) {
+        std::cerr << "World doesn't have Objects clause, this might be a mistake." << std::endl;
+        return true;
+    }
+
+    tinyxml2::XMLElement* objectNode = objectsListNode->FirstChildElement("Object");
+    if (objectNode == nullptr) {
+        std::cout << "World doesn't have any objects, this might be a mistake." << std::endl;
+        return true;
+    }
+
+    std::unordered_map<std::string, std::shared_ptr<Sound>> requiredSounds;
+
+    tinyxml2::XMLElement* objectNodeForPreload = objectNode;
+    while(objectNodeForPreload != nullptr) {
+        tinyxml2::XMLElement *objectAttribute = objectNodeForPreload->FirstChildElement("File");
+        if (objectAttribute != nullptr) {
+            std::string modelFile = objectAttribute->GetText();
+            tinyxml2::XMLElement *flipAttributeForPreload = objectNodeForPreload->FirstChildElement("Flip");
+            std::string flipAxesForPreload;
+            if (flipAttributeForPreload != nullptr && flipAttributeForPreload->GetText() != nullptr) {
+                flipAxesForPreload = flipAttributeForPreload->GetText();
+            }
+            std::string assetKeyForPreload = flipAxesForPreload.empty() ? modelFile : modelFile + "?flip" + flipAxesForPreload;
+            std::vector<std::string> temp;
+            temp.emplace_back(assetKeyForPreload);
+            preloadAssetFiles.emplace_back(temp);
+        } else {
+            std::cerr << "Object must have a source file." << std::endl;
+        }
+        objectNodeForPreload = objectNodeForPreload->NextSiblingElement("Object");
+    }
+    std::vector<std::shared_ptr<ModelAsset>> preloadAssets = assetManager->parallelLoadAssetList<ModelAsset>(preloadAssetFiles);
+
+    // First pass: load all objects as roots (no attachment yet)
+    while(objectNode != nullptr) {
+        std::vector<std::unique_ptr<ObjectInformation>> objectInfos = loadObjectV2(assetManager, objectNode, requiredSounds, limonAPI);
+
+        Model* loadedModel = nullptr;
+        for (auto objectIterator = objectInfos.begin(); objectIterator != objectInfos.end(); ++objectIterator) {
+            if((*objectIterator)->modelActor != nullptr) {
+                world->addActor((*objectIterator)->modelActor);
+            }
+            if(!isAIGridStartPointSet && (*objectIterator)->isAIGridStartPointSet) {
+                aiGridStartPoint = (*objectIterator)->aiGridStartPoint;
+            }
+            loadedModel = (*objectIterator)->model;
+            if((*objectIterator)->model->getMass() == 0 && !(*objectIterator)->model->isAnimated()) {
+                world->addModelToWorld((*objectIterator)->model);
+            } else {
+                notStaticObjects.push_back((*objectIterator)->model);
+            }
+        }
+
+        // Collect attachment info to process after all objects are in the world
+        if(loadedModel != nullptr) {
+            tinyxml2::XMLElement* parentIDElement = objectNode->FirstChildElement("ParentID");
+            if(parentIDElement != nullptr && parentIDElement->GetText() != nullptr) {
+                uint32_t parentID = std::stoul(parentIDElement->GetText());
+                int32_t boneID = -1;
+                tinyxml2::XMLElement* boneIDElement = objectNode->FirstChildElement("ParentBoneID");
+                if(boneIDElement != nullptr && boneIDElement->GetText() != nullptr) {
+                    boneID = std::stoi(boneIDElement->GetText());
+                }
+                pendingAttachments.push_back({loadedModel, parentID, boneID});
+            }
+        }
+
+        objectNode = objectNode->NextSiblingElement("Object");
+    }
+
+    world->createGridFrom(aiGridStartPoint);
+    for (unsigned int i = 0; i < notStaticObjects.size(); ++i) {
+        world->addModelToWorld(notStaticObjects[i]);
+    }
+
+    // Second pass: wire up all parent-child relationships using attachTo (does world->local conversion)
+    for(auto& pa : pendingAttachments) {
+        Attachable* parent = world->findAttachableByID(pa.parentID);
+        if(parent != nullptr) {
+            pa.child->attachTo(parent, pa.parentBoneID);
+        } else {
+            std::cerr << "Object " << pa.child->getWorldObjectID() << " parent " << pa.parentID << " not found, attachment skipped." << std::endl;
+        }
+    }
+
+    for(const auto& assetFile : preloadAssetFiles) {
+        assetManager->freeAsset({assetFile});
+    }
+    return true;
+}
+
 bool WorldLoader::loadSkymap(tinyxml2::XMLNode *skymapNode, World* world) const {
     tinyxml2::XMLElement* skyNode =  skymapNode->FirstChildElement("Sky");
     if (skyNode == nullptr) {
@@ -799,36 +1035,45 @@ bool WorldLoader::loadLights(tinyxml2::XMLNode *lightsNode, World* world) const 
             }
         }
 
-        lightAttribute = lightNode->FirstChildElement("Position");
-        if (lightAttribute == nullptr) {
-            std::cerr << "Light must have a position/direction." << std::endl;
-            return false;
+        tinyxml2::XMLElement* lightTransformationElement = lightNode->FirstChildElement("Transformation");
+        if(lightTransformationElement != nullptr) {
+            tinyxml2::XMLElement* translateEl = lightTransformationElement->FirstChildElement("Translate");
+            if(translateEl == nullptr || !loadVec3(translateEl, position)) {
+                std::cerr << "Light Transformation is missing Translate." << std::endl;
+                return false;
+            }
         } else {
-            lightAttributeAttribute = lightAttribute->FirstChildElement("X");
-            if (lightAttributeAttribute != nullptr) {
-                x = std::stof(lightAttributeAttribute->GetText());
-            } else {
-                std::cerr << "Light position/direction missing x." << std::endl;
+            lightAttribute = lightNode->FirstChildElement("Position");
+            if (lightAttribute == nullptr) {
+                std::cerr << "Light must have a position/direction." << std::endl;
                 return false;
-            }
-            lightAttributeAttribute = lightAttribute->FirstChildElement("Y");
-            if (lightAttributeAttribute != nullptr) {
-                y = std::stof(lightAttributeAttribute->GetText());
             } else {
-                std::cerr << "Light position/direction missing y." << std::endl;
-                return false;
+                lightAttributeAttribute = lightAttribute->FirstChildElement("X");
+                if (lightAttributeAttribute != nullptr) {
+                    x = std::stof(lightAttributeAttribute->GetText());
+                } else {
+                    std::cerr << "Light position/direction missing x." << std::endl;
+                    return false;
+                }
+                lightAttributeAttribute = lightAttribute->FirstChildElement("Y");
+                if (lightAttributeAttribute != nullptr) {
+                    y = std::stof(lightAttributeAttribute->GetText());
+                } else {
+                    std::cerr << "Light position/direction missing y." << std::endl;
+                    return false;
+                }
+                lightAttributeAttribute = lightAttribute->FirstChildElement("Z");
+                if (lightAttributeAttribute != nullptr) {
+                    z = std::stof(lightAttributeAttribute->GetText());
+                } else {
+                    std::cerr << "Light position/direction missing z." << std::endl;
+                    return false;
+                }
             }
-            lightAttributeAttribute = lightAttribute->FirstChildElement("Z");
-            if (lightAttributeAttribute != nullptr) {
-                z = std::stof(lightAttributeAttribute->GetText());
-            } else {
-                std::cerr << "Light position/direction missing z." << std::endl;
-                return false;
-            }
+            position.x = x;
+            position.y = y;
+            position.z = z;
         }
-        position.x = x;
-        position.y = y;
-        position.z = z;
 
         lightAttribute = lightNode->FirstChildElement("Color");
         if (lightAttribute == nullptr) {
@@ -859,6 +1104,10 @@ bool WorldLoader::loadLights(tinyxml2::XMLNode *lightsNode, World* world) const 
 
         xmlLight = new Light(graphicsWrapper, lightID, type, position, color);
 
+        if(lightTransformationElement != nullptr) {
+            xmlLight->getTransformation()->deserialize(lightTransformationElement);
+        }
+
         glm::vec3 attenuation(1, 0.1f, 0.01f);
         tinyxml2::XMLElement* lightAttenuation =  lightNode->FirstChildElement("Attenuation");
         if(lightAttenuation != nullptr) {
@@ -875,8 +1124,6 @@ bool WorldLoader::loadLights(tinyxml2::XMLNode *lightsNode, World* world) const 
             }
         }
 
-        world->addLight(xmlLight);
-
         tinyxml2::XMLElement* lightParentIDElement = lightNode->FirstChildElement("ParentID");
         if(lightParentIDElement != nullptr && lightParentIDElement->GetText() != nullptr) {
             uint32_t parentID = std::stoul(lightParentIDElement->GetText());
@@ -887,6 +1134,8 @@ bool WorldLoader::loadLights(tinyxml2::XMLNode *lightsNode, World* world) const 
                 std::cerr << "Light parent ID " << parentID << " not found, attachment skipped." << std::endl;
             }
         }
+
+        world->addLight(xmlLight);
 
         lightNode =  lightNode->NextSiblingElement("Light");
     }
@@ -986,31 +1235,40 @@ bool WorldLoader::loadParticleEmitters(tinyxml2::XMLNode *EmittersNode, World* w
             name = emitterAttributeElement->GetText();
         }
 
-        emitterAttributeElement = EmitterNode->FirstChildElement("StartPosition");
-        if (emitterAttributeElement == nullptr) {
-            std::cerr << "Particle Emitter must have a position/direction." << std::endl;
-            return false;
+        tinyxml2::XMLElement* emitterTransformationElement = EmitterNode->FirstChildElement("Transformation");
+        if(emitterTransformationElement != nullptr) {
+            tinyxml2::XMLElement* translateEl = emitterTransformationElement->FirstChildElement("Translate");
+            if(translateEl == nullptr || !loadVec3(translateEl, startPosition)) {
+                std::cerr << "Emitter Transformation is missing Translate." << std::endl;
+                return false;
+            }
         } else {
-            emitterAttributeAttributeElement = emitterAttributeElement->FirstChildElement("X");
-            if (emitterAttributeAttributeElement != nullptr) {
-                startPosition.x = std::stof(emitterAttributeAttributeElement->GetText());
-            } else {
-                std::cerr << "Particle Emitter position/direction missing x." << std::endl;
+            emitterAttributeElement = EmitterNode->FirstChildElement("StartPosition");
+            if (emitterAttributeElement == nullptr) {
+                std::cerr << "Particle Emitter must have a position/direction." << std::endl;
                 return false;
-            }
-            emitterAttributeAttributeElement = emitterAttributeElement->FirstChildElement("Y");
-            if (emitterAttributeAttributeElement != nullptr) {
-                startPosition.y = std::stof(emitterAttributeAttributeElement->GetText());
             } else {
-                std::cerr << "Particle Emitter position/direction missing y." << std::endl;
-                return false;
-            }
-            emitterAttributeAttributeElement = emitterAttributeElement->FirstChildElement("Z");
-            if (emitterAttributeAttributeElement != nullptr) {
-                startPosition.z = std::stof(emitterAttributeAttributeElement->GetText());
-            } else {
-                std::cerr << "Particle Emitter position/direction missing z." << std::endl;
-                return false;
+                emitterAttributeAttributeElement = emitterAttributeElement->FirstChildElement("X");
+                if (emitterAttributeAttributeElement != nullptr) {
+                    startPosition.x = std::stof(emitterAttributeAttributeElement->GetText());
+                } else {
+                    std::cerr << "Particle Emitter position/direction missing x." << std::endl;
+                    return false;
+                }
+                emitterAttributeAttributeElement = emitterAttributeElement->FirstChildElement("Y");
+                if (emitterAttributeAttributeElement != nullptr) {
+                    startPosition.y = std::stof(emitterAttributeAttributeElement->GetText());
+                } else {
+                    std::cerr << "Particle Emitter position/direction missing y." << std::endl;
+                    return false;
+                }
+                emitterAttributeAttributeElement = emitterAttributeElement->FirstChildElement("Z");
+                if (emitterAttributeAttributeElement != nullptr) {
+                    startPosition.z = std::stof(emitterAttributeAttributeElement->GetText());
+                } else {
+                    std::cerr << "Particle Emitter position/direction missing z." << std::endl;
+                    return false;
+                }
             }
         }
 
@@ -1191,6 +1449,9 @@ bool WorldLoader::loadParticleEmitters(tinyxml2::XMLNode *EmittersNode, World* w
         std::shared_ptr<Emitter> emitter = std::make_shared<Emitter>(id, name, this->assetManager, textureFile,
                                                                      startPosition, maxStartDistances, size, maxCount,
                                                                      lifeTime);
+        if(emitterTransformationElement != nullptr) {
+            emitter->getTransformation()->deserialize(emitterTransformationElement);
+        }
         emitter->setGravity(gravity);
         emitter->setSpeedMultiplier(speedMultiplier);
         emitter->setSpeedOffset(speedOffset);

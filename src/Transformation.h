@@ -5,7 +5,6 @@
 #ifndef LIMONENGINE_TRANSFORMATION_H
 #define LIMONENGINE_TRANSFORMATION_H
 
-
 #include <functional>
 #include <iostream>
 #include <vector>
@@ -29,30 +28,40 @@ class Transformation {
 
     mutable glm::mat4 worldTransform;//private
 
+    std::function<void()> updateCallback;
+
+    void notifyOwner() {
+        if (updateCallback) {
+            updateCallback();
+        }
+    }
+
+    void propagateToChildren() {
+        for (auto child : childTransforms) {
+            child->isDirty = true;
+            child->rotated = this->rotated;
+            child->getWorldTransform();
+            child->propagateUpdate();
+        }
+    }
+
+    void propagateUpdate() {
+        notifyOwner();
+        propagateToChildren();
+    }
+
     void setWorldTransform(const glm::mat4& transform) {
         this->worldTransform = transform;
         isDirty = false;
     }
 
-    void propagateUpdate(){
-        if(this->updateCallback) {
-            updateCallback();
-        }
-    }
-
     /**
-     * If there is a parent, generateWorldTransform should count it
-     * If there are any child, they should be counted by updateCallBack
+     * If there is a parent, generateWorldTransform should count it.
+     * Children are notified via propagateToChildren() inside propagateUpdate().
      */
     std::vector<Transformation*> childTransforms;
     Transformation* parentTransform = nullptr;
-    
-    void updateChildren() {
-        for (auto iterator = childTransforms.begin(); iterator != childTransforms.end(); ++iterator) {
-            (*iterator)->isDirty = true;
-        }
-    }
-    
+
 protected:
     glm::vec3 translate = glm::vec3(0.0f, 0.0f, 0.0f);
     glm::vec3 scale = glm::vec3(1.0f, 1.0f, 1.0f);
@@ -60,9 +69,8 @@ protected:
     mutable bool isDirty = true;
     bool rotated = false;
 
-    //ATTENTION These 2 method pointers are not set when copy constructed
+    //ATTENTION generateWorldTransform is not set when copy constructed
     std::function<glm::mat4()> generateWorldTransform;
-    std::function<void()> updateCallback = nullptr;
 
     /**
      * Saving these values for each and every transform is not optimal, but there is a trade off:
@@ -77,8 +85,7 @@ protected:
     glm::vec3 translateSingle = glm::vec3(0.0f, 0.0f, 0.0f);
     glm::vec3 scaleSingle = glm::vec3(1.0f, 1.0f, 1.0f);
     glm::quat orientationSingle = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
-    std::function<glm::mat4()> generateWorldTransformSingle = nullptr; //these are backups, in case of stacking
-    std::function<void()> updateCallbackSingle = nullptr; //these are backups, in case of stacking
+    std::function<glm::mat4()> generateWorldTransformSingle = nullptr; //backup when parent is attached
 
     glm::mat4 generateWorldTransformDefault() const {
         return glm::translate(glm::mat4(1.0f), translateSingle) * glm::mat4_cast(orientationSingle) *
@@ -116,20 +123,6 @@ protected:
 
         glm::decompose(rawTotalTransform, scale, orientation, translate, temp1, temp2);//update the current of these
         return totalTransform;
-    }
-
-    void updateCallbackWithChild() {
-        if(this->updateCallbackSingle != nullptr) {
-            this->updateCallbackSingle();
-        }
-        for (auto iterator = childTransforms.begin(); iterator != childTransforms.end(); ++iterator) {
-            if((*iterator)->updateCallback != nullptr) {
-                (*iterator)->isDirty = true;
-                (*iterator)->rotated = this->rotated;
-                (*iterator)->getWorldTransform(); // recompute translate/orientation before callback reads them
-                (*iterator)->updateCallback();
-            }
-        }
     }
 
 public:
@@ -205,10 +198,6 @@ public:
         this->translateSingle = this->translate;
         this->orientationSingle = this->orientation;
 
-        if(transformation->childTransforms.size() == 0) {
-            transformation->updateCallbackSingle = transformation->updateCallback;
-            transformation->updateCallback = std::bind(&Transformation::updateCallbackWithChild, transformation);
-        }
         transformation->childTransforms.push_back(this);
 
         this->getWorldTransform();
@@ -220,14 +209,15 @@ public:
             return;
         }
 
+        // Ensure world composites are current while the parent is still connected.
+        if(this->isDirty) {
+            this->getWorldTransform();
+        }
+
         // Remove from parent's children list
         auto element = std::find(this->parentTransform->childTransforms.begin(), this->parentTransform->childTransforms.end(), this);
         if(element != this->parentTransform->childTransforms.end()) {
             this->parentTransform->childTransforms.erase(element);
-            if(this->parentTransform->childTransforms.empty()) {
-                this->parentTransform->updateCallback = this->parentTransform->updateCallbackSingle;
-                this->parentTransform->updateCallbackSingle = nullptr;
-            }
         } else {
             std::cerr << "Parent transform doesn't have this child in the list, this shouldn't have happened!" << std::endl;
         }
@@ -237,18 +227,19 @@ public:
         this->generateWorldTransform = this->generateWorldTransformSingle;
         this->generateWorldTransformSingle = nullptr;
 
-        // The current transform values are already world composites, so just keep them
+        // scale/translate/orientation are now fresh world composites — use them as the
+        // new standalone values so the object stays at its current world position.
         this->scaleSingle = this->scale;
         this->translateSingle = this->translate;
         this->orientationSingle = this->orientation;
-        
+
         this->isDirty = true;
         this->getWorldTransform();
         this->propagateUpdate();
     }
 
-    void setUpdateCallback(std::function<void()> updateCallback) {
-        this->updateCallback = updateCallback;
+    void setUpdateCallback(std::function<void()> callback) {
+        updateCallback = std::move(callback);
     }
 
     void setGenerateWorldTransform(std::function<glm::mat4()> generateWorldTransform) {
@@ -354,13 +345,8 @@ public:
             this->translate = translate;
         }
         this->translateSingle = translate;
-
-        for (auto childTransform = childTransforms.begin(); childTransform != childTransforms.end(); ++childTransform) {
-            (*childTransform)->isDirty = true;
-            (*childTransform)->getWorldTransform();
-            (*childTransform)->updateCallback();
-        }
         isDirty = true;
+        propagateToChildren();
     }
 
     void setTransformationsNotPropagate(const glm::vec3& translate, const::glm::quat& orientation) {
@@ -371,12 +357,8 @@ public:
             this->translate = translate;
             this->orientation = orientationSingle;
         }
-        for (auto childTransform = childTransforms.begin(); childTransform != childTransforms.end(); ++childTransform) {
-            (*childTransform)->isDirty = true;
-            (*childTransform)->getWorldTransform();
-            (*childTransform)->updateCallback();
-        }
         isDirty = true;
+        propagateToChildren();
     }
 
     void setTransformationsNotPropagate(const glm::vec3& translate, const::glm::quat& orientation, const glm::vec3& scale) {
@@ -390,13 +372,8 @@ public:
             this->orientation = orientationSingle;//this is intentional, because it needs normalization
             this->translate = translate;
         }
-
-        for (auto childTransform = childTransforms.begin(); childTransform != childTransforms.end(); ++childTransform) {
-            (*childTransform)->isDirty = true;
-            (*childTransform)->getWorldTransform();
-            (*childTransform)->updateCallback();
-        }
         isDirty = true;
+        propagateToChildren();
     }
 
     void setTransformations(const glm::vec3& translate, const::glm::quat& orientation) {
@@ -407,11 +384,6 @@ public:
             this->translate = translate;
             this->orientation = orientationSingle;
         }
-        for (auto childTransform = childTransforms.begin(); childTransform != childTransforms.end(); ++childTransform) {
-            (*childTransform)->isDirty = true;
-            (*childTransform)->getWorldTransform();
-            (*childTransform)->updateCallback();
-        }
         isDirty = true;
         propagateUpdate();
     }
@@ -420,19 +392,12 @@ public:
         this->translateSingle = translate;
         this->orientationSingle = glm::normalize(orientation);
         this->scaleSingle = scale;
-        rotated = this->orientation.w < 0.99; // with rotation w gets smaller.
-
         if(this->parentTransform == nullptr) {
             this->scale = scale;
             this->orientation = orientationSingle;//this is intentional, because it needs normalization
             this->translate = translate;
         }
-
-        for (auto childTransform = childTransforms.begin(); childTransform != childTransforms.end(); ++childTransform) {
-            (*childTransform)->isDirty = true;
-            (*childTransform)->getWorldTransform();
-            (*childTransform)->updateCallback();
-        }
+        rotated = this->orientationSingle.w < 0.99; // with rotation w gets smaller.
         isDirty = true;
         propagateUpdate();
     }
@@ -453,7 +418,7 @@ public:
         isDirty = true;
     }
 
-    bool addImGuiEditorElements(const glm::mat4 &cameraMatrix, const glm::mat4 &perspectiveMatrix, bool is2D = false);
+    bool addImGuiEditorElements(const glm::mat4 &cameraMatrix, const glm::mat4 &perspectiveMatrix, bool is2D = false, bool hasAttachableParent = false);
 
     bool addImGuizmoElements(const ImGuizmoState &editorState, const glm::mat4 &cameraMatrix,
                                  const glm::mat4 &perspectiveMatrix, bool is2D);

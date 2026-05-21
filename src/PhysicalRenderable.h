@@ -28,8 +28,12 @@ public:
     explicit PhysicalRenderable(GraphicsInterface* graphicsWrapper, float mass, bool disconnected)
             : Renderable(graphicsWrapper), centerOffset(glm::vec3(0, 0, 0)), mass(mass), disconnected(disconnected) {
         transformation.setGenerateWorldTransform(std::bind(&PhysicalRenderable::processTransformForPyhsics, this));
-        transformation.setUpdateCallback(std::bind(&PhysicalRenderable::updatePhysicsFromTransform, this));
-    };
+        transformation.setUpdateCallback([this]{ onTransformUpdated(); });
+    }
+
+    void onTransformUpdated() override {
+        updatePhysicsFromTransform();
+    }
 
     // --- Attachable interface ---
     Transformation* getTransformation() override { return &transformation; }
@@ -59,6 +63,9 @@ public:
         return disconnected;
     }
     void updatePhysicsFromTransform() {
+        if (rigidBody == nullptr) return;
+        // Force recompute: getTranslate() is stale if setParentTransform ran before setTransformations (e.g. during attachTo).
+        transformation.getWorldTransform();
         rigidBody->getCollisionShape()->setLocalScaling(btVector3(transformation.getScale().x, transformation.getScale().y, transformation.getScale().z));
         if( std::fabs(transformation.getScale().x - 1.0f) < NOT_SCALE_LIMIT &&
             std::fabs(transformation.getScale().y - 1.0f) < NOT_SCALE_LIMIT &&
@@ -128,7 +135,9 @@ public:
 
     void updateAABB() {
         btVector3 abMax, abMin;
-        rigidBody->getAabb(abMin,abMax);
+        // Compute directly from shape + current transform instead of reading the broad-phase
+        // cache, which is stale until dynamicsWorld->updateSingleAabb() runs (next stepSimulation).
+        rigidBody->getCollisionShape()->getAabb(rigidBody->getWorldTransform(), abMin, abMax);
         this->aabbMin = GLMConverter::BltToGLM(abMin);
         this->aabbMax = GLMConverter::BltToGLM(abMax);
         this->dirtyForFrustum = true;

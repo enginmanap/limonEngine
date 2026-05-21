@@ -7,11 +7,12 @@
 
 
 #include "Transformation.h"
+#include "HasTransform.h"
 #include <vector>
 #include <algorithm>
 #include <tinyxml2.h>
 
-class Attachable {
+class Attachable : public virtual HasTransform {
 protected:
     Attachable* parentObject = nullptr;
     int32_t parentBoneID = -1;
@@ -25,8 +26,11 @@ public:
         }
     }
 
-    virtual Transformation* getTransformation() = 0;
-    virtual const Transformation* getTransformation() const = 0;
+    // Called whenever this object's world transform changes — either because the
+    // object itself was moved or because a parent in the hierarchy moved.
+    // Default is a no-op; override to sync derived state (physics bodies, cached
+    // positions, etc.).
+    virtual void onTransformUpdated() {}
 
     // Returns the transform point to attach children to. Models override this
     // to return bone-specific transforms when a bone is selected.
@@ -39,7 +43,24 @@ public:
         this->parentObject = parent;
         this->parentBoneID = boneID;
         parent->addChild(this);
-        this->getTransformation()->setParentTransform(parent->getAttachmentTransformFor(boneID));
+
+        Transformation* myTransform    = this->getTransformation();
+        Transformation* parentTransform = parent->getAttachmentTransformFor(boneID);
+
+        // Snapshot world matrices before the parent link changes anything.
+        glm::mat4 myWorld     = myTransform->getWorldTransform();
+        glm::mat4 parentWorld = parentTransform->getWorldTransform();
+
+        myTransform->setParentTransform(parentTransform);
+
+        // Rewrite Single values to the local offset so that
+        // parent_world * local == my_world (object stays at its world position).
+        glm::mat4 localMatrix = glm::inverse(parentWorld) * myWorld;
+        glm::vec3 localTranslate, localScale, skew;
+        glm::quat localOrientation;
+        glm::vec4 perspective;
+        glm::decompose(localMatrix, localScale, localOrientation, localTranslate, skew, perspective);
+        myTransform->setTransformations(localTranslate, localScale, glm::normalize(localOrientation));
     }
 
     // Remove the relationship and the Transformation parent link.

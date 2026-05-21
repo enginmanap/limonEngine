@@ -60,7 +60,7 @@ ImGuiResult ModelGroup::addImGuiEditorElements(const ImGuiRequest &request) {
         ImGui::Text("This group is empty");
     } else {
         //Allow transformation editing.
-        if (transformation.addImGuiEditorElements(request.perspectiveCameraMatrix, request.perspectiveMatrix)) {
+        if (transformation.addImGuiEditorElements(request.perspectiveCameraMatrix, request.perspectiveMatrix, false, parentObject != nullptr)) {
             result.updated = true;
         }
     }

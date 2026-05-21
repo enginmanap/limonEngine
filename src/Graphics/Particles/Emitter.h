@@ -93,8 +93,9 @@ public:
             if(currentCount + creationParticleCount > maxCount) {
                 creationParticleCount = maxCount - currentCount;
             }
+            const glm::vec3 worldPos(this->transformation.getWorldTransform()[3]);
             for (int i = 0; i < creationParticleCount; ++i) {
-                addRandomParticle(this->transformation.getTranslate(), maxStartDistances, time);
+                addRandomParticle(worldPos, maxStartDistances, time);
             }
             currentCount += creationParticleCount;
             totalCreatedCount += creationParticleCount;

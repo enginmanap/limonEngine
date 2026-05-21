@@ -142,6 +142,10 @@ public:
         graphicsWrapper->setModel(this->getWorldObjectID(), this->transformation.getWorldTransform());
     }
 
+    void onTransformUpdated() override {
+        transformChangeCallback();
+    }
+
     void updateTransformFromPhysics() override {
         PhysicalRenderable::updateTransformFromPhysics();
         graphicsWrapper->setModel(this->getWorldObjectID(), this->transformation.getWorldTransform());

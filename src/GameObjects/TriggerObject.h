@@ -68,8 +68,11 @@ public:
         ghostObject->setWorldTransform(btTransform(btQuaternion::getIdentity(), btVector3()));
         ghostObject->setUserPointer(static_cast<GameObject *>(this));
         name  = "TRIGGER-" + std::to_string(objectID);
+        transformation.setUpdateCallback([this]{ updatePhysicsFromTransform(); });
+    }
 
-        transformation.setUpdateCallback(std::bind(&TriggerObject::updatePhysicsFromTransform, this));
+    void onTransformUpdated() override {
+        updatePhysicsFromTransform();
     }
 
     ~TriggerObject() override {

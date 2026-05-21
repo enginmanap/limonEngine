@@ -113,14 +113,17 @@ public:
 
         // Seed the attachment transformation with the current position.
         attachTransformation.setTranslate(this->position);
-
-        // When a parent moves us, sync position from the world transform so shadow cameras stay correct.
-        attachTransformation.setUpdateCallback([this]() {
-            this->position = glm::vec3(this->attachTransformation.getWorldTransform()[3]);
-            this->frustumChanged = true;
-        });
-
+        attachTransformation.setUpdateCallback([this]{ onTransformUpdated(); });
         frustumChanged = true;
+    }
+
+    void onTransformUpdated() override {
+        this->position = glm::vec3(this->attachTransformation.getWorldTransform()[3]);
+        this->frustumChanged = true;
+        if(lightType == LightTypes::POINT && !cubeCameras.empty()) {
+            static_cast<CubeCamera*>(cubeCameras[0])->getCameraMatrix();
+            this->frustumChanged = true;
+        }
     }
 
     // --- Attachable interface ---

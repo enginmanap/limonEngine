@@ -47,6 +47,7 @@ private:
     bool loadObjectGroupsFromXML(tinyxml2::XMLNode *worldNode, World *world, LimonAPI *limonAPI,
             std::vector<Model*> &notStaticObjects, bool &isAIGridStartPointSet, glm::vec3 &aiGridStartPoint) const;
     bool loadObjectsFromXML(tinyxml2::XMLNode *objectsNode, World *world, LimonAPI *limonAPI) const;
+    bool loadObjectsFromXMLV2(tinyxml2::XMLNode *objectsNode, World *world, LimonAPI *limonAPI) const;
     bool loadSkymap(tinyxml2::XMLNode *skymapNode, World* world) const;
     bool loadLights(tinyxml2::XMLNode *lightsNode, World* world) const;
     bool loadParticleEmitters(tinyxml2::XMLNode *EmittersNode, World* world) const;
@@ -70,6 +71,8 @@ public:
     static std::vector<std::unique_ptr<ObjectInformation>> loadObject( std::shared_ptr<AssetManager> assetManager, tinyxml2::XMLElement *objectNode,
                                                                        std::unordered_map<std::string, std::shared_ptr<Sound>> &requiredSounds, LimonAPI *limonAPI,
                                                                        PhysicalRenderable *parentObject);
+    static std::vector<std::unique_ptr<ObjectInformation>> loadObjectV2(std::shared_ptr<AssetManager> assetManager, tinyxml2::XMLElement *objectNode,
+                                                                        std::unordered_map<std::string, std::shared_ptr<Sound>> &requiredSounds, LimonAPI *limonAPI);
 
 
     static bool loadVec3(tinyxml2::XMLNode* vectorNode, glm::vec3& vector);

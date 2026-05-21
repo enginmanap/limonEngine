@@ -36,22 +36,49 @@ ImGuiResult Light::addImGuiEditorElements(const ImGuiRequest &request) {
     ImGui::Text("Please note, Directional lights position setting is relative to player.");
     static glm::vec3 preciseTranslatePoint = this->position;
     bool crudeUpdated = false;
+    bool positionAlreadySet = false;
     result.updated = ImGui::DragFloat("Color R", &(this->color.r), 0.0f, 1.0f)   || result.updated;
     result.updated = ImGui::DragFloat("Color G", &(this->color.g), 0.0f, 1.0f)   || result.updated;
     result.updated = ImGui::DragFloat("Color B", &(this->color.b), 0.0f, 1.0f)   || result.updated;
     ImGui::NewLine();
     bool attenuationUpdate = false;
+    const bool isAttached = (parentObject != nullptr);
     switch (lightType) {
         case LightTypes::NONE:
             break;
         case LightTypes::POINT: {
-            result.updated = ImGui::DragFloat("Precise Position X", &(this->position.x), 0.01, preciseTranslatePoint.x - 5.0f, preciseTranslatePoint.x + 5.0f)   || result.updated;
-            result.updated = ImGui::DragFloat("Precise Position Y", &(this->position.y), 0.01, preciseTranslatePoint.y - 5.0f, preciseTranslatePoint.y + 5.0f)   || result.updated;
-            result.updated = ImGui::DragFloat("Precise Position Z", &(this->position.z), 0.01, preciseTranslatePoint.z - 5.0f, preciseTranslatePoint.z + 5.0f)   || result.updated;
-            ImGui::NewLine();
-            crudeUpdated = ImGui::SliderFloat("Crude Position X", &(this->position.x), -100.0f, 100.0f)   || crudeUpdated;
-            crudeUpdated = ImGui::SliderFloat("Crude Position Y", &(this->position.y), -100.0f, 100.0f)   || crudeUpdated;
-            crudeUpdated = ImGui::SliderFloat("Crude Position Z", &(this->position.z), -100.0f, 100.0f)   || crudeUpdated;
+            if(isAttached) {
+                ImGui::Text("World Position X: %s", std::to_string(this->position.x).c_str());
+                ImGui::Text("World Position Y: %s", std::to_string(this->position.y).c_str());
+                ImGui::Text("World Position Z: %s", std::to_string(this->position.z).c_str());
+                ImGui::NewLine();
+                glm::vec3 localPos = attachTransformation.getTranslateSingle();
+                bool localUpdated = false;
+                localUpdated = ImGui::DragFloat("Local Position X", &(localPos.x), 0.01f, preciseTranslatePoint.x - 5.0f, preciseTranslatePoint.x + 5.0f) || localUpdated;
+                localUpdated = ImGui::DragFloat("Local Position Y", &(localPos.y), 0.01f, preciseTranslatePoint.y - 5.0f, preciseTranslatePoint.y + 5.0f) || localUpdated;
+                localUpdated = ImGui::DragFloat("Local Position Z", &(localPos.z), 0.01f, preciseTranslatePoint.z - 5.0f, preciseTranslatePoint.z + 5.0f) || localUpdated;
+                ImGui::NewLine();
+                crudeUpdated = ImGui::SliderFloat("Crude Local X", &(localPos.x), -100.0f, 100.0f) || crudeUpdated;
+                crudeUpdated = ImGui::SliderFloat("Crude Local Y", &(localPos.y), -100.0f, 100.0f) || crudeUpdated;
+                crudeUpdated = ImGui::SliderFloat("Crude Local Z", &(localPos.z), -100.0f, 100.0f) || crudeUpdated;
+                if(localUpdated || crudeUpdated) {
+                    const glm::mat4 parentWorld = parentObject->getAttachmentTransformFor(parentBoneID)->getWorldTransform();
+                    this->setPosition(glm::vec3(parentWorld * glm::vec4(localPos, 1.0f)), request.playerCamera);
+                    positionAlreadySet = true;
+                    result.updated = true;
+                }
+                if(crudeUpdated) {
+                    preciseTranslatePoint = localPos;
+                }
+            } else {
+                result.updated = ImGui::DragFloat("Precise Position X", &(this->position.x), 0.01f, preciseTranslatePoint.x - 5.0f, preciseTranslatePoint.x + 5.0f) || result.updated;
+                result.updated = ImGui::DragFloat("Precise Position Y", &(this->position.y), 0.01f, preciseTranslatePoint.y - 5.0f, preciseTranslatePoint.y + 5.0f) || result.updated;
+                result.updated = ImGui::DragFloat("Precise Position Z", &(this->position.z), 0.01f, preciseTranslatePoint.z - 5.0f, preciseTranslatePoint.z + 5.0f) || result.updated;
+                ImGui::NewLine();
+                crudeUpdated = ImGui::SliderFloat("Crude Position X", &(this->position.x), -100.0f, 100.0f) || crudeUpdated;
+                crudeUpdated = ImGui::SliderFloat("Crude Position Y", &(this->position.y), -100.0f, 100.0f) || crudeUpdated;
+                crudeUpdated = ImGui::SliderFloat("Crude Position Z", &(this->position.z), -100.0f, 100.0f) || crudeUpdated;
+            }
             ImGui::NewLine();
             attenuationUpdate = ImGui::DragFloat("Constant", &(this->attenuation.x), 0.01f, -10.0f, 1.0f) || attenuationUpdate;
             attenuationUpdate = ImGui::DragFloat("Linear", &(this->attenuation.y), 0.01f, 0.0f, 1.0f) || attenuationUpdate;
@@ -74,10 +101,10 @@ ImGuiResult Light::addImGuiEditorElements(const ImGuiRequest &request) {
         break;
     }
 
-    if(result.updated || crudeUpdated) {
+    if((result.updated || crudeUpdated) && !positionAlreadySet) {
         this->setPosition(position, request.playerCamera);
     }
-    if(crudeUpdated) {
+    if(crudeUpdated && !isAttached) {
         preciseTranslatePoint = this->position;
     }
 
@@ -90,7 +117,6 @@ ImGuiResult Light::addImGuiEditorElements(const ImGuiRequest &request) {
     ImGui::SameLine();
     ImGui::InputFloat3("Snap", &(snap[0]));
 
-    const bool isAttached = (parentObject != nullptr);
     glm::mat4 objectMatrix = isAttached ? attachTransformation.getWorldTransform()
                                         : glm::translate(glm::mat4(1.0f), position);
     ImGuizmo::BeginFrame();

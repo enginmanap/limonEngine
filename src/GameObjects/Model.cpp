@@ -19,8 +19,6 @@ Model::Model(uint32_t objectID,  std::shared_ptr<AssetManager> assetManager, con
         PhysicalRenderable(assetManager->getGraphicsWrapper(), mass, disconnected), objectID(objectID), assetManager(assetManager),
         name(modelFile), flipAxes(flipAxes) {
 
-    transformation.setUpdateCallback(std::bind(&Model::transformChangeCallback, this));
-
     //this is required because the shader has fixed size arrays
     boneTransforms.resize(128);
     std::string assetKey = flipAxes.empty() ? modelFile : modelFile + "?flip" + flipAxes;
@@ -281,22 +279,6 @@ bool Model::fillObjects(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *o
         parent->serialize(document, objectElement);
     }
 
-    //now handle children
-    if(this->children.size() > 0) {
-        tinyxml2::XMLElement *childrenNode = document.NewElement("Children");
-        tinyxml2::XMLElement *childrenCountNode = document.NewElement("Count");
-        childrenCountNode->SetText(std::to_string(children.size()).c_str());
-        childrenNode->InsertEndChild(childrenCountNode);
-        objectElement->InsertEndChild(childrenNode);
-       for (size_t i = 0; i < children.size(); ++i) {
-           tinyxml2::XMLElement *childNode = document.NewElement("Child");
-           childNode->SetAttribute("Index", (uint32_t)i);
-           if(children[i]->fillObjects(document, childNode)) {
-               childrenNode->InsertEndChild(childNode);
-           }
-        }
-    }
-
     //Material customizations
     const std::vector<std::pair<std::string, std::shared_ptr<const Material>>> meshMaterialMap = getNewMeshMaterials();
     if (!meshMaterialMap.empty()) {
@@ -342,7 +324,7 @@ ImGuiResult Model::addImGuiEditorElements(const ImGuiRequest &request) {
     ImGuiResult result;
 
     //Allow transformation editing.
-    if(transformation.addImGuiEditorElements(request.perspectiveCameraMatrix, request.perspectiveMatrix)) {
+    if(transformation.addImGuiEditorElements(request.perspectiveCameraMatrix, request.perspectiveMatrix, false, parentObject != nullptr)) {
         //true means transformation changed, activate rigid body
         rigidBody->activate();
         result.updated = true;
@@ -590,7 +572,6 @@ Model::Model(const Model &otherModel, uint32_t objectID) :
             otherModel.transformation.getScale()
             );
     this->updateAABB();
-    transformation.setUpdateCallback(std::bind(&Model::transformChangeCallback, this));
 
     this->animationName = otherModel.animationName;
     this->animationTimeScale = otherModel.animationTimeScale;

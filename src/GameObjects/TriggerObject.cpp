@@ -47,7 +47,7 @@ void TriggerObject::render(BulletDebugDrawer *debugDrawer) {
 ImGuiResult TriggerObject::addImGuiEditorElements(const ImGuiRequest &request) {
     static ImGuiResult result;
 
-    result.updated = transformation.addImGuiEditorElements(request.perspectiveCameraMatrix, request.perspectiveMatrix);
+    result.updated = transformation.addImGuiEditorElements(request.perspectiveCameraMatrix, request.perspectiveMatrix, false, parentObject != nullptr);
     if (ImGui::CollapsingHeader("Trigger Properties")) {
         ImGui::Text("If first enter trigger is empty, enter trigger will be run for first time too.");
         if (ImGui::CollapsingHeader("First Enter Trigger")) {

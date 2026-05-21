@@ -76,6 +76,10 @@ bool WorldSaver::saveWorld(const std::string& mapName, const World* world) {
     currentElement->SetText(mapName.c_str());
     rootNode->InsertEndChild(currentElement);
 
+    currentElement = mapDocument.NewElement("SaveVersion");
+    currentElement->SetText(2);
+    rootNode->InsertEndChild(currentElement);
+
     currentElement = mapDocument.NewElement("LoadingImage");
     currentElement->SetText(world->loadingImage.c_str());
     rootNode->InsertEndChild(currentElement);
@@ -223,10 +227,8 @@ bool WorldSaver::fillObjectGroups(tinyxml2::XMLDocument &document, tinyxml2::XML
 }
 
 bool WorldSaver::fillObjects(tinyxml2::XMLDocument& document, tinyxml2::XMLElement * objectsNode, const World* world ) {
-    for(auto it=world->objects.begin(); it != world->objects.end(); it++) {//object ids are not constant, so they can be removed.
-        if((it->second)->getParentObject() == nullptr) {//if part of group, group object serializes
-            (it->second)->fillObjects(document, objectsNode);
-        }
+    for(auto it=world->objects.begin(); it != world->objects.end(); it++) {
+        (it->second)->fillObjects(document, objectsNode);
     }
     return true;
 }
@@ -255,20 +257,9 @@ bool WorldSaver::fillLights(tinyxml2::XMLDocument &document, tinyxml2::XMLElemen
         currentElement->SetText(std::to_string((*it)->getWorldObjectID()).c_str());
         lightElement->InsertEndChild(currentElement);
 
-        tinyxml2::XMLElement *parent = document.NewElement("Position");
-        glm::vec3 position = (*it)->getPosition();
-        currentElement = document.NewElement("X");
-        currentElement->SetText(position.x);
-        parent->InsertEndChild(currentElement);
-        currentElement = document.NewElement("Y");
-        currentElement->SetText(position.y);
-        parent->InsertEndChild(currentElement);
-        currentElement = document.NewElement("Z");
-        currentElement->SetText(position.z);
-        parent->InsertEndChild(currentElement);
-        lightElement->InsertEndChild(parent);
+        (*it)->getTransformation()->serialize(document, lightElement);
 
-        parent = document.NewElement("Color");
+        tinyxml2::XMLElement *parent = document.NewElement("Color");
         glm::vec3 color = (*it)->getColor();
         currentElement = document.NewElement("R");
         currentElement->SetText(color.r);
@@ -334,20 +325,9 @@ bool WorldSaver::fillEmitters(tinyxml2::XMLDocument &document, tinyxml2::XMLElem
         currentElement->SetText(currentEmitter->getName().c_str());
         emitterElement->InsertEndChild(currentElement);
 
-        tinyxml2::XMLElement *parent = document.NewElement("StartPosition");
-        glm::vec3 starPosition = currentEmitter->getTransformation()->getTranslate();
-        currentElement = document.NewElement("X");
-        currentElement->SetText(starPosition.x);
-        parent->InsertEndChild(currentElement);
-        currentElement = document.NewElement("Y");
-        currentElement->SetText(starPosition.y);
-        parent->InsertEndChild(currentElement);
-        currentElement = document.NewElement("Z");
-        currentElement->SetText(starPosition.z);
-        parent->InsertEndChild(currentElement);
-        emitterElement->InsertEndChild(parent);
+        currentEmitter->getTransformation()->serialize(document, emitterElement);
 
-        parent = document.NewElement("Gravity");
+        tinyxml2::XMLElement *parent = document.NewElement("Gravity");
         glm::vec3 gravity = currentEmitter->getGravity();
         currentElement = document.NewElement("X");
         currentElement->SetText(gravity.x);

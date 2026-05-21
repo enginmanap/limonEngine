@@ -10,10 +10,11 @@
 #include "limonAPI/Graphics/GraphicsInterface.h"
 #include "limonAPI/Graphics/GraphicsProgram.h"
 #include "Transformation.h"
+#include "HasTransform.h"
 #include <btBulletDynamicsCommon.h>
 #include <glm/gtx/matrix_decompose.hpp>
 
-class Renderable {
+class Renderable : public virtual HasTransform {
 protected:
     Transformation transformation;
     std::vector<uint32_t> bufferObjects;
@@ -70,10 +71,10 @@ public:
         this->dirtyForFrustum = false;
     }
 
-    Transformation* getTransformation() {
+    Transformation* getTransformation() override {
         return &transformation;
     }
-    Transformation const * getTransformation() const {
+    Transformation const * getTransformation() const override {
         return &transformation;
     }
 

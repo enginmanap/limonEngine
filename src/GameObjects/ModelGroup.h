@@ -17,7 +17,10 @@ public:
 
     ModelGroup(GraphicsInterface* graphicsWrapper, uint32_t worldObjectID, const std::string& name)
     : PhysicalRenderable(graphicsWrapper, 0, true), worldObjectID(worldObjectID), name(name) {
-        transformation.setUpdateCallback(nullptr);
+    }
+
+    void onTransformUpdated() override {
+        // ModelGroup has no rigid body and no per-object graphics matrix; nothing to sync.
     }
 
     GameObject::ObjectTypes getTypeID() const override {

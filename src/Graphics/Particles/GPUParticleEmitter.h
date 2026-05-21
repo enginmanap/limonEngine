@@ -87,10 +87,11 @@ public:
         float particleBeforeTimeIncrease = perMsParticleCount;
         float timeLeftBeforeNextParticle = 0;
         long startingTime = time;
+        const glm::vec3 worldPos(this->transformation.getWorldTransform()[3]);
         for(long currentCount = 0; currentCount < maxCount; ++ currentCount) {
             //there are 2 ways to reach max count, if we create 1 or more particles per ms, or not
             if(perMsParticleCount > 1.0) {
-                ParticleData particleData = addRandomParticle(this->transformation.getTranslate(), maxStartDistances,
+                ParticleData particleData = addRandomParticle(worldPos, maxStartDistances,
                                                               startingTime);
                 particleBeforeTimeIncrease--;
                 if (particleBeforeTimeIncrease <= 0) {
@@ -102,7 +103,7 @@ public:
                 particles.emplace_back(particleData);
             } else {
                 //we don't want to create 1 particle per second, so we will go with time
-                ParticleData particleData = addRandomParticle(this->transformation.getTranslate(), maxStartDistances,
+                ParticleData particleData = addRandomParticle(worldPos, maxStartDistances,
                                                               startingTime);
                 particles.emplace_back(particleData);
                 float timeShift = 1.0f/ perMsParticleCount;
