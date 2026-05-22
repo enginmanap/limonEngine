@@ -42,7 +42,7 @@ private:
     bool animationLoopedOld = true;
 
     bool animationBlend = false;
-    long animationBlendTime = 1000;
+    uint64_t animationBlendTime = 1000;
 
     bool animationLastFramePlayed = false;
     long lastSetupTime = 0;
@@ -176,7 +176,7 @@ public:
         this->animationLastFramePlayed = false;
     }
 
-    void setAnimationWithBlend(const std::string &animationName, bool looped = true, long blendTime = 100) {
+    void setAnimationWithBlend(const std::string &animationName, bool looped = true, uint64_t blendTime = 100) {
         this->animationNameOld = this->animationName;
         this->animationTimeOld = this->animationTime;
         this->animationLoopedOld = this->animationLooped;

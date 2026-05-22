@@ -36,16 +36,14 @@ std::vector<LimonTypes::GenericParameter> AnimateOnTrigger::getParameters() {
 
 bool AnimateOnTrigger::run(std::vector<LimonTypes::GenericParameter> parameters) {
 
-    std::string* sound = nullptr;
-
+    std::string sound;
     if(parameters[3].value.stringValue[0] != '\0') {
-        sound = new std::string(parameters[3].value.stringValue);
+        sound = parameters[3].value.stringValue;
     }
     limonAPI->animateModel(static_cast<uint32_t>(parameters[0].value.longValue),
                            static_cast<uint32_t>(parameters[1].value.longValue),
                            parameters[2].value.boolValue,
                            sound);
-    delete sound;
     return true;
 }
 

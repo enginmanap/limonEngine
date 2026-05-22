@@ -66,16 +66,12 @@ bool DoorAnimationAction::run(std::vector<LimonTypes::GenericParameter> paramete
         //if entered, but not exited another trigger, skip animation, that one should handle it
     }
 
-    std::string* sound = nullptr;
 
-    if(parameters[3].value.stringValue[0] != '\0') {
-        sound = new std::string(parameters[3].value.stringValue);
-    }
+
     limonAPI->animateModel(static_cast<uint32_t>(parameters[0].value.longValue),
                            static_cast<uint32_t>(parameters[1].value.longValue),
                            parameters[2].value.boolValue,
-                           sound);
-    delete sound;
+                           parameters[3].value.stringValue);
 
     this->animationRun = true;//set this animation run.
 

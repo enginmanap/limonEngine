@@ -24,9 +24,9 @@ public:
 
     // Animation
     uint32_t addAnimationToObjectWithSound(uint32_t modelID, uint32_t animationID, bool looped, bool startOnLoad,
-                                           const std::string* soundToPlay);
+                                           const std::string& soundToPlay);
     uint32_t addAnimationToObject(uint32_t modelID, uint32_t animationID, bool looped, bool startOnLoad) {
-        return addAnimationToObjectWithSound(modelID, animationID, looped, startOnLoad, nullptr);
+        return addAnimationToObjectWithSound(modelID, animationID, looped, startOnLoad, "");
     }
 
     // GUI
@@ -92,11 +92,11 @@ public:
     std::string getModelAnimationNameAPI(uint32_t modelID);
     bool getModelAnimationFinishedAPI(uint32_t modelID);
     bool setModelAnimationAPI(uint32_t modelID, const std::string& animationName, bool isLooped);
-    bool setModelAnimationWithBlendAPI(uint32_t modelID, const std::string& animationName, bool isLooped, long blendTime);
+    bool setModelAnimationWithBlendAPI(uint32_t modelID, const std::string& animationName, bool isLooped, uint64_t blendTime);
     bool setModelAnimationSpeedAPI(uint32_t modelID, float speed);
 
     // Sound
-    bool attachSoundToObjectAndPlay(uint32_t objectWorldID, const std::string& soundPath);
+    bool attachSoundToObjectAndPlay(uint32_t objectWorldID, const std::string& soundPath, bool looped = true);
     bool detachSoundFromObject(uint32_t objectWorldID);
     uint32_t playSound(const std::string& soundPath, const glm::vec3& position, bool positionRelative, bool looped);
 

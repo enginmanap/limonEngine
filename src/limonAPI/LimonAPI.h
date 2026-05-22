@@ -32,7 +32,7 @@ public:
 
     bool generateEditorElementsForParameters(std::vector<LimonTypes::GenericParameter> &runParameters, uint32_t index);
 
-    uint32_t animateModel(uint32_t modelID, uint32_t animationID, bool looped, const std::string *soundPath);
+    uint32_t animateModel(uint32_t modelID, uint32_t animationID, bool looped, const std::string& soundPath = "");
     uint32_t addGuiText(const std::string &fontFilePath, uint32_t fontSize,
                         const std::string &name, const std::string &text,
                                const glm::vec3 &color,
@@ -41,21 +41,21 @@ public:
                              const LimonTypes::Vec2 &scale, float rotation);
 
     bool updateGuiText(uint32_t guiTextID, const std::string &newText);
-    uint32_t removeGuiElement(uint32_t guiElementID);
+    bool removeGuiElement(uint32_t guiElementID);
 
     uint32_t addObject(const std::string &modelFilePath, float modelWeight, bool physical, const glm::vec3 &position,
                        const glm::vec3 &scale, const glm::quat &orientation);
     bool setObjectTemporary(uint32_t modelID, bool temporary);
     bool removeObject(uint32_t objectID, const bool &removeChildren = true);
     bool attachObjectToObject(uint32_t objectID, uint32_t objectToAttachToID);//second one is
-    bool removeTriggerObject(uint32_t TriggerObjectID);
+    bool removeTriggerObject(uint32_t triggerObjectID);
     bool disconnectObjectFromPhysics(uint32_t modelID);
     bool reconnectObjectToPhysics(uint32_t modelID);
     bool applyForce(uint32_t modelID, const LimonTypes::Vec4 &forcePosition, const LimonTypes::Vec4 &forceAmount);
     bool applyForceToPlayer(const LimonTypes::Vec4 &forceAmount);
 
 
-    bool attachSoundToObjectAndPlay(uint32_t objectWorldID, const std::string &soundPath);
+    bool attachSoundToObjectAndPlay(uint32_t objectWorldID, const std::string &soundPath, bool looped = true);
     bool detachSoundFromObject(uint32_t objectWorldID);
     uint32_t playSound(const std::string &soundPath, const glm::vec3 &position, bool positionRelative = false, bool looped = false);
 
@@ -140,7 +140,7 @@ public:
     std::string getModelAnimationName(uint32_t modelID);
     bool getModelAnimationFinished(uint32_t modelID);
     bool setModelAnimation(uint32_t modelID, const std::string& animationName, bool isLooped = true);
-    bool setModelAnimationWithBlend(uint32_t modelID, const std::string& animationName, bool isLooped = true, long blendTime = 100);
+    bool setModelAnimationWithBlend(uint32_t modelID, const std::string& animationName, bool isLooped = true, uint64_t blendTime = 100);
     bool setModelAnimationSpeed(uint32_t modelID, float speed);
     std::vector<uint32_t> getModelChildren(uint32_t modelID);
 
@@ -175,7 +175,7 @@ public:
 
     bool loadAndSwitchWorld(const std::string& worldFileName);
     bool returnToWorld(const std::string& worldFileName);//if world is not loaded, loads first
-    bool LoadAndRemove(const std::string& worldFileName); // removes current world after loading the new one
+    bool loadAndRemove(const std::string& worldFileName); // removes current world after loading the new one
 
     void returnPreviousWorld();
     void quitGame();
@@ -221,13 +221,13 @@ private:
     std::map<std::string, LimonTypes::GenericParameter> variableStore;
 
     std::function<bool(std::vector<LimonTypes::GenericParameter> &, uint32_t)> worldGenerateEditorElementsForParameters;
-    std::function<uint32_t(uint32_t , uint32_t , bool, const std::string* )> worldAddAnimationToObject;
+    std::function<uint32_t(uint32_t , uint32_t , bool, const std::string&)> worldAddAnimationToObject;
     std::function<uint32_t(const std::string &, uint32_t, const std::string &, const std::string &, const glm::vec3 &, const glm::vec2 &, float)> worldAddGuiText;
     std::function<uint32_t(const std::string &, const std::string &, const LimonTypes::Vec2 &, const LimonTypes::Vec2 &, float)> worldAddGuiImage;
     std::function<uint32_t(const std::string &, float, bool, const glm::vec3 &, const glm::vec3 &, const glm::quat &)> worldAddModel;
     std::function<bool(uint32_t, bool)> worldSetModelTemporary;
     std::function<bool(uint32_t, const std::string &)> worldUpdateGuiText;
-    std::function<uint32_t (uint32_t)> worldRemoveGuiElement;
+    std::function<bool (uint32_t)> worldRemoveGuiElement;
     std::function<std::vector<LimonTypes::GenericParameter>(uint32_t , uint32_t )> worldGetResultOfTrigger;
     std::function<bool (uint32_t, bool)> worldRemoveObject;
     std::function<std::vector<LimonTypes::GenericParameter>(uint32_t)> worldGetObjectTransformation;
@@ -247,7 +247,7 @@ private:
     std::function<bool (uint32_t, const LimonTypes::Vec4&, const LimonTypes::Vec4&)> worldApplyForce;
     std::function<bool (const LimonTypes::Vec4&)> worldApplyForceToPlayer;
 
-    std::function<bool (uint32_t, const std::string&)> worldAttachSoundToObjectAndPlay;
+    std::function<bool (uint32_t, const std::string&, bool)> worldAttachSoundToObjectAndPlay;
     std::function<bool (uint32_t)> worldDetachSoundFromObject;
     std::function<uint32_t (const std::string&, const glm::vec3&, bool, bool)> worldPlaySound;
 
@@ -282,7 +282,7 @@ private:
     std::function<std::string(uint32_t)> worldGetModelAnimationName;
     std::function<bool(uint32_t)> worldGetModelAnimationFinished;
     std::function<bool(uint32_t, const std::string&, bool)> worldSetAnimationOfModel;
-    std::function<bool(uint32_t, const std::string&, bool, long)> worldSetAnimationOfModelWithBlend;
+    std::function<bool(uint32_t, const std::string&, bool, uint64_t)> worldSetAnimationOfModelWithBlend;
     std::function<bool(uint32_t, float)> worldSetModelAnimationSpeed;
 
     std::function<bool(const std::string&)> worldChangeRenderPipeline;

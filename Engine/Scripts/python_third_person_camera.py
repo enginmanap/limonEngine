@@ -69,7 +69,7 @@ class ThirdPersonCamera:
             dir_vec.w = 0.0
 
             # Perform raycast
-            hit_details = self.limon_api.ray_cast(start_pos, dir_vec)
+            hit_details = self.limon_api.ray_cast_first_hit(start_pos, dir_vec)
 
             hit_blocked = False
 

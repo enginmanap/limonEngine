@@ -18,7 +18,7 @@
 #include "Graphics/Particles/Emitter.h"
 
 uint32_t WorldAPIAccessor::addAnimationToObjectWithSound(uint32_t modelID, uint32_t animationID, bool looped, bool startOnLoad,
-                                                         const std::string *soundToPlay) {
+                                                         const std::string& soundToPlay) {
     World::AnimationStatus* as = new World::AnimationStatus;
     PhysicalRenderable* physicalPointer = nullptr;
     if(world->objects.find(modelID) != world->objects.end()) {
@@ -88,8 +88,8 @@ uint32_t WorldAPIAccessor::addAnimationToObjectWithSound(uint32_t modelID, uint3
         as->startTime = world->gameTime;
     }
 
-    if(soundToPlay != nullptr) {
-        as->sound = std::make_unique<Sound>(world->getNextObjectID(), world->assetManager, *soundToPlay);
+    if(!soundToPlay.empty()) {
+        as->sound = std::make_unique<Sound>(world->getNextObjectID(), world->assetManager, soundToPlay);
         as->sound->setLoop(looped);
         as->sound->setWorldPosition(as->object->getTransformation()->getTranslate());
         as->sound->play();
@@ -624,7 +624,7 @@ bool WorldAPIAccessor::setModelAnimationAPI(uint32_t modelID, const std::string 
     return false;
 }
 
-bool WorldAPIAccessor::setModelAnimationWithBlendAPI(uint32_t modelID, const std::string &animationName, bool isLooped, long blendTime) {
+bool WorldAPIAccessor::setModelAnimationWithBlendAPI(uint32_t modelID, const std::string &animationName, bool isLooped, uint64_t blendTime) {
     Model* model = world->findModelByID(modelID);
     if(model != nullptr) {
         model->setAnimationWithBlend(animationName, isLooped, blendTime);
@@ -645,11 +645,13 @@ bool WorldAPIAccessor::setModelAnimationSpeedAPI(uint32_t modelID, float speed) 
     return false;
 }
 
-bool WorldAPIAccessor::attachSoundToObjectAndPlay(uint32_t objectWorldID, const std::string &soundPath) {
+bool WorldAPIAccessor::attachSoundToObjectAndPlay(uint32_t objectWorldID, const std::string &soundPath, bool looped) {
     if(world->objects.find(objectWorldID) == world->objects.end()) {
         return false;
     }
-    world->objects[objectWorldID]->setSoundAttachmentAndPlay(std::make_unique<Sound>(world->getNextObjectID(), world->assetManager, soundPath));
+    auto sound = std::make_unique<Sound>(world->getNextObjectID(), world->assetManager, soundPath);
+    sound->setLoop(looped);
+    world->objects[objectWorldID]->setSoundAttachmentAndPlay(std::move(sound));
     return true;
 }
 

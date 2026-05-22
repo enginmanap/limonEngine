@@ -11,9 +11,10 @@ class ValueType(Enum):
     DOUBLE = 1
     LONG = 2
     LONG_ARRAY = 3
-    BOOLEAN = 4
-    VEC4 = 5
-    MAT4 = 6
+    FLOAT_ARRAY = 4
+    BOOLEAN = 5
+    VEC4 = 6
+    MAT4 = 7
 
 
 class RequestParameterType(Enum):
@@ -83,6 +84,9 @@ class GenericParameter:
     
     def is_long_array(self) -> bool:
         return self.value_type == ValueType.LONG_ARRAY or self.value_type == ValueType.LONG_ARRAY.value
+
+    def is_float_array(self) -> bool:
+        return self.value_type == ValueType.FLOAT_ARRAY or self.value_type == ValueType.FLOAT_ARRAY.value
     
     def get_string(self) -> str:
         if self.is_string():
@@ -118,3 +122,8 @@ class GenericParameter:
         if self.is_long_array() and isinstance(self.value, list):
             return self.value
         raise ValueError(f"GenericParameter is not a valid LONG_ARRAY, it's {self.value_type.name}")
+
+    def get_float_array(self) -> List[float]:
+        if self.is_float_array() and isinstance(self.value, list):
+            return self.value
+        raise ValueError(f"GenericParameter is not a valid FLOAT_ARRAY, it's {self.value_type.name}")

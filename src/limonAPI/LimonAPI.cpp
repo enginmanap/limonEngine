@@ -9,7 +9,7 @@ const OptionsUtil::Options * LimonAPI::getOptions() {
     return limonGetOptions();
 }
 
-uint32_t LimonAPI::animateModel(uint32_t modelID, uint32_t animationID, bool looped, const std::string *soundPath) {
+uint32_t LimonAPI::animateModel(uint32_t modelID, uint32_t animationID, bool looped, const std::string& soundPath) {
     return worldAddAnimationToObject(modelID, animationID, looped, soundPath);
 }
 
@@ -41,9 +41,8 @@ bool LimonAPI::updateGuiText(uint32_t guiTextID, const std::string &newText) {
     return worldUpdateGuiText(guiTextID, newText);
 }
 
-uint32_t LimonAPI::removeGuiElement(uint32_t guiElementID) {
+bool LimonAPI::removeGuiElement(uint32_t guiElementID) {
     return worldRemoveGuiElement(guiElementID);
-
 }
 
 std::vector<LimonTypes::GenericParameter> LimonAPI::getResultOfTrigger(uint32_t TriggerObjectID, uint32_t TriggerCodeID) {
@@ -55,8 +54,8 @@ bool LimonAPI::removeObject(uint32_t objectID, const bool &removeChildren) {
     return worldRemoveObject(objectID, removeChildren);
 }
 
-bool LimonAPI::removeTriggerObject(uint32_t TriggerObjectID) {
-    return worldRemoveTriggerObject(TriggerObjectID);
+bool LimonAPI::removeTriggerObject(uint32_t triggerObjectID) {
+    return worldRemoveTriggerObject(triggerObjectID);
 }
 
 bool LimonAPI::disconnectObjectFromPhysics(uint32_t modelID) {
@@ -75,8 +74,8 @@ bool LimonAPI::applyForceToPlayer(const LimonTypes::Vec4 &forceAmount) {
     return worldApplyForceToPlayer(forceAmount);
 }
 
-bool LimonAPI::attachSoundToObjectAndPlay(uint32_t objectWorldID, const std::string &soundPath) {
-    return worldAttachSoundToObjectAndPlay(objectWorldID, soundPath);
+bool LimonAPI::attachSoundToObjectAndPlay(uint32_t objectWorldID, const std::string &soundPath, bool looped) {
+    return worldAttachSoundToObjectAndPlay(objectWorldID, soundPath, looped);
 }
 bool LimonAPI::detachSoundFromObject(uint32_t objectWorldID){
     return worldDetachSoundFromObject(objectWorldID);
@@ -94,7 +93,7 @@ bool LimonAPI::returnToWorld(const std::string &worldFileName) {
     return this->limonReturnOrLoadWorld(worldFileName);
 }
 
-bool LimonAPI::LoadAndRemove(const std::string &worldFileName) {
+bool LimonAPI::loadAndRemove(const std::string &worldFileName) {
     return this->limonLoadNewAndRemoveCurrentWorld(worldFileName);
 }
 
@@ -234,7 +233,7 @@ bool LimonAPI::setModelAnimation(uint32_t modelID, const std::string& animationN
     return worldSetAnimationOfModel(modelID, animationName, isLooped);
 }
 
-bool LimonAPI::setModelAnimationWithBlend(uint32_t modelID, const std::string& animationName, bool isLooped, long blendTime) {
+bool LimonAPI::setModelAnimationWithBlend(uint32_t modelID, const std::string& animationName, bool isLooped, uint64_t blendTime) {
     return worldSetAnimationOfModelWithBlend(modelID, animationName, isLooped, blendTime);
 }
 

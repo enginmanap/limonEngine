@@ -354,6 +354,14 @@ PYBIND11_EMBEDDED_MODULE(limon, m, pybind11::multiple_interpreters::per_interpre
                                       }
                                       return array;
                                   }
+                                  case LimonTypes::GenericParameter::FLOAT_ARRAY: {
+                                      pybind11::list array;
+                                      long size = static_cast<long>(self.value.floatValues[0]);
+                                      for (long i = 0; i < size; ++i) {
+                                          array.append(static_cast<float>(self.value.floatValues[i + 1]));
+                                      }
+                                      return array;
+                                  }
                                   default:
                                       return pybind11::none();
                               }
@@ -457,6 +465,19 @@ PYBIND11_EMBEDDED_MODULE(limon, m, pybind11::multiple_interpreters::per_interpre
                                               throw std::runtime_error("Failed to convert sequence to LONG_ARRAY. All elements must be integers");
                                           }
                                       }
+                                      else if (seq.size() <= 15 &&
+                                              self.valueType == LimonTypes::GenericParameter::FLOAT_ARRAY) {
+                                          // Handle FLOAT_ARRAY (up to 15 elements; index 0 stores size)
+                                          try {
+                                              self.value.floatValues[0] = static_cast<float>(seq.size());
+                                              for (size_t i = 0; i < seq.size(); ++i) {
+                                                  self.value.floatValues[i + 1] = seq[i].cast<float>();
+                                              }
+                                              self.isSet = true;
+                                          } catch (const std::exception& e) {
+                                              throw std::runtime_error("Failed to convert sequence to FLOAT_ARRAY. All elements must be numbers");
+                                          }
+                                      }
                                       else {
                                           throw std::runtime_error("Unsupported sequence type or length for current value type");
                                       }
@@ -535,7 +556,7 @@ PYBIND11_EMBEDDED_MODULE(limon, m, pybind11::multiple_interpreters::per_interpre
              text (str): The text to display\n\
              color (tuple, optional): RGB color as (r, g, b). Defaults to white (1.0, 1.0, 1.0).\n\
              position (tuple, optional): Position as (x, y). Defaults to (0.0, 0.0).\n\
-             rotation (float, optional): Rotation in degrees. Defaults to 0.0.",
+             rotation (float, optional): Rotation in radians, clockwise. Defaults to 0.0.",
                  pybind11::arg("font_file_path"),
                  pybind11::arg("font_size"),
                  pybind11::arg("name"),
@@ -574,7 +595,7 @@ PYBIND11_EMBEDDED_MODULE(limon, m, pybind11::multiple_interpreters::per_interpre
              name (str): Name of the image element\n\
              position (tuple, optional): Position as (x, y). Defaults to (0.0, 0.0).\n\
              scale (tuple, optional): Scale as (x, y). Defaults to (1.0, 1.0).\n\
-             rotation (float, optional): Rotation in degrees. Defaults to 0.0.",
+             rotation (float, optional): Rotation in radians, clockwise. Defaults to 0.0.",
                  pybind11::arg("image_file_path"),
                  pybind11::arg("name"),
                  pybind11::arg("position") = pybind11::none(),
@@ -642,9 +663,10 @@ PYBIND11_EMBEDDED_MODULE(limon, m, pybind11::multiple_interpreters::per_interpre
                  pybind11::arg("model_id"))
 
             // Sound
-            .def("attach_sound_to_object", &LimonAPI::attachSoundToObjectAndPlay,
+            .def("attach_sound_to_object_and_play", &LimonAPI::attachSoundToObjectAndPlay,
                  "Attach and play a sound on an object",
-                 pybind11::arg("object_id"), pybind11::arg("sound_path"))
+                 pybind11::arg("object_id"), pybind11::arg("sound_path"),
+                 pybind11::arg("looped") = true)
             .def("detach_sound_from_object", &LimonAPI::detachSoundFromObject,
                  "Detach sound from an object",
                  pybind11::arg("object_id"))
@@ -701,7 +723,7 @@ PYBIND11_EMBEDDED_MODULE(limon, m, pybind11::multiple_interpreters::per_interpre
                     return pybind11::list();
                 }
             }, "Cast a ray from camera to cursor position")
-        .def("ray_cast", [](LimonAPI& self, const LimonTypes::Vec4& start, const LimonTypes::Vec4& direction) -> pybind11::list {
+        .def("ray_cast_first_hit", [](LimonAPI& self, const LimonTypes::Vec4& start, const LimonTypes::Vec4& direction) -> pybind11::list {
             std::vector<LimonTypes::GenericParameter> hitDetails = self.rayCastFirstHit(start, direction);
             pybind11::list result = GenericParameterConverter::convertGenericParameterVectorToObjects(hitDetails);
             return result;
@@ -723,10 +745,10 @@ PYBIND11_EMBEDDED_MODULE(limon, m, pybind11::multiple_interpreters::per_interpre
                  pybind11::arg("light_id"), pybind11::arg("color"))
 
             // World Management
-            .def("load_and_remove_world", &LimonAPI::LoadAndRemove,
+            .def("load_and_remove", &LimonAPI::loadAndRemove,
                  "Load a new world and remove the current one",
                  pybind11::arg("world_file_name"))
-            .def("return_to_previous_world", &LimonAPI::returnPreviousWorld,
+            .def("return_previous_world", &LimonAPI::returnPreviousWorld,
                  "Return to the previously loaded world")
             .def("quit_game", &LimonAPI::quitGame,
                  "Quit the game")
@@ -800,7 +822,7 @@ PYBIND11_EMBEDDED_MODULE(limon, m, pybind11::multiple_interpreters::per_interpre
     limon.def("animate_model", &LimonAPI::animateModel,
               "Animate a model",
               pybind11::arg("model_id"), pybind11::arg("animation_id"),
-              pybind11::arg("looped") = false, pybind11::arg("sound_path") = nullptr);
+              pybind11::arg("looped") = false, pybind11::arg("sound_path") = "");
 
     limon.def("get_model_animation_name", &LimonAPI::getModelAnimationName,
               "Get the name of the current animation for a model",
@@ -879,9 +901,10 @@ PYBIND11_EMBEDDED_MODULE(limon, m, pybind11::multiple_interpreters::per_interpre
               [](LimonAPI &self, uint64_t wait_time, bool use_wall_time,
                  const pybind11::function &callback,
                  const pybind11::object &py_params) {
-                  // Convert Python list to C++ vector using shared converter
-                  std::vector<LimonTypes::GenericParameter> params = GenericParameterConverter::convertPythonListToGenericParameterVector(py_params);
-                  
+                  std::vector<LimonTypes::GenericParameter> params;
+                  if (!py_params.is_none()) {
+                      params = GenericParameterConverter::convertPythonListToGenericParameterVector(py_params);
+                  }
                   PyTimedEventCallback cb = PyTimedEventCallback(callback);
                   return self.addTimedEvent(wait_time, use_wall_time, cb, params);
               },
@@ -889,7 +912,7 @@ PYBIND11_EMBEDDED_MODULE(limon, m, pybind11::multiple_interpreters::per_interpre
               pybind11::arg("wait_time"),
               pybind11::arg("use_wall_time"),
               pybind11::arg("callback"),
-              pybind11::arg("parameters") = pybind11::list());
+              pybind11::arg("parameters") = pybind11::none());
     limon.def("cancel_timed_event", &LimonAPI::cancelTimedEvent,
               "Cancel a previously scheduled timed event",
               pybind11::arg("timer_id"));
