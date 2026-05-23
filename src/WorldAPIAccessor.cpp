@@ -238,6 +238,14 @@ std::vector<LimonTypes::GenericParameter> WorldAPIAccessor::getResultOfTrigger(u
     return result;
 }
 
+bool WorldAPIAccessor::isInsideTrigger(uint32_t triggerID) const {
+    auto it = world->triggers.find(triggerID);
+    if(it == world->triggers.end()) {
+        return false;
+    }
+    return it->second->isInside();
+}
+
 bool WorldAPIAccessor::disconnectObjectFromPhysics(uint32_t objectWorldID) {
     if(world->objects.find(objectWorldID) == world->objects.end()) {
         return false;
@@ -284,6 +292,37 @@ bool WorldAPIAccessor::reconnectObjectToPhysicsRequest(uint32_t objectWorldID) {
     }
     world->disconnectedModels.erase(model->getWorldObjectID());
     return true;
+}
+
+LimonTypes::Vec4 WorldAPIAccessor::getObjectLinearVelocity(uint32_t objectID) const {
+    Model* model = world->findModelByID(objectID);
+    if(model == nullptr || model->getRigidBody() == nullptr) {
+        return LimonTypes::Vec4(0, 0, 0, 0);
+    }
+    btVector3 vel = model->getRigidBody()->getLinearVelocity();
+    return LimonTypes::Vec4(vel.x(), vel.y(), vel.z(), 0.0f);
+}
+
+bool WorldAPIAccessor::setObjectLinearVelocity(uint32_t objectID, const LimonTypes::Vec4 &velocity) {
+    Model* model = world->findModelByID(objectID);
+    if(model == nullptr || model->getRigidBody() == nullptr) {
+        return false;
+    }
+    model->getRigidBody()->setLinearVelocity(btVector3(velocity.x, velocity.y, velocity.z));
+    model->getRigidBody()->activate(true);
+    return true;
+}
+
+float WorldAPIAccessor::getObjectMass(uint32_t objectID) const {
+    Model* model = world->findModelByID(objectID);
+    if(model == nullptr || model->getRigidBody() == nullptr) {
+        return 0.0f;
+    }
+    btScalar invMass = model->getRigidBody()->getInvMass();
+    if(invMass == 0.0f) {
+        return 0.0f; // static object
+    }
+    return 1.0f / invMass;
 }
 
 bool WorldAPIAccessor::applyForceAPI(uint32_t objectID, const LimonTypes::Vec4 &forcePosition, const LimonTypes::Vec4 &forceAmount) {
@@ -554,6 +593,37 @@ void WorldAPIAccessor::getPlayerPositionAPI(glm::vec3 &position, glm::vec3 &cent
     world->currentPlayer->getCameraVariables(position, center, up, right);
 }
 
+LimonTypes::Vec4 WorldAPIAccessor::getPlayerPositionVec4API() {
+    glm::vec3 pos = world->currentPlayer->getPosition();
+    return LimonTypes::Vec4(pos.x, pos.y, pos.z, 1.0f);
+}
+
+LimonTypes::Vec4 WorldAPIAccessor::getPlayerLookDirectionAPI() {
+    glm::vec3 dir = world->currentPlayer->getLookDirection();
+    return LimonTypes::Vec4(dir.x, dir.y, dir.z, 0.0f);
+}
+
+LimonTypes::Vec4 WorldAPIAccessor::getCameraPositionAPI() {
+    glm::vec3 position, center, up, right;
+    if(world->currentPlayer->cameraAttachment != nullptr) {
+        world->currentPlayer->cameraAttachment->getCameraVariables(position, center, up, right);
+    } else {
+        world->currentPlayer->getCameraVariables(position, center, up, right);
+    }
+    return LimonTypes::Vec4(position.x, position.y, position.z, 1.0f);
+}
+
+LimonTypes::Vec4 WorldAPIAccessor::getCameraLookDirectionAPI() {
+    glm::vec3 position, center, up, right;
+    if(world->currentPlayer->cameraAttachment != nullptr) {
+        world->currentPlayer->cameraAttachment->getCameraVariables(position, center, up, right);
+    } else {
+        world->currentPlayer->getCameraVariables(position, center, up, right);
+    }
+    // center is a direction vector (camera uses lookAt(position, position+center, up))
+    return LimonTypes::Vec4(center.x, center.y, center.z, 0.0f);
+}
+
 uint32_t WorldAPIAccessor::getPlayerAttachedModelAPI() {
     if(world->startingPlayer.attachedModel != nullptr) {
         return world->startingPlayer.attachedModel->getWorldObjectID();
@@ -671,6 +741,32 @@ uint32_t WorldAPIAccessor::playSound(const std::string &soundPath, const glm::ve
     uint32_t soundID = sound->getWorldObjectID();
     world->sounds[soundID] = std::move(sound);
     return soundID;
+}
+
+bool WorldAPIAccessor::stopSound(uint32_t soundID) {
+    auto it = world->sounds.find(soundID);
+    if(it == world->sounds.end()) {
+        return false;
+    }
+    it->second->stop();
+    return true;
+}
+
+bool WorldAPIAccessor::setSoundVolume(uint32_t soundID, float volume) {
+    auto it = world->sounds.find(soundID);
+    if(it == world->sounds.end()) {
+        return false;
+    }
+    return it->second->changeGain(volume);
+}
+
+bool WorldAPIAccessor::isSoundPlaying(uint32_t soundID) {
+    auto it = world->sounds.find(soundID);
+    if(it == world->sounds.end()) {
+        return false;
+    }
+    Sound::State state = it->second->getState();
+    return state == Sound::State::PLAYING || state == Sound::State::STOP_AFTER_FINISH;
 }
 
 uint32_t WorldAPIAccessor::addLightAPI(uint32_t lightType, const LimonTypes::Vec4 &position, const LimonTypes::Vec4 &color) {

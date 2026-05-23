@@ -50,12 +50,28 @@ std::vector<LimonTypes::GenericParameter> LimonAPI::getResultOfTrigger(uint32_t 
     return results;
 }
 
+bool LimonAPI::isInsideTrigger(uint32_t triggerID) {
+    return worldIsInsideTrigger(triggerID);
+}
+
 bool LimonAPI::removeObject(uint32_t objectID, const bool &removeChildren) {
     return worldRemoveObject(objectID, removeChildren);
 }
 
 bool LimonAPI::removeTriggerObject(uint32_t triggerObjectID) {
     return worldRemoveTriggerObject(triggerObjectID);
+}
+
+LimonTypes::Vec4 LimonAPI::getObjectLinearVelocity(uint32_t objectID) {
+    return worldGetObjectLinearVelocity(objectID);
+}
+
+bool LimonAPI::setObjectLinearVelocity(uint32_t objectID, const LimonTypes::Vec4& velocity) {
+    return worldSetObjectLinearVelocity(objectID, velocity);
+}
+
+float LimonAPI::getObjectMass(uint32_t objectID) {
+    return worldGetObjectMass(objectID);
 }
 
 bool LimonAPI::disconnectObjectFromPhysics(uint32_t modelID) {
@@ -83,6 +99,18 @@ bool LimonAPI::detachSoundFromObject(uint32_t objectWorldID){
 uint32_t
 LimonAPI::playSound(const std::string &soundPath, const glm::vec3 &position, bool positionRelative, bool looped) {
     return worldPlaySound(soundPath, position, positionRelative, looped);
+}
+
+bool LimonAPI::stopSound(uint32_t soundID) {
+    return worldStopSound(soundID);
+}
+
+bool LimonAPI::setSoundVolume(uint32_t soundID, float volume) {
+    return worldSetSoundVolume(soundID, volume);
+}
+
+bool LimonAPI::isSoundPlaying(uint32_t soundID) {
+    return worldIsSoundPlaying(soundID);
 }
 
 bool LimonAPI::loadAndSwitchWorld(const std::string& worldFileName) {
@@ -203,6 +231,22 @@ bool LimonAPI::setEmitterParticleGravity(uint32_t emitterID, const LimonTypes::V
 
 void LimonAPI::getPlayerPosition(glm::vec3& position, glm::vec3& center, glm::vec3& up, glm::vec3& right) {
     worldGetPlayerPosition(position, center, up, right);
+}
+
+LimonTypes::Vec4 LimonAPI::getPlayerPosition() {
+    return worldGetPlayerPositionVec4();
+}
+
+LimonTypes::Vec4 LimonAPI::getPlayerLookDirection() {
+    return worldGetPlayerLookDirection();
+}
+
+LimonTypes::Vec4 LimonAPI::getCameraPosition() {
+    return worldGetCameraPosition();
+}
+
+LimonTypes::Vec4 LimonAPI::getCameraLookDirection() {
+    return worldGetCameraLookDirection();
 }
 
 LimonTypes::Vec4 LimonAPI::getPlayerAttachedModelOffset() {

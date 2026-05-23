@@ -73,10 +73,14 @@ void WorldLoader::attachedAPIMethodsToWorld(World *world, LimonAPI *limonAPI) co
     limonAPI->worldUpdateGuiText = std::bind(&WorldAPIAccessor::updateGuiText, world->apiAccessor, std::placeholders::_1, std::placeholders::_2);
     limonAPI->worldGenerateEditorElementsForParameters = std::bind(&Editor::generateEditorElementsForParameters, world->editor.get(), std::placeholders::_1, std::placeholders::_2);
     limonAPI->worldGetResultOfTrigger = std::bind(&WorldAPIAccessor::getResultOfTrigger, world->apiAccessor, std::placeholders::_1, std::placeholders::_2);
+    limonAPI->worldIsInsideTrigger = std::bind(&WorldAPIAccessor::isInsideTrigger, world->apiAccessor, std::placeholders::_1);
     limonAPI->worldRemoveGuiElement = std::bind(&WorldAPIAccessor::removeGuiElement, world->apiAccessor, std::placeholders::_1);
     limonAPI->worldRemoveObject = std::bind(&WorldAPIAccessor::removeObject, world->apiAccessor, std::placeholders::_1, std::placeholders::_2);
     limonAPI->worldAttachObjectToObject = std::bind(&WorldAPIAccessor::attachObjectToObject, world->apiAccessor, std::placeholders::_1, std::placeholders::_2);
     limonAPI->worldRemoveTriggerObject = std::bind(&WorldAPIAccessor::removeTriggerObject, world->apiAccessor, std::placeholders::_1);
+    limonAPI->worldGetObjectLinearVelocity = std::bind(&WorldAPIAccessor::getObjectLinearVelocity, world->apiAccessor, std::placeholders::_1);
+    limonAPI->worldSetObjectLinearVelocity = std::bind(&WorldAPIAccessor::setObjectLinearVelocity, world->apiAccessor, std::placeholders::_1, std::placeholders::_2);
+    limonAPI->worldGetObjectMass = std::bind(&WorldAPIAccessor::getObjectMass, world->apiAccessor, std::placeholders::_1);
     limonAPI->worldDisconnectObjectFromPhysics = std::bind(&WorldAPIAccessor::disconnectObjectFromPhysics, world->apiAccessor, std::placeholders::_1);
     limonAPI->worldReconnectObjectToPhysics = std::bind(&WorldAPIAccessor::reconnectObjectToPhysics, world->apiAccessor, std::placeholders::_1);
     limonAPI->worldApplyForce = std::bind(&WorldAPIAccessor::applyForceAPI, world->apiAccessor, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
@@ -85,6 +89,9 @@ void WorldLoader::attachedAPIMethodsToWorld(World *world, LimonAPI *limonAPI) co
     limonAPI->worldAttachSoundToObjectAndPlay = std::bind(&WorldAPIAccessor::attachSoundToObjectAndPlay, world->apiAccessor, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
     limonAPI->worldDetachSoundFromObject = std::bind(&WorldAPIAccessor::detachSoundFromObject, world->apiAccessor, std::placeholders::_1);
     limonAPI->worldPlaySound = std::bind(&WorldAPIAccessor::playSound, world->apiAccessor, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);
+    limonAPI->worldStopSound = std::bind(&WorldAPIAccessor::stopSound, world->apiAccessor, std::placeholders::_1);
+    limonAPI->worldSetSoundVolume = std::bind(&WorldAPIAccessor::setSoundVolume, world->apiAccessor, std::placeholders::_1, std::placeholders::_2);
+    limonAPI->worldIsSoundPlaying = std::bind(&WorldAPIAccessor::isSoundPlaying, world->apiAccessor, std::placeholders::_1);
     limonAPI->worldRayCastToCursor = std::bind(&WorldAPIAccessor::rayCastToCursorAPI, world->apiAccessor);
     limonAPI->worldRayCast = std::bind(&WorldAPIAccessor::rayCastAPI, world->apiAccessor, std::placeholders::_1, std::placeholders::_2);
     limonAPI->worldGetObjectTransformation = std::bind(&WorldAPIAccessor::getObjectTransformationAPI, world->apiAccessor, std::placeholders::_1);
@@ -113,6 +120,10 @@ void WorldLoader::attachedAPIMethodsToWorld(World *world, LimonAPI *limonAPI) co
     limonAPI->worldSetAnimationOfModelWithBlend = std::bind(&WorldAPIAccessor::setModelAnimationWithBlendAPI, world->apiAccessor, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);
     limonAPI->worldSetModelAnimationSpeed = std::bind(&WorldAPIAccessor::setModelAnimationSpeedAPI, world->apiAccessor, std::placeholders::_1, std::placeholders::_2);
     limonAPI->worldGetPlayerPosition = std::bind(&WorldAPIAccessor::getPlayerPositionAPI, world->apiAccessor, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);
+    limonAPI->worldGetPlayerPositionVec4 = std::bind(&WorldAPIAccessor::getPlayerPositionVec4API, world->apiAccessor);
+    limonAPI->worldGetPlayerLookDirection = std::bind(&WorldAPIAccessor::getPlayerLookDirectionAPI, world->apiAccessor);
+    limonAPI->worldGetCameraPosition = std::bind(&WorldAPIAccessor::getCameraPositionAPI, world->apiAccessor);
+    limonAPI->worldGetCameraLookDirection = std::bind(&WorldAPIAccessor::getCameraLookDirectionAPI, world->apiAccessor);
     limonAPI->worldGetPlayerAttachmentOffset = std::bind(&WorldAPIAccessor::getPlayerModelOffsetAPI, world->apiAccessor);
     limonAPI->worldSetPlayerAttachmentOffset = std::bind(&WorldAPIAccessor::setPlayerModelOffsetAPI, world->apiAccessor, std::placeholders::_1);
     limonAPI->worldEnableParticleEmitter = std::bind(&WorldAPIAccessor::enableParticleEmitter, world->apiAccessor, std::placeholders::_1);

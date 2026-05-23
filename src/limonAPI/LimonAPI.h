@@ -49,6 +49,9 @@ public:
     bool removeObject(uint32_t objectID, const bool &removeChildren = true);
     bool attachObjectToObject(uint32_t objectID, uint32_t objectToAttachToID);//second one is
     bool removeTriggerObject(uint32_t triggerObjectID);
+    LimonTypes::Vec4 getObjectLinearVelocity(uint32_t objectID);
+    bool setObjectLinearVelocity(uint32_t objectID, const LimonTypes::Vec4& velocity);
+    float getObjectMass(uint32_t objectID);
     bool disconnectObjectFromPhysics(uint32_t modelID);
     bool reconnectObjectToPhysics(uint32_t modelID);
     bool applyForce(uint32_t modelID, const LimonTypes::Vec4 &forcePosition, const LimonTypes::Vec4 &forceAmount);
@@ -58,6 +61,9 @@ public:
     bool attachSoundToObjectAndPlay(uint32_t objectWorldID, const std::string &soundPath, bool looped = true);
     bool detachSoundFromObject(uint32_t objectWorldID);
     uint32_t playSound(const std::string &soundPath, const glm::vec3 &position, bool positionRelative = false, bool looped = false);
+    bool stopSound(uint32_t soundID);
+    bool setSoundVolume(uint32_t soundID, float volume);
+    bool isSoundPlaying(uint32_t soundID);
 
     bool interactWithAI(uint32_t AIID, std::vector<LimonTypes::GenericParameter> &interactionInformation);
 
@@ -132,6 +138,10 @@ public:
      * @param right
      */
     void getPlayerPosition(glm::vec3& position, glm::vec3& center, glm::vec3& up, glm::vec3& right);
+    LimonTypes::Vec4 getPlayerPosition();
+    LimonTypes::Vec4 getPlayerLookDirection();
+    LimonTypes::Vec4 getCameraPosition();
+    LimonTypes::Vec4 getCameraLookDirection();
     uint32_t getPlayerAttachedModel();
     LimonTypes::Vec4 getPlayerAttachedModelOffset();
     bool setPlayerAttachedModelOffset(LimonTypes::Vec4 newOffset);
@@ -184,6 +194,7 @@ public:
 
 
     std::vector<LimonTypes::GenericParameter> getResultOfTrigger(uint32_t TriggerObjectID, uint32_t TriggerCodeID);
+    bool isInsideTrigger(uint32_t triggerID);
 
     /**
      * This method Returns a parameter request reference that you can update. If the variable was never set,
@@ -199,6 +210,34 @@ public:
             variableStore[variableName] = LimonTypes::GenericParameter();
         }
         return variableStore[variableName];
+    }
+
+    static inline std::vector<LimonTypes::GenericParameter> buildMultiSelect(
+            const std::string& description,
+            const std::vector<std::string>& options,
+            size_t selectedIndex) {
+        std::vector<LimonTypes::GenericParameter> result;
+        // First element: currently selected value
+        LimonTypes::GenericParameter selected;
+        selected.requestType = LimonTypes::GenericParameter::RequestParameterTypes::MULTI_SELECT;
+        selected.valueType = LimonTypes::GenericParameter::ValueTypes::STRING;
+        selected.description = description;
+        if(selectedIndex < options.size()) {
+            strncpy(selected.value.stringValue, options[selectedIndex].c_str(), sizeof(selected.value.stringValue) - 1);
+        }
+        selected.isSet = true;
+        result.push_back(selected);
+        // One element per option
+        for(const auto& opt : options) {
+            LimonTypes::GenericParameter param;
+            param.requestType = LimonTypes::GenericParameter::RequestParameterTypes::MULTI_SELECT;
+            param.valueType = LimonTypes::GenericParameter::ValueTypes::STRING;
+            param.description = description;
+            strncpy(param.value.stringValue, opt.c_str(), sizeof(param.value.stringValue) - 1);
+            param.isSet = true;
+            result.push_back(param);
+        }
+        return result;
     }
 
     LimonAPI(std::function<bool (const std::string&)> worldLoadMethod,
@@ -229,6 +268,7 @@ private:
     std::function<bool(uint32_t, const std::string &)> worldUpdateGuiText;
     std::function<bool (uint32_t)> worldRemoveGuiElement;
     std::function<std::vector<LimonTypes::GenericParameter>(uint32_t , uint32_t )> worldGetResultOfTrigger;
+    std::function<bool(uint32_t)> worldIsInsideTrigger;
     std::function<bool (uint32_t, bool)> worldRemoveObject;
     std::function<std::vector<LimonTypes::GenericParameter>(uint32_t)> worldGetObjectTransformation;
     std::function<bool (uint32_t, const LimonTypes::Vec4&)> worldSetObjectTranslate;
@@ -241,6 +281,9 @@ private:
     std::function<std::vector<LimonTypes::GenericParameter>(uint32_t)> worldGetObjectTransformationMatrix;
     std::function<bool (uint32_t, uint32_t)> worldAttachObjectToObject;
     std::function<bool (uint32_t)> worldRemoveTriggerObject;
+    std::function<LimonTypes::Vec4 (uint32_t)> worldGetObjectLinearVelocity;
+    std::function<bool (uint32_t, const LimonTypes::Vec4&)> worldSetObjectLinearVelocity;
+    std::function<float (uint32_t)> worldGetObjectMass;
     std::function<bool (uint32_t)> worldDisconnectObjectFromPhysics;
     std::function<bool (uint32_t)> worldReconnectObjectToPhysics;
 
@@ -250,6 +293,9 @@ private:
     std::function<bool (uint32_t, const std::string&, bool)> worldAttachSoundToObjectAndPlay;
     std::function<bool (uint32_t)> worldDetachSoundFromObject;
     std::function<uint32_t (const std::string&, const glm::vec3&, bool, bool)> worldPlaySound;
+    std::function<bool (uint32_t)> worldStopSound;
+    std::function<bool (uint32_t, float)> worldSetSoundVolume;
+    std::function<bool (uint32_t)> worldIsSoundPlaying;
 
     std::function<std::vector<LimonTypes::GenericParameter>()> worldRayCastToCursor;
     std::function<std::vector<LimonTypes::GenericParameter>(const LimonTypes::Vec4&, const LimonTypes::Vec4&)> worldRayCast;
@@ -273,6 +319,10 @@ private:
     std::function<bool (uint32_t, const LimonTypes::Vec4& gravity)> worldSetEmitterParticleGravity;
 
     std::function<void(glm::vec3&, glm::vec3&, glm::vec3&, glm::vec3&)> worldGetPlayerPosition;
+    std::function<LimonTypes::Vec4()> worldGetPlayerPositionVec4;
+    std::function<LimonTypes::Vec4()> worldGetPlayerLookDirection;
+    std::function<LimonTypes::Vec4()> worldGetCameraPosition;
+    std::function<LimonTypes::Vec4()> worldGetCameraLookDirection;
     std::function<LimonTypes::Vec4 ()> worldGetPlayerAttachmentOffset;
     std::function<bool (LimonTypes::Vec4)> worldSetPlayerAttachmentOffset;
     std::function<uint32_t ()> worldGetPlayerAttachedModel;

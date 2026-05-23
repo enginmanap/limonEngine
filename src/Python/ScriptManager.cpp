@@ -618,6 +618,18 @@ PYBIND11_EMBEDDED_MODULE(limon, m, pybind11::multiple_interpreters::per_interpre
             .def("remove_trigger_object", &LimonAPI::removeTriggerObject,
                  "Remove a trigger object",
                  pybind11::arg("trigger_object_id"))
+            .def("is_inside_trigger", &LimonAPI::isInsideTrigger,
+                 "Returns True if a player is currently inside the trigger volume",
+                 pybind11::arg("trigger_id"))
+            .def("get_object_linear_velocity", &LimonAPI::getObjectLinearVelocity,
+                 "Returns the linear velocity of an object as Vec4 (w=0). Returns zero Vec4 if not found",
+                 pybind11::arg("object_id"))
+            .def("set_object_linear_velocity", &LimonAPI::setObjectLinearVelocity,
+                 "Set the linear velocity of an object. Returns False if not found",
+                 pybind11::arg("object_id"), pybind11::arg("velocity"))
+            .def("get_object_mass", &LimonAPI::getObjectMass,
+                 "Returns the mass of an object in kg. Returns 0.0 for static objects or if not found",
+                 pybind11::arg("object_id"))
             .def("disconnect_object_from_physics", &LimonAPI::disconnectObjectFromPhysics,
                  "Disable physics for an object",
                  pybind11::arg("object_id"))
@@ -674,6 +686,15 @@ PYBIND11_EMBEDDED_MODULE(limon, m, pybind11::multiple_interpreters::per_interpre
                  "Play a sound at a position",
                  pybind11::arg("sound_path"), pybind11::arg("position"),
                  pybind11::arg("position_relative") = false, pybind11::arg("looped") = false)
+            .def("stop_sound", &LimonAPI::stopSound,
+                 "Stop a playing sound by its ID",
+                 pybind11::arg("sound_id"))
+            .def("set_sound_volume", &LimonAPI::setSoundVolume,
+                 "Set the volume (gain) of a sound. Returns False if sound not found or not yet playing",
+                 pybind11::arg("sound_id"), pybind11::arg("volume"))
+            .def("is_sound_playing", &LimonAPI::isSoundPlaying,
+                 "Returns True if the sound is currently playing",
+                 pybind11::arg("sound_id"))
 
             // AI / Player Interaction
             .def("interact_with_player", [](LimonAPI& self, pybind11::object py_params) {
@@ -759,6 +780,14 @@ PYBIND11_EMBEDDED_MODULE(limon, m, pybind11::multiple_interpreters::per_interpre
             // Player Related
             .def("kill_player", &LimonAPI::killPlayer,
                  "Kill the player")
+            .def("get_player_position", static_cast<LimonTypes::Vec4 (LimonAPI::*)()>(&LimonAPI::getPlayerPosition),
+                 "Returns the player's world position as Vec4")
+            .def("get_player_look_direction", &LimonAPI::getPlayerLookDirection,
+                 "Returns the player's normalized look direction as Vec4 (w=0)")
+            .def("get_camera_position", &LimonAPI::getCameraPosition,
+                 "Returns the camera's world position as Vec4 (same as player position)")
+            .def("get_camera_look_direction", &LimonAPI::getCameraLookDirection,
+                 "Returns the camera's normalized look direction as Vec4 (w=0)")
             .def("set_model_animation", &LimonAPI::setModelAnimation,
                  "Set an animation for a model",
                  pybind11::arg("model_id"), pybind11::arg("animation_name"),

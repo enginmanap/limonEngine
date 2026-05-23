@@ -164,6 +164,8 @@ public:
         return name;
     };
 
+    bool isInside() const { return inside; }
+
     ImGuiResult addImGuiEditorElements(const ImGuiRequest &request);
     /************Game Object methods **************/
 

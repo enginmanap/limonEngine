@@ -335,7 +335,7 @@ void CowboyShooterExtension::interact(std::vector<LimonTypes::GenericParameter> 
         }
 
         //now add animation of the hitpoint GUI element
-        limonAPI->animateModel(678, 21, false, nullptr);
+        limonAPI->animateModel(678, 21, false);
     }
 
 }

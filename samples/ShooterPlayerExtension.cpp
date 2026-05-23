@@ -243,7 +243,7 @@ void ShooterPlayerExtension::interact(std::vector<LimonTypes::GenericParameter> 
         hitPoints -= 20;
 
         limonAPI->updateGuiText(40, std::to_string(hitPoints));
-        limonAPI->animateModel(40, 2, false, nullptr);
+        limonAPI->animateModel(40, 2, false);
 
         if(hitPoints <= 0) {
             limonAPI->killPlayer();

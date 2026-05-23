@@ -46,8 +46,12 @@ public:
     bool removeTriggerObject(uint32_t triggerobjectID);
 
     std::vector<LimonTypes::GenericParameter> getResultOfTrigger(uint32_t triggerObjectID, uint32_t triggerCodeID);
+    bool isInsideTrigger(uint32_t triggerID) const;
 
     // Physics
+    LimonTypes::Vec4 getObjectLinearVelocity(uint32_t objectID) const;
+    bool setObjectLinearVelocity(uint32_t objectID, const LimonTypes::Vec4& velocity);
+    float getObjectMass(uint32_t objectID) const;
     bool disconnectObjectFromPhysics(uint32_t objectWorldID);
     bool reconnectObjectToPhysics(uint32_t objectWorldID);
     bool disconnectObjectFromPhysicsRequest(uint32_t objectWorldID);
@@ -82,6 +86,10 @@ public:
 
     // Player queries
     void getPlayerPositionAPI(glm::vec3& position, glm::vec3& center, glm::vec3& up, glm::vec3& right);
+    LimonTypes::Vec4 getPlayerPositionVec4API();
+    LimonTypes::Vec4 getPlayerLookDirectionAPI();
+    LimonTypes::Vec4 getCameraPositionAPI();
+    LimonTypes::Vec4 getCameraLookDirectionAPI();
     uint32_t getPlayerAttachedModelAPI();
     std::vector<uint32_t> getModelChildrenAPI(uint32_t modelID);
     LimonTypes::Vec4 getPlayerModelOffsetAPI();
@@ -99,6 +107,9 @@ public:
     bool attachSoundToObjectAndPlay(uint32_t objectWorldID, const std::string& soundPath, bool looped = true);
     bool detachSoundFromObject(uint32_t objectWorldID);
     uint32_t playSound(const std::string& soundPath, const glm::vec3& position, bool positionRelative, bool looped);
+    bool stopSound(uint32_t soundID);
+    bool setSoundVolume(uint32_t soundID, float volume);
+    bool isSoundPlaying(uint32_t soundID);
 
     // Lights
     uint32_t addLightAPI(uint32_t lightType, const LimonTypes::Vec4& position, const LimonTypes::Vec4& color);

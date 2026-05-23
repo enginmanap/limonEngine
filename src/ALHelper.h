@@ -151,7 +151,7 @@ public:
     bool changeGain(uint32_t soundID, float gain) {
         if(playingSounds.find(soundID) != playingSounds.end()) {
             playingSounds[soundID]->gain = gain;
-            alSourcef(playingSounds[soundID]->source,AL_GAIN,playingSounds[soundID]->source);
+            alSourcef(playingSounds[soundID]->source,AL_GAIN,gain);
             return true;
         }
         //it is possible that play is requested, but not yet started, they should be considered playing too, check it

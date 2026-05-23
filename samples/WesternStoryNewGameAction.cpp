@@ -36,12 +36,12 @@ bool WesternStoryNewGameAction::run(std::vector<LimonTypes::GenericParameter> pa
     limonAPI->removeGuiElement(7);// remove Quit
 
     //animate letter
-    limonAPI->animateModel(5,0,false, nullptr);
-    limonAPI->animateModel(93,0,false, nullptr);
-    limonAPI->animateModel(94,0,false, nullptr);
-    limonAPI->animateModel(95,0,false, nullptr);
-    limonAPI->animateModel(96,0,false, nullptr);
-    limonAPI->animateModel(98,0,false, nullptr);
+    limonAPI->animateModel(5,0,false);
+    limonAPI->animateModel(93,0,false);
+    limonAPI->animateModel(94,0,false);
+    limonAPI->animateModel(95,0,false);
+    limonAPI->animateModel(96,0,false);
+    limonAPI->animateModel(98,0,false);
 
     //now register timed events
     std::vector<LimonTypes::GenericParameter> emptyParamList;
@@ -59,8 +59,8 @@ void WesternStoryNewGameAction::animateThoughts(const std::vector<LimonTypes::Ge
     limonAPI->removeGuiElement(96);
     limonAPI->removeGuiElement(98);
 
-    limonAPI->animateModel(99,1,false, nullptr);
-    limonAPI->animateModel(100,1,false, nullptr);
+    limonAPI->animateModel(99,1,false);
+    limonAPI->animateModel(100,1,false);
 }
 
 void WesternStoryNewGameAction::switchWorld(const std::vector<LimonTypes::GenericParameter> &emptyParamList [[gnu::unused]]) {
