@@ -768,7 +768,9 @@ std::vector<std::string> WorldAPIAccessor::listModelAnimationsAPI(uint32_t model
     std::vector<std::string> result;
     Model* model = world->findModelByID(modelID);
     if(model == nullptr) return result;
-    for(const auto& kv : model->modelAsset->getAnimations()) {
+    const auto& anims = model->getAnimations();
+    result.reserve(anims.size());
+    for(const auto& kv : anims) {
         result.push_back(kv.first);
     }
     return result;

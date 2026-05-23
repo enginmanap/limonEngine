@@ -195,6 +195,10 @@ public:
         return this->animationName;
     }
 
+    const std::map<std::string, std::shared_ptr<AnimationInterface>>& getAnimations() const {
+        return modelAsset->getAnimations();
+    }
+
     bool isAnimationFinished() {
         return animationLastFramePlayed;
     }
