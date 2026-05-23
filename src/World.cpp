@@ -478,16 +478,21 @@ ActorInterface::ActorInformation World::fillActorInformation(ActorInterface *act
             information.isPlayerDown = false;
         }
         ActorInterface::InformationRequest requests = actor->getRequests();
-        if (requests.routeToPlayer == true && routeThreads.find(actor->getWorldID()) == routeThreads.end()) {//if no thread is working for route to player
+        if ((requests.routeToPlayer || requests.routeToCustomPosition) && routeThreads.find(actor->getWorldID()) == routeThreads.end()) {
+            glm::vec3 destination = requests.routeToPlayer
+                ? currentPlayer->getPosition()
+                : requests.customPosition;
+
             std::vector<LimonTypes::GenericParameter> parameters;
             parameters.push_back(LimonTypes::GenericParameter());
-
             parameters[0].value.vectorValue = GLMConverter::GLMToLimon(
                     actor->getPosition() + glm::vec3(0, AIMovementGrid::floatingHeight, 0));
             parameters.push_back(LimonTypes::GenericParameter());
             parameters[1].value.longValues[0] = 2;
             parameters[1].value.longValues[1] = actor->getWorldID();
             parameters[1].value.longValues[2] = information.maximumRouteDistance;
+            parameters.push_back(LimonTypes::GenericParameter());
+            parameters[2].value.vectorValue = GLMConverter::GLMToLimon(destination);
 
             std::function<std::vector<LimonTypes::GenericParameter>(
                     std::vector<LimonTypes::GenericParameter>)> functionToRun =
@@ -525,10 +530,10 @@ World::fillRouteInformation(std::vector<LimonTypes::GenericParameter> parameters
     uint32_t actorID = (uint32_t)parameters[1].value.longValues[1];
     uint32_t maximumDistance = (uint32_t)parameters[1].value.longValues[2];
     std::vector<glm::vec3> route;
-    glm::vec3 playerPosWithGrid = currentPlayer->getPosition();
-    bool isPlayerReachable = grid->setProperHeight(&playerPosWithGrid, AIMovementGrid::floatingHeight, 0.0f,
+    glm::vec3 destinationWithGrid = glm::vec3(GLMConverter::LimonToGLM(parameters[2].value.vectorValue));
+    bool isDestinationReachable = grid->setProperHeight(&destinationWithGrid, AIMovementGrid::floatingHeight, 0.0f,
                                                       dynamicsWorld);
-    if (isPlayerReachable && grid->coursePath(fromPosition, playerPosWithGrid, actorID, maximumDistance, &route)) {
+    if (isDestinationReachable && grid->coursePath(fromPosition, destinationWithGrid, actorID, maximumDistance, &route)) {
         if (!route.empty()) {             
             //Normally, this information should be used for straightening the path, but not yet.             
             reverse(std::begin(route), std::end(route));
