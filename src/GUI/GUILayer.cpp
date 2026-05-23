@@ -14,13 +14,13 @@ class Options;
 
 void GUILayer::renderImageWithProgram(std::shared_ptr<GraphicsProgram> renderProgram){
     for (auto it = guiElements.begin(); it != guiElements.end(); ++it) {
-        if(it->second == RenderTypes::IMAGE) {
+        if(it->second == RenderTypes::IMAGE && it->first->isVisible()) {
             it->first->renderWithProgram(renderProgram, 0);
         }
     }
     if (isDebug) {
         for (auto it = guiElements.begin(); it != guiElements.end(); ++it) {
-            if(it->second == RenderTypes::IMAGE) {
+            if(it->second == RenderTypes::IMAGE && it->first->isVisible()) {
                 it->first->renderDebug(debugDrawer);
             }
         }
@@ -29,13 +29,13 @@ void GUILayer::renderImageWithProgram(std::shared_ptr<GraphicsProgram> renderPro
 
 void GUILayer::renderTextWithProgram(std::shared_ptr<GraphicsProgram> renderProgram){
     for (auto it = guiElements.begin(); it != guiElements.end(); ++it) {
-        if(it->second == RenderTypes::TEXT) {
+        if(it->second == RenderTypes::TEXT && it->first->isVisible()) {
             it->first->renderWithProgram(renderProgram, 0);
         }
     }
     if (isDebug) {
         for (auto it = guiElements.begin(); it != guiElements.end(); ++it) {
-            if(it->second == RenderTypes::TEXT) {
+            if(it->second == RenderTypes::TEXT && it->first->isVisible()) {
                 it->first->renderDebug(debugDrawer);
             }
         }

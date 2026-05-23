@@ -45,6 +45,18 @@ bool LimonAPI::removeGuiElement(uint32_t guiElementID) {
     return worldRemoveGuiElement(guiElementID);
 }
 
+LimonTypes::Vec4 LimonAPI::getGuiElementPosition(uint32_t guiElementID) {
+    return worldGetGuiElementPosition(guiElementID);
+}
+
+bool LimonAPI::setGuiElementPosition(uint32_t guiElementID, const LimonTypes::Vec4& position) {
+    return worldSetGuiElementPosition(guiElementID, position);
+}
+
+bool LimonAPI::setGuiElementVisible(uint32_t guiElementID, bool visible) {
+    return worldSetGuiElementVisible(guiElementID, visible);
+}
+
 std::vector<LimonTypes::GenericParameter> LimonAPI::getResultOfTrigger(uint32_t TriggerObjectID, uint32_t TriggerCodeID) {
     std::vector<LimonTypes::GenericParameter> results = worldGetResultOfTrigger(TriggerObjectID, TriggerCodeID);
     return results;

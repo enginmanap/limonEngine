@@ -36,6 +36,9 @@ public:
                             const LimonTypes::Vec2& position, const LimonTypes::Vec2& scale, float rotation);
     bool updateGuiText(uint32_t guiTextID, const std::string& newText);
     bool removeGuiElement(uint32_t guiElementID);
+    LimonTypes::Vec4 getGuiElementPositionAPI(uint32_t guiElementID) const;
+    bool setGuiElementPositionAPI(uint32_t guiElementID, const LimonTypes::Vec4& position);
+    bool setGuiElementVisibleAPI(uint32_t guiElementID, bool visible);
 
     // Object management
     uint32_t addModelApi(const std::string& modelFilePath, float modelWeight, bool physical,

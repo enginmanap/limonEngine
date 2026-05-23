@@ -161,6 +161,27 @@ bool WorldAPIAccessor::removeGuiElement(uint32_t guiElementID) {
     return false;
 }
 
+LimonTypes::Vec4 WorldAPIAccessor::getGuiElementPositionAPI(uint32_t guiElementID) const {
+    auto it = world->guiElements.find(guiElementID);
+    if(it == world->guiElements.end()) return LimonTypes::Vec4(0, 0, 0, 0);
+    glm::vec2 pos = it->second->getTranslate();
+    return LimonTypes::Vec4(pos.x, pos.y, 0.0f, 1.0f);
+}
+
+bool WorldAPIAccessor::setGuiElementPositionAPI(uint32_t guiElementID, const LimonTypes::Vec4& position) {
+    auto it = world->guiElements.find(guiElementID);
+    if(it == world->guiElements.end()) return false;
+    it->second->setTranslate(glm::vec2(position.x, position.y));
+    return true;
+}
+
+bool WorldAPIAccessor::setGuiElementVisibleAPI(uint32_t guiElementID, bool visible) {
+    auto it = world->guiElements.find(guiElementID);
+    if(it == world->guiElements.end()) return false;
+    it->second->setVisible(visible);
+    return true;
+}
+
 uint32_t WorldAPIAccessor::addModelApi(const std::string &modelFilePath, float modelWeight, bool physical,
                                        const glm::vec3 &position, const glm::vec3 &scale, const glm::quat &orientation) {
     uint32_t objectID = world->getNextObjectID();
@@ -1034,3 +1055,4 @@ bool WorldAPIAccessor::setEmitterParticleGravity(uint32_t emitterID, const Limon
     emitterIT->second->setGravity(GLMConverter::LimonToGLMV3(gravity));
     return true;
 }
+

@@ -78,6 +78,9 @@ void WorldLoader::attachedAPIMethodsToWorld(World *world, LimonAPI *limonAPI) co
     limonAPI->worldGetObjectParent = std::bind(&WorldAPIAccessor::getObjectParent, world->apiAccessor, std::placeholders::_1);
     limonAPI->worldIsObjectPhysicsConnected = std::bind(&WorldAPIAccessor::isObjectPhysicsConnected, world->apiAccessor, std::placeholders::_1);
     limonAPI->worldRemoveGuiElement = std::bind(&WorldAPIAccessor::removeGuiElement, world->apiAccessor, std::placeholders::_1);
+    limonAPI->worldGetGuiElementPosition = std::bind(&WorldAPIAccessor::getGuiElementPositionAPI, world->apiAccessor, std::placeholders::_1);
+    limonAPI->worldSetGuiElementPosition = std::bind(&WorldAPIAccessor::setGuiElementPositionAPI, world->apiAccessor, std::placeholders::_1, std::placeholders::_2);
+    limonAPI->worldSetGuiElementVisible = std::bind(&WorldAPIAccessor::setGuiElementVisibleAPI, world->apiAccessor, std::placeholders::_1, std::placeholders::_2);
     limonAPI->worldRemoveObject = std::bind(&WorldAPIAccessor::removeObject, world->apiAccessor, std::placeholders::_1, std::placeholders::_2);
     limonAPI->worldAttachObjectToObject = std::bind(&WorldAPIAccessor::attachObjectToObject, world->apiAccessor, std::placeholders::_1, std::placeholders::_2);
     limonAPI->worldRemoveTriggerObject = std::bind(&WorldAPIAccessor::removeTriggerObject, world->apiAccessor, std::placeholders::_1);

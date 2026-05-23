@@ -14,6 +14,7 @@ class GUILayer;
 class GUIRenderable : public Renderable {
     std::vector<glm::vec3> vertices;
     std::vector<glm::vec2> textureCoordinates;
+    bool visible = true;
 
 protected:
     //TODO maybe this should not be protected, but private
@@ -22,6 +23,9 @@ protected:
 
 public:
     explicit GUIRenderable(GraphicsInterface* graphicsWrapper);
+
+    bool isVisible() const { return visible; }
+    void setVisible(bool v) { visible = v; }
 
 
     virtual ~GUIRenderable() = default;

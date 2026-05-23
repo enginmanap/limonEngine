@@ -42,6 +42,9 @@ public:
 
     bool updateGuiText(uint32_t guiTextID, const std::string &newText);
     bool removeGuiElement(uint32_t guiElementID);
+    LimonTypes::Vec4 getGuiElementPosition(uint32_t guiElementID);
+    bool setGuiElementPosition(uint32_t guiElementID, const LimonTypes::Vec4& position);
+    bool setGuiElementVisible(uint32_t guiElementID, bool visible);
 
     uint32_t addObject(const std::string &modelFilePath, float modelWeight, bool physical, const glm::vec3 &position,
                        const glm::vec3 &scale, const glm::quat &orientation);
@@ -275,6 +278,9 @@ private:
     std::function<bool(uint32_t, bool)> worldSetModelTemporary;
     std::function<bool(uint32_t, const std::string &)> worldUpdateGuiText;
     std::function<bool (uint32_t)> worldRemoveGuiElement;
+    std::function<LimonTypes::Vec4(uint32_t)> worldGetGuiElementPosition;
+    std::function<bool(uint32_t, const LimonTypes::Vec4&)> worldSetGuiElementPosition;
+    std::function<bool(uint32_t, bool)> worldSetGuiElementVisible;
     std::function<std::vector<LimonTypes::GenericParameter>(uint32_t , uint32_t )> worldGetResultOfTrigger;
     std::function<bool(uint32_t)> worldIsInsideTrigger;
     std::function<uint32_t(const std::string&)> worldGetObjectByName;

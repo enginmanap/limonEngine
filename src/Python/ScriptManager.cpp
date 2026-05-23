@@ -607,6 +607,15 @@ PYBIND11_EMBEDDED_MODULE(limon, m, pybind11::multiple_interpreters::per_interpre
             .def("remove_gui_element", &LimonAPI::removeGuiElement,
                  "Remove a GUI element",
                  pybind11::arg("gui_element_id"))
+            .def("get_gui_element_position", &LimonAPI::getGuiElementPosition,
+                 "Returns the screen position of a GUI element as Vec4 (x, y, 0, 1). Returns zero Vec4 if not found",
+                 pybind11::arg("gui_element_id"))
+            .def("set_gui_element_position", &LimonAPI::setGuiElementPosition,
+                 "Set the screen position of a GUI element. Returns False if not found",
+                 pybind11::arg("gui_element_id"), pybind11::arg("position"))
+            .def("set_gui_element_visible", &LimonAPI::setGuiElementVisible,
+                 "Show or hide a GUI element. Returns False if not found",
+                 pybind11::arg("gui_element_id"), pybind11::arg("visible"))
 
             // Object Manipulation
             .def("set_object_temporary", &LimonAPI::setObjectTemporary,
