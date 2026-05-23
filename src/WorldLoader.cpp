@@ -119,6 +119,8 @@ void WorldLoader::attachedAPIMethodsToWorld(World *world, LimonAPI *limonAPI) co
 
     limonAPI->worldGetModelAnimationName = std::bind(&WorldAPIAccessor::getModelAnimationNameAPI, world->apiAccessor, std::placeholders::_1);
     limonAPI->worldGetModelAnimationFinished = std::bind(&WorldAPIAccessor::getModelAnimationFinishedAPI, world->apiAccessor, std::placeholders::_1);
+    limonAPI->worldGetModelAnimationProgress = std::bind(&WorldAPIAccessor::getModelAnimationProgressAPI, world->apiAccessor, std::placeholders::_1);
+    limonAPI->worldListModelAnimations = std::bind(&WorldAPIAccessor::listModelAnimationsAPI, world->apiAccessor, std::placeholders::_1);
     limonAPI->worldSetAnimationOfModel = std::bind(&WorldAPIAccessor::setModelAnimationAPI, world->apiAccessor, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
     limonAPI->worldSetAnimationOfModelWithBlend = std::bind(&WorldAPIAccessor::setModelAnimationWithBlendAPI, world->apiAccessor, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);
     limonAPI->worldSetModelAnimationSpeed = std::bind(&WorldAPIAccessor::setModelAnimationSpeedAPI, world->apiAccessor, std::placeholders::_1, std::placeholders::_2);

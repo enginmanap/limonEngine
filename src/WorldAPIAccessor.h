@@ -102,6 +102,8 @@ public:
     // Animation queries / control
     std::string getModelAnimationNameAPI(uint32_t modelID);
     bool getModelAnimationFinishedAPI(uint32_t modelID);
+    float getModelAnimationProgressAPI(uint32_t modelID) const;
+    std::vector<std::string> listModelAnimationsAPI(uint32_t modelID) const;
     bool setModelAnimationAPI(uint32_t modelID, const std::string& animationName, bool isLooped);
     bool setModelAnimationWithBlendAPI(uint32_t modelID, const std::string& animationName, bool isLooped, uint64_t blendTime);
     bool setModelAnimationSpeedAPI(uint32_t modelID, float speed);

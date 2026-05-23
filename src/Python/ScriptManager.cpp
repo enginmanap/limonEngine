@@ -879,6 +879,14 @@ PYBIND11_EMBEDDED_MODULE(limon, m, pybind11::multiple_interpreters::per_interpre
               "Check if model's animation has finished",
               pybind11::arg("model_id"));
 
+    limon.def("get_model_animation_progress", &LimonAPI::getModelAnimationProgress,
+              "Returns the normalized progress [0.0, 1.0] of a running custom animation. Returns 0.0 if no active custom animation",
+              pybind11::arg("model_id"));
+
+    limon.def("list_model_animations", &LimonAPI::listModelAnimations,
+              "Returns a list of animation names available on the model asset",
+              pybind11::arg("model_id"));
+
     // Object manipulation methods
     limon.def("add_object",
               [](LimonAPI &self,

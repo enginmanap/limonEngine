@@ -149,6 +149,8 @@ public:
 
     std::string getModelAnimationName(uint32_t modelID);
     bool getModelAnimationFinished(uint32_t modelID);
+    float getModelAnimationProgress(uint32_t modelID);
+    std::vector<std::string> listModelAnimations(uint32_t modelID);
     bool setModelAnimation(uint32_t modelID, const std::string& animationName, bool isLooped = true);
     bool setModelAnimationWithBlend(uint32_t modelID, const std::string& animationName, bool isLooped = true, uint64_t blendTime = 100);
     bool setModelAnimationSpeed(uint32_t modelID, float speed);
@@ -343,6 +345,8 @@ private:
 
     std::function<std::string(uint32_t)> worldGetModelAnimationName;
     std::function<bool(uint32_t)> worldGetModelAnimationFinished;
+    std::function<float(uint32_t)> worldGetModelAnimationProgress;
+    std::function<std::vector<std::string>(uint32_t)> worldListModelAnimations;
     std::function<bool(uint32_t, const std::string&, bool)> worldSetAnimationOfModel;
     std::function<bool(uint32_t, const std::string&, bool, uint64_t)> worldSetAnimationOfModelWithBlend;
     std::function<bool(uint32_t, float)> worldSetModelAnimationSpeed;

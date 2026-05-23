@@ -297,6 +297,14 @@ bool LimonAPI::getModelAnimationFinished(uint32_t modelID) {
     return worldGetModelAnimationFinished(modelID);
 }
 
+float LimonAPI::getModelAnimationProgress(uint32_t modelID) {
+    return worldGetModelAnimationProgress(modelID);
+}
+
+std::vector<std::string> LimonAPI::listModelAnimations(uint32_t modelID) {
+    return worldListModelAnimations(modelID);
+}
+
 bool LimonAPI::setModelAnimation(uint32_t modelID, const std::string& animationName, bool isLooped) {
     return worldSetAnimationOfModel(modelID, animationName, isLooped);
 }

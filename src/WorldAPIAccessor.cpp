@@ -1,5 +1,7 @@
 #include "WorldAPIAccessor.h"
 #include "World.h"
+#include <algorithm>
+#include <cmath>
 #include "GameObjects/GUIText.h"
 #include "GameObjects/GUIImage.h"
 #include "GameObjects/GUIButton.h"
@@ -720,6 +722,35 @@ bool WorldAPIAccessor::getModelAnimationFinishedAPI(uint32_t modelID) {
         return model->isAnimationFinished();
     }
     return false;
+}
+
+float WorldAPIAccessor::getModelAnimationProgressAPI(uint32_t modelID) const {
+    Model* model = world->findModelByID(modelID);
+    if(model == nullptr) return 0.0f;
+    Renderable* renderable = static_cast<Renderable*>(static_cast<PhysicalRenderable*>(model));
+    auto it = world->activeAnimations.find(renderable);
+    if(it == world->activeAnimations.end()) return 0.0f;
+    World::AnimationStatus* status = it->second;
+    const AnimationCustom& anim = world->loadedAnimations[status->animationIndex];
+    float ticksPerSecond = anim.getTicksPerSecond() != 0.0f ? anim.getTicksPerSecond() : TICK_PER_SECOND;
+    float duration = anim.getDuration();
+    if(duration <= 0.0f) return 0.0f;
+    float elapsed = ((world->gameTime - status->startTime) / 1000.0f) * ticksPerSecond;
+    if(status->loop) {
+        return std::fmod(elapsed, duration) / duration;
+    } else {
+        return std::min(1.0f, elapsed / duration);
+    }
+}
+
+std::vector<std::string> WorldAPIAccessor::listModelAnimationsAPI(uint32_t modelID) const {
+    std::vector<std::string> result;
+    Model* model = world->findModelByID(modelID);
+    if(model == nullptr) return result;
+    for(const auto& kv : model->modelAsset->getAnimations()) {
+        result.push_back(kv.first);
+    }
+    return result;
 }
 
 bool WorldAPIAccessor::setModelAnimationAPI(uint32_t modelID, const std::string &animationName, bool isLooped) {
