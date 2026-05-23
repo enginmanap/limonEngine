@@ -74,6 +74,9 @@ void WorldLoader::attachedAPIMethodsToWorld(World *world, LimonAPI *limonAPI) co
     limonAPI->worldGenerateEditorElementsForParameters = std::bind(&Editor::generateEditorElementsForParameters, world->editor.get(), std::placeholders::_1, std::placeholders::_2);
     limonAPI->worldGetResultOfTrigger = std::bind(&WorldAPIAccessor::getResultOfTrigger, world->apiAccessor, std::placeholders::_1, std::placeholders::_2);
     limonAPI->worldIsInsideTrigger = std::bind(&WorldAPIAccessor::isInsideTrigger, world->apiAccessor, std::placeholders::_1);
+    limonAPI->worldGetObjectByName = std::bind(&WorldAPIAccessor::getObjectByName, world->apiAccessor, std::placeholders::_1);
+    limonAPI->worldGetObjectParent = std::bind(&WorldAPIAccessor::getObjectParent, world->apiAccessor, std::placeholders::_1);
+    limonAPI->worldIsObjectPhysicsConnected = std::bind(&WorldAPIAccessor::isObjectPhysicsConnected, world->apiAccessor, std::placeholders::_1);
     limonAPI->worldRemoveGuiElement = std::bind(&WorldAPIAccessor::removeGuiElement, world->apiAccessor, std::placeholders::_1);
     limonAPI->worldRemoveObject = std::bind(&WorldAPIAccessor::removeObject, world->apiAccessor, std::placeholders::_1, std::placeholders::_2);
     limonAPI->worldAttachObjectToObject = std::bind(&WorldAPIAccessor::attachObjectToObject, world->apiAccessor, std::placeholders::_1, std::placeholders::_2);
@@ -139,6 +142,9 @@ void WorldLoader::attachedAPIMethodsToWorld(World *world, LimonAPI *limonAPI) co
     limonAPI->worldRemoveLight       = std::bind(&WorldAPIAccessor::removeLightAPI,       world->apiAccessor, std::placeholders::_1);
     limonAPI->worldAddLightTranslate = std::bind(&WorldAPIAccessor::addLightTranslateAPI, world->apiAccessor, std::placeholders::_1, std::placeholders::_2);
     limonAPI->worldSetLightColor     = std::bind(&WorldAPIAccessor::setLightColorAPI,     world->apiAccessor, std::placeholders::_1, std::placeholders::_2);
+    limonAPI->worldGetLightPosition  = std::bind(&WorldAPIAccessor::getLightPositionAPI,  world->apiAccessor, std::placeholders::_1);
+    limonAPI->worldGetLightColor     = std::bind(&WorldAPIAccessor::getLightColorAPI,     world->apiAccessor, std::placeholders::_1);
+    limonAPI->worldSetLightTranslate = std::bind(&WorldAPIAccessor::setLightTranslateAPI, world->apiAccessor, std::placeholders::_1, std::placeholders::_2);
 
     limonAPI->worldLog = [world](Logger::Subsystem subsystem, Logger::Level level, const std::string& text) {
         world->options->getLogger()->log(subsystem, level, text);

@@ -47,6 +47,9 @@ public:
 
     std::vector<LimonTypes::GenericParameter> getResultOfTrigger(uint32_t triggerObjectID, uint32_t triggerCodeID);
     bool isInsideTrigger(uint32_t triggerID) const;
+    uint32_t getObjectByName(const std::string& name) const;
+    uint32_t getObjectParent(uint32_t objectID) const;
+    bool isObjectPhysicsConnected(uint32_t objectID) const;
 
     // Physics
     LimonTypes::Vec4 getObjectLinearVelocity(uint32_t objectID) const;
@@ -116,6 +119,9 @@ public:
     bool removeLightAPI(uint32_t lightID);
     bool addLightTranslateAPI(uint32_t lightID, const LimonTypes::Vec4& position);
     bool setLightColorAPI(uint32_t lightID, const LimonTypes::Vec4& color);
+    LimonTypes::Vec4 getLightPositionAPI(uint32_t lightID) const;
+    LimonTypes::Vec4 getLightColorAPI(uint32_t lightID) const;
+    bool setLightTranslateAPI(uint32_t lightID, const LimonTypes::Vec4& position);
 
     // Render pipeline
     bool changeRenderPipeline(const std::string& pipelineFileName);

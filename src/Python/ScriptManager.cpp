@@ -621,6 +621,15 @@ PYBIND11_EMBEDDED_MODULE(limon, m, pybind11::multiple_interpreters::per_interpre
             .def("is_inside_trigger", &LimonAPI::isInsideTrigger,
                  "Returns True if a player is currently inside the trigger volume",
                  pybind11::arg("trigger_id"))
+            .def("get_object_by_name", &LimonAPI::getObjectByName,
+                 "Find an object by name. Returns 0 if not found. Searches models, GUI elements, and triggers",
+                 pybind11::arg("name"))
+            .def("get_object_parent", &LimonAPI::getObjectParent,
+                 "Returns the parent object ID of the given object. Returns 0 if no parent or not found",
+                 pybind11::arg("object_id"))
+            .def("is_object_physics_connected", &LimonAPI::isObjectPhysicsConnected,
+                 "Returns True if the object is active in the physics simulation",
+                 pybind11::arg("object_id"))
             .def("get_object_linear_velocity", &LimonAPI::getObjectLinearVelocity,
                  "Returns the linear velocity of an object as Vec4 (w=0). Returns zero Vec4 if not found",
                  pybind11::arg("object_id"))
@@ -764,6 +773,15 @@ PYBIND11_EMBEDDED_MODULE(limon, m, pybind11::multiple_interpreters::per_interpre
             .def("set_light_color", &LimonAPI::setLightColor,
                  "Set a light's color",
                  pybind11::arg("light_id"), pybind11::arg("color"))
+            .def("get_light_position", &LimonAPI::getLightPosition,
+                 "Returns the world-space position of a light as Vec4 (w=1). Returns zero Vec4 if not found",
+                 pybind11::arg("light_id"))
+            .def("get_light_color", &LimonAPI::getLightColor,
+                 "Returns the color of a light as Vec4 (w=1). Returns zero Vec4 if not found",
+                 pybind11::arg("light_id"))
+            .def("set_light_translate", &LimonAPI::setLightTranslate,
+                 "Set a light's absolute position. Returns False if not found",
+                 pybind11::arg("light_id"), pybind11::arg("position"))
 
             // World Management
             .def("load_and_remove", &LimonAPI::loadAndRemove,

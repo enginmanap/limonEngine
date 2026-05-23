@@ -54,6 +54,18 @@ bool LimonAPI::isInsideTrigger(uint32_t triggerID) {
     return worldIsInsideTrigger(triggerID);
 }
 
+uint32_t LimonAPI::getObjectByName(const std::string& name) {
+    return worldGetObjectByName(name);
+}
+
+uint32_t LimonAPI::getObjectParent(uint32_t objectID) {
+    return worldGetObjectParent(objectID);
+}
+
+bool LimonAPI::isObjectPhysicsConnected(uint32_t objectID) {
+    return worldIsObjectPhysicsConnected(objectID);
+}
+
 bool LimonAPI::removeObject(uint32_t objectID, const bool &removeChildren) {
     return worldRemoveObject(objectID, removeChildren);
 }
@@ -176,6 +188,18 @@ bool LimonAPI::addLightTranslate(uint32_t lightID, const LimonTypes::Vec4 &posit
 
 bool LimonAPI::setLightColor(uint32_t lightID, const LimonTypes::Vec4 &color){
     return worldSetLightColor(lightID, color);
+}
+
+LimonTypes::Vec4 LimonAPI::getLightPosition(uint32_t lightID) {
+    return worldGetLightPosition(lightID);
+}
+
+LimonTypes::Vec4 LimonAPI::getLightColor(uint32_t lightID) {
+    return worldGetLightColor(lightID);
+}
+
+bool LimonAPI::setLightTranslate(uint32_t lightID, const LimonTypes::Vec4& position) {
+    return worldSetLightTranslate(lightID, position);
 }
 
 bool LimonAPI::changeRenderPipeline(const std::string& pipelineFileName) {

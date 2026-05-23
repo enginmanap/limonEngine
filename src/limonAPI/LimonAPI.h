@@ -167,6 +167,9 @@ public:
     bool removeLight(uint32_t lightID);
     bool addLightTranslate(uint32_t lightID, const LimonTypes::Vec4& translate);
     bool setLightColor(uint32_t lightID, const LimonTypes::Vec4& color);
+    LimonTypes::Vec4 getLightPosition(uint32_t lightID);
+    LimonTypes::Vec4 getLightColor(uint32_t lightID);
+    bool setLightTranslate(uint32_t lightID, const LimonTypes::Vec4& position);
 
     bool changeRenderPipeline(const std::string& pipelineFileName);
 
@@ -195,6 +198,9 @@ public:
 
     std::vector<LimonTypes::GenericParameter> getResultOfTrigger(uint32_t TriggerObjectID, uint32_t TriggerCodeID);
     bool isInsideTrigger(uint32_t triggerID);
+    uint32_t getObjectByName(const std::string& name);
+    uint32_t getObjectParent(uint32_t objectID);
+    bool isObjectPhysicsConnected(uint32_t objectID);
 
     /**
      * This method Returns a parameter request reference that you can update. If the variable was never set,
@@ -269,6 +275,9 @@ private:
     std::function<bool (uint32_t)> worldRemoveGuiElement;
     std::function<std::vector<LimonTypes::GenericParameter>(uint32_t , uint32_t )> worldGetResultOfTrigger;
     std::function<bool(uint32_t)> worldIsInsideTrigger;
+    std::function<uint32_t(const std::string&)> worldGetObjectByName;
+    std::function<uint32_t(uint32_t)> worldGetObjectParent;
+    std::function<bool(uint32_t)> worldIsObjectPhysicsConnected;
     std::function<bool (uint32_t, bool)> worldRemoveObject;
     std::function<std::vector<LimonTypes::GenericParameter>(uint32_t)> worldGetObjectTransformation;
     std::function<bool (uint32_t, const LimonTypes::Vec4&)> worldSetObjectTranslate;
@@ -307,6 +316,9 @@ private:
     std::function<bool(uint32_t)> worldRemoveLight;
     std::function<bool (uint32_t, const LimonTypes::Vec4&)> worldAddLightTranslate;
     std::function<bool (uint32_t, const LimonTypes::Vec4&)> worldSetLightColor;
+    std::function<LimonTypes::Vec4(uint32_t)> worldGetLightPosition;
+    std::function<LimonTypes::Vec4(uint32_t)> worldGetLightColor;
+    std::function<bool(uint32_t, const LimonTypes::Vec4&)> worldSetLightTranslate;
 
     std::function<long (uint64_t, bool, std::function<void(const std::vector<LimonTypes::GenericParameter>&)>, std::vector<LimonTypes::GenericParameter>)> worldAddTimedEvent;
     std::function<bool (long)> worldCancelTimedEvent;

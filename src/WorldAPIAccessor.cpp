@@ -246,6 +246,43 @@ bool WorldAPIAccessor::isInsideTrigger(uint32_t triggerID) const {
     return it->second->isInside();
 }
 
+uint32_t WorldAPIAccessor::getObjectByName(const std::string& name) const {
+    for(auto& kv : world->objects) {
+        GameObject* go = dynamic_cast<GameObject*>(kv.second);
+        if(go != nullptr && go->getName() == name) {
+            return go->getWorldObjectID();
+        }
+    }
+    for(auto& kv : world->guiElements) {
+        GameObject* go = dynamic_cast<GameObject*>(kv.second);
+        if(go != nullptr && go->getName() == name) {
+            return go->getWorldObjectID();
+        }
+    }
+    for(auto& kv : world->triggers) {
+        if(kv.second->getName() == name) {
+            return kv.second->getWorldObjectID();
+        }
+    }
+    return 0;
+}
+
+uint32_t WorldAPIAccessor::getObjectParent(uint32_t objectID) const {
+    Model* model = world->findModelByID(objectID);
+    if(model == nullptr) return 0;
+    Attachable* parent = model->getParentObject();
+    if(parent == nullptr) return 0;
+    GameObject* parentGO = dynamic_cast<GameObject*>(parent);
+    if(parentGO == nullptr) return 0;
+    return parentGO->getWorldObjectID();
+}
+
+bool WorldAPIAccessor::isObjectPhysicsConnected(uint32_t objectID) const {
+    Model* model = world->findModelByID(objectID);
+    if(model == nullptr) return false;
+    return !model->isDisconnected();
+}
+
 bool WorldAPIAccessor::disconnectObjectFromPhysics(uint32_t objectWorldID) {
     if(world->objects.find(objectWorldID) == world->objects.end()) {
         return false;
@@ -843,6 +880,36 @@ bool WorldAPIAccessor::setLightColorAPI(uint32_t lightID, const LimonTypes::Vec4
     }
     light->setColor(glm::vec3(GLMConverter::LimonToGLM(color)));
     return true;
+}
+
+LimonTypes::Vec4 WorldAPIAccessor::getLightPositionAPI(uint32_t lightID) const {
+    for(size_t i = 0; i < world->lights.size(); ++i) {
+        if(world->lights[i]->getWorldObjectID() == lightID) {
+            glm::vec3 pos = world->lights[i]->getPosition();
+            return LimonTypes::Vec4(pos.x, pos.y, pos.z, 1.0f);
+        }
+    }
+    return LimonTypes::Vec4(0, 0, 0, 0);
+}
+
+LimonTypes::Vec4 WorldAPIAccessor::getLightColorAPI(uint32_t lightID) const {
+    for(size_t i = 0; i < world->lights.size(); ++i) {
+        if(world->lights[i]->getWorldObjectID() == lightID) {
+            glm::vec3 col = world->lights[i]->getColor();
+            return LimonTypes::Vec4(col.r, col.g, col.b, 1.0f);
+        }
+    }
+    return LimonTypes::Vec4(0, 0, 0, 0);
+}
+
+bool WorldAPIAccessor::setLightTranslateAPI(uint32_t lightID, const LimonTypes::Vec4& position) {
+    for(size_t i = 0; i < world->lights.size(); ++i) {
+        if(world->lights[i]->getWorldObjectID() == lightID) {
+            world->lights[i]->setPosition(glm::vec3(GLMConverter::LimonToGLM(position)), world->playerCamera);
+            return true;
+        }
+    }
+    return false;
 }
 
 bool WorldAPIAccessor::changeRenderPipeline(const std::string &pipelineFileName) {
