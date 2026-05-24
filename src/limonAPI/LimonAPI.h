@@ -201,7 +201,7 @@ public:
 
 
 
-    std::vector<LimonTypes::GenericParameter> getResultOfTrigger(uint32_t TriggerObjectID, uint32_t TriggerCodeID);
+    std::vector<LimonTypes::GenericParameter> getResultOfTrigger(uint32_t triggerObjectID, uint32_t triggerCodeID);
     bool isInsideTrigger(uint32_t triggerID);
     uint32_t getObjectByName(const std::string& name);
     uint32_t getObjectParent(uint32_t objectID);

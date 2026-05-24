@@ -57,8 +57,8 @@ bool LimonAPI::setGuiElementVisible(uint32_t guiElementID, bool visible) {
     return worldSetGuiElementVisible(guiElementID, visible);
 }
 
-std::vector<LimonTypes::GenericParameter> LimonAPI::getResultOfTrigger(uint32_t TriggerObjectID, uint32_t TriggerCodeID) {
-    std::vector<LimonTypes::GenericParameter> results = worldGetResultOfTrigger(TriggerObjectID, TriggerCodeID);
+std::vector<LimonTypes::GenericParameter> LimonAPI::getResultOfTrigger(uint32_t triggerObjectID, uint32_t triggerCodeID) {
+    std::vector<LimonTypes::GenericParameter> results = worldGetResultOfTrigger(triggerObjectID, triggerCodeID);
     return results;
 }
 
