@@ -46,8 +46,10 @@ private:
     World *loadMapFromXML(const std::string &worldFileName, LimonAPI *limonAPI) const;
     bool loadObjectGroupsFromXML(tinyxml2::XMLNode *worldNode, World *world, LimonAPI *limonAPI,
             std::vector<Model*> &notStaticObjects, bool &isAIGridStartPointSet, glm::vec3 &aiGridStartPoint) const;
-    bool loadObjectsFromXML(tinyxml2::XMLNode *objectsNode, World *world, LimonAPI *limonAPI) const;
+    bool loadObjectsFromXML(tinyxml2::XMLNode *objectsNode, World *world, LimonAPI *limonAPI, int saveVersion) const;
     bool loadObjectsFromXMLV2(tinyxml2::XMLNode *objectsNode, World *world, LimonAPI *limonAPI) const;
+    void loadPlayerAttachmentV1(tinyxml2::XMLElement* attachmentNode, Model*& attachedModel, LimonAPI* limonAPI) const;
+    void loadPlayerAttachmentV2(tinyxml2::XMLElement* attachmentNode, Model*& attachedModel, LimonAPI* limonAPI) const;
     bool loadSkymap(tinyxml2::XMLNode *skymapNode, World* world) const;
     bool loadLights(tinyxml2::XMLNode *lightsNode, World* world) const;
     bool loadParticleEmitters(tinyxml2::XMLNode *EmittersNode, World* world) const;

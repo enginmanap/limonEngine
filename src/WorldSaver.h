@@ -9,11 +9,13 @@
 #include <tinyxml2.h>
 
 class World;
+class Model;
 
 class WorldSaver {
 private:
     static bool fillObjects(tinyxml2::XMLDocument& mapFile, tinyxml2::XMLElement * objectsNode, const World* world );
     static bool fillObjectGroups(tinyxml2::XMLDocument& mapFile, tinyxml2::XMLElement * objectGroupsNode, const World* world );
+    static void saveAttachmentChildrenFlat(tinyxml2::XMLDocument& document, tinyxml2::XMLElement* attachmentNode, const Model* model);
     static bool fillLights(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *lightsNode, const World *world);
     static bool fillEmitters(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *EmittersNode, const World *world);
     static bool addSky(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *skyNode, const World *world);

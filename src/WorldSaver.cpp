@@ -7,6 +7,7 @@
 
 #include "WorldSaver.h"
 #include "World.h"
+#include "GameObjects/Model.h"
 #include "GameObjects/Light.h"
 #include "Assets/Animations/AnimationCustom.h"
 #include "GameObjects/TriggerObject.h"
@@ -113,6 +114,8 @@ bool WorldSaver::saveWorld(const std::string& mapName, const World* world) {
             //if physical player doesn't exists, but attached model does. This should not happen now, but this line is here as future proofing.
             world->startingPlayer.attachedModel->fillObjects(mapDocument, playerAttachment);
         }
+        // Save children as flat V2 sibling <Object> elements (each with <ParentID>).
+        saveAttachmentChildrenFlat(mapDocument, playerAttachment, world->startingPlayer.attachedModel);
     }
     currentElement->InsertEndChild(playerAttachment);
     rootNode->InsertEndChild(currentElement);
@@ -215,6 +218,16 @@ bool WorldSaver::saveWorld(const std::string& mapName, const World* world) {
     }
 
     return true;
+}
+
+void WorldSaver::saveAttachmentChildrenFlat(tinyxml2::XMLDocument& document, tinyxml2::XMLElement* attachmentNode, const Model* model) {
+    for(Attachable* child : model->getChildren()) {
+        const Model* childModel = dynamic_cast<const Model*>(child);
+        if(childModel == nullptr) continue;
+        // fillObjects already writes <ParentID> and <ParentBoneID> when parentObject != nullptr
+        childModel->fillObjects(document, attachmentNode);
+        saveAttachmentChildrenFlat(document, attachmentNode, childModel);
+    }
 }
 
 bool WorldSaver::fillObjectGroups(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *objectGroupsNode, const World *world){

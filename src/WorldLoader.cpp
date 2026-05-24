@@ -220,6 +220,12 @@ World * WorldLoader::loadMapFromXML(const std::string &worldFileName, LimonAPI *
     }
     std::cout << "read name as " << worldName->GetText() << std::endl;
 
+    tinyxml2::XMLElement* saveVersionElement = worldNode->FirstChildElement("SaveVersion");
+    int saveVersion = 1;
+    if(saveVersionElement != nullptr && saveVersionElement->GetText() != nullptr) {
+        saveVersion = std::stoi(saveVersionElement->GetText());
+    }
+
     std::string loadingImageStr;
     tinyxml2::XMLElement* worldLoadingImage =  worldNode->FirstChildElement("LoadingImage");
     if (worldLoadingImage != nullptr && worldLoadingImage->GetText() != nullptr) {
@@ -258,28 +264,10 @@ World * WorldLoader::loadMapFromXML(const std::string &worldFileName, LimonAPI *
 
         tinyxml2::XMLElement* playerAttachmentModel =  worldStartPlayer->FirstChildElement("Attachment");
         if(playerAttachmentModel != nullptr) {
-            tinyxml2::XMLElement* objectNode =  playerAttachmentModel->FirstChildElement("Object");
-            if (objectNode != nullptr) {
-                std::unordered_map<std::string, std::shared_ptr<Sound>> requiredSounds; //required. Should not be used normally.
-
-                std::vector<std::unique_ptr<ObjectInformation>> objectInfos = loadObject(assetManager, objectNode,
-                                                                                         requiredSounds, limonAPI,
-                                                                                         nullptr);//this map is used to load all the sounds, while sharing same objects.
-
-                for (auto objectIterator = objectInfos.begin(); objectIterator != objectInfos.end(); ++objectIterator) {
-                    if((*objectIterator)->modelActor != nullptr) {
-                        std::cerr << "There was an AI attached to player model, this shouldn't happen. Ignoring" << std::endl;
-                        delete (*objectIterator)->modelActor;
-                    }
-                    startingPlayer.attachedModel = (*objectIterator)->model;
-                    if(startingPlayer.attachedModel->hasTag(HashUtil::hashString(HardCodedTags::OBJECT_MODEL_BASIC))) {
-                        startingPlayer.attachedModel->addTag(HardCodedTags::OBJECT_PLAYER_BASIC);
-                    } else if(startingPlayer.attachedModel->hasTag(HashUtil::hashString(HardCodedTags::OBJECT_MODEL_ANIMATED))) {
-                        startingPlayer.attachedModel->addTag(HardCodedTags::OBJECT_PLAYER_ANIMATED);
-                    } else if(startingPlayer.attachedModel->hasTag(HashUtil::hashString(HardCodedTags::OBJECT_MODEL_TRANSPARENT))) {
-                        startingPlayer.attachedModel->addTag(HardCodedTags::OBJECT_PLAYER_TRANSPARENT);
-                    }
-                }
+            if(saveVersion >= 2) {
+                loadPlayerAttachmentV2(playerAttachmentModel, startingPlayer.attachedModel, limonAPI);
+            } else {
+                loadPlayerAttachmentV1(playerAttachmentModel, startingPlayer.attachedModel, limonAPI);
             }
         }
     }
@@ -333,7 +321,7 @@ World * WorldLoader::loadMapFromXML(const std::string &worldFileName, LimonAPI *
 
 
     //load objects
-    if(!loadObjectsFromXML(worldNode, world, limonAPI)) {
+    if(!loadObjectsFromXML(worldNode, world, limonAPI, saveVersion)) {
         delete world;
         return nullptr;
     }
@@ -431,12 +419,79 @@ bool WorldLoader::loadObjectGroupsFromXML(tinyxml2::XMLNode *worldNode, World *w
     return true;
 }
 
-bool WorldLoader::loadObjectsFromXML(tinyxml2::XMLNode *objectsNode, World *world, LimonAPI *limonAPI) const {
-    tinyxml2::XMLElement* versionElement = objectsNode->FirstChildElement("SaveVersion");
-    int saveVersion = 1;
-    if(versionElement != nullptr && versionElement->GetText() != nullptr) {
-        saveVersion = std::stoi(versionElement->GetText());
+void WorldLoader::loadPlayerAttachmentV1(tinyxml2::XMLElement* attachmentNode, Model*& attachedModel, LimonAPI* limonAPI) const {
+    std::unordered_map<std::string, std::shared_ptr<Sound>> requiredSounds;
+    tinyxml2::XMLElement* objectNode = attachmentNode->FirstChildElement("Object");
+    if(objectNode == nullptr) {
+        return;
     }
+    std::vector<std::unique_ptr<ObjectInformation>> objectInfos = loadObject(assetManager, objectNode, requiredSounds, limonAPI, nullptr);
+    for(auto& info : objectInfos) {
+        if(info->modelActor != nullptr) {
+            std::cerr << "There was an AI attached to player model, this shouldn't happen. Ignoring" << std::endl;
+            delete info->modelActor;
+        }
+        attachedModel = info->model;
+        if(attachedModel->hasTag(HashUtil::hashString(HardCodedTags::OBJECT_MODEL_BASIC))) {
+            attachedModel->addTag(HardCodedTags::OBJECT_PLAYER_BASIC);
+        } else if(attachedModel->hasTag(HashUtil::hashString(HardCodedTags::OBJECT_MODEL_ANIMATED))) {
+            attachedModel->addTag(HardCodedTags::OBJECT_PLAYER_ANIMATED);
+        } else if(attachedModel->hasTag(HashUtil::hashString(HardCodedTags::OBJECT_MODEL_TRANSPARENT))) {
+            attachedModel->addTag(HardCodedTags::OBJECT_PLAYER_TRANSPARENT);
+        }
+    }
+}
+
+void WorldLoader::loadPlayerAttachmentV2(tinyxml2::XMLElement* attachmentNode, Model*& attachedModel, LimonAPI* limonAPI) const {
+    struct PendingAttachmentLocal { Model* child; uint32_t parentID; int32_t boneID; };
+    std::unordered_map<std::string, std::shared_ptr<Sound>> requiredSounds;
+    std::unordered_map<uint32_t, Model*> attachmentModels;
+    std::vector<PendingAttachmentLocal> pending;
+
+    tinyxml2::XMLElement* objectNode = attachmentNode->FirstChildElement("Object");
+    while(objectNode != nullptr) {
+        auto objectInfos = loadObjectV2(assetManager, objectNode, requiredSounds, limonAPI);
+        for(auto& info : objectInfos) {
+            if(info->modelActor != nullptr) {
+                std::cerr << "There was an AI attached to player model, this shouldn't happen. Ignoring" << std::endl;
+                delete info->modelActor;
+            }
+            Model* m = info->model;
+            attachmentModels[m->getWorldObjectID()] = m;
+            if(m->hasTag(HashUtil::hashString(HardCodedTags::OBJECT_MODEL_BASIC))) {
+                m->addTag(HardCodedTags::OBJECT_PLAYER_BASIC);
+            } else if(m->hasTag(HashUtil::hashString(HardCodedTags::OBJECT_MODEL_ANIMATED))) {
+                m->addTag(HardCodedTags::OBJECT_PLAYER_ANIMATED);
+            } else if(m->hasTag(HashUtil::hashString(HardCodedTags::OBJECT_MODEL_TRANSPARENT))) {
+                m->addTag(HardCodedTags::OBJECT_PLAYER_TRANSPARENT);
+            }
+            tinyxml2::XMLElement* parentIDElement = objectNode->FirstChildElement("ParentID");
+            if(parentIDElement != nullptr && parentIDElement->GetText() != nullptr) {
+                uint32_t parentID = std::stoul(parentIDElement->GetText());
+                int32_t boneID = -1;
+                tinyxml2::XMLElement* boneIDElement = objectNode->FirstChildElement("ParentBoneID");
+                if(boneIDElement != nullptr && boneIDElement->GetText() != nullptr) {
+                    boneID = std::stoi(boneIDElement->GetText());
+                }
+                pending.push_back({m, parentID, boneID});
+            } else {
+                attachedModel = m;
+            }
+        }
+        objectNode = objectNode->NextSiblingElement("Object");
+    }
+
+    for(auto& pa : pending) {
+        auto it = attachmentModels.find(pa.parentID);
+        if(it != attachmentModels.end()) {
+            pa.child->attachTo(it->second, pa.boneID);
+        } else {
+            std::cerr << "Attachment child " << pa.child->getWorldObjectID() << " parent " << pa.parentID << " not found, skipped." << std::endl;
+        }
+    }
+}
+
+bool WorldLoader::loadObjectsFromXML(tinyxml2::XMLNode *objectsNode, World *world, LimonAPI *limonAPI, int saveVersion) const {
     if(saveVersion == 2) {
         return loadObjectsFromXMLV2(objectsNode, world, limonAPI);
     }
@@ -940,7 +995,8 @@ bool WorldLoader::loadObjectsFromXMLV2(tinyxml2::XMLNode *objectsNode, World *wo
         world->addModelToWorld(notStaticObjects[i]);
     }
 
-    // Second pass: wire up all parent-child relationships using attachTo (does world->local conversion)
+    // Second pass: wire up all parent-child relationships.
+    // Saved transforms are world values; attachTo converts world->local correctly.
     for(auto& pa : pendingAttachments) {
         Attachable* parent = world->findAttachableByID(pa.parentID);
         if(parent != nullptr) {
