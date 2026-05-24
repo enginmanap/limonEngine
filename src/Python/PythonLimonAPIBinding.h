@@ -1,0 +1,8 @@
+#ifndef LIMONENGINE_PYTHONLIMONAPIBINDING_H
+#define LIMONENGINE_PYTHONLIMONAPIBINDING_H
+
+#include <pybind11/pybind11.h>
+
+void bindLimonAPI(pybind11::module_& m);
+
+#endif //LIMONENGINE_PYTHONLIMONAPIBINDING_H

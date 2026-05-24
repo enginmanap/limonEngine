@@ -1,0 +1,8 @@
+#ifndef LIMONENGINE_PYTHONINTERFACEBINDINGS_H
+#define LIMONENGINE_PYTHONINTERFACEBINDINGS_H
+
+#include <pybind11/pybind11.h>
+
+void bindInterfaces(pybind11::module_& m);
+
+#endif //LIMONENGINE_PYTHONINTERFACEBINDINGS_H
