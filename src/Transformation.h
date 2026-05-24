@@ -296,14 +296,10 @@ public:
             this->translateSingle += translate;
             this->translate = this->translateSingle;
         } else {
-            glm::mat4 newTranslateMatrix = glm::translate(glm::mat4(1.0f), translate);
-            glm::mat4 parentInverseT = glm::inverseTranspose(this->parentTransform->worldTransform);
-            glm::mat4 newTranslateDiff = parentInverseT * newTranslateMatrix;
-            glm::vec3 newTranslateSet;
-            newTranslateSet.x = newTranslateDiff[3][0];
-            newTranslateSet.y = newTranslateDiff[3][1];
-            newTranslateSet.z = newTranslateDiff[3][2];
-            this->translateSingle += newTranslateSet;
+            // translate is a world-space delta; convert to parent-local space.
+            // w=0 treats the delta as a direction (not a point) so parent translation is ignored.
+            glm::vec3 localDelta = glm::vec3(glm::inverse(this->parentTransform->getWorldTransform()) * glm::vec4(translate, 0.0f));
+            this->translateSingle += localDelta;
         }
         isDirty = true;
         propagateUpdate();
