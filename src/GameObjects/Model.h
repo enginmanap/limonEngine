@@ -142,7 +142,7 @@ public:
         graphicsWrapper->setModel(this->getWorldObjectID(), this->transformation.getWorldTransform());
     }
 
-    void onTransformUpdated() override {
+    void onTransformUpdated() noexcept override {
         transformChangeCallback();
     }
 

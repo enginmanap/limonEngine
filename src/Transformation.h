@@ -16,6 +16,8 @@
 #include <glm/gtc/matrix_inverse.hpp>
 #include <glm/gtx/matrix_decompose.hpp>
 
+#include "Utils/NoexceptFunction.h"
+
 class Transformation {
     /* EDITOR INFORMATION PART */
     enum EditorModes {ROTATE_MODE, TRANSLATE_MODE, SCALE_MODE};
@@ -28,12 +30,10 @@ class Transformation {
 
     mutable glm::mat4 worldTransform;//private
 
-    std::function<void()> updateCallback;
+    NoexceptFunction updateCallback = nullptr;
 
-    void notifyOwner() {
-        if (updateCallback) {
-            updateCallback();
-        }
+    void notifyOwner() noexcept {
+        updateCallback();
     }
 
     void propagateToChildren() {
@@ -45,7 +45,7 @@ class Transformation {
         }
     }
 
-    void propagateUpdate() {
+    void propagateUpdate() noexcept {
         notifyOwner();
         propagateToChildren();
     }
@@ -204,7 +204,7 @@ public:
         this->propagateUpdate();
     }
 
-    void removeParentTransform() {
+    void removeParentTransform() noexcept {
         if(this->parentTransform == nullptr) {
             return;
         }
@@ -238,7 +238,7 @@ public:
         this->propagateUpdate();
     }
 
-    void setUpdateCallback(std::function<void()> callback) {
+    void setUpdateCallback(NoexceptFunction callback) {
         updateCallback = std::move(callback);
     }
 

@@ -19,7 +19,7 @@ protected:
     std::vector<Attachable*> children;
 
 public:
-    virtual ~Attachable() {
+    virtual ~Attachable() noexcept {
         // Null out children's parent pointer. Derived destructors handle transform cleanup.
         for (auto child : children) {
             child->parentObject = nullptr;
@@ -64,7 +64,7 @@ public:
     }
 
     // Remove the relationship and the Transformation parent link.
-    void detach() {
+    void detach() noexcept {
         if (!parentObject) return;
         this->getTransformation()->removeParentTransform();
         parentObject->removeChild(this);

@@ -28,10 +28,10 @@ public:
     explicit PhysicalRenderable(GraphicsInterface* graphicsWrapper, float mass, bool disconnected)
             : Renderable(graphicsWrapper), centerOffset(glm::vec3(0, 0, 0)), mass(mass), disconnected(disconnected) {
         transformation.setGenerateWorldTransform(std::bind(&PhysicalRenderable::processTransformForPyhsics, this));
-        transformation.setUpdateCallback([this]{ onTransformUpdated(); });
+        transformation.setUpdateCallback([this]() noexcept { onTransformUpdated(); });
     }
 
-    void onTransformUpdated() override {
+    void onTransformUpdated() noexcept override {
         updatePhysicsFromTransform();
     }
 
@@ -50,7 +50,7 @@ public:
     bool isDisconnected() const {
         return disconnected;
     }
-    void updatePhysicsFromTransform() {
+    void updatePhysicsFromTransform() noexcept {
         if (rigidBody == nullptr) return;
         // Force recompute: getTranslate() is stale if setParentTransform ran before setTransformations (e.g. during attachTo).
         transformation.getWorldTransform();

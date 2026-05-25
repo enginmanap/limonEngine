@@ -41,7 +41,7 @@ class TriggerObject : public GameObject, public Attachable {
     btCollisionShape *ghostShape = new btBoxShape(btVector3(1.0f, 1.0f, 1.0f));
     btPairCachingGhostObject *ghostObject = new btPairCachingGhostObject();
 
-    void updatePhysicsFromTransform() {
+    void updatePhysicsFromTransform() noexcept {
         ghostObject->getCollisionShape()->setLocalScaling(btVector3(transformation.getScale().x, transformation.getScale().y, transformation.getScale().z));
 
         const glm::mat4 worldMat = transformation.getWorldTransform();
@@ -68,10 +68,10 @@ public:
         ghostObject->setWorldTransform(btTransform(btQuaternion::getIdentity(), btVector3()));
         ghostObject->setUserPointer(static_cast<GameObject *>(this));
         name  = "TRIGGER-" + std::to_string(objectID);
-        transformation.setUpdateCallback([this]{ updatePhysicsFromTransform(); });
+        transformation.setUpdateCallback([this]() noexcept { updatePhysicsFromTransform(); });
     }
 
-    void onTransformUpdated() override {
+    void onTransformUpdated() noexcept override {
         updatePhysicsFromTransform();
     }
 

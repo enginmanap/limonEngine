@@ -366,7 +366,7 @@ bool getWorldNameFromReleaseXML(std::string &worldName) {
 }
 
 int main(int argc, char *argv[]) {
-
+    system("pause");
     std::string worldName;
     if(argc == 1) {
         std::cout << "No world file specified, world select from release settings" << std::endl;

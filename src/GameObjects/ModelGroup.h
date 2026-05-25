@@ -19,7 +19,7 @@ public:
     : PhysicalRenderable(graphicsWrapper, 0, true), worldObjectID(worldObjectID), name(name) {
     }
 
-    void onTransformUpdated() override {
+    void onTransformUpdated() noexcept override {
         // ModelGroup has no rigid body and no per-object graphics matrix; nothing to sync.
     }
 

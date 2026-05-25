@@ -113,11 +113,11 @@ public:
 
         // Seed the attachment transformation with the current position.
         attachTransformation.setTranslate(this->position);
-        attachTransformation.setUpdateCallback([this]{ onTransformUpdated(); });
+        attachTransformation.setUpdateCallback([this]() noexcept{ onTransformUpdated(); });
         frustumChanged = true;
     }
 
-    void onTransformUpdated() override {
+    void onTransformUpdated() noexcept override {
         this->position = glm::vec3(this->attachTransformation.getWorldTransform()[3]);
         this->frustumChanged = true;
         if(lightType == LightTypes::POINT && !cubeCameras.empty()) {
