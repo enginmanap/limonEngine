@@ -272,7 +272,11 @@ bool Model::fillObjects(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *o
         objectElement->InsertEndChild(currentElement);
     }
     if(!customAnimation) {
-        transformation.serialize(document, objectElement);
+        if(parentBoneID != -1) {
+            transformation.serializeLocal(document, objectElement);
+        } else {
+            transformation.serialize(document, objectElement);
+        }
     } else {
         //if part of custom animation, it means the original position is at the parent. Serialize that
         const Transformation* parent = transformation.getParentTransform();

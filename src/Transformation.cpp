@@ -176,14 +176,10 @@ bool Transformation::addImGuizmoElements(const ImGuizmoState &editorState, const
     ImGuizmo::BeginFrame();
     //before doing anything, make sure the values are actual.
     this->getWorldTransform();
-    
-    glm::vec3 eulerRotation = glm::eulerAngles(orientation);
 
-    eulerRotation = eulerRotation * 57.2957795f;
-    ImGuizmo::RecomposeMatrixFromComponents(glm::value_ptr(translate),
-                                            glm::value_ptr(eulerRotation),
-                                            glm::value_ptr(scale),
-                                            glm::value_ptr(objectMatrix));
+    objectMatrix = glm::translate(glm::mat4(1.0f), translate) *
+                   glm::mat4_cast(orientation) *
+                   glm::scale(glm::mat4(1.0f), scale);
 
 
     ImGuiIO& io = ImGui::GetIO();
@@ -197,6 +193,8 @@ bool Transformation::addImGuizmoElements(const ImGuizmoState &editorState, const
     }
     float tempSnap[3] = {editorState.snap[0], editorState.snap[1], editorState.snap[2] };
     glm::mat4 deltaMatrix;
+    // Save original matrix before Manipulate overwrites objectMatrix in place.
+    const glm::mat4 originalObjectMatrix = objectMatrix;
     ImGuizmo::Manipulate(glm::value_ptr(cameraMatrix), glm::value_ptr(perspectiveMatrix), mCurrentGizmoOperation, mCurrentGizmoMode, glm::value_ptr(objectMatrix), glm::value_ptr(deltaMatrix), editorState.useSnap ? &(tempSnap[0]) : NULL);
     //now we should have object matrix updated, update the object
     glm::vec3 tempTranslate, tempScale, tempSkew;
@@ -211,14 +209,22 @@ bool Transformation::addImGuizmoElements(const ImGuizmoState &editorState, const
             }
             break;
         case ImGuizmo::ROTATE:
-            if(tempOrientation != glm::quat(1,0,0,0)) {
-                if(is2D) {
-                    tempOrientation.x = 0;
-                    tempOrientation.y = 0;
-                    tempOrientation = glm::normalize(tempOrientation);
+            {
+                // deltaMatrix_math = M * R_rot * M^-1. Recover R_rot by the inverse conjugation.
+                glm::mat4 localDeltaMatrix = glm::inverse(originalObjectMatrix) * deltaMatrix * originalObjectMatrix;
+                glm::vec3 ls, lt, lsk;
+                glm::vec4 lp;
+                glm::quat localOrientation;
+                glm::decompose(localDeltaMatrix, ls, localOrientation, lt, lsk, lp);
+                if(localOrientation != glm::quat(1,0,0,0)) {
+                    if(is2D) {
+                        localOrientation.x = 0;
+                        localOrientation.y = 0;
+                        localOrientation = glm::normalize(localOrientation);
+                    }
+                    addOrientation(localOrientation);
+                    return true;
                 }
-                addOrientation(tempOrientation);
-                return true;
             }
             break;
         case ImGuizmo::SCALE:
@@ -313,6 +319,53 @@ bool Transformation::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLEle
     parent->InsertEndChild(currentElement);
     currentElement = document.NewElement("W");
     currentElement->SetText(orientation.w);
+    parent->InsertEndChild(currentElement);
+    classNode->InsertEndChild(parent);
+
+    return true;
+}
+
+bool Transformation::serializeLocal(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentNode) const {
+    tinyxml2::XMLElement* currentElement;
+    tinyxml2::XMLElement *classNode = document.NewElement("Transformation");
+    parentNode->InsertEndChild(classNode);
+
+    tinyxml2::XMLElement *parent = document.NewElement("Scale");
+    currentElement = document.NewElement("X");
+    currentElement->SetText(scaleSingle.x);
+    parent->InsertEndChild(currentElement);
+    currentElement = document.NewElement("Y");
+    currentElement->SetText(scaleSingle.y);
+    parent->InsertEndChild(currentElement);
+    currentElement = document.NewElement("Z");
+    currentElement->SetText(scaleSingle.z);
+    parent->InsertEndChild(currentElement);
+    classNode->InsertEndChild(parent);
+
+    parent = document.NewElement("Translate");
+    currentElement = document.NewElement("X");
+    currentElement->SetText(translateSingle.x);
+    parent->InsertEndChild(currentElement);
+    currentElement = document.NewElement("Y");
+    currentElement->SetText(translateSingle.y);
+    parent->InsertEndChild(currentElement);
+    currentElement = document.NewElement("Z");
+    currentElement->SetText(translateSingle.z);
+    parent->InsertEndChild(currentElement);
+    classNode->InsertEndChild(parent);
+
+    parent = document.NewElement("Rotate");
+    currentElement = document.NewElement("X");
+    currentElement->SetText(orientationSingle.x);
+    parent->InsertEndChild(currentElement);
+    currentElement = document.NewElement("Y");
+    currentElement->SetText(orientationSingle.y);
+    parent->InsertEndChild(currentElement);
+    currentElement = document.NewElement("Z");
+    currentElement->SetText(orientationSingle.z);
+    parent->InsertEndChild(currentElement);
+    currentElement = document.NewElement("W");
+    currentElement->SetText(orientationSingle.w);
     parent->InsertEndChild(currentElement);
     classNode->InsertEndChild(parent);
 

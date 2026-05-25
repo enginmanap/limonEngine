@@ -428,6 +428,11 @@ public:
 
     bool serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentNode) const;
 
+    // Saves translateSingle/scaleSingle/orientationSingle (local values relative to bone).
+    // Required for bone-attached objects: boneTransforms are identity at load time, so
+    // attachTo cannot correctly compute local from world for bone parents.
+    bool serializeLocal(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentNode) const;
+
     bool deserialize(tinyxml2::XMLElement *transformationNode);
 
 };

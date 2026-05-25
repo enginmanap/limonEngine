@@ -484,7 +484,15 @@ void WorldLoader::loadPlayerAttachmentV2(tinyxml2::XMLElement* attachmentNode, M
     for(auto& pa : pending) {
         auto it = attachmentModels.find(pa.parentID);
         if(it != attachmentModels.end()) {
-            pa.child->attachTo(it->second, pa.boneID);
+            Model* parentModel = it->second;
+            if(pa.boneID != -1) {
+                pa.child->setParentObject(parentModel, pa.boneID);
+                parentModel->addChild(pa.child);
+                pa.child->getTransformation()->setParentTransform(
+                    parentModel->getAttachmentTransformForKnownBone(pa.boneID));
+            } else {
+                pa.child->attachTo(parentModel, pa.boneID);
+            }
         } else {
             std::cerr << "Attachment child " << pa.child->getWorldObjectID() << " parent " << pa.parentID << " not found, skipped." << std::endl;
         }
@@ -996,11 +1004,25 @@ bool WorldLoader::loadObjectsFromXMLV2(tinyxml2::XMLNode *objectsNode, World *wo
     }
 
     // Second pass: wire up all parent-child relationships.
-    // Saved transforms are world values; attachTo converts world->local correctly.
+    // Non-bone: saved values are world coords, attachTo converts world->local correctly.
+    // Bone: boneTransforms are identity at load time so attachTo would give wrong local;
+    //       saved values are local (serializeLocal), preserved via setParentTransform.
     for(auto& pa : pendingAttachments) {
         Attachable* parent = world->findAttachableByID(pa.parentID);
         if(parent != nullptr) {
-            pa.child->attachTo(parent, pa.parentBoneID);
+            if(pa.parentBoneID != -1) {
+                Model* parentModel = dynamic_cast<Model*>(parent);
+                if(parentModel != nullptr) {
+                    pa.child->setParentObject(parentModel, pa.parentBoneID);
+                    parentModel->addChild(pa.child);
+                    pa.child->getTransformation()->setParentTransform(
+                        parentModel->getAttachmentTransformForKnownBone(pa.parentBoneID));
+                } else {
+                    pa.child->attachTo(parent, pa.parentBoneID);
+                }
+            } else {
+                pa.child->attachTo(parent, pa.parentBoneID);
+            }
         } else {
             std::cerr << "Object " << pa.child->getWorldObjectID() << " parent " << pa.parentID << " not found, attachment skipped." << std::endl;
         }
