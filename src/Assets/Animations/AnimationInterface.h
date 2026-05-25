@@ -22,6 +22,9 @@ public:
     virtual float getDuration() const = 0;
 
     virtual ~AnimationInterface(){}
+
+    AnimationInterface(AnimationInterface&&) noexcept = default;
+    AnimationInterface& operator=(AnimationInterface&&) noexcept = default;
 };
 
 

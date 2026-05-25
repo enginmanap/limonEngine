@@ -24,6 +24,9 @@ class AnimationAssimpSection : public AnimationInterface {
 public:
     AnimationAssimpSection(std::shared_ptr<AnimationInterface> base, float startTime, float endTime);
 
+    AnimationAssimpSection(AnimationAssimpSection&&) noexcept = default;
+    AnimationAssimpSection& operator=(AnimationAssimpSection&&) noexcept = default;
+
     bool calculateTransform(const std::string& nodeName, float time, Transformation& transformation) const;
 
     float getTicksPerSecond() const {

@@ -13,6 +13,9 @@
 
 class HashUtil {
 public:
+    HashUtil(HashUtil&&) noexcept = default;
+    HashUtil& operator=(HashUtil&&) noexcept = default;
+
     class HashedString {
     public :
         const uint64_t hash;
