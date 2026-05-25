@@ -23,6 +23,9 @@ public:
 
     virtual ~AnimationInterface(){}
 
+    AnimationInterface() = default;
+    AnimationInterface(const AnimationInterface&) = default;
+    AnimationInterface& operator=(const AnimationInterface&) = default;
     AnimationInterface(AnimationInterface&&) noexcept = default;
     AnimationInterface& operator=(AnimationInterface&&) noexcept = default;
 };

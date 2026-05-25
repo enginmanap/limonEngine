@@ -13,8 +13,7 @@
 
 class HashUtil {
 public:
-    HashUtil(HashUtil&&) noexcept = default;
-    HashUtil& operator=(HashUtil&&) noexcept = default;
+    HashUtil() = delete;
 
     class HashedString {
     public :

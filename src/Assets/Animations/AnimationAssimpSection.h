@@ -24,6 +24,8 @@ class AnimationAssimpSection : public AnimationInterface {
 public:
     AnimationAssimpSection(std::shared_ptr<AnimationInterface> base, float startTime, float endTime);
 
+    AnimationAssimpSection(const AnimationAssimpSection&) = default;
+    AnimationAssimpSection& operator=(const AnimationAssimpSection&) = default;
     AnimationAssimpSection(AnimationAssimpSection&&) noexcept = default;
     AnimationAssimpSection& operator=(AnimationAssimpSection&&) noexcept = default;
 
