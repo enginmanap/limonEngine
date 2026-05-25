@@ -6,16 +6,20 @@
 #define LIMONENGINE_NOEXCEPTFUNCTION_H
 
 #include <functional>
+#include <type_traits>
 
-class NoexceptFunction {
-    std::function<void()> internal_func;
+template <typename Signature>
+class NoexceptFunction;
+
+template <typename Ret, typename... Args>
+class NoexceptFunction<Ret(Args...)> {
+    std::function<Ret(Args...)> internal_func;
 
 public:
     // 1. Constructors
     NoexceptFunction() : internal_func(nullptr) {}
     NoexceptFunction(std::nullptr_t) : internal_func(nullptr) {}
 
-    // Default copy/move constructors so it behaves like a standard object
     NoexceptFunction(const NoexceptFunction&) = default;
     NoexceptFunction(NoexceptFunction&&) noexcept = default;
 
@@ -23,13 +27,13 @@ public:
     template <typename F,
               typename = std::enable_if_t<!std::is_same_v<std::decay_t<F>, NoexceptFunction>>>
     NoexceptFunction(F&& func) {
-        static_assert(noexcept(std::declval<F>()()),
+        static_assert(noexcept(std::declval<F>()(std::declval<Args>()...)),
                       "ERROR: You can only assign 'noexcept' callables to this function wrapper!");
 
         internal_func = std::forward<F>(func);
     }
 
-    // 3. Assignment Operators (Fixes the nullptr initialization/assignment issue)
+    // 3. Assignment Operators
     NoexceptFunction& operator=(const NoexceptFunction&) = default;
     NoexceptFunction& operator=(NoexceptFunction&&) noexcept = default;
 
@@ -39,9 +43,12 @@ public:
     }
 
     // 4. Execution & Bool check
-    void operator()() const noexcept {
+    Ret operator()(Args... args) const noexcept {
         if (internal_func) {
-            internal_func();
+            return internal_func(std::forward<Args>(args)...);
+        }
+        if constexpr (!std::is_void_v<Ret>) {
+            return Ret{};
         }
     }
 

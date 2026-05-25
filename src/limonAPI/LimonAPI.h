@@ -15,6 +15,7 @@
 #include "InputStates.h"
 #include "LimonTypes.h"
 #include "ProfileScope.h"
+#include "util/NoexceptFunction.h"
 
 class Model;
 class AnimationCustom;
@@ -360,7 +361,7 @@ private:
     std::function<bool(const std::string&)> worldChangeRenderPipeline;
 
     std::function<uint64_t(const char*, size_t)> worldBeginProfileZone;
-    std::function<void(uint64_t)> worldEndProfileZone;
+    NoexceptFunction<void(uint64_t)> worldEndProfileZone;
 
     std::function<void(Logger::Subsystem, Logger::Level, const std::string&)> worldLog;
     std::function<uint32_t(const LimonTypes::Vec4&, const LimonTypes::Vec4&, const LimonTypes::Vec4&, const LimonTypes::Vec4&, bool)> worldDrawDebugLine;

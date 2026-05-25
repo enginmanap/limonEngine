@@ -290,10 +290,10 @@ namespace OptionsUtil {
         Option<long> widthOption;
 
         /*SDL properties that should be available */
-        void *imeWindowHandle;
-        int drawableWidth, drawableHeight;
-        int windowWidth, windowHeight;
-        bool isWindowInFocus;
+        void *imeWindowHandle = nullptr;
+        int drawableWidth = 0, drawableHeight = 0;
+        int windowWidth = 0, windowHeight = 0;
+        bool isWindowInFocus = false    ;
 
         bool loadVec3(tinyxml2::XMLNode *optionsNode, const std::string &name, glm::vec3 &);
 

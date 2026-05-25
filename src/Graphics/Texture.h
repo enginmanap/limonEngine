@@ -27,7 +27,7 @@ public:
         int defaultSize[2] = {1920, 1080};
         int depth = 0;//3D textures, or texture arrays have this as element count
         float borderColor[4] = {0.0, 0.0, 0.0, 0.0};
-        uint32_t serializeID;
+        uint32_t serializeID = 0;
         bool borderColorSet = false;
 
     };

@@ -32,13 +32,13 @@ class ALHelper {
     struct PlayingSound {
         uint32_t soundID;
         std::shared_ptr<SoundAsset> asset;
-        uint64_t sampleCountToPlay;
+        uint64_t sampleCountToPlay = 0;
         ALuint source = 0;
-        ALenum format;
+        ALenum format = AL_FORMAT_STEREO16;
         ALuint buffers[NUM_BUFFERS];
-        float gain;
-        const int16_t *nextDataToBuffer;
-        bool looped;
+        float gain = 1.0f;
+        const int16_t *nextDataToBuffer = nullptr;
+        bool looped = false;
         bool paused = false;
         bool stopped = false;
         glm::vec3 position = glm::vec3(0,0,0);

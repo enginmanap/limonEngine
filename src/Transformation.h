@@ -16,7 +16,7 @@
 #include <glm/gtc/matrix_inverse.hpp>
 #include <glm/gtx/matrix_decompose.hpp>
 
-#include "Utils/NoexceptFunction.h"
+#include "limonAPI/util/NoexceptFunction.h"
 
 class Transformation {
     /* EDITOR INFORMATION PART */
@@ -30,7 +30,7 @@ class Transformation {
 
     mutable glm::mat4 worldTransform;//private
 
-    NoexceptFunction updateCallback = nullptr;
+    NoexceptFunction<void()> updateCallback = nullptr;
 
     void notifyOwner() noexcept {
         updateCallback();
@@ -238,7 +238,7 @@ public:
         this->propagateUpdate();
     }
 
-    void setUpdateCallback(NoexceptFunction callback) {
+    void setUpdateCallback(NoexceptFunction<void()> callback) {
         updateCallback = std::move(callback);
     }
 
