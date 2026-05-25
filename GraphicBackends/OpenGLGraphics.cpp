@@ -1494,7 +1494,7 @@ void OpenGLGraphics::createDebugVAOVBO(uint32_t &vao, uint32_t &vbo, uint32_t bu
     //glBufferSubData(GL_ARRAY_BUFFER, 0, vertexSize, vertexData);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 28, nullptr); //position
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 28, (void*)12); //color
-    glVertexAttribPointer(2, 1, GL_INT,  GL_FALSE, 28, (void*)24); //needsCameraTransform
+    glVertexAttribIPointer(2, 1, GL_INT, 28, (void*)24); //needsCameraTransform
     glEnableVertexAttribArray(0);
     glEnableVertexAttribArray(1);
     glEnableVertexAttribArray(2);
