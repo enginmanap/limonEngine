@@ -100,6 +100,12 @@ void GUITextBase::renderWithProgram(std::shared_ptr<GraphicsProgram> renderProgr
             std::cerr << "failed to set uniform \"worldTransformMatrix\"" << std::endl;
         }
 
+        if (quadSizeX == 0.0f || quadSizeY == 0.0f) {
+            // Whitespace or other zero-bitmap glyph — advance cursor but don't draw.
+            totalAdvance += (glyph->getAdvance() / 64.0f) * this->getScale().x;
+            continue;
+        }
+
         if (!renderProgram->setUniform("GUISampler", glyphAttachPoint)) {
             std::cerr << "failed to set uniform \"GUISampler\"" << std::endl;
         }

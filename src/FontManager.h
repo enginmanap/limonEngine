@@ -29,10 +29,14 @@ public:
         if (FT_Load_Char(face, character, FT_LOAD_RENDER)) {
             std::cout << "ERROR::FREETYTPE: Failed to load Glyph" << std::endl;
         } else {
-            texture = std::make_unique<Texture>(graphicsWrapper, GraphicsInterface::TextureTypes::T2D,
-                                                GraphicsInterface::InternalFormatTypes::RED, GraphicsInterface::FormatTypes::RED, GraphicsInterface::DataTypes::UNSIGNED_BYTE,
-                                                face->glyph->bitmap.width, face->glyph->bitmap.rows);
-            texture->loadData(face->glyph->bitmap.buffer);
+            // Space and other whitespace characters have a valid advance but a 0x0 bitmap.
+            // Uploading a 0-dimension texture is invalid per the OpenGL spec; skip it.
+            if (face->glyph->bitmap.width > 0 && face->glyph->bitmap.rows > 0) {
+                texture = std::make_unique<Texture>(graphicsWrapper, GraphicsInterface::TextureTypes::T2D,
+                                                    GraphicsInterface::InternalFormatTypes::RED, GraphicsInterface::FormatTypes::RED, GraphicsInterface::DataTypes::UNSIGNED_BYTE,
+                                                    face->glyph->bitmap.width, face->glyph->bitmap.rows);
+                texture->loadData(face->glyph->bitmap.buffer);
+            }
             this->size = glm::mediump_ivec2(face->glyph->bitmap.width, face->glyph->bitmap.rows);
             bearing = glm::mediump_ivec2(face->glyph->bitmap_left, face->glyph->bitmap_top);
             advance = face->glyph->advance.x;
@@ -47,7 +51,7 @@ public:
 
     }
 
-    uint32_t getTextureID() const { return texture->getTextureID(); }
+    uint32_t getTextureID() const { return texture ? texture->getTextureID() : 0; }
 
     const glm::mediump_ivec2 &getSize() const { return size; }
 
