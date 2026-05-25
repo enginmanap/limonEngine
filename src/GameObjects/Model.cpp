@@ -563,8 +563,7 @@ Model::~Model() {
     for (size_t i = 0; i < children.size(); ++i) {
         children[i]->setParentObject(nullptr);
     }
-    std::string assetKey = flipAxes.empty() ? name : name + "?flip" + flipAxes;
-    assetManager->freeAsset({assetKey});
+    assetManager->freeAsset({modelAsset->getName()});
 }
 
 Model::Model(const Model &otherModel, uint32_t objectID) :
@@ -704,7 +703,7 @@ void Model::reloadWithFlip(const std::string &newFlipAxes) {
         return;
     }
 
-    std::string oldKey = flipAxes.empty() ? name : name + "?flip" + flipAxes;
+    std::string oldKey = modelAsset->getName();
     std::string newKey = newFlipAxes.empty() ? name : name + "?flip" + newFlipAxes;
     flipAxes = newFlipAxes;
 
