@@ -256,7 +256,7 @@ private:
         }
         bool hasError = false;
         while ((error = glGetError()) != GL_NO_ERROR) {
-            const GLubyte* errString = nullptr;
+            const GLubyte* errString = gluErrorString(error);
             std::cerr << "error found on GL context while " << callerFunc << ":" << error << ": " << (errString ? (const char*)errString : "Unknown Error")
                       << std::endl;
             hasError = true;

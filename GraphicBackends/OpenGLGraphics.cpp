@@ -771,9 +771,9 @@ OpenGLGraphics::switchRenderStage(uint32_t width, uint32_t height, uint32_t fram
         case OpenGLGraphics::CullModes::NO_CHANGE: break;
     }
     if(blendEnabled) {
-        glEnablei(GL_BLEND, 0);
+        glEnable(GL_BLEND);
     } else {
-        glDisablei(GL_BLEND, 0);
+        glDisable(GL_BLEND);
     }
     checkErrors("switchRenderStage");
 }
@@ -834,9 +834,9 @@ OpenGLGraphics::switchRenderStage(uint32_t width, uint32_t height, uint32_t fram
         case OpenGLGraphics::CullModes::NO_CHANGE: break;
     }
     if(blendEnabled) {
-        glEnablei(GL_BLEND, 0);
+        glEnable(GL_BLEND);
     } else {
-        glDisablei(GL_BLEND, 0);
+        glDisable(GL_BLEND);
     }
     checkErrors("switchRenderStageLayer");
 }
