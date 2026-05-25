@@ -219,8 +219,7 @@ TARGET_LINK_LIBRARIES(LimonEngine ProfilerSystemLib ImGui ImGuizmo OpenAL meshop
 target_precompile_headers(LimonEngine PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src/stdafx.h)
 
 IF (WIN32)
-    #add icon to windows binary
-    target_sources(LimonEngine PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/resources/limonEngine.res")
+    target_sources(LimonEngine PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/resources/limonEngine.rc")
 ENDIF()
 
 add_library(LimonAPI STATIC
