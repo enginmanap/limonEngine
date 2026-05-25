@@ -1217,7 +1217,6 @@ void OpenGLESGraphics::attachDrawTextureToFrameBuffer(uint32_t frameBufferID, Te
         if (index >= maxDrawBuffers) {
              std::cerr << "Trying to attach to a color attachment index (" << index << ") that is higher than supported (" << maxDrawBuffers << ")" << std::endl;
         } else {
-            GLint attachmentTemp;
             std::vector<GLenum> drawBufferAttachments(maxDrawBuffers);
             for (int i = 0; i < maxDrawBuffers; ++i) {
                 if (i == (int)index) {

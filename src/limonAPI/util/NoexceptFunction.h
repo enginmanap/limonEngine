@@ -45,7 +45,7 @@ public:
     // 4. Execution & Bool check
     Ret operator()(Args... args) const noexcept {
         if (internal_func) {
-            return internal_func(std::forward<Args>(args)...);
+            return internal_func(std::move(args)...);
         }
         if constexpr (!std::is_void_v<Ret>) {
             return Ret{};

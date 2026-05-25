@@ -170,7 +170,7 @@ private:
             std::pair<std::shared_ptr<Asset>, bool> assetAndLoadNext = assetLoadCpuQueue.popFrontOrBlockFor(std::chrono::milliseconds(5));
             if (assetAndLoadNext.first != nullptr) {
                 if(assetAndLoadNext.first->getLoadState() != Asset::LoadState::INITIATED) {
-                    std::cerr << " asset " << assetAndLoadNext.first->getName() << " tried to start another load??" << std::endl;
+                    std::cerr << " asset " << assetAndLoadNext.first->getAssetName() << " tried to start another load??" << std::endl;
                     continue;
                 }
                 assetAndLoadNext.first->setLoadState(Asset::LoadState::CPU_LOAD_STARTED);

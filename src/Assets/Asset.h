@@ -45,7 +45,7 @@ protected:
     AssetManager* assetManager;
     uint32_t assetID;
     std::vector<std::string> fileList;
-    std::string name;
+    std::string assetName;
     /**
      * This is an empty constructor, used to indicate what parameters the Asset constructors must have.
      * It should construct the basic object, and allow initialization afterwards, possibly on another thread.
@@ -55,14 +55,14 @@ protected:
      * @return empty asset
      */
     Asset(AssetManager *assetManager, uint32_t assetID, const std::vector<std::string> &fileList)
-            : assetManager(assetManager), assetID(assetID), fileList(fileList), name(StringUtils::join(fileList, ",")) {};
+            : assetManager(assetManager), assetID(assetID), fileList(fileList), assetName(StringUtils::join(fileList, ",")) {};
 
     /**
  * This is a constructor that is used for cereal loading.
  */
 #ifdef CEREAL_SUPPORT
     Asset(AssetManager *assetManager, uint32_t assetID, const std::vector<std::string> &fileList, cereal::BinaryInputArchive& binaryArchive [[gnu::unused]])
-            : assetManager(assetManager), assetID(assetID), fileList(fileList), name(StringUtils::join(fileList, ",")) {};
+            : assetManager(assetManager), assetID(assetID), fileList(fileList), assetName(StringUtils::join(fileList, ",")) {};
 #endif
 
 public:
@@ -70,8 +70,8 @@ public:
         return assetID;
     }
 
-    const std::string& getName() const {
-        return name;
+    const std::string& getAssetName() const {
+        return assetName;
     }
 
     LoadState getLoadState() {

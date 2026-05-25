@@ -95,10 +95,10 @@ public:
         //the documentation says Assimp is row major while GLM and OpenGL is colomn major,
         //but access to elements are the same, so the following is correct.
         return glm::mat4(
-                matrix[0][0], matrix[1][0], matrix[2][0], matrix[3][0],
-                matrix[0][1], matrix[1][1], matrix[2][1], matrix[3][1],
-                matrix[0][2], matrix[1][2], matrix[2][2], matrix[3][2],
-                matrix[0][3], matrix[1][3], matrix[2][3], matrix[3][3]
+                matrix.a1,  matrix.b1,  matrix.c1,  matrix.d1,
+                matrix.a2,  matrix.b2,  matrix.c2,  matrix.d2,
+                matrix.a3,  matrix.b3,  matrix.c3,  matrix.d3,
+                matrix.a4,  matrix.b4,  matrix.c4,  matrix.d4
         );
     }
 

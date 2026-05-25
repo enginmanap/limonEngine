@@ -563,7 +563,7 @@ Model::~Model() {
     for (size_t i = 0; i < children.size(); ++i) {
         children[i]->setParentObject(nullptr);
     }
-    assetManager->freeAsset({modelAsset->getName()});
+    assetManager->freeAsset({modelAsset->getAssetName()});
 }
 
 Model::Model(const Model &otherModel, uint32_t objectID) :
@@ -580,10 +580,10 @@ Model::Model(const Model &otherModel, uint32_t objectID) :
     this->animationTimeScale = otherModel.animationTimeScale;
     this->animationTime = otherModel.animationTime;
 
-    for (const auto& override : otherModel.getNewMeshMaterials()) {
+    for (const auto& materialOverride : otherModel.getNewMeshMaterials()) {
         for (auto& meshMeta : this->meshMetaData) {
-            if (meshMeta->mesh->getName() == override.first) {
-                meshMeta->material = override.second;
+            if (meshMeta->mesh->getName() == materialOverride.first) {
+                meshMeta->material = materialOverride.second;
                 break;
             }
         }
@@ -703,7 +703,7 @@ void Model::reloadWithFlip(const std::string &newFlipAxes) {
         return;
     }
 
-    std::string oldKey = modelAsset->getName();
+    std::string oldKey = modelAsset->getAssetName();
     std::string newKey = newFlipAxes.empty() ? name : name + "?flip" + newFlipAxes;
     flipAxes = newFlipAxes;
 

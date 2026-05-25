@@ -47,16 +47,16 @@ void ModelAsset::loadCPUPart() {
 
     //std::cout << "ASSIMP::Loading::" << name << std::endl;
     const aiScene *scene;
-    Assimp::Importer import;
-    import.SetPropertyBool("AI_CONFIG_IMPORT_FBX_EMBEDDED_TEXTURES_LEGACY_NAMING", true);
+    Assimp::Importer assimpImporter;
+    assimpImporter.SetPropertyBool("AI_CONFIG_IMPORT_FBX_EMBEDDED_TEXTURES_LEGACY_NAMING", true);
     unsigned int flags = (aiProcess_GlobalScale|aiProcess_GenBoundingBoxes | aiProcess_FlipUVs | aiProcessPreset_TargetRealtime_MaxQuality);
 #ifdef ASSIMP_VALIDATE_WORKAROUND
     flags = flags & ~aiProcess_FindInvalidData;
 #endif
-    scene = import.ReadFile(name, flags);
+    scene = assimpImporter.ReadFile(name, flags);
 
     if (!scene || scene->mFlags == AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
-        std::cerr << "ERROR::ASSIMP::"<<name<<"::" << import.GetErrorString() << std::endl;
+        std::cerr << "ERROR::ASSIMP::"<<name<<"::" << assimpImporter.GetErrorString() << std::endl;
         exit(-1);
     }
 
