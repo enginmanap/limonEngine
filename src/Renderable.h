@@ -27,7 +27,8 @@ protected:
 
     explicit Renderable(GraphicsInterface* graphicsWrapper) :
             graphicsWrapper(graphicsWrapper) {
-        this->inLightFrustum.resize(NR_TOTAL_LIGHTS);
+        OptionsUtil::Options::Option<long> maxPointLightOption = graphicsWrapper->getOptions()->getOption<long>(HASH("maximumPointLights"));
+        this->inLightFrustum.resize(maxPointLightOption.getOrDefault(4));
     }
 
 public:

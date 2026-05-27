@@ -28,17 +28,13 @@
 #include "AnimationSequencer.h"
 #include "GUI/GUICursor.h"
 #include "GameObjects/GUIText.h"
-#include "GameObjects/GUIImage.h"
 #include "GameObjects/GUIButton.h"
-#include "GameObjects/GUIAnimation.h"
 #include "GameObjects/ModelGroup.h"
 #include "Graphics/PostProcess/QuadRender.h"
 #include "Editor/Editor.h"
 #include "Occlusion/RenderList.h"
-#include "snapdragon-oc/Source/app/FuzzyCulling/API/SDOCAPI.h"
 #include "Occlusion/VisibilityManager.h"
 #include "Profiler/ProfilerMacros.h"
-#include "Editor/ProfilerUI.h"
 
 const std::map<World::PlayerInfo::Types, std::string> World::PlayerInfo::typeNames =
     {
@@ -145,10 +141,10 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
     modelIndicesBuffer.reserve(NR_MAX_MODELS);
     tempRenderedObjectsSet.reserve(NR_MAX_MODELS);
 
-    activeLights.reserve(NR_TOTAL_LIGHTS);
-
     OptionsUtil::Options::Option<bool> multiThreadCullingOption = options->getOption<bool>(HASH("multiThreadedCulling"));
     renderInformationsOption = options->getOption<bool>(HASH("renderInformations"));
+    maxLightsOption = options->getOption<long>(HASH("maximumPointLights"));
+    activeLights.reserve(maxLightsOption.getOrDefault(4));
 }
 
    RenderMethods World::buildRenderMethods() {
@@ -661,8 +657,7 @@ void World::renderGUITexts(const std::shared_ptr<GraphicsProgram>& renderProgram
     uint32_t triangle, line;
     graphicsWrapper->getRenderTriangleAndLineCount(triangle, line);
     renderCounts->updateText("Tris: " + std::to_string(triangle) + ", lines: " + std::to_string(line));
-    bool renderInformations;
-    renderInformations = renderInformationsOption.getOrDefault(false);
+    bool renderInformations =renderInformationsOption.getOrDefault(false);
     if (renderInformations) {
         renderCounts->renderWithProgram(renderProgram, 0);
         debugOutputGUI->renderWithProgram(renderProgram, 0);
@@ -1437,7 +1432,7 @@ void World::updateActiveLights(bool forceUpdate) {
         }
     }
 
-    if (culledPointLights.size() <= NR_POINT_LIGHTS) {
+    if (culledPointLights.size() <= static_cast<size_t>(maxLightsOption.getOrDefault(4) - 1)) {
         activeLights.insert(activeLights.end(), culledPointLights.begin(), culledPointLights.end());
         if (directionalLightIndex != -1) {
             activeLights.emplace_back(lights[directionalLightIndex]);
@@ -1445,7 +1440,7 @@ void World::updateActiveLights(bool forceUpdate) {
     } else {
         //this is the case we can't actually activate all the point light, sort and only activate the closest ones
         std::sort(culledPointLights.begin(), culledPointLights.end(), LightCloserToPlayer(currentPlayer->getPosition()));
-        for (int i = 0; i < NR_POINT_LIGHTS; ++i) {
+        for (long i = 0; i < (maxLightsOption.getOrDefault(4) -1 ); ++i) {
             activeLights.emplace_back(culledPointLights[i]);
             culledPointLights[i]->setFrustumChanged(true);//we don't know if it was active before
         }
@@ -1469,7 +1464,7 @@ void World::updateActiveLights(bool forceUpdate) {
                 );
     }
 
-    for (uint32_t i = activeLights.size(); i < NR_TOTAL_LIGHTS; ++i) {
+    for (int i = activeLights.size(); i < static_cast<int>(maxLightsOption.getOrDefault(4)); ++i) {
         graphicsWrapper->removeLight(i);
     }
 }

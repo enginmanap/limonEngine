@@ -200,6 +200,7 @@ private:
 #endif
 
     unsigned int screenHeight, screenWidth;
+    long totalLightCount;
     float aspect;
     std::vector<GLuint> bufferObjects;
     std::vector<GLuint> vertexArrays;

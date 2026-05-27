@@ -328,7 +328,7 @@ void OpenGLESGraphics::attachGeneralUBOs(const GLuint program){//Attach the ligh
         glBindBuffer(GL_UNIFORM_BUFFER, lightUBOLocation);
         glUniformBlockBinding(program, uniformIndex, lightAttachPoint);
         glBindBufferRange(GL_UNIFORM_BUFFER, lightAttachPoint, lightUBOLocation, 0,
-                          lightUniformSize * NR_TOTAL_LIGHTS);
+                          lightUniformSize * totalLightCount);
         glBindBuffer(GL_UNIFORM_BUFFER, 0);
     }
 
@@ -370,6 +370,8 @@ bool OpenGLESGraphics::createGraphicsBackend() {
 
     this->screenHeight = options->getScreenHeight();
     this->screenWidth = options->getScreenWidth();
+    OptionsUtil::Options::Option<long> maxPointLightOption = options->getOption<long>(HASH("maximumPointLights"));
+    this->totalLightCount = maxPointLightOption.getOrDefault(4);
     GLenum rev;
     error = GL_NO_ERROR;
     glewExperimental = GL_TRUE;
@@ -502,8 +504,8 @@ bool OpenGLESGraphics::createGraphicsBackend() {
     //create the Light Uniform Buffer Object for later usage
     glGenBuffers(1, &lightUBOLocation);
     glBindBuffer(GL_UNIFORM_BUFFER, lightUBOLocation);
-    std::vector<GLubyte> emptyData(lightUniformSize * NR_TOTAL_LIGHTS, 0);
-    glBufferData(GL_UNIFORM_BUFFER, lightUniformSize * NR_TOTAL_LIGHTS, &emptyData[0], GL_STATIC_DRAW);
+    std::vector<GLubyte> emptyData(lightUniformSize * this->totalLightCount, 0);
+    glBufferData(GL_UNIFORM_BUFFER, lightUniformSize * this->totalLightCount, &emptyData[0], GL_STATIC_DRAW);
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
     //create player transforms uniform buffer object

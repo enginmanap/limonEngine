@@ -2047,7 +2047,6 @@ void Editor::drawNodeEditor() {
         ImGui::End();
         return;
     }
-    ImGui::ShowDemoWindow();
 
     this->nodeGraph->display();
     static long handleId = 0;

@@ -220,7 +220,7 @@ private:
     float aspect;
     std::vector<GLuint> bufferObjects;
     std::vector<GLuint> vertexArrays;
-
+    long totalLightCount;
 
     GLuint lightUBOLocation;
     GLuint playerUBOLocation;
