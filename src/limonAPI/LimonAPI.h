@@ -63,8 +63,6 @@ public:
     bool applyForceToPlayer(const LimonTypes::Vec4 &forceAmount);
 
 
-    bool attachSoundToObjectAndPlay(uint32_t objectWorldID, const std::string &soundPath, bool looped = true);
-    bool detachSoundFromObject(uint32_t objectWorldID);
     uint32_t playSound(const std::string &soundPath, const glm::vec3 &position, bool positionRelative = false, bool looped = false, float referenceDistance = 2.0f, float maxDistance = 50.0f);
     bool stopSound(uint32_t soundID);
     bool pauseSound(uint32_t soundID);
@@ -314,8 +312,6 @@ private:
     std::function<bool (uint32_t, const LimonTypes::Vec4&, const LimonTypes::Vec4&)> worldApplyForce;
     std::function<bool (const LimonTypes::Vec4&)> worldApplyForceToPlayer;
 
-    std::function<bool (uint32_t, const std::string&, bool)> worldAttachSoundToObjectAndPlay;
-    std::function<bool (uint32_t)> worldDetachSoundFromObject;
     std::function<uint32_t (const std::string&, const glm::vec3&, bool, bool, float, float)> worldPlaySound;
     std::function<bool (uint32_t)> worldStopSound;
     std::function<bool (uint32_t)> worldPauseSound;

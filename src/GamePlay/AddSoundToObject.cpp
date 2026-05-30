@@ -26,13 +26,14 @@ std::vector<LimonTypes::GenericParameter> AddSoundToObject::getParameters() {
 }
 
 bool AddSoundToObject::run(std::vector<LimonTypes::GenericParameter> parameters) {
-
-    std::string* sound = nullptr;
-
     if(parameters[3].value.stringValue[0] != '\0') {
-        sound = new std::string(parameters[0].value.stringValue);
-        limonAPI->attachSoundToObjectAndPlay(static_cast<uint32_t>(parameters[1].value.longValue), *sound);
-        delete sound;
+        std::string soundPath(parameters[0].value.stringValue);
+        uint32_t objectID = static_cast<uint32_t>(parameters[1].value.longValue);
+        uint32_t soundID = limonAPI->playSound(soundPath, glm::vec3(0.0f, 0.0f, 0.0f), false, true);
+        if(soundID == 0) {
+            return false;
+        }
+        limonAPI->attachObjectToObject(soundID, objectID);
         return true;
     }
     return false;

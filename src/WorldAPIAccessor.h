@@ -113,8 +113,6 @@ public:
     bool setModelAnimationSpeedAPI(uint32_t modelID, float speed);
 
     // Sound
-    bool attachSoundToObjectAndPlay(uint32_t objectWorldID, const std::string& soundPath, bool looped = true);
-    bool detachSoundFromObject(uint32_t objectWorldID);
     uint32_t playSound(const std::string& soundPath, const glm::vec3& position, bool positionRelative, bool looped, float referenceDistance, float maxDistance);
     bool stopSound(uint32_t soundID);
     bool pauseSound(uint32_t soundID);

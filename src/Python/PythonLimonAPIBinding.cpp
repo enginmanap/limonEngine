@@ -200,13 +200,6 @@ void bindLimonAPI(pybind11::module_& m) {
                  pybind11::arg("model_id"))
 
             // Sound
-            .def("attach_sound_to_object_and_play", &LimonAPI::attachSoundToObjectAndPlay,
-                 "Attach a sound to an object and play it",
-                 pybind11::arg("object_id"), pybind11::arg("sound_path"),
-                 pybind11::arg("looped") = true)
-            .def("detach_sound_from_object", &LimonAPI::detachSoundFromObject,
-                 "Detach a sound from an object",
-                 pybind11::arg("object_id"))
             .def("play_sound", &LimonAPI::playSound,
                  "Play a sound. Returns sound ID",
                  pybind11::arg("sound_path"), pybind11::arg("position"),

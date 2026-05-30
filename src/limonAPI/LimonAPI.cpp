@@ -118,12 +118,6 @@ bool LimonAPI::applyForceToPlayer(const LimonTypes::Vec4 &forceAmount) {
     return worldApplyForceToPlayer(forceAmount);
 }
 
-bool LimonAPI::attachSoundToObjectAndPlay(uint32_t objectWorldID, const std::string &soundPath, bool looped) {
-    return worldAttachSoundToObjectAndPlay(objectWorldID, soundPath, looped);
-}
-bool LimonAPI::detachSoundFromObject(uint32_t objectWorldID){
-    return worldDetachSoundFromObject(objectWorldID);
-}
 uint32_t
 LimonAPI::playSound(const std::string &soundPath, const glm::vec3 &position, bool positionRelative, bool looped, float referenceDistance, float maxDistance) {
     return worldPlaySound(soundPath, position, positionRelative, looped, referenceDistance, maxDistance);
