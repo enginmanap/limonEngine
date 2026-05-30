@@ -75,6 +75,8 @@ include("libs/tracy/cmake/server.cmake")
 
 # TracyServer and PPQSort heavily depend on C++20 standard library features
 if(TARGET TracyServer)
+	find_package(TBB REQUIRED)
+	target_link_libraries(TracyServer INTERFACE TBB::tbb)
     set_target_properties(TracyServer PROPERTIES CXX_STANDARD 20 CXX_STANDARD_REQUIRED ON)
 endif()
 

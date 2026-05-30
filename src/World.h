@@ -20,6 +20,7 @@ static const int SKIP_LOD_LEVEL = 9999;
 #include "FontManager.h"
 #include "GameObjects/SkyBox.h"
 #include "GameObjects/Light.h"
+#include "GameObjects/Sound.h"
 #include "limonAPI/LimonAPI.h"
 #include "limonAPI/ActorInterface.h"
 #include "ALHelper.h"
@@ -311,6 +312,7 @@ private:
     std::unique_ptr<VisibilityManager> visibilityManager;
 
     static bool addPlayerAttachmentUsedIDs(const Attachable *attachment, std::set<uint32_t> &usedIDs, uint32_t &maxID);
+    static Attachable* findAttachableInSubtree(Attachable *root, uint32_t objectID);
 
     /**
          * This method checks, if IDs assigned without any empty space, and any collision
@@ -348,6 +350,7 @@ private:
     void setSky(SkyBox *skyBox);
 
     void addLight(Light *light);
+    void addSound(Sound* sound);
 
     void setupRenderForPipeline() const;
 

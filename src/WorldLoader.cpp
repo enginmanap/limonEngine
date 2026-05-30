@@ -99,6 +99,7 @@ void WorldLoader::attachedAPIMethodsToWorld(World *world, LimonAPI *limonAPI) co
     limonAPI->worldStopSound = std::bind(&WorldAPIAccessor::stopSound, world->apiAccessor, std::placeholders::_1);
     limonAPI->worldSetSoundVolume = std::bind(&WorldAPIAccessor::setSoundVolume, world->apiAccessor, std::placeholders::_1, std::placeholders::_2);
     limonAPI->worldIsSoundPlaying = std::bind(&WorldAPIAccessor::isSoundPlaying, world->apiAccessor, std::placeholders::_1);
+    limonAPI->worldSetSoundTemporary = std::bind(&WorldAPIAccessor::setSoundTemporaryAPI, world->apiAccessor, std::placeholders::_1, std::placeholders::_2);
     limonAPI->worldRayCastToCursor = std::bind(&WorldAPIAccessor::rayCastToCursorAPI, world->apiAccessor);
     limonAPI->worldRayCast = std::bind(&WorldAPIAccessor::rayCastAPI, world->apiAccessor, std::placeholders::_1, std::placeholders::_2);
     limonAPI->worldGetObjectTransformation = std::bind(&WorldAPIAccessor::getObjectTransformationAPI, world->apiAccessor, std::placeholders::_1);
@@ -351,6 +352,7 @@ World * WorldLoader::loadMapFromXML(const std::string &worldFileName, LimonAPI *
         return nullptr;
     }
     loadLights(worldNode, world);
+    loadSounds(worldNode, world);
 
     //load onloadActions
     loadOnLoadActions(worldNode, world);
@@ -1264,6 +1266,101 @@ bool WorldLoader::loadLights(tinyxml2::XMLNode *lightsNode, World* world) const 
 
         lightNode =  lightNode->NextSiblingElement("Light");
     }
+    return true;
+}
+
+bool WorldLoader::loadSounds(tinyxml2::XMLNode *worldNode, World *world) const {
+    tinyxml2::XMLElement* soundsListNode = worldNode->FirstChildElement("Sounds");
+    if(soundsListNode == nullptr) {
+        return true; // No sounds section — valid for all pre-feature world files.
+    }
+
+    struct PendingSound { Sound* sound; uint32_t parentID; };
+    std::vector<PendingSound> pendingAttachments;
+
+    tinyxml2::XMLElement* soundNode = soundsListNode->FirstChildElement("Sound");
+    while(soundNode != nullptr) {
+        tinyxml2::XMLElement* fileEl = soundNode->FirstChildElement("File");
+        if(fileEl == nullptr || fileEl->GetText() == nullptr) {
+            std::cerr << "Sound entry missing File element, skipping." << std::endl;
+            soundNode = soundNode->NextSiblingElement("Sound");
+            continue;
+        }
+        std::string filePath = fileEl->GetText();
+
+        tinyxml2::XMLElement* idEl = soundNode->FirstChildElement("ID");
+        uint32_t soundID;
+        if(idEl == nullptr || idEl->GetText() == nullptr) {
+            soundID = world->getNextObjectID();
+            std::cerr << "Sound missing ID, assigning " << soundID << ". Re-save to make permanent." << std::endl;
+        } else {
+            soundID = std::stoul(idEl->GetText());
+            if(world->isIDUsed(soundID)) {
+                uint32_t newID = world->getNextObjectID();
+                std::cerr << "Sound ID " << soundID << " already in use, assigning " << newID << ". Re-save to make permanent." << std::endl;
+                soundID = newID;
+            }
+        }
+
+        Sound* sound = new Sound(soundID, assetManager, filePath);
+
+        tinyxml2::XMLElement* gainEl = soundNode->FirstChildElement("Gain");
+        if(gainEl != nullptr && gainEl->GetText() != nullptr) {
+            sound->changeGain(std::stof(gainEl->GetText()));
+        }
+
+        tinyxml2::XMLElement* refDistEl = soundNode->FirstChildElement("ReferenceDistance");
+        if(refDistEl != nullptr && refDistEl->GetText() != nullptr) {
+            sound->setReferenceDistance(std::stof(refDistEl->GetText()));
+        }
+
+        tinyxml2::XMLElement* maxDistEl = soundNode->FirstChildElement("MaxDistance");
+        if(maxDistEl != nullptr && maxDistEl->GetText() != nullptr) {
+            sound->setMaxDistance(std::stof(maxDistEl->GetText()));
+        }
+
+        tinyxml2::XMLElement* loopedEl = soundNode->FirstChildElement("Looped");
+        if(loopedEl != nullptr && loopedEl->GetText() != nullptr) {
+            sound->setLoop(std::string(loopedEl->GetText()) == "true");
+        }
+
+        tinyxml2::XMLElement* autoPlayEl = soundNode->FirstChildElement("AutoPlay");
+        if(autoPlayEl != nullptr && autoPlayEl->GetText() != nullptr) {
+            sound->setAutoPlay(std::string(autoPlayEl->GetText()) == "true");
+        }
+
+        tinyxml2::XMLElement* listenerRelEl = soundNode->FirstChildElement("ListenerRelative");
+        bool listenerRelative = false;
+        if(listenerRelEl != nullptr && listenerRelEl->GetText() != nullptr) {
+            listenerRelative = std::string(listenerRelEl->GetText()) == "true";
+        }
+
+        tinyxml2::XMLElement* transformEl = soundNode->FirstChildElement("Transformation");
+        if(transformEl != nullptr) {
+            sound->getTransformation()->deserialize(transformEl);
+        }
+
+        glm::vec3 worldPos = glm::vec3(sound->getTransformation()->getWorldTransform()[3]);
+        sound->setWorldPosition(worldPos, listenerRelative);
+
+        tinyxml2::XMLElement* parentEl = soundNode->FirstChildElement("ParentID");
+        if(parentEl != nullptr && parentEl->GetText() != nullptr) {
+            pendingAttachments.push_back({sound, std::stoul(parentEl->GetText())});
+        }
+
+        world->addSound(sound);
+        soundNode = soundNode->NextSiblingElement("Sound");
+    }
+
+    for(auto& ps : pendingAttachments) {
+        Attachable* parent = world->findAttachableByID(ps.parentID);
+        if(parent != nullptr) {
+            ps.sound->attachTo(parent);
+        } else {
+            std::cerr << "Sound parent ID " << ps.parentID << " not found, attachment skipped." << std::endl;
+        }
+    }
+
     return true;
 }
 

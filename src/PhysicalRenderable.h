@@ -9,7 +9,6 @@
 #include "Renderable.h"
 #include "Attachable.h"
 #include "Utils/GLMConverter.h"
-#include "GameObjects/Sound.h"
 #include <memory>
 
 class PhysicalRenderable : public Renderable, public Attachable {
@@ -20,7 +19,6 @@ protected:
     const float mass;
     btRigidBody *rigidBody = nullptr;
     bool disconnected = false;
-    std::unique_ptr<Sound> soundAttachment2 = nullptr;
     const float NOT_SCALE_LIMIT = 0.01;
     bool isScaled = true;
 
@@ -129,22 +127,6 @@ public:
         this->aabbMin = GLMConverter::BltToGLM(abMin);
         this->aabbMax = GLMConverter::BltToGLM(abMax);
         this->dirtyForFrustum = true;
-
-        if(this->soundAttachment2 != nullptr) {
-            this->soundAttachment2->setWorldPosition(this->transformation.getTranslate());
-        }
-    }
-
-    void setSoundAttachmentAndPlay(std::unique_ptr<Sound> soundAttachment) {
-        this->soundAttachment2 = std::move(soundAttachment);
-        this->soundAttachment2->setLoop(true);
-        this->soundAttachment2->setWorldPosition(this->transformation.getTranslate());
-        this->soundAttachment2->play();
-    }
-
-    void detachSound() {
-        this->soundAttachment2->stop();
-        this->soundAttachment2.reset(nullptr);
     }
 
     const glm::vec3 &getCenterOffset() const {

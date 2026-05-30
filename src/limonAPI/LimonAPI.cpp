@@ -141,6 +141,10 @@ bool LimonAPI::isSoundPlaying(uint32_t soundID) {
     return worldIsSoundPlaying(soundID);
 }
 
+bool LimonAPI::setSoundTemporary(uint32_t soundID, bool temporary) {
+    return worldSetSoundTemporary(soundID, temporary);
+}
+
 bool LimonAPI::loadAndSwitchWorld(const std::string& worldFileName) {
     return limonLoadWorld(worldFileName);
 }

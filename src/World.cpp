@@ -1069,6 +1069,13 @@ void World::afterLoadFinished() {
             playerCamera->setCameraAttachment(currentPlayer->getCameraAttachment());
         }
     }
+
+    for(auto& kv : sounds) {
+        if(kv.second->isAutoPlay()) {
+            kv.second->play();
+        }
+    }
+
     this->visibilityManager->start();
 }
 
@@ -1356,6 +1363,17 @@ Model* World::findModelByIDChildren(PhysicalRenderable* parent,uint32_t modelID)
     return nullptr;
 }
 
+Attachable* World::findAttachableInSubtree(Attachable *root, uint32_t objectID) {
+    if(root == nullptr) return nullptr;
+    const GameObject* go = dynamic_cast<const GameObject*>(root);
+    if(go != nullptr && go->getWorldObjectID() == objectID) return root;
+    for(Attachable* child : root->getChildren()) {
+        Attachable* found = findAttachableInSubtree(child, objectID);
+        if(found != nullptr) return found;
+    }
+    return nullptr;
+}
+
 Attachable* World::findAttachableByID(uint32_t objectID) const {
     if(startingPlayer.attachedModel != nullptr) {
         Model* playerAttachment = findModelByIDChildren(startingPlayer.attachedModel, objectID);
@@ -1389,7 +1407,20 @@ Attachable* World::findAttachableByID(uint32_t objectID) const {
             return light;
         }
     }
+    auto soundIt = sounds.find(objectID);
+    if(soundIt != sounds.end()) {
+        return soundIt->second.get();
+    }
+    // Player attachment models are not in world->objects — search that subtree last.
+    Attachable* playerAttachment = findAttachableInSubtree(startingPlayer.attachedModel, objectID);
+    if(playerAttachment != nullptr) {
+        return playerAttachment;
+    }
     return nullptr;
+}
+
+void World::addSound(Sound* sound) {
+    sounds[sound->getWorldObjectID()] = std::unique_ptr<Sound>(sound);
 }
 
 struct LightCloserToPlayer {
@@ -1560,6 +1591,7 @@ bool World::isIDUsed(uint32_t id) const {
     for (const Light* l : lights) {
         if (l->getWorldObjectID() == id) return true;
     }
+    if (sounds.count(id)) return true;
     return false;
 }
 
@@ -1641,6 +1673,15 @@ bool World::verifyIDs() {
             return false;
         }
         maxID = std::max(maxID, lightID);
+    }
+
+    for (auto& kv : sounds) {
+        auto result = usedIDs.insert(kv.first);
+        if (!result.second) {
+            std::cerr << "world ID repetition on sound detected! with id " << kv.first << std::endl;
+            return false;
+        }
+        maxID = std::max(maxID, kv.first);
     }
 
     uint32_t unusedIDCount = 0;

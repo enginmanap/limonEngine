@@ -69,6 +69,7 @@ public:
     bool stopSound(uint32_t soundID);
     bool setSoundVolume(uint32_t soundID, float volume);
     bool isSoundPlaying(uint32_t soundID);
+    bool setSoundTemporary(uint32_t soundID, bool temporary);
 
     bool interactWithAI(uint32_t AIID, std::vector<LimonTypes::GenericParameter> &interactionInformation);
 
@@ -316,6 +317,7 @@ private:
     std::function<bool (uint32_t)> worldStopSound;
     std::function<bool (uint32_t, float)> worldSetSoundVolume;
     std::function<bool (uint32_t)> worldIsSoundPlaying;
+    std::function<bool (uint32_t, bool)> worldSetSoundTemporary;
 
     std::function<std::vector<LimonTypes::GenericParameter>()> worldRayCastToCursor;
     std::function<std::vector<LimonTypes::GenericParameter>(const LimonTypes::Vec4&, const LimonTypes::Vec4&)> worldRayCast;

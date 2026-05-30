@@ -169,6 +169,12 @@ bool WorldSaver::saveWorld(const std::string& mapName, const World* world) {
     };
     rootNode->InsertEndChild(currentElement);//add lights
 
+    currentElement = mapDocument.NewElement("Sounds");
+    if(!fillSounds(mapDocument, currentElement, world)) {
+        return false;
+    };
+    rootNode->InsertEndChild(currentElement);//add sounds
+
     currentElement = mapDocument.NewElement("Emitters");
     if(!fillEmitters(mapDocument, currentElement, world)) {
         return false;
@@ -317,6 +323,62 @@ bool WorldSaver::fillLights(tinyxml2::XMLDocument &document, tinyxml2::XMLElemen
                 currentElement = document.NewElement("ParentID");
                 currentElement->SetText(std::to_string(parentGO->getWorldObjectID()).c_str());
                 lightElement->InsertEndChild(currentElement);
+            }
+        }
+    }
+    return true;
+}
+
+bool WorldSaver::fillSounds(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *soundsNode, const World *world) {
+    for(auto& kv : world->sounds) {
+        const Sound* sound = kv.second.get();
+        if(sound->isTemporary()) {
+            continue;
+        }
+
+        tinyxml2::XMLElement* soundElement = document.NewElement("Sound");
+        soundsNode->InsertEndChild(soundElement);
+
+        tinyxml2::XMLElement* currentElement = document.NewElement("File");
+        currentElement->SetText(sound->getName().c_str());
+        soundElement->InsertEndChild(currentElement);
+
+        currentElement = document.NewElement("ID");
+        currentElement->SetText(std::to_string(sound->getWorldObjectID()).c_str());
+        soundElement->InsertEndChild(currentElement);
+
+        currentElement = document.NewElement("Gain");
+        currentElement->SetText(sound->getGain());
+        soundElement->InsertEndChild(currentElement);
+
+        currentElement = document.NewElement("ReferenceDistance");
+        currentElement->SetText(sound->getReferenceDistance());
+        soundElement->InsertEndChild(currentElement);
+
+        currentElement = document.NewElement("MaxDistance");
+        currentElement->SetText(sound->getMaxDistance());
+        soundElement->InsertEndChild(currentElement);
+
+        currentElement = document.NewElement("Looped");
+        currentElement->SetText(sound->isLooped());
+        soundElement->InsertEndChild(currentElement);
+
+        currentElement = document.NewElement("AutoPlay");
+        currentElement->SetText(sound->isAutoPlay());
+        soundElement->InsertEndChild(currentElement);
+
+        currentElement = document.NewElement("ListenerRelative");
+        currentElement->SetText(sound->isListenerRelative());
+        soundElement->InsertEndChild(currentElement);
+
+        sound->getTransformation()->serialize(document, soundElement);
+
+        if(sound->getParentObject() != nullptr) {
+            const GameObject* parentGO = dynamic_cast<const GameObject*>(sound->getParentObject());
+            if(parentGO != nullptr) {
+                currentElement = document.NewElement("ParentID");
+                currentElement->SetText(std::to_string(parentGO->getWorldObjectID()).c_str());
+                soundElement->InsertEndChild(currentElement);
             }
         }
     }

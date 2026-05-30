@@ -24,6 +24,7 @@ ALHelper::ALHelper() {
     alcMakeContextCurrent(ctx);
 
     alDopplerFactor(0.5);
+    alDistanceModel(AL_LINEAR_DISTANCE_CLAMPED);
 
     if(!ctx) {
         throw("Audio context setup failed!");
@@ -201,12 +202,14 @@ bool ALHelper::resume(uint32_t soundID) {
     }
 }
 
-uint32_t ALHelper::play(std::shared_ptr<SoundAsset> soundAsset, bool looped, float gain) {
+uint32_t ALHelper::play(std::shared_ptr<SoundAsset> soundAsset, bool looped, float gain, float referenceDistance, float maxDistance) {
     uint32_t id = getNextRequestID();
     auto sound = std::unique_ptr<PlayingSound>(new PlayingSound(id));
     sound->asset = soundAsset;
     sound->looped = looped;
     sound->gain = gain;
+    sound->referenceDistance = referenceDistance;
+    sound->maxDistance = maxDistance;
 
     SDL_AtomicLock(&playRequestLock);
     this->playRequests.push_back(std::move(sound));
@@ -219,7 +222,9 @@ bool ALHelper::startPlay(std::unique_ptr<PlayingSound> &sound) {
     alGenBuffers(NUM_BUFFERS, sound->buffers);
     alGenSources(1, &sound->source);
 
-    alSourcef(sound->source,AL_GAIN,sound->gain);
+    alSourcef(sound->source,AL_GAIN,sound->gain / 1000.0f);
+    alSourcef(sound->source, AL_REFERENCE_DISTANCE, sound->referenceDistance);
+    alSourcef(sound->source, AL_MAX_DISTANCE, sound->maxDistance);
 
     if (sound->isPositionRelative) {
         alSourcei(sound->source, AL_SOURCE_RELATIVE, AL_TRUE);

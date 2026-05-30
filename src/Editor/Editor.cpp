@@ -652,6 +652,36 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
 
         }
 
+        if (ImGui::CollapsingHeader("Add Sound##The header")) {
+            ImGui::Indent(16.0f);
+            static const AssetManager::AvailableAssetsNode* selectedAddSoundAsset = nullptr;
+            static char addSoundFilter[32] = {0};
+            ImGui::InputText("Filter##AddSoundAssetFilter", addSoundFilter, sizeof(addSoundFilter), ImGuiInputTextFlags_CharsNoBlank);
+            std::string addSoundFilterStr = addSoundFilter;
+            std::transform(addSoundFilterStr.begin(), addSoundFilterStr.end(), addSoundFilterStr.begin(), ::tolower);
+            const AssetManager::AvailableAssetsNode* filteredSoundAssets = world->assetManager->getAvailableAssetsTreeFiltered(
+                    AssetManager::Asset_type_SOUND, addSoundFilterStr);
+            imgGuiHelper->buildTreeFromAssets(filteredSoundAssets, AssetManager::Asset_type_SOUND, "SoundAsset", &selectedAddSoundAsset);
+
+            if(selectedAddSoundAsset != nullptr) {
+                if(ImGui::Button("Place Sound at cursor position")) {
+                    Sound* newSound = new Sound(world->getNextObjectID(), world->assetManager, selectedAddSoundAsset->fullPath);
+                    newSound->setWorldPosition(newObjectPosition, false);
+                    world->addSound(newSound);
+                    if(this->pickedObject != nullptr) {
+                        this->pickedObject->removeTag(HardCodedTags::PICKED_OBJECT);
+                    }
+                    this->pickedObject = newSound;
+                    this->pickedObject->addTag(HardCodedTags::PICKED_OBJECT);
+                }
+            } else {
+                ImGui::Button("Place Sound at cursor position");
+                ImGui::SameLine();
+                ImGuiHelper::ShowHelpMarker("No sound asset selected");
+            }
+            ImGui::Unindent(16.0f);
+        }
+
         if (ImGui::CollapsingHeader("Add GUI Elements##The header")) {
             ImGui::Indent( 16.0f );
             if (ImGui::CollapsingHeader("Add GUI Layer##The header")) {
@@ -1205,6 +1235,20 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
                     }
                 }
                     break;
+                case GameObject::ObjectTypes::SOUND: {
+                    if(objectEditorResult.remove) {
+                        uint32_t soundID = this->pickedObject->getWorldObjectID();
+                        Sound* s = dynamic_cast<Sound*>(this->pickedObject);
+                        this->pickedObject = nullptr;
+                        if(s != nullptr) {
+                            s->stop();
+                            s->detach();
+                        }
+                        world->unusedIDs.push(soundID);
+                        world->sounds.erase(soundID);
+                    }
+                }
+                    break;
                 default: {
                     //there is nothing for now
                 }
@@ -1410,6 +1454,29 @@ void Editor::buildTreeFromAllGameObjects() {
                     this->pickedObject = currentObject;
                     this->pickedObject->addTag(HardCodedTags::PICKED_OBJECT);
                 }
+            }
+        }
+        ImGui::TreePop();
+    }
+
+    if(!parentageList.empty()) {
+        ImGui::SetNextItemOpen(false);
+    }
+    //Sounds
+    if (ImGui::TreeNode("Sounds##SoundsTreeRoot")) {
+        for(auto& kv : world->sounds) {
+            Sound* currentSound = kv.second.get();
+            if(currentSound->getParentObject() != nullptr) {
+                continue; // shown under parent in the Objects tree
+            }
+            bool isSelected = currentSound->getWorldObjectID() == this->pickedObjectID;
+            ImGui::TreeNodeEx(currentSound->getName().c_str(), leafFlags | (isSelected ? ImGuiTreeNodeFlags_Selected : 0));
+            if(ImGui::IsItemClicked()) {
+                if(this->pickedObject != nullptr) {
+                    this->pickedObject->removeTag(HardCodedTags::PICKED_OBJECT);
+                }
+                this->pickedObject = currentSound;
+                this->pickedObject->addTag(HardCodedTags::PICKED_OBJECT);
             }
         }
         ImGui::TreePop();

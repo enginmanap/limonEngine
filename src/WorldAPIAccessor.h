@@ -119,6 +119,7 @@ public:
     bool stopSound(uint32_t soundID);
     bool setSoundVolume(uint32_t soundID, float volume);
     bool isSoundPlaying(uint32_t soundID);
+    bool setSoundTemporaryAPI(uint32_t soundID, bool temporary);
 
     // Lights
     uint32_t addLightAPI(uint32_t lightType, const LimonTypes::Vec4& position, const LimonTypes::Vec4& color);

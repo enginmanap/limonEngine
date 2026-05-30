@@ -195,7 +195,7 @@ void CowboyShooterExtension::shootingTransition() {
     uint32_t muzzleFlashObjectID = limonAPI->addObject("./Data/Models/Muzzle/Muzzle.obj", 0, false, currentMuzzleFlashOffset, scale, direction);
     bool isAttached = limonAPI->attachObjectToObject(muzzleFlashObjectID, playerAttachedPistolID);
     if(!isAttached) {
-        std::cerr << "attachment failed!" << std::endl;
+        std::cerr << "muzzle flash attachment failed!" << std::endl;
     }
 
     /*************** Create muzzle flash *********************/
@@ -280,7 +280,11 @@ void CowboyShooterExtension::shootingTransition() {
                 glm::decompose(delta, scaledif, orientDif, posdif, temp1, temp2);
 
                 uint32_t bulletHoleID = limonAPI->addObject("./Data/Models/BulletHole/BulletHole.obj", 0, false, posdif, scaledif, orientDif);
-                limonAPI->attachObjectToObject(bulletHoleID, rayResult[0].value.longValue);
+                bool attachmentResult = limonAPI->attachObjectToObject(bulletHoleID, rayResult[0].value.longValue);
+                if (!attachmentResult) {
+                    std::cerr << "BulletHole attachment failed" << std::endl;
+                }
+
             }
         }
 

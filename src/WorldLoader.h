@@ -52,6 +52,7 @@ private:
     void loadPlayerAttachmentV2(tinyxml2::XMLElement* attachmentNode, Model*& attachedModel, LimonAPI* limonAPI) const;
     bool loadSkymap(tinyxml2::XMLNode *skymapNode, World* world) const;
     bool loadLights(tinyxml2::XMLNode *lightsNode, World* world) const;
+    bool loadSounds(tinyxml2::XMLNode *worldNode, World* world) const;
     bool loadParticleEmitters(tinyxml2::XMLNode *EmittersNode, World* world) const;
     bool loadGPUParticleEmitters(tinyxml2::XMLNode *GPUEmittersNode, World* world) const;
     bool loadAnimations(tinyxml2::XMLNode *worldNode, World *world) const;

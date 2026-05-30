@@ -831,20 +831,45 @@ bool WorldAPIAccessor::setModelAnimationSpeedAPI(uint32_t modelID, float speed) 
 }
 
 bool WorldAPIAccessor::attachSoundToObjectAndPlay(uint32_t objectWorldID, const std::string &soundPath, bool looped) {
-    if(world->objects.find(objectWorldID) == world->objects.end()) {
+    auto objIt = world->objects.find(objectWorldID);
+    if(objIt == world->objects.end()) {
         return false;
     }
     auto sound = std::make_unique<Sound>(world->getNextObjectID(), world->assetManager, soundPath);
     sound->setLoop(looped);
-    world->objects[objectWorldID]->setSoundAttachmentAndPlay(std::move(sound));
+    sound->setWorldPosition(glm::vec3(0,0,0), false);
+    sound->setTemporary(true);
+    sound->attachTo(objIt->second);
+    sound->play();
+    uint32_t soundID = sound->getWorldObjectID();
+    world->sounds[soundID] = std::move(sound);
     return true;
 }
 
 bool WorldAPIAccessor::detachSoundFromObject(uint32_t objectWorldID) {
-    if(world->objects.find(objectWorldID) == world->objects.end()) {
+    auto objIt = world->objects.find(objectWorldID);
+    if(objIt == world->objects.end()) {
         return false;
     }
-    world->objects[objectWorldID]->detachSound();
+    // Find any temporary sound attached to this object and remove it.
+    for(auto it = world->sounds.begin(); it != world->sounds.end(); ) {
+        if(it->second->getParentObject() == objIt->second) {
+            it->second->stop();
+            it->second->detach();
+            it = world->sounds.erase(it);
+        } else {
+            ++it;
+        }
+    }
+    return true;
+}
+
+bool WorldAPIAccessor::setSoundTemporaryAPI(uint32_t soundID, bool temporary) {
+    auto it = world->sounds.find(soundID);
+    if(it == world->sounds.end()) {
+        return false;
+    }
+    it->second->setTemporary(temporary);
     return true;
 }
 
