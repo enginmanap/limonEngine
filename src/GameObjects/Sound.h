@@ -31,8 +31,8 @@ private:
     float startSecond = 0;
     float stopPosition = 0;
     float gain = 1000;//default
-    float referenceDistance = 10.0f;
-    float maxDistance = 100.0f;
+    float referenceDistance = 2.0f;
+    float maxDistance = 50.0f;
     bool looped = false;
     bool autoPlay = false;
     bool temporary = false;

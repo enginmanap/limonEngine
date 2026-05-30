@@ -131,6 +131,14 @@ bool Sound::changeGain(float gain) {
 
 ImGuiResult Sound::addImGuiEditorElements(const ImGuiRequest& request) {
     ImGuiResult result;
+    if (!listenerRelative) {
+        if (parentObject != nullptr) {
+            ImGui::Text("World Position X: %.3f", position.x);
+            ImGui::Text("World Position Y: %.3f", position.y);
+            ImGui::Text("World Position Z: %.3f", position.z);
+            ImGui::NewLine();
+        }
+    }
     if(transformation.addImGuiEditorElements(request.perspectiveCameraMatrix, request.perspectiveMatrix, false, parentObject != nullptr)) {
         //true means transformation changed, activate rigid body
         result.updated = true;
@@ -172,34 +180,6 @@ ImGuiResult Sound::addImGuiEditorElements(const ImGuiRequest& request) {
     if (ImGui::Checkbox("Listener Relative (2D)", &listenerRelativeEdit)) {
         setWorldPosition(position, listenerRelativeEdit);
         result.updated = true;
-    }
-
-    if (!listenerRelative) {
-        if (parentObject != nullptr) {
-            ImGui::Text("World Position X: %.3f", position.x);
-            ImGui::Text("World Position Y: %.3f", position.y);
-            ImGui::Text("World Position Z: %.3f", position.z);
-            ImGui::NewLine();
-            glm::vec3 localPos = transformation.getTranslateSingle();
-            bool localUpdated = false;
-            localUpdated = ImGui::DragFloat("Local X", &localPos.x, 0.01f) || localUpdated;
-            localUpdated = ImGui::DragFloat("Local Y", &localPos.y, 0.01f) || localUpdated;
-            localUpdated = ImGui::DragFloat("Local Z", &localPos.z, 0.01f) || localUpdated;
-            if (localUpdated) {
-                transformation.setTranslate(localPos);
-                result.updated = true;
-            }
-        } else {
-            glm::vec3 pos = transformation.getTranslateSingle();
-            bool posUpdated = false;
-            posUpdated = ImGui::DragFloat("Position X", &pos.x, 0.01f) || posUpdated;
-            posUpdated = ImGui::DragFloat("Position Y", &pos.y, 0.01f) || posUpdated;
-            posUpdated = ImGui::DragFloat("Position Z", &pos.z, 0.01f) || posUpdated;
-            if (posUpdated) {
-                transformation.setTranslate(pos);
-                result.updated = true;
-            }
-        }
     }
 
     const char* stateStr = "Unknown";

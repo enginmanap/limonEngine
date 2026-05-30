@@ -316,6 +316,18 @@ World * WorldLoader::loadMapFromXML(const std::string &worldFileName, LimonAPI *
         }
     }
 
+    tinyxml2::XMLElement* soundDistanceModelEl = worldNode->FirstChildElement("SoundDistanceModel");
+    if(soundDistanceModelEl != nullptr && soundDistanceModelEl->GetText() != nullptr) {
+        std::string modelStr = soundDistanceModelEl->GetText();
+        if(modelStr == "InverseClamped") {
+            world->soundDistanceModel = ALHelper::DistanceModel::INVERSE_CLAMPED;
+        } else if(modelStr == "ExponentClamped") {
+            world->soundDistanceModel = ALHelper::DistanceModel::EXPONENT_CLAMPED;
+        } else {
+            world->soundDistanceModel = ALHelper::DistanceModel::LINEAR_CLAMPED;
+        }
+    }
+
     if (!loadMaterials(worldNode, world)) {
         delete world;
         return nullptr;

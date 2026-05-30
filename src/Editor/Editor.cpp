@@ -852,6 +852,32 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
                     ImGuiHelper::ShowHelpMarker("No sound asset selected");
                 }
             }
+            if(ImGui::CollapsingHeader("Sound Settings")) {
+                ImGui::Indent(16.0f);
+                const char* distanceModelNames[] = {
+                    "Linear (Clamped)",
+                    "Inverse (Clamped)",
+                    "Exponent (Clamped)",
+                };
+                const ALHelper::DistanceModel distanceModelValues[] = {
+                    ALHelper::DistanceModel::LINEAR_CLAMPED,
+                    ALHelper::DistanceModel::INVERSE_CLAMPED,
+                    ALHelper::DistanceModel::EXPONENT_CLAMPED,
+                };
+                int currentIndex = 0;
+                for (int i = 0; i < 3; ++i) {
+                    if (distanceModelValues[i] == world->soundDistanceModel) {
+                        currentIndex = i;
+                        break;
+                    }
+                }
+                if (ImGui::Combo("Distance Model", &currentIndex, distanceModelNames, 3)) {
+                    world->soundDistanceModel = distanceModelValues[currentIndex];
+                    world->alHelper->setDistanceModel(distanceModelValues[currentIndex]);
+                }
+                ImGui::Unindent(16.0f);
+            }
+
             if(ImGui::CollapsingHeader("SkyBox")) {
                 ImGui::Indent(16.0f);
                 this->addSkyBoxControls();

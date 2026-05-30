@@ -1043,6 +1043,7 @@ void World::addLight(Light *light) {
    }
 
 void World::afterLoadFinished() {
+    alHelper->setDistanceModel(soundDistanceModel);
     visibilityManager->onPipelineChange();
     for (size_t i = 0; i < onLoadActions.size(); ++i) {
         if(onLoadActions[i]->action == nullptr) {

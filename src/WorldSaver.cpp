@@ -144,6 +144,17 @@ bool WorldSaver::saveWorld(const std::string& mapName, const World* world) {
     currentElement->SetText(world->quitWorldName.c_str());
     rootNode->InsertEndChild(currentElement);
 
+    const char* distanceModelStr = "LinearClamped";
+    switch(world->soundDistanceModel) {
+        case ALHelper::DistanceModel::INVERSE_CLAMPED:  distanceModelStr = "InverseClamped";  break;
+        case ALHelper::DistanceModel::EXPONENT_CLAMPED: distanceModelStr = "ExponentClamped"; break;
+        case ALHelper::DistanceModel::LINEAR_CLAMPED:   distanceModelStr = "LinearClamped";   break;
+        default:                                        distanceModelStr = "LinearClamped";   break;
+    }
+    currentElement = mapDocument.NewElement("SoundDistanceModel");
+    currentElement->SetText(distanceModelStr);
+    rootNode->InsertEndChild(currentElement);
+
     currentElement = mapDocument.NewElement("Materials");
     if(!fillMaterials(mapDocument, currentElement, world)) {
         return false;

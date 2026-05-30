@@ -252,6 +252,7 @@ private:
     std::string name;
     std::string loadingImage;
     std::string quitWorldName;
+    ALHelper::DistanceModel soundDistanceModel = ALHelper::DistanceModel::LINEAR_CLAMPED;
 
     uint64_t gameTime = 0;
     uint64_t wallTime = 0;

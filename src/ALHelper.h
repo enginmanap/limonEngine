@@ -29,6 +29,14 @@ class SoundAsset;
 class ALHelper {
     friend class World;
 
+public:
+    enum class DistanceModel {
+        LINEAR_CLAMPED,
+        INVERSE_CLAMPED,
+        EXPONENT_CLAMPED
+    };
+
+private:
     struct PlayingSound {
         uint32_t soundID;
         std::shared_ptr<SoundAsset> asset;
@@ -43,8 +51,8 @@ class ALHelper {
         bool stopped = false;
         glm::vec3 position = glm::vec3(0,0,0);
         bool isPositionRelative = true;
-        float referenceDistance = 10.0f;
-        float maxDistance = 100.0f;
+        float referenceDistance = 2.0f;
+        float maxDistance = 50.0f;
         bool isFinished();
         PlayingSound(uint32_t id): soundID(id) {};
 
@@ -59,6 +67,7 @@ class ALHelper {
     ALCcontext *ctx;
 
     glm::vec3 ListenerPosition = glm::vec3(0.0f,0.0f,0.0f);
+    DistanceModel distanceModel = DistanceModel::LINEAR_CLAMPED;
     bool running = true;
     bool paused = false;
     bool resumed = false;
@@ -131,7 +140,7 @@ public:
 
     ~ALHelper();
 
-    uint32_t play(const std::shared_ptr<SoundAsset> soundAsset, bool looped, float gain = 1000.0f, float referenceDistance = 10.0f, float maxDistance = 100.0f);
+    uint32_t play(const std::shared_ptr<SoundAsset> soundAsset, bool looped, float gain = 1000.0f, float referenceDistance = 2.0f, float maxDistance = 50.0f);
 
     bool isPlaying(uint32_t soundID) {
         if(playingSounds.find(soundID) != playingSounds.end()) {
@@ -173,6 +182,20 @@ public:
     bool stop(uint32_t soundID);
     bool pause(uint32_t soundID);
     bool resume(uint32_t soundID);
+
+    DistanceModel getDistanceModel() const {
+        return distanceModel;
+    }
+
+    void setDistanceModel(DistanceModel model) {
+        distanceModel = model;
+        switch (model) {
+            case DistanceModel::INVERSE_CLAMPED:  alDistanceModel(AL_INVERSE_DISTANCE_CLAMPED);  break;
+            case DistanceModel::EXPONENT_CLAMPED: alDistanceModel(AL_EXPONENT_DISTANCE_CLAMPED); break;
+            case DistanceModel::LINEAR_CLAMPED:
+            default:                              alDistanceModel(AL_LINEAR_DISTANCE_CLAMPED);   break;
+        }
+    }
 
     inline void setListenerPositionAndOrientation(const glm::vec3 &position, const glm::vec3 &front, const glm::vec3 &up) {
         glm::vec3 velocity = this->ListenerPosition - position;

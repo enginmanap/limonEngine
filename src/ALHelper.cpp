@@ -24,7 +24,7 @@ ALHelper::ALHelper() {
     alcMakeContextCurrent(ctx);
 
     alDopplerFactor(0.5);
-    alDistanceModel(AL_LINEAR_DISTANCE_CLAMPED);
+    setDistanceModel(distanceModel);
 
     if(!ctx) {
         throw("Audio context setup failed!");
