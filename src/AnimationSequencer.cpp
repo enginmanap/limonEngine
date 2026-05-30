@@ -119,25 +119,28 @@ AnimationCustom* AnimationSequenceInterface::buildAnimationFromCurrentItems() {
         float minDuration = std::fmin(animationBase->getDuration(), itemsAnimation->getDuration());
 
         uint32_t baseIndex=0, itemIndex=0;
-        while(animationBase->animationNode->rotationTimes[baseIndex] <= minDuration &&
-              itemsAnimation->animationNode->rotationTimes[itemIndex] <= minDuration ) {
+        while(baseIndex < animationBase->animationNode->rotationTimes.size() &&
+              itemIndex < itemsAnimation->animationNode->rotationTimes.size()) {
+            float baseTime = animationBase->animationNode->rotationTimes[baseIndex];
+            float itemTime = itemsAnimation->animationNode->rotationTimes[itemIndex];
+            if(baseTime > minDuration && itemTime > minDuration) {
+                break;
+            }
             float time;
-            if(animationBase->animationNode->rotationTimes[baseIndex] ==
-               itemsAnimation->animationNode->rotationTimes[itemIndex]) {
+            if(baseTime == itemTime) {
                 //if they are both equal do this
-                time = animationBase->animationNode->rotationTimes[baseIndex];
+                time = baseTime;
                 itemIndex++;
                 baseIndex++;
             } else {
                 //they are not the same;
-                if(animationBase->animationNode->rotationTimes[baseIndex] <
-                   itemsAnimation->animationNode->rotationTimes[itemIndex]) {
+                if(baseTime < itemTime) {
                     //if base animation has a time smaller at the moment
-                    time = animationBase->animationNode->rotationTimes[baseIndex];
+                    time = baseTime;
                     baseIndex++;
                 } else {
                     //if item animation time is smaller
-                    time = itemsAnimation->animationNode->rotationTimes[itemIndex];
+                    time = itemTime;
                     itemIndex++;
                 }
             }
