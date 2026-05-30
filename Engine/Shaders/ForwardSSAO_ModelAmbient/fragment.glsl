@@ -1,4 +1,4 @@
-#define_option maximumPointLights
+#define_option maximumLights
 
 #import <./Engine/Shaders/Shared/PlayerInformation.glsl>
 #import <./Engine/Shaders/Shared/PointShadow.frag>

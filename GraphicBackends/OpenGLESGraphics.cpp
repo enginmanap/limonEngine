@@ -370,7 +370,7 @@ bool OpenGLESGraphics::createGraphicsBackend() {
 
     this->screenHeight = options->getScreenHeight();
     this->screenWidth = options->getScreenWidth();
-    OptionsUtil::Options::Option<long> maxPointLightOption = options->getOption<long>(HASH("maximumPointLights"));
+    OptionsUtil::Options::Option<long> maxPointLightOption = options->getOption<long>(HASH("maximumLights"));
     this->totalLightCount = maxPointLightOption.getOrDefault(4);
     GLenum rev;
     error = GL_NO_ERROR;

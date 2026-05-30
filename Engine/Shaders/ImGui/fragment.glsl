@@ -1,5 +1,5 @@
 
-#define_option maximumPointLights
+#define_option maximumLights
 #import <./Engine/Shaders/Shared/PlayerInformation.glsl>
 #import <./Engine/Shaders/Shared/Material.frag>
 
@@ -27,14 +27,14 @@ struct LightSource {
 
 layout (std140) uniform LightSourceBlock
 {
-    LightSource lights[maximumPointLights];
+    LightSource lights[maximumLights];
 } LightSources;
 
 in VS_FS {
     vec2 textureCoord;
     vec3 normal;
     vec3 fragPos;
-    vec4 fragPosLightSpace[maximumPointLights];
+    vec4 fragPosLightSpace[maximumLights];
     flat int depthMapLayer;
     flat int materialIndex;
 } from_vs;
@@ -50,7 +50,7 @@ vec4 renderModel() {
     vec3 lightingColorFactor = vec3(0.0, 0.0, 0.0);
 
     float shadow;
-    for(int i=0; i < maximumPointLights; ++i){
+    for(int i=0; i < maximumLights; ++i){
         if(LightSources.lights[i].type != 0) {
             // Diffuse Lighting
             vec3 lightDirectory;

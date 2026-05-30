@@ -1,4 +1,4 @@
-#define_option maximumPointLights
+#define_option maximumLights
 #define_option CascadeCount
 #define_option CascadeLimitList
 
@@ -13,7 +13,7 @@ in VS_FS {
     vec2 textureCoord;
     vec3 normal;
     vec3 fragPos;
-    vec4 fragPosLightSpace[maximumPointLights];
+    vec4 fragPosLightSpace[maximumLights];
     flat int materialIndex;
 } from_vs;
 

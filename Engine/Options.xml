@@ -73,7 +73,7 @@
     </Parameter>
     <Parameter>
         <RequestType>FreeNumber</RequestType>
-        <Description>maximumPointLights</Description>
+        <Description>maximumLights</Description>
         <Value>4</Value>
         <valueType>Long</valueType>
         <IsSet>True</IsSet>

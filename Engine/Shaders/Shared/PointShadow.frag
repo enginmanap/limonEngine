@@ -1,6 +1,6 @@
 #ifndef LIGHT_DEFINITIONS
 #define LIGHT_DEFINITIONS
-#define_option maximumPointLights
+#define_option maximumLights
 struct LightSource {
     mat4 shadowMatrices[6];
     vec3 position;
@@ -13,7 +13,7 @@ struct LightSource {
 
 layout (std140) uniform LightSourceBlock
 {
-    LightSource lights[maximumPointLights];
+    LightSource lights[maximumLights];
 } LightSources;
 #endif
 

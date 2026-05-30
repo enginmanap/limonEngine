@@ -1,5 +1,5 @@
 
-#define_option maximumPointLights
+#define_option maximumLights
 #import <./Engine/Shaders/Shared/ModelRendering.vert>
 
 layout (location = 2) in vec4 position;
@@ -19,7 +19,7 @@ struct LightSource {
 
 layout (std140) uniform LightSourceBlock
 {
-    LightSource lights[maximumPointLights];
+    LightSource lights[maximumLights];
 } LightSources;
 
 uniform int renderLightIndex;

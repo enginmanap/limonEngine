@@ -143,7 +143,7 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
 
     OptionsUtil::Options::Option<bool> multiThreadCullingOption = options->getOption<bool>(HASH("multiThreadedCulling"));
     renderInformationsOption = options->getOption<bool>(HASH("renderInformations"));
-    maxLightsOption = options->getOption<long>(HASH("maximumPointLights"));
+    maxLightsOption = options->getOption<long>(HASH("maximumLights"));
     activeLights.reserve(maxLightsOption.getOrDefault(4));
 }
 
@@ -1438,9 +1438,13 @@ void World::updateActiveLights(bool forceUpdate) {
             activeLights.emplace_back(lights[directionalLightIndex]);
         }
     } else {
+        uint32_t pointLightCount = maxLightsOption.getOrDefault(4);
+        if (directionalLightIndex != -1) {
+            pointLightCount--;
+        }
         //this is the case we can't actually activate all the point light, sort and only activate the closest ones
         std::sort(culledPointLights.begin(), culledPointLights.end(), LightCloserToPlayer(currentPlayer->getPosition()));
-        for (long i = 0; i < (maxLightsOption.getOrDefault(4) -1 ); ++i) {
+        for (uint32_t i = 0; i < pointLightCount; ++i) {
             activeLights.emplace_back(culledPointLights[i]);
             culledPointLights[i]->setFrustumChanged(true);//we don't know if it was active before
         }

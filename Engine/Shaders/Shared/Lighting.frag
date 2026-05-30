@@ -2,14 +2,14 @@
 // Shared Lighting calculations for Forward Rendering and Deferred Lighting Pass
 // Used by Forward_ModelAmbient, Forward_ModelAnimated, ModelTransparent, and CombineColorsWithSSAO
 
-#define_option maximumPointLights
+#define_option maximumLights
 
 vec3 calculateLighting(vec3 fragPos, vec3 normal, vec3 albedo, float shininess, vec3 materialAmbient, float viewDistance, float precise_view_z, float depth, out vec3 totalAmbient) {
     vec3 directLighting = vec3(0.0);
     vec3 lightAmbient = vec3(0.0);
     vec3 viewDirectory = normalize(playerTransforms.position - fragPos);
 
-    for(int i=0; i < maximumPointLights; ++i){
+    for(int i=0; i < maximumLights; ++i){
         int lightType = LightSources.lights[i].type;
         if(lightType != 0) {
             vec3 lightPos = LightSources.lights[i].position;
