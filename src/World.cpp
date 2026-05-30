@@ -1357,6 +1357,13 @@ Model* World::findModelByIDChildren(PhysicalRenderable* parent,uint32_t modelID)
 }
 
 Attachable* World::findAttachableByID(uint32_t objectID) const {
+    if(startingPlayer.attachedModel != nullptr) {
+        Model* playerAttachment = findModelByIDChildren(startingPlayer.attachedModel, objectID);
+        if(playerAttachment != nullptr) {
+            return playerAttachment;
+        }
+    }
+
     auto objectIt = objects.find(objectID);
     if(objectIt != objects.end()) {
         return objectIt->second;
