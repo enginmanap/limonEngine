@@ -83,6 +83,7 @@ void WorldLoader::attachedAPIMethodsToWorld(World *world, LimonAPI *limonAPI) co
     limonAPI->worldSetGuiElementVisible = std::bind(&WorldAPIAccessor::setGuiElementVisibleAPI, world->apiAccessor, std::placeholders::_1, std::placeholders::_2);
     limonAPI->worldRemoveObject = std::bind(&WorldAPIAccessor::removeObject, world->apiAccessor, std::placeholders::_1, std::placeholders::_2);
     limonAPI->worldAttachObjectToObject = std::bind(&WorldAPIAccessor::attachObjectToObject, world->apiAccessor, std::placeholders::_1, std::placeholders::_2);
+    limonAPI->worldAttachObjectToObjectAtWorldPosition = std::bind(&WorldAPIAccessor::attachObjectToObjectAtWorldPosition, world->apiAccessor, std::placeholders::_1, std::placeholders::_2);
     limonAPI->worldRemoveTriggerObject = std::bind(&WorldAPIAccessor::removeTriggerObject, world->apiAccessor, std::placeholders::_1);
     limonAPI->worldGetObjectLinearVelocity = std::bind(&WorldAPIAccessor::getObjectLinearVelocity, world->apiAccessor, std::placeholders::_1);
     limonAPI->worldSetObjectLinearVelocity = std::bind(&WorldAPIAccessor::setObjectLinearVelocity, world->apiAccessor, std::placeholders::_1, std::placeholders::_2);

@@ -218,11 +218,34 @@ bool WorldAPIAccessor::attachObjectToObject(uint32_t objectID, uint32_t objectTo
         return false;
     }
 
+    // generateWorldTransformWithParent uses parent->generateWorldTransformDefault() (no center
+    // offset) when composing the chain, while the parent renders via processTransformForPyhsics
+    // which applies -centerOffset.  Shift the child's local translate by -parentCenterOffset
+    // so the two cancel and the child ends up at the caller's intended local position.
     PhysicalRenderable* physicalParent = dynamic_cast<PhysicalRenderable*>(objectToAttachTo);
-    if(physicalParent != nullptr) {
-        objectToAttach->getTransformation()->addTranslate(-1 * physicalParent->getCenterOffset());
+    if(physicalParent != nullptr && physicalParent->getCenterOffset() != glm::vec3(0.0f)) {
+        objectToAttach->getTransformation()->addTranslate(-1.0f * physicalParent->getCenterOffset());
+    }
+    objectToAttach->attachToWithLocalOffset(objectToAttachTo);
+    return true;
+}
+
+bool WorldAPIAccessor::attachObjectToObjectAtWorldPosition(uint32_t objectID, uint32_t objectToAttachToID) {
+    if(objectID == objectToAttachToID) {
+        return false;
     }
 
+    Attachable* objectToAttach = world->findAttachableByID(objectID);
+    if(objectToAttach == nullptr) {
+        return false;
+    }
+
+    Attachable* objectToAttachTo = world->findAttachableByID(objectToAttachToID);
+    if(objectToAttachTo == nullptr) {
+        return false;
+    }
+
+    // Child is at its world position; derive local offset from parent's world transform.
     objectToAttach->attachTo(objectToAttachTo);
     return true;
 }
@@ -540,13 +563,14 @@ std::vector<LimonTypes::GenericParameter> WorldAPIAccessor::getObjectTransformat
 
 std::vector<LimonTypes::GenericParameter> WorldAPIAccessor::getObjectTransformationMatrixAPI(uint32_t objectID) const {
     std::vector<LimonTypes::GenericParameter> result;
-    if(world->objects.find(objectID) == world->objects.end()) {
+    Model* model = world->findModelByID(objectID);
+    if(model == nullptr) {
         return result;
     }
 
     LimonTypes::GenericParameter transform;
     transform.valueType = LimonTypes::GenericParameter::ValueTypes::MAT4;
-    transform.value.matrixValue = GLMConverter::GLMToLimon(world->objects.at(objectID)->getTransformation()->getWorldTransform());
+    transform.value.matrixValue = GLMConverter::GLMToLimon(model->getTransformation()->getWorldTransform());
 
     result.push_back(transform);
     return result;

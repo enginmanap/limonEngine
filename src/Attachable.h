@@ -38,7 +38,30 @@ public:
         return getTransformation();
     }
 
+    // Wire parent link while treating the child's CURRENT Single values as the local offset.
+    // Use this when the caller has already computed the desired local-space transform and
+    // created the object there.
+    void attachToWithLocalOffset(Attachable* parent, int32_t boneID = -1) {
+        this->parentObject = parent;
+        this->parentBoneID = boneID;
+        parent->addChild(this);
+
+        Transformation* myTransform    = this->getTransformation();
+        Transformation* parentTransform = parent->getAttachmentTransformFor(boneID);
+
+        // Capture Single values before setParentTransform overwrites them with world values.
+        glm::vec3 localTranslate    = myTransform->getTranslateSingle();
+        glm::vec3 localScale        = myTransform->getScaleSingle();
+        glm::quat localOrientation  = myTransform->getOrientationSingle();
+
+        myTransform->setParentTransform(parentTransform);
+        // Restore the caller's intended local offset.
+        myTransform->setTransformations(localTranslate, localScale, glm::normalize(localOrientation));
+    }
+
     // Wire both the relationship and the Transformation parent link in one call.
+    // The child keeps its current WORLD position; the local offset is derived automatically.
+    // Use this when the child was created at the intended world position (e.g. from a raycast hit).
     void attachTo(Attachable* parent, int32_t boneID = -1) {
         this->parentObject = parent;
         this->parentBoneID = boneID;

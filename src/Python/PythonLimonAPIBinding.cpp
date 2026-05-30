@@ -130,7 +130,10 @@ void bindLimonAPI(pybind11::module_& m) {
                  "Set if an object is temporary",
                  pybind11::arg("object_id"), pybind11::arg("temporary"))
             .def("attach_object_to_object", &LimonAPI::attachObjectToObject,
-                 "Attach one object to another",
+                 "Attach child to parent; child's current transform is treated as local offset relative to parent.",
+                 pybind11::arg("object_id"), pybind11::arg("object_to_attach_to_id"))
+            .def("attach_object_to_object_at_world_position", &LimonAPI::attachObjectToObjectAtWorldPosition,
+                 "Attach child to parent; child keeps its current world position (local offset is derived automatically).",
                  pybind11::arg("object_id"), pybind11::arg("object_to_attach_to_id"))
             .def("remove_trigger_object", &LimonAPI::removeTriggerObject,
                  "Remove a trigger object",

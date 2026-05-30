@@ -51,7 +51,8 @@ public:
                        const glm::vec3 &scale, const glm::quat &orientation);
     bool setObjectTemporary(uint32_t modelID, bool temporary);
     bool removeObject(uint32_t objectID, const bool &removeChildren = true);
-    bool attachObjectToObject(uint32_t objectID, uint32_t objectToAttachToID);//second one is
+    bool attachObjectToObject(uint32_t objectID, uint32_t objectToAttachToID);
+    bool attachObjectToObjectAtWorldPosition(uint32_t objectID, uint32_t objectToAttachToID);
     bool removeTriggerObject(uint32_t triggerObjectID);
     LimonTypes::Vec4 getObjectLinearVelocity(uint32_t objectID);
     bool setObjectLinearVelocity(uint32_t objectID, const LimonTypes::Vec4& velocity);
@@ -298,6 +299,7 @@ private:
 
     std::function<std::vector<LimonTypes::GenericParameter>(uint32_t)> worldGetObjectTransformationMatrix;
     std::function<bool (uint32_t, uint32_t)> worldAttachObjectToObject;
+    std::function<bool (uint32_t, uint32_t)> worldAttachObjectToObjectAtWorldPosition;
     std::function<bool (uint32_t)> worldRemoveTriggerObject;
     std::function<LimonTypes::Vec4 (uint32_t)> worldGetObjectLinearVelocity;
     std::function<bool (uint32_t, const LimonTypes::Vec4&)> worldSetObjectLinearVelocity;

@@ -45,6 +45,7 @@ public:
                          const glm::vec3& position, const glm::vec3& scale, const glm::quat& orientation);
     bool setModelTemporaryAPI(uint32_t modelID, bool temporary);
     bool attachObjectToObject(uint32_t objectID, uint32_t objectToAttachToID);
+    bool attachObjectToObjectAtWorldPosition(uint32_t objectID, uint32_t objectToAttachToID);
     bool removeObject(uint32_t objectID, const bool& removeChildren = true);
     bool removeTriggerObject(uint32_t triggerobjectID);
 
