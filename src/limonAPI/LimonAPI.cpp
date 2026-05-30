@@ -125,16 +125,28 @@ bool LimonAPI::detachSoundFromObject(uint32_t objectWorldID){
     return worldDetachSoundFromObject(objectWorldID);
 }
 uint32_t
-LimonAPI::playSound(const std::string &soundPath, const glm::vec3 &position, bool positionRelative, bool looped) {
-    return worldPlaySound(soundPath, position, positionRelative, looped);
+LimonAPI::playSound(const std::string &soundPath, const glm::vec3 &position, bool positionRelative, bool looped, float referenceDistance, float maxDistance) {
+    return worldPlaySound(soundPath, position, positionRelative, looped, referenceDistance, maxDistance);
 }
 
 bool LimonAPI::stopSound(uint32_t soundID) {
     return worldStopSound(soundID);
 }
 
+bool LimonAPI::pauseSound(uint32_t soundID) {
+    return worldPauseSound(soundID);
+}
+
+bool LimonAPI::resumeSound(uint32_t soundID) {
+    return worldResumeSound(soundID);
+}
+
 bool LimonAPI::setSoundVolume(uint32_t soundID, float volume) {
     return worldSetSoundVolume(soundID, volume);
+}
+
+bool LimonAPI::setSoundLooped(uint32_t soundID, bool looped) {
+    return worldSetSoundLooped(soundID, looped);
 }
 
 bool LimonAPI::isSoundPlaying(uint32_t soundID) {

@@ -115,9 +115,12 @@ public:
     // Sound
     bool attachSoundToObjectAndPlay(uint32_t objectWorldID, const std::string& soundPath, bool looped = true);
     bool detachSoundFromObject(uint32_t objectWorldID);
-    uint32_t playSound(const std::string& soundPath, const glm::vec3& position, bool positionRelative, bool looped);
+    uint32_t playSound(const std::string& soundPath, const glm::vec3& position, bool positionRelative, bool looped, float referenceDistance, float maxDistance);
     bool stopSound(uint32_t soundID);
+    bool pauseSound(uint32_t soundID);
+    bool resumeSound(uint32_t soundID);
     bool setSoundVolume(uint32_t soundID, float volume);
+    bool setSoundLooped(uint32_t soundID, bool looped);
     bool isSoundPlaying(uint32_t soundID);
     bool setSoundTemporaryAPI(uint32_t soundID, bool temporary);
 

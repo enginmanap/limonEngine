@@ -873,14 +873,43 @@ bool WorldAPIAccessor::setSoundTemporaryAPI(uint32_t soundID, bool temporary) {
     return true;
 }
 
-uint32_t WorldAPIAccessor::playSound(const std::string &soundPath, const glm::vec3 &position, bool positionRelative, bool looped) {
+uint32_t WorldAPIAccessor::playSound(const std::string &soundPath, const glm::vec3 &position, bool positionRelative, bool looped, float referenceDistance, float maxDistance) {
     std::unique_ptr<Sound> sound = std::make_unique<Sound>(world->getNextObjectID(), world->assetManager, soundPath);
     sound->setLoop(looped);
+    sound->setReferenceDistance(referenceDistance);
+    sound->setMaxDistance(maxDistance);
     sound->setWorldPosition(position, positionRelative);
     sound->play();
     uint32_t soundID = sound->getWorldObjectID();
     world->sounds[soundID] = std::move(sound);
     return soundID;
+}
+
+bool WorldAPIAccessor::pauseSound(uint32_t soundID) {
+    auto it = world->sounds.find(soundID);
+    if(it == world->sounds.end()) {
+        return false;
+    }
+    it->second->pause();
+    return true;
+}
+
+bool WorldAPIAccessor::resumeSound(uint32_t soundID) {
+    auto it = world->sounds.find(soundID);
+    if(it == world->sounds.end()) {
+        return false;
+    }
+    it->second->resume();
+    return true;
+}
+
+bool WorldAPIAccessor::setSoundLooped(uint32_t soundID, bool looped) {
+    auto it = world->sounds.find(soundID);
+    if(it == world->sounds.end()) {
+        return false;
+    }
+    it->second->setLoop(looped);
+    return true;
 }
 
 bool WorldAPIAccessor::stopSound(uint32_t soundID) {

@@ -208,15 +208,25 @@ void bindLimonAPI(pybind11::module_& m) {
                  "Detach a sound from an object",
                  pybind11::arg("object_id"))
             .def("play_sound", &LimonAPI::playSound,
-                 "Play a sound",
+                 "Play a sound. Returns sound ID",
                  pybind11::arg("sound_path"), pybind11::arg("position"),
-                 pybind11::arg("position_relative") = false, pybind11::arg("looped") = false)
+                 pybind11::arg("position_relative") = false, pybind11::arg("looped") = false,
+                 pybind11::arg("reference_distance") = 2.0f, pybind11::arg("max_distance") = 50.0f)
             .def("stop_sound", &LimonAPI::stopSound,
                  "Stop a playing sound. Returns False if not found",
                  pybind11::arg("sound_id"))
+            .def("pause_sound", &LimonAPI::pauseSound,
+                 "Pause a playing sound without stopping it. Returns False if not found",
+                 pybind11::arg("sound_id"))
+            .def("resume_sound", &LimonAPI::resumeSound,
+                 "Resume a paused sound. Returns False if not found",
+                 pybind11::arg("sound_id"))
             .def("set_sound_volume", &LimonAPI::setSoundVolume,
-                 "Set the volume of a sound [0.0, 1.0]. Returns False if not found",
+                 "Set the volume of a sound. Returns False if not found",
                  pybind11::arg("sound_id"), pybind11::arg("volume"))
+            .def("set_sound_looped", &LimonAPI::setSoundLooped,
+                 "Change whether a sound loops. Returns False if not found",
+                 pybind11::arg("sound_id"), pybind11::arg("looped"))
             .def("is_sound_playing", &LimonAPI::isSoundPlaying,
                  "Returns True if the sound is currently playing",
                  pybind11::arg("sound_id"))

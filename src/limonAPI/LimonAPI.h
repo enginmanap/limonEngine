@@ -65,9 +65,12 @@ public:
 
     bool attachSoundToObjectAndPlay(uint32_t objectWorldID, const std::string &soundPath, bool looped = true);
     bool detachSoundFromObject(uint32_t objectWorldID);
-    uint32_t playSound(const std::string &soundPath, const glm::vec3 &position, bool positionRelative = false, bool looped = false);
+    uint32_t playSound(const std::string &soundPath, const glm::vec3 &position, bool positionRelative = false, bool looped = false, float referenceDistance = 2.0f, float maxDistance = 50.0f);
     bool stopSound(uint32_t soundID);
+    bool pauseSound(uint32_t soundID);
+    bool resumeSound(uint32_t soundID);
     bool setSoundVolume(uint32_t soundID, float volume);
+    bool setSoundLooped(uint32_t soundID, bool looped);
     bool isSoundPlaying(uint32_t soundID);
     bool setSoundTemporary(uint32_t soundID, bool temporary);
 
@@ -313,9 +316,12 @@ private:
 
     std::function<bool (uint32_t, const std::string&, bool)> worldAttachSoundToObjectAndPlay;
     std::function<bool (uint32_t)> worldDetachSoundFromObject;
-    std::function<uint32_t (const std::string&, const glm::vec3&, bool, bool)> worldPlaySound;
+    std::function<uint32_t (const std::string&, const glm::vec3&, bool, bool, float, float)> worldPlaySound;
     std::function<bool (uint32_t)> worldStopSound;
+    std::function<bool (uint32_t)> worldPauseSound;
+    std::function<bool (uint32_t)> worldResumeSound;
     std::function<bool (uint32_t, float)> worldSetSoundVolume;
+    std::function<bool (uint32_t, bool)> worldSetSoundLooped;
     std::function<bool (uint32_t)> worldIsSoundPlaying;
     std::function<bool (uint32_t, bool)> worldSetSoundTemporary;
 

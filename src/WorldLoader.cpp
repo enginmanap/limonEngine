@@ -95,9 +95,12 @@ void WorldLoader::attachedAPIMethodsToWorld(World *world, LimonAPI *limonAPI) co
 
     limonAPI->worldAttachSoundToObjectAndPlay = std::bind(&WorldAPIAccessor::attachSoundToObjectAndPlay, world->apiAccessor, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
     limonAPI->worldDetachSoundFromObject = std::bind(&WorldAPIAccessor::detachSoundFromObject, world->apiAccessor, std::placeholders::_1);
-    limonAPI->worldPlaySound = std::bind(&WorldAPIAccessor::playSound, world->apiAccessor, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);
+    limonAPI->worldPlaySound = std::bind(&WorldAPIAccessor::playSound, world->apiAccessor, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5, std::placeholders::_6);
     limonAPI->worldStopSound = std::bind(&WorldAPIAccessor::stopSound, world->apiAccessor, std::placeholders::_1);
+    limonAPI->worldPauseSound = std::bind(&WorldAPIAccessor::pauseSound, world->apiAccessor, std::placeholders::_1);
+    limonAPI->worldResumeSound = std::bind(&WorldAPIAccessor::resumeSound, world->apiAccessor, std::placeholders::_1);
     limonAPI->worldSetSoundVolume = std::bind(&WorldAPIAccessor::setSoundVolume, world->apiAccessor, std::placeholders::_1, std::placeholders::_2);
+    limonAPI->worldSetSoundLooped = std::bind(&WorldAPIAccessor::setSoundLooped, world->apiAccessor, std::placeholders::_1, std::placeholders::_2);
     limonAPI->worldIsSoundPlaying = std::bind(&WorldAPIAccessor::isSoundPlaying, world->apiAccessor, std::placeholders::_1);
     limonAPI->worldSetSoundTemporary = std::bind(&WorldAPIAccessor::setSoundTemporaryAPI, world->apiAccessor, std::placeholders::_1, std::placeholders::_2);
     limonAPI->worldRayCastToCursor = std::bind(&WorldAPIAccessor::rayCastToCursorAPI, world->apiAccessor);
