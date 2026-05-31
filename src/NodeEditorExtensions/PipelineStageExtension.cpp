@@ -132,7 +132,7 @@ void PipelineStageExtension::drawDetailPane(Node *node) {
         ImGui::Checkbox("Scissor Test", &scissorTestEnabled);
         ImGui::Checkbox("Clear", &clearBefore);
 
-        ImGui::InputInt2("Render Resolution#perPipelineStage", defaultRenderResolution);
+        ImGui::InputInt2("Render Resolution##perPipelineStage", defaultRenderResolution);
         if(defaultRenderResolution[0] < 1) {
             defaultRenderResolution[0] = 1920;
         };
@@ -548,6 +548,25 @@ void PipelineStageExtension::deserialize(const std::string &nodeName, tinyxml2::
                 this->methodParameters[parameterIndex] = *request;
             }
             parameterElement = parameterElement->NextSiblingElement("Parameter");
+        }
+    }
+
+    // Reconcile the saved values against the render method's current parameter list. A dynamic render
+    // method may have gained (or changed) parameters since this node was saved; without this, an
+    // already-selected method whose schema grew would never expose the new fields in the editor,
+    // because methodParameters is only re-seeded when the combo selection changes. createRenderMethodInterfaceInstance
+    // returns nullptr for built-in methods (they are not in the dynamic map), so they are left untouched.
+    if(!this->currentMethodName.empty() && this->pipelineExtension != nullptr) {
+        RenderMethodInterface *methodInterface = RenderMethodInterface::createRenderMethodInterfaceInstance(this->currentMethodName, this->pipelineExtension->getGraphicsWrapper());
+        if(methodInterface != nullptr) {
+            std::vector<LimonTypes::GenericParameter> schemaParameters = methodInterface->getParameters();
+            delete methodInterface;
+            // overlay saved values onto the current schema, by index
+            for(size_t parameterIndex = 0; parameterIndex < schemaParameters.size() && parameterIndex < this->methodParameters.size(); ++parameterIndex) {
+                schemaParameters[parameterIndex].value = this->methodParameters[parameterIndex].value;
+                schemaParameters[parameterIndex].isSet = this->methodParameters[parameterIndex].isSet;
+            }
+            this->methodParameters = schemaParameters;
         }
     }
 
