@@ -744,6 +744,11 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
                 ImGui::EndCombo();
             }
             static bool showError = false;
+            //on first open, mirror the applied extension name into the combo buffer so its parameters reconcile immediately
+            if(this->extensionNameBuffer[0] == '\0' && !world->startingPlayer.extensionName.empty()) {
+                strncpy(this->extensionNameBuffer, world->startingPlayer.extensionName.c_str(), sizeof(this->extensionNameBuffer) - 1);
+                this->extensionNameBuffer[sizeof(this->extensionNameBuffer) - 1] = '\0';
+            }
             if (ImGui::BeginCombo("Extension Type", this->extensionNameBuffer)) {
                 std::vector<std::string> extensionNames = PlayerExtensionInterface::getExtensionNames();
                 for (const std::string &extensionName : extensionNames) {
@@ -760,13 +765,28 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
                 ImGui::EndCombo();
             }
 
-            if(world->startingPlayer.attachedModel != nullptr) {
-                if(ImGui::Button("Disconnect Attachment##player attachment")) {
-                    Model* attachedModel = world->startingPlayer.attachedModel;
-                    world->startingPlayer.attachedModel = nullptr;
-                    world->physicalPlayer->setAttachedModel(nullptr);
-                    world->addModelToWorld(attachedModel);
+            //reconcile the shown parameters against the selected extension's current schema whenever the selection changes,
+            //so newly added parameters appear without requiring an Apply, and saved values survive a schema extension
+            std::string selectedExtensionName = this->extensionNameBuffer;
+            if(selectedExtensionName != this->shownExtensionParametersName) {
+                if(selectedExtensionName.empty()) {
+                    world->startingPlayer.parameters.clear();
+                } else {
+                    PlayerExtensionInterface* schemaExtension = PlayerExtensionInterface::createExtension(selectedExtensionName, world->apiInstance);
+                    if(schemaExtension != nullptr) {
+                        std::vector<LimonTypes::GenericParameter> schema = schemaExtension->getParameters();
+                        //only the currently applied extension has stored values worth overlaying; a switch starts from defaults
+                        if(selectedExtensionName == world->startingPlayer.extensionName) {
+                            for(size_t parameterIndex = 0; parameterIndex < schema.size() && parameterIndex < world->startingPlayer.parameters.size(); ++parameterIndex) {
+                                schema[parameterIndex].value = world->startingPlayer.parameters[parameterIndex].value;
+                                schema[parameterIndex].isSet = world->startingPlayer.parameters[parameterIndex].isSet;
+                            }
+                        }
+                        world->startingPlayer.parameters = schema;
+                        delete schemaExtension;
+                    }
                 }
+                this->shownExtensionParametersName = selectedExtensionName;
             }
 
             //extension configuration widgets, edited in place on the startingPlayer descriptor (Actor-style)
@@ -801,6 +821,14 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
                 ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.0f, 0.0f, 1.0f));
                 ImGui::Text("The name didn't match an extension. The info won't be saved!");
                 ImGui::PopStyleColor();
+            }
+            if(world->startingPlayer.attachedModel != nullptr) {
+                if(ImGui::Button("Disconnect Attachment##player attachment")) {
+                    Model* attachedModel = world->startingPlayer.attachedModel;
+                    world->startingPlayer.attachedModel = nullptr;
+                    world->physicalPlayer->setAttachedModel(nullptr);
+                    world->addModelToWorld(attachedModel);
+                }
             }
         }
         ImGui::Separator();

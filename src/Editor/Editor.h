@@ -71,6 +71,7 @@ public:
     char worldSaveNameBuffer[256] = {0};
     char quitWorldNameBuffer[256] = {0};
     char extensionNameBuffer[32] = {0};
+    std::string shownExtensionParametersName;//tracks which extension's parameters are currently mirrored in startingPlayer.parameters
 
     Editor(World* world);
     ~Editor();
