@@ -800,8 +800,12 @@ void World::ImGuiFrameSetup(std::shared_ptr<GraphicsProgram> graphicsProgram, co
        return;
    }
    delete editor->request;
+   Editor* editorPtr = editor.get();
+   GenerateEditorElementsCallback generateEditorElementsForParameters = [editorPtr](std::vector<LimonTypes::GenericParameter> &parameters, uint32_t index) {
+       return editorPtr->generateEditorElementsForParameters(parameters, index);
+   };
    editor->request = new ImGuiRequest(playerCamera->getCameraMatrix(), playerCamera->getProjectionMatrix(),
-                              graphicsWrapper->getGUIOrthogonalProjectionMatrix(), options->getScreenHeight(), options->getScreenWidth(), playerCamera, apiInstance, editor->imgGuiHelper);
+                              graphicsWrapper->getGUIOrthogonalProjectionMatrix(), options->getScreenHeight(), options->getScreenWidth(), playerCamera, generateEditorElementsForParameters, editor->imgGuiHelper);
 
    //Render Trigger volumes
    for (auto it = triggers.begin(); it != triggers.end(); ++it) {

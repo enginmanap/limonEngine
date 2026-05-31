@@ -213,7 +213,7 @@ ImGuiResult GUIButton::addImGuiEditorElements(const ImGuiRequest &request) {
     result.updated = this->transformation.addImGuiEditorElements(request.orthogonalCameraMatrix, request.orthogonalMatrix, true);
 
     if (ImGui::CollapsingHeader("Click To Trigger")) {
-        TriggerObject::PutTriggerInGui(limonAPI, this->onClickTriggerCode, enabled, 0);
+        TriggerObject::PutTriggerInGui(limonAPI, request.generateEditorElementsForParameters, this->onClickTriggerCode, enabled, 0);
     }
 
     if (ImGui::Button("Remove")) {

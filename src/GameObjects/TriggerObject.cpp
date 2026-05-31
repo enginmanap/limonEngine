@@ -51,13 +51,13 @@ ImGuiResult TriggerObject::addImGuiEditorElements(const ImGuiRequest &request) {
     if (ImGui::CollapsingHeader("Trigger Properties")) {
         ImGui::Text("If first enter trigger is empty, enter trigger will be run for first time too.");
         if (ImGui::CollapsingHeader("First Enter Trigger")) {
-            PutTriggerInGui(limonAPI, this->firstEnterTriggerCode, enabledFirstTrigger, 0);
+            PutTriggerInGui(limonAPI, request.generateEditorElementsForParameters, this->firstEnterTriggerCode, enabledFirstTrigger, 0);
         }
         if (ImGui::CollapsingHeader("Enter Trigger")) {
-            PutTriggerInGui(limonAPI, this->enterTriggerCode, enabledEnterTrigger, 1);
+            PutTriggerInGui(limonAPI, request.generateEditorElementsForParameters, this->enterTriggerCode, enabledEnterTrigger, 1);
         }
         if (ImGui::CollapsingHeader("Exit Trigger")) {
-            PutTriggerInGui(limonAPI, this->exitTriggerCode, enabledExitTrigger, 2);
+            PutTriggerInGui(limonAPI, request.generateEditorElementsForParameters, this->exitTriggerCode, enabledExitTrigger, 2);
         }
     }
 
@@ -65,7 +65,7 @@ ImGuiResult TriggerObject::addImGuiEditorElements(const ImGuiRequest &request) {
     return result;
 }
 
-void TriggerObject::PutTriggerInGui(LimonAPI *limonAPI, TriggerInterface *&triggerCode, bool &enabled, uint32_t index) {
+void TriggerObject::PutTriggerInGui(LimonAPI *limonAPI, const GenerateEditorElementsCallback &generateEditorElementsForParameters, TriggerInterface *&triggerCode, bool &enabled, uint32_t index) {
     //index is used because imgui doesn't allow repeating labels
         //now we should put 3 triggers,
         std::string currentTriggerName;
@@ -100,7 +100,7 @@ void TriggerObject::PutTriggerInGui(LimonAPI *limonAPI, TriggerInterface *&trigg
         }
         if (triggerCode != nullptr) {
             std::vector<LimonTypes::GenericParameter> parameters = triggerCode->getParameters();
-            bool isSet = limonAPI->generateEditorElementsForParameters(parameters, index);
+            bool isSet = generateEditorElementsForParameters(parameters, index);
             triggerCode->setParameters(parameters);
             if (enabled) {
                 if (ImGui::Button(("Disable Trigger##" + std::to_string(index)).c_str())) {

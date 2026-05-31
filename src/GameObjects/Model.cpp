@@ -631,7 +631,7 @@ ImGuiResult Model::putAIonGUI(ActorInterface *actorInterface,
             }
 
         } else {//if actor is set, and not modified
-            bool isSet = request.limonAPI->generateEditorElementsForParameters(parameters, 0);
+            bool isSet = request.generateEditorElementsForParameters(parameters, 0);
             if(isSet) {
                 if(ImGui::Button("Apply changes##AI")) {
                     actorInterface->setParameters(parameters);

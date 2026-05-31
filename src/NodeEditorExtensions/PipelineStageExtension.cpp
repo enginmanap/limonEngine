@@ -10,7 +10,6 @@
 #include "../Utils/StringUtils.hpp"
 #include "../GamePlay/APISerializer.h"
 #include "limonAPI/Graphics/RenderMethodInterface.h"
-#include "limonAPI/LimonAPI.h"
 
 const PipelineStageExtension::LightType PipelineStageExtension::LIGHT_TYPES[] = {
         {"NONE", ""},
@@ -166,8 +165,8 @@ void PipelineStageExtension::drawDetailPane(Node *node) {
             ImGui::EndCombo();
         }
 
-        if(!methodParameters.empty() && this->pipelineExtension->getLimonAPI() != nullptr) {
-            this->pipelineExtension->getLimonAPI()->generateEditorElementsForParameters(methodParameters, node->getId());
+        if(!methodParameters.empty() && this->pipelineExtension->getGenerateEditorElementsForParameters() != nullptr) {
+            this->pipelineExtension->getGenerateEditorElementsForParameters()(methodParameters, node->getId());
         }
 
         if(anyOutputMultiLayered) {

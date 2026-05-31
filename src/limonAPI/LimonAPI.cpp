@@ -13,10 +13,6 @@ uint32_t LimonAPI::animateModel(uint32_t modelID, uint32_t animationID, bool loo
     return worldAddAnimationToObject(modelID, animationID, looped, soundPath);
 }
 
-bool LimonAPI::generateEditorElementsForParameters(std::vector<LimonTypes::GenericParameter> &runParameters, uint32_t index) {
-    return worldGenerateEditorElementsForParameters(runParameters, index);
-}
-
 uint32_t LimonAPI::addGuiText(const std::string &fontFilePath, uint32_t fontSize, const std::string &name, const std::string &text,
                               const glm::vec3 &color, const glm::vec2 &position, float rotation) {
     return worldAddGuiText(fontFilePath, fontSize, name, text, color, position,rotation);

@@ -790,7 +790,7 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
             }
 
             //extension configuration widgets, edited in place on the startingPlayer descriptor (Actor-style)
-            world->apiInstance->generateEditorElementsForParameters(world->startingPlayer.parameters, 200);
+            this->generateEditorElementsForParameters(world->startingPlayer.parameters, 200);
 
             if(ImGui::Button("Apply##PlayerExtensionUpdate")) {
                 std::string tempName = this->extensionNameBuffer;
@@ -852,7 +852,10 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
                     ImGui::EndCombo();
                 }
                 //currently any trigger object can have 3 elements, so this should be >2 to avoid collision on imgui tags. I am assigning 100 just to be safe
-                TriggerObject::PutTriggerInGui(world->apiInstance, world->onLoadActions[onLoadTriggerIndex]->action,
+                GenerateEditorElementsCallback generateEditorElementsForParameters = [this](std::vector<LimonTypes::GenericParameter> &parameters, uint32_t index) {
+                    return this->generateEditorElementsForParameters(parameters, index);
+                };
+                TriggerObject::PutTriggerInGui(world->apiInstance, generateEditorElementsForParameters, world->onLoadActions[onLoadTriggerIndex]->action,
                                                world->onLoadActions[onLoadTriggerIndex]->enabled, 100 + onLoadTriggerIndex);
                 if (world->onLoadActions[world->onLoadActions.size() - 1]->enabled) {
                     //when user presses the enable button, add another and select it
@@ -2280,7 +2283,10 @@ void Editor::createNodeGraph() {
 
     RenderMethods renderMethods = world->buildRenderMethods();
 
-    this->pipelineExtension = new PipelineExtension(world->graphicsWrapper, world->apiInstance, world->renderPipeline, world->assetManager, world->options, GraphicsPipeline::getRenderMethodNames(), renderMethods);
+    GenerateEditorElementsCallback generateEditorElementsForParameters = [this](std::vector<LimonTypes::GenericParameter> &parameters, uint32_t index) {
+        return this->generateEditorElementsForParameters(parameters, index);
+    };
+    this->pipelineExtension = new PipelineExtension(world->graphicsWrapper, generateEditorElementsForParameters, world->renderPipeline, world->assetManager, world->options, GraphicsPipeline::getRenderMethodNames(), renderMethods);
 
     for(auto program:programs) {
         std::string programName = program->getProgramName();

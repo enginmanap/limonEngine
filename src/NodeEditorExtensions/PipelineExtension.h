@@ -9,11 +9,11 @@
 #include <nodeGraph/src/EditorExtension.h>
 #include "limonAPI/Graphics/GraphicsInterface.h"
 #include "Graphics/GraphicsPipeline.h"
+#include "Editor/ImGuiRequest.h"
 
 #include <vector>
 
 class PipelineStageExtension;
-class LimonAPI;
 inline const char* DRAG_AND_DROP_PIPELINE_STAGE = "DND_PIPELINE_STAGE";
 
 
@@ -29,7 +29,7 @@ class PipelineExtension : public EditorExtension {
     std::map<std::string, std::shared_ptr<Texture>> usedTextures;
     std::map<std::string, std::shared_ptr<Camera>> usedCameras;
     GraphicsInterface* graphicsWrapper = nullptr;
-    LimonAPI* limonAPI = nullptr;//used to draw GenericParameter editor widgets for render methods
+    GenerateEditorElementsCallback generateEditorElementsForParameters;//used to draw GenericParameter editor widgets for render methods
     std::shared_ptr<AssetManager> assetManager; //TODO: used for deserialize textures, maybe it would be possible to avoid.
     OptionsUtil::Options* options;//TODO: used for texture de/serialize, maybe it would be possible to avoid.
     const std::vector<std::string>& renderMethodNames;
@@ -60,7 +60,7 @@ class PipelineExtension : public EditorExtension {
     void drawTextureSettings();
 
 public:
-    PipelineExtension(GraphicsInterface *graphicsWrapper, LimonAPI *limonAPI, std::shared_ptr<GraphicsPipeline> currentGraphicsPipeline, std::shared_ptr<AssetManager> assetManager, OptionsUtil::Options* options,
+    PipelineExtension(GraphicsInterface *graphicsWrapper, GenerateEditorElementsCallback generateEditorElementsForParameters, std::shared_ptr<GraphicsPipeline> currentGraphicsPipeline, std::shared_ptr<AssetManager> assetManager, OptionsUtil::Options* options,
                       const std::vector<std::string> &renderMethodNames, RenderMethods renderMethods);
 
     void drawDetailPane(NodeGraph* nodeGraph, const std::vector<const Node *>& nodes, const Node* selectedNode) override;
@@ -73,8 +73,8 @@ public:
         return graphicsWrapper;
     }
 
-    LimonAPI* getLimonAPI() const {
-        return limonAPI;
+    const GenerateEditorElementsCallback& getGenerateEditorElementsForParameters() const {
+        return generateEditorElementsForParameters;
     }
 
     std::string getName() override {

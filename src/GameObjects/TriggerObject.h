@@ -56,7 +56,7 @@ class TriggerObject : public GameObject, public Attachable {
 
 public:
 
-    static void PutTriggerInGui(LimonAPI *limonAPI, TriggerInterface *&triggerCode, bool &enabled, uint32_t index);
+    static void PutTriggerInGui(LimonAPI *limonAPI, const GenerateEditorElementsCallback &generateEditorElementsForParameters, TriggerInterface *&triggerCode, bool &enabled, uint32_t index);
 
     TriggerObject(uint32_t id, LimonAPI* limonAPI): objectID(id), limonAPI(limonAPI) {
         ghostObject->setCollisionShape(ghostShape);

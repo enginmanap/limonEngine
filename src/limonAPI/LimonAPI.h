@@ -31,8 +31,6 @@ public:
 
     const OptionsUtil::Options * getOptions();
 
-    bool generateEditorElementsForParameters(std::vector<LimonTypes::GenericParameter> &runParameters, uint32_t index);
-
     uint32_t animateModel(uint32_t modelID, uint32_t animationID, bool looped, const std::string& soundPath = "");
     uint32_t addGuiText(const std::string &fontFilePath, uint32_t fontSize,
                         const std::string &name, const std::string &text,
@@ -274,7 +272,6 @@ private:
 
     std::map<std::string, LimonTypes::GenericParameter> variableStore;
 
-    std::function<bool(std::vector<LimonTypes::GenericParameter> &, uint32_t)> worldGenerateEditorElementsForParameters;
     std::function<uint32_t(uint32_t , uint32_t , bool, const std::string&)> worldAddAnimationToObject;
     std::function<uint32_t(const std::string &, uint32_t, const std::string &, const std::string &, const glm::vec3 &, const glm::vec2 &, float)> worldAddGuiText;
     std::function<uint32_t(const std::string &, const std::string &, const LimonTypes::Vec2 &, const LimonTypes::Vec2 &, float)> worldAddGuiImage;

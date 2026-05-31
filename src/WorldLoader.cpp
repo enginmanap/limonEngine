@@ -71,7 +71,6 @@ void WorldLoader::attachedAPIMethodsToWorld(World *world, LimonAPI *limonAPI) co
     limonAPI->worldAddModel = std::bind(&WorldAPIAccessor::addModelApi, world->apiAccessor, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5, std::placeholders::_6);
     limonAPI->worldSetModelTemporary = std::bind(&WorldAPIAccessor::setModelTemporaryAPI, world->apiAccessor, std::placeholders::_1, std::placeholders::_2);
     limonAPI->worldUpdateGuiText = std::bind(&WorldAPIAccessor::updateGuiText, world->apiAccessor, std::placeholders::_1, std::placeholders::_2);
-    limonAPI->worldGenerateEditorElementsForParameters = std::bind(&Editor::generateEditorElementsForParameters, world->editor.get(), std::placeholders::_1, std::placeholders::_2);
     limonAPI->worldGetResultOfTrigger = std::bind(&WorldAPIAccessor::getResultOfTrigger, world->apiAccessor, std::placeholders::_1, std::placeholders::_2);
     limonAPI->worldIsInsideTrigger = std::bind(&WorldAPIAccessor::isInsideTrigger, world->apiAccessor, std::placeholders::_1);
     limonAPI->worldGetObjectByName = std::bind(&WorldAPIAccessor::getObjectByName, world->apiAccessor, std::placeholders::_1);
