@@ -12,13 +12,17 @@ class WesternStoryAtUndertakerAction : public TriggerInterface {
     uint32_t textID1,textID2,textID3;
     bool hasRun = false;
 public:
-    WesternStoryAtUndertakerAction(LimonAPI* limonAPI) : TriggerInterface(limonAPI) {}
+    WesternStoryAtUndertakerAction(LimonAPI* limonAPI) : TriggerInterface(limonAPI) {
+        LimonTypes::GenericParameter param;
+        param.requestType = LimonTypes::GenericParameter::RequestParameterTypes::MODEL;
+        param.description = "Object to remove";
+        param.isSet = false;
+        this->parameters.push_back(param);
+    }
     void showMessages1(const std::vector<LimonTypes::GenericParameter> &emptyParamList);
     void showMessages2(const std::vector<LimonTypes::GenericParameter> &emptyParamList);
     void showMessages3(const std::vector<LimonTypes::GenericParameter> &emptyParamList);
 
-
-    std::vector<LimonTypes::GenericParameter> getParameters() override;
 
     bool run(std::vector<LimonTypes::GenericParameter> parameters) override;
 

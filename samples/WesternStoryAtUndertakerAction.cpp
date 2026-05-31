@@ -5,16 +5,6 @@
 #include <iostream>
 #include "WesternStoryAtUndertakerAction.h"
 
-std::vector<LimonTypes::GenericParameter> WesternStoryAtUndertakerAction::getParameters() {
-    std::vector<LimonTypes::GenericParameter> parameters;
-    LimonTypes::GenericParameter param;
-    param.requestType = LimonTypes::GenericParameter::RequestParameterTypes::MODEL;
-    param.description = "Object to remove";
-    param.isSet = false;
-    parameters.push_back(param);
-    return parameters;
-}
-
 bool WesternStoryAtUndertakerAction::run(std::vector<LimonTypes::GenericParameter> parameters[[gnu::unused]]) {
     //this action is when the player finds the gold in undertakers home
     if(this->hasRun) {

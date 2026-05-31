@@ -7,33 +7,6 @@
 
 TriggerRegister<AnimateOnTrigger> AnimateOnTrigger::reg("AnimateOnTrigger");
 
-std::vector<LimonTypes::GenericParameter> AnimateOnTrigger::getParameters() {
-    std::vector<LimonTypes::GenericParameter> parameters;
-    LimonTypes::GenericParameter param1;
-    param1.requestType = LimonTypes::GenericParameter::RequestParameterTypes::MODEL;
-    param1.description = "Model to animate";
-    parameters.push_back(param1);
-
-    LimonTypes::GenericParameter param2;
-    param2.requestType = LimonTypes::GenericParameter::RequestParameterTypes::ANIMATION;
-    param2.description = "Animation to apply";
-    parameters.push_back(param2);
-
-    LimonTypes::GenericParameter param3;
-    param3.requestType = LimonTypes::GenericParameter::RequestParameterTypes::SWITCH;
-    param3.description = "Is animation looped";
-    param3.isSet = true;
-    parameters.push_back(param3);
-
-    LimonTypes::GenericParameter param4;
-    param4.requestType = LimonTypes::GenericParameter::RequestParameterTypes::FREE_TEXT;
-    param4.description = "Sound to play";
-    param4.isSet = true;
-    parameters.push_back(param4);
-
-    return parameters;
-}
-
 bool AnimateOnTrigger::run(std::vector<LimonTypes::GenericParameter> parameters) {
 
     std::string sound;
@@ -52,4 +25,26 @@ std::vector<LimonTypes::GenericParameter> AnimateOnTrigger::getResults() {
     return std::vector<LimonTypes::GenericParameter>();
 }
 
-AnimateOnTrigger::AnimateOnTrigger(LimonAPI *limonAPI) : TriggerInterface(limonAPI) {}
+AnimateOnTrigger::AnimateOnTrigger(LimonAPI *limonAPI) : TriggerInterface(limonAPI) {
+    LimonTypes::GenericParameter param1;
+    param1.requestType = LimonTypes::GenericParameter::RequestParameterTypes::MODEL;
+    param1.description = "Model to animate";
+    this->parameters.push_back(param1);
+
+    LimonTypes::GenericParameter param2;
+    param2.requestType = LimonTypes::GenericParameter::RequestParameterTypes::ANIMATION;
+    param2.description = "Animation to apply";
+    this->parameters.push_back(param2);
+
+    LimonTypes::GenericParameter param3;
+    param3.requestType = LimonTypes::GenericParameter::RequestParameterTypes::SWITCH;
+    param3.description = "Is animation looped";
+    param3.isSet = true;
+    this->parameters.push_back(param3);
+
+    LimonTypes::GenericParameter param4;
+    param4.requestType = LimonTypes::GenericParameter::RequestParameterTypes::FREE_TEXT;
+    param4.description = "Sound to play";
+    param4.isSet = true;
+    this->parameters.push_back(param4);
+}

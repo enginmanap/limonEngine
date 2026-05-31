@@ -112,6 +112,7 @@ public:
         glm::vec3 orientation = glm::vec3(0,0,-1);
         Model* attachedModel = nullptr;
         std::string extensionName;
+        std::vector<LimonTypes::GenericParameter> parameters;
 
         PlayerInfo() {
             position = glm::vec3(-15, 7,25);
@@ -185,7 +186,6 @@ private:
 
     struct ActionForOnload {
         TriggerInterface* action = nullptr;
-        std::vector<LimonTypes::GenericParameter> parameters;
         bool enabled = false;
     };
 

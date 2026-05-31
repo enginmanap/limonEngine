@@ -96,7 +96,7 @@ bool GUIButton::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement 
     temp.serialize(document, guiButtonNode);
 
     if(onClickTriggerCode != nullptr) {
-        APISerializer::serializeTriggerCode(*onClickTriggerCode, document, guiButtonNode, "onClickTrigger", onClickParameters, enabled);
+        APISerializer::serializeTriggerCode(*onClickTriggerCode, document, guiButtonNode, "onClickTrigger", enabled);
     }
 
     return true;
@@ -171,7 +171,7 @@ GUIButton *GUIButton::deserialize(tinyxml2::XMLElement *GUIRenderableNode,  std:
         element->getTransformation()->setScale(tr.getScale());
 
         element->onClickTriggerCode = APISerializer::deserializeTriggerCode(GUIRenderableNode, GUIRenderableAttribute, "onClickTrigger", element->limonAPI,
-                                                                         element->onClickParameters, element->enabled);
+                                                                         element->enabled);
         if(element->onClickTriggerCode == nullptr) {
             std::cout << "Button On click trigger code deserialization failed." << std::endl;
         }
@@ -213,7 +213,7 @@ ImGuiResult GUIButton::addImGuiEditorElements(const ImGuiRequest &request) {
     result.updated = this->transformation.addImGuiEditorElements(request.orthogonalCameraMatrix, request.orthogonalMatrix, true);
 
     if (ImGui::CollapsingHeader("Click To Trigger")) {
-        TriggerObject::PutTriggerInGui(limonAPI, this->onClickTriggerCode, this->onClickParameters, enabled, 0);
+        TriggerObject::PutTriggerInGui(limonAPI, this->onClickTriggerCode, enabled, 0);
     }
 
     if (ImGui::Button("Remove")) {

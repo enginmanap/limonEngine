@@ -37,6 +37,7 @@ private:
     GraphicsInterface::CullModes cullMode = GraphicsInterface::CullModes::NO_CHANGE;
 
     std::string currentMethodName = "";
+    std::vector<LimonTypes::GenericParameter> methodParameters;//parameter values for currentMethodName, edited in the detail pane
     std::string originalOutputType;
     std::string renderWidthOption;
     std::string renderHeightOption;
@@ -83,6 +84,10 @@ public:
 
     const std::string &getMethodName() const {
         return currentMethodName;
+    }
+
+    const std::vector<LimonTypes::GenericParameter> &getMethodParameters() const {
+        return methodParameters;
     }
 
     GraphicsInterface::FrameBufferAttachPoints getOutputTextureIndex(const Connection* connection) const;

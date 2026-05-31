@@ -5,9 +5,7 @@
 #include "MayanCoinPickup.h"
 #include <iostream>
 
-MayanCoinPickup::MayanCoinPickup(LimonAPI *limonAPI) : TriggerInterface(limonAPI) {}
-
-std::vector<LimonTypes::GenericParameter> MayanCoinPickup::getParameters() {
+MayanCoinPickup::MayanCoinPickup(LimonAPI *limonAPI) : TriggerInterface(limonAPI) {
 
     /*
      * parameters:
@@ -18,56 +16,52 @@ std::vector<LimonTypes::GenericParameter> MayanCoinPickup::getParameters() {
         6) animation itself
      */
 
-    std::vector<LimonTypes::GenericParameter> parameters;
-
     LimonTypes::GenericParameter removeModelParameter;
     removeModelParameter.valueType = LimonTypes::GenericParameter::ValueTypes::LONG;
     removeModelParameter.requestType = LimonTypes::GenericParameter::RequestParameterTypes::MODEL;
     removeModelParameter.description = "Model to remove";
-    parameters.push_back(removeModelParameter);
+    this->parameters.push_back(removeModelParameter);
 
     LimonTypes::GenericParameter counterParameter;
     counterParameter.valueType = LimonTypes::GenericParameter::ValueTypes::LONG;
     counterParameter.requestType = LimonTypes::GenericParameter::RequestParameterTypes::GUI_TEXT;
     counterParameter.description = "Counter GUI Element";
-    parameters.push_back(counterParameter);
+    this->parameters.push_back(counterParameter);
 
     LimonTypes::GenericParameter counterStartParameter;
     counterStartParameter.valueType = LimonTypes::GenericParameter::ValueTypes::LONG;
     counterStartParameter.requestType = LimonTypes::GenericParameter::RequestParameterTypes::FREE_NUMBER;
     counterStartParameter.description = "Count start from";
-    parameters.push_back(counterStartParameter);
+    this->parameters.push_back(counterStartParameter);
 
     LimonTypes::GenericParameter animateModelParameter1;
     animateModelParameter1.valueType = LimonTypes::GenericParameter::ValueTypes::LONG;
     animateModelParameter1.requestType = LimonTypes::GenericParameter::RequestParameterTypes::MODEL;
     animateModelParameter1.description = "stairs part 1";
-    parameters.push_back(animateModelParameter1);
+    this->parameters.push_back(animateModelParameter1);
 
     LimonTypes::GenericParameter animateModelParameter2;
     animateModelParameter2.valueType = LimonTypes::GenericParameter::ValueTypes::LONG;
     animateModelParameter2.requestType = LimonTypes::GenericParameter::RequestParameterTypes::MODEL;
     animateModelParameter2.description = "stairs part 2";
-    parameters.push_back(animateModelParameter2);
+    this->parameters.push_back(animateModelParameter2);
 
     LimonTypes::GenericParameter animateModelParameter3;
     animateModelParameter3.valueType = LimonTypes::GenericParameter::ValueTypes::LONG;
     animateModelParameter3.requestType = LimonTypes::GenericParameter::RequestParameterTypes::MODEL;
     animateModelParameter3.description = "stairs part 3";
-    parameters.push_back(animateModelParameter3);
+    this->parameters.push_back(animateModelParameter3);
 
     LimonTypes::GenericParameter stairAnimation;
     stairAnimation.requestType = LimonTypes::GenericParameter::RequestParameterTypes::ANIMATION;
     stairAnimation.description = "Animation to apply";
-    parameters.push_back(stairAnimation);
+    this->parameters.push_back(stairAnimation);
 
     LimonTypes::GenericParameter textToAdd;
     textToAdd.requestType = LimonTypes::GenericParameter::RequestParameterTypes::FREE_TEXT;
     textToAdd.description = "Text to show when coin picked up.(Optional)";
     textToAdd.isSet = true;
-    parameters.push_back(textToAdd);
-
-    return parameters;
+    this->parameters.push_back(textToAdd);
 }
 
 bool MayanCoinPickup::run(std::vector<LimonTypes::GenericParameter> parameters) {

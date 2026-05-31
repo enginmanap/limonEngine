@@ -744,8 +744,20 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
                 ImGui::EndCombo();
             }
             static bool showError = false;
-            if(ImGui::InputText("Custom Extension name", this->extensionNameBuffer, 31, ImGuiInputTextFlags_CharsNoBlank)) {
-                showError = false;
+            if (ImGui::BeginCombo("Extension Type", this->extensionNameBuffer)) {
+                std::vector<std::string> extensionNames = PlayerExtensionInterface::getExtensionNames();
+                for (const std::string &extensionName : extensionNames) {
+                    bool isThisExtensionSelected = (extensionName == this->extensionNameBuffer);
+                    if (ImGui::Selectable(extensionName.c_str(), isThisExtensionSelected)) {
+                        strncpy(this->extensionNameBuffer, extensionName.c_str(), sizeof(this->extensionNameBuffer) - 1);
+                        this->extensionNameBuffer[sizeof(this->extensionNameBuffer) - 1] = '\0';
+                        showError = false;
+                    }
+                    if (isThisExtensionSelected) {
+                        ImGui::SetItemDefaultFocus();
+                    }
+                }
+                ImGui::EndCombo();
             }
 
             if(world->startingPlayer.attachedModel != nullptr) {
@@ -756,6 +768,9 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
                     world->addModelToWorld(attachedModel);
                 }
             }
+
+            //extension configuration widgets, edited in place on the startingPlayer descriptor (Actor-style)
+            world->apiInstance->generateEditorElementsForParameters(world->startingPlayer.parameters, 200);
 
             if(ImGui::Button("Apply##PlayerExtensionUpdate")) {
                 std::string tempName = this->extensionNameBuffer;
@@ -770,7 +785,12 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
                 if(playerToUpdate != nullptr && tempName != "") {
                     PlayerExtensionInterface* extension = PlayerExtensionInterface::createExtension(tempName, world->apiInstance);
                     if(extension != nullptr) {
+                        if(tempName != world->startingPlayer.extensionName) {
+                            //extension type changed, reset parameters to the new extension's defaults
+                            world->startingPlayer.parameters = extension->getParameters();
+                        }
                         world->startingPlayer.extensionName = tempName;
+                        extension->setParameters(world->startingPlayer.parameters);
                         playerToUpdate->setPlayerExtension(extension);
                     } else {
                         showError = true;
@@ -805,7 +825,6 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
                 }
                 //currently any trigger object can have 3 elements, so this should be >2 to avoid collision on imgui tags. I am assigning 100 just to be safe
                 TriggerObject::PutTriggerInGui(world->apiInstance, world->onLoadActions[onLoadTriggerIndex]->action,
-                                               world->onLoadActions[onLoadTriggerIndex]->parameters,
                                                world->onLoadActions[onLoadTriggerIndex]->enabled, 100 + onLoadTriggerIndex);
                 if (world->onLoadActions[world->onLoadActions.size() - 1]->enabled) {
                     //when user presses the enable button, add another and select it
@@ -2173,11 +2192,10 @@ void Editor::drawNodeEditor() {
     if(this->pipelineExtension->isPipelineBuilt()) {
         if (ImGui::Button("Activate")) {
             std::shared_ptr<GraphicsPipeline> builtRenderPipeline = this->pipelineExtension->handOverBuiltPipeline();
-            std::vector<LimonTypes::GenericParameter> emptyParameters;
             for(auto& stage:builtRenderPipeline->getStages()) {
                 for(auto& method:stage.renderMethods) {
                     if(!method.getInitialized()) {
-                        method.initialize(emptyParameters);
+                        method.initialize();
                     }
                 }
             }
@@ -2234,7 +2252,7 @@ void Editor::createNodeGraph() {
 
     RenderMethods renderMethods = world->buildRenderMethods();
 
-    this->pipelineExtension = new PipelineExtension(world->graphicsWrapper, world->renderPipeline, world->assetManager, world->options, GraphicsPipeline::getRenderMethodNames(), renderMethods);
+    this->pipelineExtension = new PipelineExtension(world->graphicsWrapper, world->apiInstance, world->renderPipeline, world->assetManager, world->options, GraphicsPipeline::getRenderMethodNames(), renderMethods);
 
     for(auto program:programs) {
         std::string programName = program->getProgramName();

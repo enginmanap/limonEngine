@@ -28,7 +28,6 @@ class GUIButton : public GUIImageBase, public GameObject{
 
     LimonAPI* limonAPI;
     TriggerInterface* onClickTriggerCode = nullptr;
-    std::vector<LimonTypes::GenericParameter> onClickParameters;
 
 
     const char editorFileNameFields[4][45] = {"Normal file##SelectedGUIButtonFileField", "On hover file##SelectedGUIButtonFileField", "On click file##SelectedGUIButtonFileField", "Disabled File##SelectedGUIButtonFileField"};
@@ -81,7 +80,7 @@ public:
         this->onClick = click;
         this->setImageFromFlags();
         if(this->onClickTriggerCode != nullptr && enabled == true && click == true) {
-            this->onClickTriggerCode->run(onClickParameters);
+            this->onClickTriggerCode->run(onClickTriggerCode->getParameters());
         }
     }
 

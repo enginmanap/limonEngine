@@ -8,6 +8,9 @@
 #include "../Graphics/Texture.h"
 #include "../Graphics/GraphicsPipeline.h"
 #include "../Utils/StringUtils.hpp"
+#include "../GamePlay/APISerializer.h"
+#include "limonAPI/Graphics/RenderMethodInterface.h"
+#include "limonAPI/LimonAPI.h"
 
 const PipelineStageExtension::LightType PipelineStageExtension::LIGHT_TYPES[] = {
         {"NONE", ""},
@@ -145,13 +148,26 @@ void PipelineStageExtension::drawDetailPane(Node *node) {
             for (size_t i = 0; i < methodNames.size(); ++i) {
                 const std::string &methodName = methodNames.at(i);
                 if (ImGui::Selectable(methodName.c_str())) {
-                    currentMethodName = methodName;
+                    if(currentMethodName != methodName) {
+                        currentMethodName = methodName;
+                        //seed the parameter values from the method's schema. Built in methods have no instance, so clear.
+                        methodParameters.clear();
+                        RenderMethodInterface *methodInterface = RenderMethodInterface::createRenderMethodInterfaceInstance(methodName, this->pipelineExtension->getGraphicsWrapper());
+                        if(methodInterface != nullptr) {
+                            methodParameters = methodInterface->getParameters();
+                            delete methodInterface;
+                        }
+                    }
                 }
                 if (currentMethodName == methodName) {
                     ImGui::SetItemDefaultFocus();
                 }
             }
             ImGui::EndCombo();
+        }
+
+        if(!methodParameters.empty() && this->pipelineExtension->getLimonAPI() != nullptr) {
+            this->pipelineExtension->getLimonAPI()->generateEditorElementsForParameters(methodParameters, node->getId());
         }
 
         if(anyOutputMultiLayered) {
@@ -273,6 +289,12 @@ void PipelineStageExtension::serialize(tinyxml2::XMLDocument &document, tinyxml2
     tinyxml2::XMLElement *renderMethodNameElement = document.NewElement("RenderMethodName");
     renderMethodNameElement->SetText(currentMethodName.c_str());
     stageExtensionElement->InsertEndChild(renderMethodNameElement);
+
+    tinyxml2::XMLElement *renderMethodParametersElement = document.NewElement("RenderMethodParameters");
+    for (size_t parameterIndex = 0; parameterIndex < methodParameters.size(); ++parameterIndex) {
+        APISerializer::serializeParameterRequest(methodParameters[parameterIndex], document, renderMethodParametersElement, parameterIndex);
+    }
+    stageExtensionElement->InsertEndChild(renderMethodParametersElement);
 
     tinyxml2::XMLElement *originalOutputTypeElement = document.NewElement("OriginalOutputType");
     originalOutputTypeElement->SetText(originalOutputType.c_str());
@@ -509,6 +531,23 @@ void PipelineStageExtension::deserialize(const std::string &nodeName, tinyxml2::
     } else {
         if( renderMethodNameElement->GetText() != nullptr) {
             this->currentMethodName = renderMethodNameElement->GetText();
+        }
+    }
+
+    this->methodParameters.clear();
+    tinyxml2::XMLElement *renderMethodParametersElement = nodeExtensionElement->FirstChildElement("RenderMethodParameters");
+    if(renderMethodParametersElement != nullptr) {
+        tinyxml2::XMLElement *parameterElement = renderMethodParametersElement->FirstChildElement("Parameter");
+        while(parameterElement != nullptr) {
+            uint32_t parameterIndex = 0;
+            std::shared_ptr<LimonTypes::GenericParameter> request = APISerializer::deserializeParameterRequest(parameterElement, parameterIndex);
+            if(request != nullptr) {
+                if(parameterIndex >= this->methodParameters.size()) {
+                    this->methodParameters.resize(parameterIndex + 1);
+                }
+                this->methodParameters[parameterIndex] = *request;
+            }
+            parameterElement = parameterElement->NextSiblingElement("Parameter");
         }
     }
 

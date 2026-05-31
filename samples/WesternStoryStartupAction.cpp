@@ -4,10 +4,6 @@
 
 #include "WesternStoryStartupAction.h"
 
-std::vector<LimonTypes::GenericParameter> WesternStoryStartupAction::getParameters() {
-    return std::vector<LimonTypes::GenericParameter>();
-}
-
 bool WesternStoryStartupAction::run(std::vector<LimonTypes::GenericParameter> parameters[[gnu::unused]]) {
     if(this->hasRun) {
         return false;

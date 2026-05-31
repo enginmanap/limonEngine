@@ -4,10 +4,6 @@
 
 #include "WesternStoryNewGameAction.h"
 
-std::vector<LimonTypes::GenericParameter> WesternStoryNewGameAction::getParameters() {
-    return std::vector<LimonTypes::GenericParameter>();
-}
-
 bool WesternStoryNewGameAction::run(std::vector<LimonTypes::GenericParameter> parameters[[gnu::unused]]) {
     /**
      * when player clicks new game do the following:

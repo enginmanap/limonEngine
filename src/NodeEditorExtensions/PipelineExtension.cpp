@@ -18,9 +18,9 @@
 #include "Utils/StringUtils.hpp"
 
 
-PipelineExtension::PipelineExtension(GraphicsInterface *graphicsWrapper, std::shared_ptr<GraphicsPipeline> currentGraphicsPipeline, std::shared_ptr<AssetManager> assetManager, OptionsUtil::Options* options,
+PipelineExtension::PipelineExtension(GraphicsInterface *graphicsWrapper, LimonAPI *limonAPI, std::shared_ptr<GraphicsPipeline> currentGraphicsPipeline, std::shared_ptr<AssetManager> assetManager, OptionsUtil::Options* options,
                                      const std::vector<std::string> &renderMethodNames, RenderMethods renderMethods)
-        : graphicsWrapper(graphicsWrapper), assetManager(assetManager), options(options), renderMethodNames(renderMethodNames), renderMethods(renderMethods) {
+        : graphicsWrapper(graphicsWrapper), limonAPI(limonAPI), assetManager(assetManager), options(options), renderMethodNames(renderMethodNames), renderMethods(renderMethods) {
     {
 
         for(std::shared_ptr<Texture> texture:currentGraphicsPipeline->getTextures()) {
@@ -1051,6 +1051,7 @@ bool PipelineExtension::buildRenderPipelineRecursive(const Node *node,
             if(isFound) {
                 functionToCall.setRenderTags(renderTags);
                 functionToCall.setCameraName(StringUtils::join(stageExtension->getCameraTags(), ","));
+                functionToCall.setParameters(stageExtension->getMethodParameters());
                 stageInfo->addRenderMethod(functionToCall);
             } else {
                 std::cerr << "Selected method name is invalid!" << std::endl;

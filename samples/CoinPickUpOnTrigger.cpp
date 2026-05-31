@@ -14,29 +14,24 @@
 #include "WesternStoryAtTrainAction.h"
 #include "WesternStoryNewGameAction.h"
 
-CoinPickUpOnTrigger::CoinPickUpOnTrigger(LimonAPI *limonAPI) : TriggerInterface(limonAPI) {}
-
-std::vector<LimonTypes::GenericParameter> CoinPickUpOnTrigger::getParameters() {
-    std::vector<LimonTypes::GenericParameter> parameters;
+CoinPickUpOnTrigger::CoinPickUpOnTrigger(LimonAPI *limonAPI) : TriggerInterface(limonAPI) {
     LimonTypes::GenericParameter pr;
     pr.valueType = LimonTypes::GenericParameter::ValueTypes::LONG;
     pr.requestType = LimonTypes::GenericParameter::RequestParameterTypes::GUI_TEXT;
     pr.description = "Counter GUI Element";
-    parameters.push_back(pr);
+    this->parameters.push_back(pr);
 
     LimonTypes::GenericParameter pr2;
     pr2.valueType = LimonTypes::GenericParameter::ValueTypes::LONG;
     pr2.requestType = LimonTypes::GenericParameter::RequestParameterTypes::MODEL;
     pr2.description = "Model to remove";
-    parameters.push_back(pr2);
+    this->parameters.push_back(pr2);
 
     LimonTypes::GenericParameter pr3;
     pr3.valueType = LimonTypes::GenericParameter::ValueTypes::LONG;
     pr3.requestType = LimonTypes::GenericParameter::RequestParameterTypes::FREE_NUMBER;
     pr3.description = "Count to finish";
-    parameters.push_back(pr3);
-
-    return parameters;
+    this->parameters.push_back(pr3);
 }
 
 bool CoinPickUpOnTrigger::run(std::vector<LimonTypes::GenericParameter> parameters) {

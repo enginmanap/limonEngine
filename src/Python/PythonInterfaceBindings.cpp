@@ -159,7 +159,7 @@ void bindInterfaces(pybind11::module_& m) {
     m.def("register_trigger_type", &TriggerInterface::registerType);
     m.def("register_extension_type", &PlayerExtensionInterface::registerType);
     m.def("get_trigger_names", &TriggerInterface::getTriggerNames);
-    m.def("get_extension_names", &PlayerExtensionInterface::getTriggerNames);
+    m.def("get_extension_names", &PlayerExtensionInterface::getExtensionNames);
     m.def("register_actor_type", &ActorInterface::registerType);
     m.def("get_actor_names", &ActorInterface::getActorNames);
 

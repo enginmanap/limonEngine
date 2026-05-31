@@ -24,6 +24,7 @@ class PlayerExtensionInterface {
     static std::map<std::string, PlayerExtensionInterface*(*)(LimonAPI*)>* extensionTypesMap;
 protected:
     LimonAPI* limonAPI = nullptr;
+    std::vector<LimonTypes::GenericParameter> parameters;
     static std::map<std::string, PlayerExtensionInterface*(*)(LimonAPI*)> * getMap() {
         // never deleted. (exist until program termination)
         // because we can't guarantee correct destruction order
@@ -43,7 +44,8 @@ public:
     };
 
     // Not virtual
-    static std::vector<std::string> getTriggerNames() {
+    // Renamed from getTriggerNames(): this returns registered player-extension names, not trigger names.
+    static std::vector<std::string> getExtensionNames() {
         std::vector<std::string> names;
         for (auto it = extensionTypesMap->begin(); it != extensionTypesMap->end(); it++) {
             names.push_back(it->first);
@@ -62,6 +64,22 @@ public:
     virtual ~PlayerExtensionInterface() = default;
 
     virtual std::string getName() const = 0;
+
+    /**
+     * Returns the configurable parameters of this extension. The base implementation exposes the
+     * values held on the instance; override to expose typed members as descriptors (Actor-style).
+     */
+    virtual std::vector<LimonTypes::GenericParameter> getParameters() const {
+        return this->parameters;
+    }
+
+    /**
+     * Stores the configured parameter values on the extension instance. The base implementation keeps
+     * them in the protected `parameters` member; override to react to value changes.
+     */
+    virtual void setParameters(std::vector<LimonTypes::GenericParameter> parameters) {
+        this->parameters = parameters;
+    }
 
     virtual CameraAttachment* getCustomCameraAttachment() { return nullptr; }
 

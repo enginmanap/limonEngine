@@ -6,45 +6,6 @@
 #include "DoorAnimationAction.h"
 #include "limonAPI/LimonAPI.h"
 
-std::vector<LimonTypes::GenericParameter> DoorAnimationAction::getParameters() {
-    std::vector<LimonTypes::GenericParameter> parameters;
-    LimonTypes::GenericParameter param1;
-    param1.requestType = LimonTypes::GenericParameter::RequestParameterTypes::MODEL;
-    param1.description = "Model to animate";
-    parameters.push_back(param1);
-
-    LimonTypes::GenericParameter param2;
-    param2.requestType = LimonTypes::GenericParameter::RequestParameterTypes::ANIMATION;
-    param2.description = "Animation to apply";
-    parameters.push_back(param2);
-
-    LimonTypes::GenericParameter param3;
-    param3.requestType = LimonTypes::GenericParameter::RequestParameterTypes::SWITCH;
-    param3.description = "Is animation looped";
-    param3.isSet = true;
-    parameters.push_back(param3);
-
-    LimonTypes::GenericParameter param4;
-    param4.requestType = LimonTypes::GenericParameter::RequestParameterTypes::FREE_TEXT;
-    param4.description = "Sound to play";
-    param4.isSet = true;
-    parameters.push_back(param4);
-
-    LimonTypes::GenericParameter param5;
-    param5.requestType = LimonTypes::GenericParameter::RequestParameterTypes::TRIGGER;
-    param5.description = "Wait for trigger finish";
-    param5.isSet = false;
-    parameters.push_back(param5);
-
-    LimonTypes::GenericParameter param6;
-    param6.requestType = LimonTypes::GenericParameter::RequestParameterTypes::FREE_NUMBER;
-    param6.description = "wait time";
-    param6.isSet = true;
-    parameters.push_back(param6);
-
-    return parameters;
-}
-
 bool DoorAnimationAction::run(std::vector<LimonTypes::GenericParameter> parameters) {
 
     if(parameters.size() != 6 ) {
@@ -93,7 +54,41 @@ std::vector<LimonTypes::GenericParameter> DoorAnimationAction::getResults() {
     return result;
 }
 
-DoorAnimationAction::DoorAnimationAction(LimonAPI *limonAPI) : TriggerInterface(limonAPI) {}
+DoorAnimationAction::DoorAnimationAction(LimonAPI *limonAPI) : TriggerInterface(limonAPI) {
+    LimonTypes::GenericParameter param1;
+    param1.requestType = LimonTypes::GenericParameter::RequestParameterTypes::MODEL;
+    param1.description = "Model to animate";
+    this->parameters.push_back(param1);
+
+    LimonTypes::GenericParameter param2;
+    param2.requestType = LimonTypes::GenericParameter::RequestParameterTypes::ANIMATION;
+    param2.description = "Animation to apply";
+    this->parameters.push_back(param2);
+
+    LimonTypes::GenericParameter param3;
+    param3.requestType = LimonTypes::GenericParameter::RequestParameterTypes::SWITCH;
+    param3.description = "Is animation looped";
+    param3.isSet = true;
+    this->parameters.push_back(param3);
+
+    LimonTypes::GenericParameter param4;
+    param4.requestType = LimonTypes::GenericParameter::RequestParameterTypes::FREE_TEXT;
+    param4.description = "Sound to play";
+    param4.isSet = true;
+    this->parameters.push_back(param4);
+
+    LimonTypes::GenericParameter param5;
+    param5.requestType = LimonTypes::GenericParameter::RequestParameterTypes::TRIGGER;
+    param5.description = "Wait for trigger finish";
+    param5.isSet = false;
+    this->parameters.push_back(param5);
+
+    LimonTypes::GenericParameter param6;
+    param6.requestType = LimonTypes::GenericParameter::RequestParameterTypes::FREE_NUMBER;
+    param6.description = "wait time";
+    param6.isSet = true;
+    this->parameters.push_back(param6);
+}
 
 void DoorAnimationAction::resetAnimationRun(const std::vector<LimonTypes::GenericParameter> &) {
     this->animationRun = false;

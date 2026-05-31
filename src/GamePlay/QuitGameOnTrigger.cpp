@@ -7,10 +7,6 @@
 TriggerRegister<QuitGameOnTrigger> QuitGameOnTrigger::reg("QuitGameOnTrigger");
 
 
-std::vector<LimonTypes::GenericParameter> QuitGameOnTrigger::getParameters() {
-    return std::vector<LimonTypes::GenericParameter>();
-}
-
 bool QuitGameOnTrigger::run(std::vector<LimonTypes::GenericParameter> parameters [[gnu::unused]]) {
     limonAPI->quitGame();
     return true;

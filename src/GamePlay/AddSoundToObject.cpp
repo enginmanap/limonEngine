@@ -7,22 +7,16 @@
 TriggerRegister<AddSoundToObject> AddSoundToObject::reg("AddSoundToObject");
 
 
-AddSoundToObject::AddSoundToObject(LimonAPI *limonAPI) : TriggerInterface(limonAPI) {}
-
-
-std::vector<LimonTypes::GenericParameter> AddSoundToObject::getParameters() {
-    std::vector<LimonTypes::GenericParameter> parameters;
+AddSoundToObject::AddSoundToObject(LimonAPI *limonAPI) : TriggerInterface(limonAPI) {
     LimonTypes::GenericParameter param1;
     param1.requestType = LimonTypes::GenericParameter::RequestParameterTypes::FREE_TEXT;
     param1.description = "Sound to play";
-    parameters.push_back(param1);
+    this->parameters.push_back(param1);
 
     LimonTypes::GenericParameter param2;
     param2.requestType = LimonTypes::GenericParameter::RequestParameterTypes::MODEL;
     param2.description = "Model to attach";
-    parameters.push_back(param2);
-
-    return parameters;
+    this->parameters.push_back(param2);
 }
 
 bool AddSoundToObject::run(std::vector<LimonTypes::GenericParameter> parameters) {

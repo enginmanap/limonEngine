@@ -20,12 +20,10 @@ public:
     static std::shared_ptr<LimonTypes::GenericParameter> deserializeParameterRequest(tinyxml2::XMLElement *parameterNode, uint32_t &index);
 
     static bool serializeTriggerCode(const TriggerInterface &trigger, tinyxml2::XMLDocument &document, tinyxml2::XMLElement *triggerNode,
-                                     const std::string &triggerCodeNodeName,
-                                     const std::vector<LimonTypes::GenericParameter> &parameters, bool enabled);
+                                     const std::string &triggerCodeNodeName, bool enabled);
 
     static TriggerInterface* deserializeTriggerCode(tinyxml2::XMLElement *triggersNode, tinyxml2::XMLElement *triggerAttribute,
-                                                    const std::string &nodeName, LimonAPI *limonAPI,
-                                                    std::vector<LimonTypes::GenericParameter> &parameters, bool &enabled);
+                                                    const std::string &nodeName, LimonAPI *limonAPI, bool &enabled);
 
     static void serializeActorInterface(const ActorInterface& actor, tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentNode);
 

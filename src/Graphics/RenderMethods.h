@@ -26,6 +26,7 @@ public:
         std::function<void(const std::shared_ptr<GraphicsProgram>&, const std::string &cameraName [[gnu::unused]], const std::vector<HashUtil::HashedString> &tags [[gnu::unused]])> method;
         std::function<void(const std::shared_ptr<GraphicsProgram>&, const std::vector<LimonTypes::GenericParameter>&)> finalizer;
         std::shared_ptr<GraphicsProgram> glslProgram;
+        std::vector<LimonTypes::GenericParameter> parameters;
         uint32_t priority{};
         bool isInitialized = false;
 
@@ -58,18 +59,26 @@ public:
             method(glslProgram, cameraName, renderTags);
         }
 
-        void initialize(const std::vector<LimonTypes::GenericParameter>& parameters) {
+        void initialize() {
             if(this->initializer != nullptr) {
                 initializer(glslProgram, parameters);
             }
             isInitialized = true;
         }
 
-        void finalize(const std::vector<LimonTypes::GenericParameter>& parameters) {
+        void finalize() {
             if(this->finalizer != nullptr) {
                 finalizer(glslProgram, parameters);
             }
             isInitialized = false;
+        }
+
+        void setParameters(const std::vector<LimonTypes::GenericParameter>& parameters) {
+            this->parameters = parameters;
+        }
+
+        const std::vector<LimonTypes::GenericParameter>& getParameters() const {
+            return parameters;
         }
 
         const std::string &getName() const {

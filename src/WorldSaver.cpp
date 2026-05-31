@@ -102,6 +102,12 @@ bool WorldSaver::saveWorld(const std::string& mapName, const World* world) {
     playerExtension->SetText(world->startingPlayer.extensionName.c_str());
     currentElement->InsertEndChild(playerExtension);
 
+    tinyxml2::XMLElement *playerExtensionParameters = mapDocument.NewElement("ExtensionParameters");
+    for (size_t i = 0; i < world->startingPlayer.parameters.size(); ++i) {
+        APISerializer::serializeParameterRequest(world->startingPlayer.parameters[i], mapDocument, playerExtensionParameters, i);
+    }
+    currentElement->InsertEndChild(playerExtensionParameters);
+
     tinyxml2::XMLElement *playerAttachment = mapDocument.NewElement("Attachment");
     if(world->startingPlayer.attachedModel != nullptr) {
         if(world->physicalPlayer != nullptr) {
@@ -617,10 +623,11 @@ bool WorldSaver::fillOnloadActions(tinyxml2::XMLDocument &document, tinyxml2::XM
         onloadActionNode->InsertEndChild(actionNameNode);
 
 
-        //now serialize the parameters
+        //now serialize the parameters, owned by the trigger instance
+        const std::vector<LimonTypes::GenericParameter> parameters = (*it)->action->getParameters();
         tinyxml2::XMLElement* parametersNode = document.NewElement("Parameters");
-        for (size_t i = 0; i < (*it)->parameters.size(); ++i) {
-            APISerializer::serializeParameterRequest((*it)->parameters[i], document, parametersNode, i);
+        for (size_t i = 0; i < parameters.size(); ++i) {
+            APISerializer::serializeParameterRequest(parameters[i], document, parametersNode, i);
         }
         onloadActionNode->InsertEndChild(parametersNode);
 

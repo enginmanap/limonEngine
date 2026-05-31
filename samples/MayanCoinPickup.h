@@ -15,8 +15,6 @@ class MayanCoinPickup : public TriggerInterface {
 public:
     MayanCoinPickup(LimonAPI *limonAPI);
 
-    std::vector<LimonTypes::GenericParameter> getParameters() override;
-
     bool run(std::vector<LimonTypes::GenericParameter> parameters) override;
 
     std::vector<LimonTypes::GenericParameter> getResults() override;

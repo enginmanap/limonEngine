@@ -51,13 +51,13 @@ ImGuiResult TriggerObject::addImGuiEditorElements(const ImGuiRequest &request) {
     if (ImGui::CollapsingHeader("Trigger Properties")) {
         ImGui::Text("If first enter trigger is empty, enter trigger will be run for first time too.");
         if (ImGui::CollapsingHeader("First Enter Trigger")) {
-            PutTriggerInGui(limonAPI, this->firstEnterTriggerCode, this->firstEnterParameters, enabledFirstTrigger, 0);
+            PutTriggerInGui(limonAPI, this->firstEnterTriggerCode, enabledFirstTrigger, 0);
         }
         if (ImGui::CollapsingHeader("Enter Trigger")) {
-            PutTriggerInGui(limonAPI, this->enterTriggerCode, this->enterParameters, enabledEnterTrigger, 1);
+            PutTriggerInGui(limonAPI, this->enterTriggerCode, enabledEnterTrigger, 1);
         }
         if (ImGui::CollapsingHeader("Exit Trigger")) {
-            PutTriggerInGui(limonAPI, this->exitTriggerCode, this->exitParameters, enabledExitTrigger, 2);
+            PutTriggerInGui(limonAPI, this->exitTriggerCode, enabledExitTrigger, 2);
         }
     }
 
@@ -65,8 +65,7 @@ ImGuiResult TriggerObject::addImGuiEditorElements(const ImGuiRequest &request) {
     return result;
 }
 
-void TriggerObject::PutTriggerInGui(LimonAPI *limonAPI, TriggerInterface *&triggerCode, std::vector<LimonTypes::GenericParameter> &parameters,
-                                    bool &enabled, uint32_t index) {
+void TriggerObject::PutTriggerInGui(LimonAPI *limonAPI, TriggerInterface *&triggerCode, bool &enabled, uint32_t index) {
     //index is used because imgui doesn't allow repeating labels
         //now we should put 3 triggers,
         std::string currentTriggerName;
@@ -88,7 +87,7 @@ void TriggerObject::PutTriggerInGui(LimonAPI *limonAPI, TriggerInterface *&trigg
                             delete triggerCode;
                         }
                         triggerCode = TriggerInterface::createTrigger(*it, limonAPI);
-                        parameters = triggerCode->getParameters();
+                        triggerCode->setParameters(triggerCode->getParameters());
                         enabled = false;
                     }
                 }
@@ -100,7 +99,9 @@ void TriggerObject::PutTriggerInGui(LimonAPI *limonAPI, TriggerInterface *&trigg
             ImGui::EndCombo();
         }
         if (triggerCode != nullptr) {
+            std::vector<LimonTypes::GenericParameter> parameters = triggerCode->getParameters();
             bool isSet = limonAPI->generateEditorElementsForParameters(parameters, index);
+            triggerCode->setParameters(parameters);
             if (enabled) {
                 if (ImGui::Button(("Disable Trigger##" + std::to_string(index)).c_str())) {
                     enabled = false;
@@ -137,14 +138,14 @@ void TriggerObject::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElem
     // There are 3 trigger codes, put them all
     if(firstEnterTriggerCode != nullptr) {
         APISerializer::serializeTriggerCode(*firstEnterTriggerCode, document, triggerNode, "FirstEnterTriggerCode",
-                                                    firstEnterParameters, enabledFirstTrigger);
+                                                    enabledFirstTrigger);
     }
     if(enterTriggerCode != nullptr) {
-        APISerializer::serializeTriggerCode(*enterTriggerCode, document, triggerNode, "EnterTriggerCode", enterParameters,
+        APISerializer::serializeTriggerCode(*enterTriggerCode, document, triggerNode, "EnterTriggerCode",
                                                enabledEnterTrigger);
     }
     if(exitTriggerCode != nullptr) {
-        APISerializer::serializeTriggerCode(*exitTriggerCode, document, triggerNode, "ExitTriggerCode", exitParameters,
+        APISerializer::serializeTriggerCode(*exitTriggerCode, document, triggerNode, "ExitTriggerCode",
                                               enabledExitTrigger);
     }
 
@@ -191,16 +192,16 @@ TriggerObject * TriggerObject::deserialize(tinyxml2::XMLElement *triggersNode, L
     triggerObject->transformation.deserialize(triggerAttribute);
 
     triggerObject->firstEnterTriggerCode = APISerializer::deserializeTriggerCode(triggersNode, triggerAttribute, "FirstEnterTriggerCode", triggerObject->limonAPI,
-                                                                                    triggerObject->firstEnterParameters, triggerObject->enabledFirstTrigger);
+                                                                                    triggerObject->enabledFirstTrigger);
     if(triggerObject->firstEnterTriggerCode == nullptr) {
         std::cout << "First enter trigger code deserialization failed." << std::endl;
     }
     triggerObject->enterTriggerCode = APISerializer::deserializeTriggerCode(triggersNode, triggerAttribute, "EnterTriggerCode", triggerObject->limonAPI,
-                                                                               triggerObject->enterParameters, triggerObject->enabledEnterTrigger);
+                                                                               triggerObject->enabledEnterTrigger);
     if(triggerObject->enterTriggerCode == nullptr) {
         std::cout << "enter trigger code deserialization failed." << std::endl;
     }
-    triggerObject->exitTriggerCode = APISerializer::deserializeTriggerCode(triggersNode, triggerAttribute, "ExitTriggerCode", triggerObject->limonAPI, triggerObject->exitParameters,
+    triggerObject->exitTriggerCode = APISerializer::deserializeTriggerCode(triggersNode, triggerAttribute, "ExitTriggerCode", triggerObject->limonAPI,
                                                                               triggerObject->enabledExitTrigger);
     if(triggerObject->exitTriggerCode == nullptr) {
         std::cout << "Exit trigger code deserialization failed." << std::endl;

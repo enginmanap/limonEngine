@@ -354,7 +354,6 @@ void APISerializer::loadVec4(tinyxml2::XMLNode *vectorNode, LimonTypes::Vec4 &ve
 
 bool APISerializer::serializeTriggerCode(const TriggerInterface &trigger, tinyxml2::XMLDocument &document,
                                          tinyxml2::XMLElement *triggerNode, const std::string &triggerCodeNodeName,
-                                         const std::vector<LimonTypes::GenericParameter> &parameters,
                                          bool enabled) {
     tinyxml2::XMLElement *currentElement = document.NewElement(triggerCodeNodeName.c_str());
 
@@ -362,7 +361,8 @@ bool APISerializer::serializeTriggerCode(const TriggerInterface &trigger, tinyxm
     codeElement->SetText(trigger.getName().c_str());
     currentElement->InsertEndChild(codeElement);
 
-    //now serialize the parameters
+    //now serialize the parameters, values are owned by the trigger instance
+    const std::vector<LimonTypes::GenericParameter> parameters = trigger.getParameters();
     codeElement = document.NewElement("parameters");
     for (size_t i = 0; i < parameters.size(); ++i) {
         APISerializer::serializeParameterRequest(parameters[i], document, codeElement, i);
@@ -383,8 +383,7 @@ bool APISerializer::serializeTriggerCode(const TriggerInterface &trigger, tinyxm
 
 TriggerInterface*
 APISerializer::deserializeTriggerCode(tinyxml2::XMLElement *triggersNode, tinyxml2::XMLElement *triggerAttribute,
-                                      const std::string &nodeName, LimonAPI *limonAPI,
-                                      std::vector<LimonTypes::GenericParameter> &parameters, bool &enabled) {
+                                      const std::string &nodeName, LimonAPI *limonAPI, bool &enabled) {
     TriggerInterface* triggerCode = nullptr;
     enabled= false;
     triggerAttribute = triggersNode->FirstChildElement(nodeName.c_str());
@@ -394,7 +393,7 @@ APISerializer::deserializeTriggerCode(tinyxml2::XMLElement *triggersNode, tinyxm
 
         // Seed parameters with the trigger's current defaults so that XMLs saved
         // before a parameter was added still produce a fully-sized vector.
-        parameters = triggerCode->getParameters();
+        std::vector<LimonTypes::GenericParameter> parameters = triggerCode->getParameters();
         std::vector<bool> parametersIsSet(parameters.size(), false);
 
         triggerCodeAttribute = triggerAttribute->FirstChildElement("parameters");
@@ -423,6 +422,10 @@ APISerializer::deserializeTriggerCode(tinyxml2::XMLElement *triggersNode, tinyxm
                 std::cerr << "Trigger parameter not set in XML, using default value." << std::endl;
             }
         }
+
+        // Values are owned by the trigger instance from here on.
+        triggerCode->setParameters(parameters);
+
         triggerCodeAttribute = triggerAttribute->FirstChildElement("Enabled");
         if (triggerCodeAttribute == nullptr) {
             std::cerr << "Trigger Didn't have enabled set, defaulting to False." << std::endl;
@@ -489,6 +492,9 @@ ActorInterface *APISerializer::deserializeActorInterface(tinyxml2::XMLElement *a
             return nullptr;
         }
         tinyxml2::XMLElement* allParametersNode = actorNode->FirstChildElement("parameters");
+        if(allParametersNode == nullptr) {
+            return actor;//no parameters saved, use defaults
+        }
 
         tinyxml2::XMLElement* parameterNode = allParametersNode->FirstChildElement("Parameter");
         uint32_t index;

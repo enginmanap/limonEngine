@@ -265,6 +265,19 @@ World * WorldLoader::loadMapFromXML(const std::string &worldFileName, LimonAPI *
             }
         }
 
+        tinyxml2::XMLElement* playerExtensionParameters =  worldStartPlayer->FirstChildElement("ExtensionParameters");
+        if(playerExtensionParameters != nullptr) {
+            tinyxml2::XMLElement* parameterNode = playerExtensionParameters->FirstChildElement("Parameter");
+            uint32_t index;
+            while(parameterNode != nullptr) {
+                std::shared_ptr<LimonTypes::GenericParameter> request = APISerializer::deserializeParameterRequest(parameterNode, index);
+                if(request != nullptr && index <= startingPlayer.parameters.size()) {
+                    startingPlayer.parameters.insert(startingPlayer.parameters.begin() + index, *request);
+                }
+                parameterNode = parameterNode->NextSiblingElement("Parameter");
+            }
+        }
+
         tinyxml2::XMLElement* playerAttachmentModel =  worldStartPlayer->FirstChildElement("Attachment");
         if(playerAttachmentModel != nullptr) {
             if(saveVersion >= 2) {
@@ -2122,6 +2135,7 @@ bool WorldLoader::loadOnLoadActions(tinyxml2::XMLNode *worldNode, World *world) 
             tinyxml2::XMLElement* parametersListNode = onloadActionNode->FirstChildElement("Parameters");
 
             tinyxml2::XMLElement* parameterNode = parametersListNode->FirstChildElement("Parameter");
+            std::vector<LimonTypes::GenericParameter> parameters;
             uint32_t index;
             while(parameterNode != nullptr) {
                 std::shared_ptr<LimonTypes::GenericParameter> request = APISerializer::deserializeParameterRequest(parameterNode, index);
@@ -2129,10 +2143,12 @@ bool WorldLoader::loadOnLoadActions(tinyxml2::XMLNode *worldNode, World *world) 
                     delete actionForOnload;
                     return false;
                 }
-                actionForOnload->parameters.insert(actionForOnload->parameters.begin() + index, *request);
+                parameters.insert(parameters.begin() + index, *request);
 
                 parameterNode = parameterNode->NextSiblingElement("Parameter");
             }
+            //values are owned by the trigger instance
+            actionForOnload->action->setParameters(parameters);
 
             //now load enabled state
             tinyxml2::XMLElement* enabledNode = onloadActionNode->FirstChildElement("Enabled");

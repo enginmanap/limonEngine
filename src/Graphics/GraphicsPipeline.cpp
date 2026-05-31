@@ -8,6 +8,7 @@
 #include "limonAPI/Graphics/RenderMethodInterface.h"
 #include "Utils/StringUtils.hpp"
 #include "../Profiler/ProfilerState.h"
+#include "../GamePlay/APISerializer.h"
 
 //Static initialize of the vector
 std::vector<std::string> GraphicsPipeline::renderMethodNames{"None", "All directional shadows", "All point shadows", "Render Tagged Objects", "Render Opaque Objects",
@@ -20,7 +21,7 @@ void GraphicsPipeline::initialize() {
     for(auto& stageInfo:pipelineStages) {
         stageInfo.stage->activate(stageInfo.clear);
         for(auto& renderMethod:stageInfo.renderMethods) {
-            renderMethod.initialize(std::vector<LimonTypes::GenericParameter>());
+            renderMethod.initialize();
         }
     }
 }
@@ -45,7 +46,7 @@ void GraphicsPipeline::finalize() {
     for(auto& stageInfo:pipelineStages) {
         stageInfo.stage->activate(stageInfo.clear);
         for(auto& renderMethod:stageInfo.renderMethods) {
-            renderMethod.finalize(std::vector<LimonTypes::GenericParameter>());
+            renderMethod.finalize();
         }
     }
 }
@@ -115,6 +116,14 @@ bool GraphicsPipeline::StageInfo::serialize(tinyxml2::XMLDocument &document, tin
         } else {
             methodElement->SetAttribute("ProgramNull", "True");
         }
+
+        //serialize the parameter values so they can be fed to the method at load/create time
+        const std::vector<LimonTypes::GenericParameter> &methodParameters = renderMethods[i].getParameters();
+        tinyxml2::XMLElement *parametersElement = document.NewElement("Parameters");
+        for (size_t parameterIndex = 0; parameterIndex < methodParameters.size(); ++parameterIndex) {
+            APISerializer::serializeParameterRequest(methodParameters[parameterIndex], document, parametersElement, parameterIndex);
+        }
+        methodElement->InsertEndChild(parametersElement);
 
         //now we need to parse the external methods
         for (auto erIterator = externalRenderMethods.begin(); erIterator != externalRenderMethods.end(); ++erIterator) {
@@ -302,17 +311,37 @@ GraphicsPipeline::StageInfo::deserialize(tinyxml2::XMLElement *stageInfoElement,
         }
 
 
+        //read the saved parameter values so they can be fed to the method at load/create time
+        std::vector<LimonTypes::GenericParameter> methodParameters;
+        tinyxml2::XMLElement* parametersElement = methodElement->FirstChildElement("Parameters");
+        if(parametersElement != nullptr) {
+            tinyxml2::XMLElement* parameterElement = parametersElement->FirstChildElement("Parameter");
+            while(parameterElement != nullptr) {
+                uint32_t parameterIndex = 0;
+                std::shared_ptr<LimonTypes::GenericParameter> request = APISerializer::deserializeParameterRequest(parameterElement, parameterIndex);
+                if(request != nullptr) {
+                    if(parameterIndex >= methodParameters.size()) {
+                        methodParameters.resize(parameterIndex + 1);
+                    }
+                    methodParameters[parameterIndex] = *request;
+                }
+                parameterElement = parameterElement->NextSiblingElement("Parameter");
+            }
+        }
+
         bool isFound = true;
         if(methodName == "All directional shadows") {
             std::shared_ptr<Texture> depthMap = newStageInfo.stage->getOutput(GraphicsInterface::FrameBufferAttachPoints::DEPTH);
             RenderMethods::RenderMethod method  = pipeline->getRenderMethods().getRenderMethodAllDirectionalLights(newStageInfo.stage, depthMap, graphicsProgram, assetManager->getGraphicsWrapper()->getOptions());
             method.setRenderTags(hashedRenderTags);
             method.setCameraName(StringUtils::join(newStageInfo.cameraTags, ","));
+            method.setParameters(methodParameters);
             newStageInfo.addRenderMethod(method);
         } else if(methodName == "All point shadows") {
             RenderMethods::RenderMethod method = pipeline->getRenderMethods().getRenderMethodAllPointLights(graphicsProgram);
             method.setRenderTags(hashedRenderTags);
             method.setCameraName(StringUtils::join(newStageInfo.cameraTags, ","));
+            method.setParameters(methodParameters);
             newStageInfo.addRenderMethod(method);
         } else {
             RenderMethods::RenderMethod method = pipeline->getRenderMethods().getRenderMethod(assetManager->getGraphicsWrapper(), methodName,
@@ -320,6 +349,7 @@ GraphicsPipeline::StageInfo::deserialize(tinyxml2::XMLElement *stageInfoElement,
                                                                                                      isFound);
             method.setRenderTags(hashedRenderTags);
             method.setCameraName(StringUtils::join(newStageInfo.cameraTags, ","));
+            method.setParameters(methodParameters);
             newStageInfo.addRenderMethod(method);
             if(!isFound) {
                 std::cerr << "Render method '" << methodName << "' not found. If this is a dynamic method, ensure the plugin DLL is loaded before the pipeline deserializes." << std::endl;

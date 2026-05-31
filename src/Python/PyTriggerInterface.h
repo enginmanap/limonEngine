@@ -19,20 +19,18 @@ public:
     PyTriggerInterface(LimonAPI* api, pybind11::object obj)
         : TriggerInterface(api), pyObj(obj) {
         pyObj.attr("_limon_api") = pybind11::cast(api);
+        // Seed the default parameters from the Python implementation at create time.
+        // After this, the base getParameters()/setParameters() are the source of truth.
+        try {
+            this->parameters = GenericParameterConverter::convertPythonListToGenericParameterVector(pyObj.attr("get_parameters")());
+        } catch (const std::exception& e) {
+            std::cerr << "[PyTrigger] get_parameters: " << e.what() << std::endl;
+            PyErr_Clear();
+        }
     }
 
     ~PyTriggerInterface() override {
         pyObj = pybind11::none(); // Release Python reference
-    }
-
-    std::vector<LimonTypes::GenericParameter> getParameters() noexcept override {
-        try {
-            return GenericParameterConverter::convertPythonListToGenericParameterVector(pyObj.attr("get_parameters")());
-        } catch (const std::exception& e) {
-            std::cerr << "[PyTrigger] get_parameters: " << e.what() << std::endl;
-            PyErr_Clear();
-            return {};
-        }
     }
 
     bool run(std::vector<LimonTypes::GenericParameter> parameters) noexcept override {

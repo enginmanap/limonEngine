@@ -7,10 +7,6 @@
 TriggerRegister<ReturnPreviousWorldOnTrigger> ReturnPreviousWorldOnTrigger::reg("ReturnPreviousWorldOnTrigger");
 
 
-std::vector<LimonTypes::GenericParameter> ReturnPreviousWorldOnTrigger::getParameters() {
-    return std::vector<LimonTypes::GenericParameter>();
-}
-
 bool ReturnPreviousWorldOnTrigger::run(std::vector<LimonTypes::GenericParameter> parameters [[gnu::unused]]) {
     limonAPI->returnPreviousWorld();
     return true;

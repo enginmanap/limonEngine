@@ -5,10 +5,6 @@
 #include <cstring>
 #include "KillCowboyPlayer.h"
 
-std::vector<LimonTypes::GenericParameter> KillCowboyPlayer::getParameters() {
-    return std::vector<LimonTypes::GenericParameter>();//no parameters
-}
-
 bool KillCowboyPlayer::run(std::vector<LimonTypes::GenericParameter> parameters [[gnu::unused]]) {
     std::vector<LimonTypes::GenericParameter> prList;
     LimonTypes::GenericParameter pr;

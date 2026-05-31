@@ -1052,7 +1052,7 @@ void World::afterLoadFinished() {
         }
         if(onLoadActions[i]->enabled) {
             std::cout << "running trigger " << onLoadActions[i]->action->getName() << std::endl;
-            onLoadActions[i]->action->run(onLoadActions[i]->parameters);
+            onLoadActions[i]->action->run(onLoadActions[i]->action->getParameters());
         }
     }
 
@@ -1065,6 +1065,7 @@ void World::afterLoadFinished() {
         if(playerExtension == nullptr) {
             std::cerr << "Player extension '" << startingPlayer.extensionName << "' not found. Is the correct trigger library loaded?" << std::endl;
         } else {
+            playerExtension->setParameters(startingPlayer.parameters);
             this->currentPlayer->setPlayerExtension(playerExtension);
             this->currentPlayer->setCameraOverride(playerExtension->getCustomCameraAttachment());
             playerCamera->setCameraAttachment(currentPlayer->getCameraAttachment());

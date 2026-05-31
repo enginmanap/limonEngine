@@ -14,8 +14,6 @@ public:
     void animateThoughts(const std::vector<LimonTypes::GenericParameter> &emptyParamList);
     void switchWorld(const std::vector<LimonTypes::GenericParameter> &emptyParamList);
 
-    std::vector<LimonTypes::GenericParameter> getParameters() override;
-
     bool run(std::vector<LimonTypes::GenericParameter> parameters) override;
 
     std::vector<LimonTypes::GenericParameter> getResults() override;

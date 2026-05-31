@@ -12,11 +12,20 @@ class WesternStoryAtGraveAction : public TriggerInterface {
     uint32_t textID1,textID2;
     bool hasRun = false;
 public:
-    WesternStoryAtGraveAction(LimonAPI* limonAPI) : TriggerInterface(limonAPI) {}
+    WesternStoryAtGraveAction(LimonAPI* limonAPI) : TriggerInterface(limonAPI) {
+        LimonTypes::GenericParameter param;
+        param.requestType = LimonTypes::GenericParameter::RequestParameterTypes::TRIGGER;
+        param.description = "Check Trigger before";
+        param.isSet = false;
+        this->parameters.push_back(param);
+        LimonTypes::GenericParameter param2;
+        param2.requestType = LimonTypes::GenericParameter::RequestParameterTypes::SWITCH;
+        param2.description = "Should Trigger be run?";
+        param2.isSet = true;
+        this->parameters.push_back(param2);
+    }
     void showMessages1(const std::vector<LimonTypes::GenericParameter> &emptyParamList);
     void showMessages2(const std::vector<LimonTypes::GenericParameter> &emptyParamList);
-
-    std::vector<LimonTypes::GenericParameter> getParameters() override;
 
     bool run(std::vector<LimonTypes::GenericParameter> parameters) override;
 

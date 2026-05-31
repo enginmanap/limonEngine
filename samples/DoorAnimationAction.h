@@ -14,8 +14,6 @@ class DoorAnimationAction : public TriggerInterface {
 public:
     DoorAnimationAction(LimonAPI *limonAPI);
 
-    std::vector<LimonTypes::GenericParameter> getParameters() override;
-
     bool run(std::vector<LimonTypes::GenericParameter> parameters) override;
 
     void resetAnimationRun(const std::vector<LimonTypes::GenericParameter>&);

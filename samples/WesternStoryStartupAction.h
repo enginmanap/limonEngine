@@ -16,8 +16,6 @@ public:
     void showMessages1(const std::vector<LimonTypes::GenericParameter> &emptyParamList);
     void showMessages2(const std::vector<LimonTypes::GenericParameter> &emptyParamList);
 
-    std::vector<LimonTypes::GenericParameter> getParameters() override;
-
     bool run(std::vector<LimonTypes::GenericParameter> parameters) override;
 
     std::vector<LimonTypes::GenericParameter> getResults() override;

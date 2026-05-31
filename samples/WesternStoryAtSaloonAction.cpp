@@ -5,29 +5,6 @@
 #include <iostream>
 #include "WesternStoryAtSaloonAction.h"
 
-std::vector<LimonTypes::GenericParameter> WesternStoryAtSaloonAction::getParameters() {
-    std::vector<LimonTypes::GenericParameter> parameters;
-    LimonTypes::GenericParameter param;
-    param.requestType = LimonTypes::GenericParameter::RequestParameterTypes::TRIGGER;
-    param.description = "Check Trigger before";
-    param.isSet = false;
-    parameters.push_back(param);
-
-    LimonTypes::GenericParameter param2;
-    param2.requestType = LimonTypes::GenericParameter::RequestParameterTypes::SWITCH;
-    param2.description = "Should be run?";
-    param2.isSet = true;
-    parameters.push_back(param2);
-
-    LimonTypes::GenericParameter param3;
-    param3.requestType = LimonTypes::GenericParameter::RequestParameterTypes::MODEL;
-    param3.description = "Object to remove";
-    param3.isSet = false;
-    parameters.push_back(param3);
-
-    return parameters;
-}
-
 bool WesternStoryAtSaloonAction::run(std::vector<LimonTypes::GenericParameter> parameters[[gnu::unused]]) {
     //this action is for showing text after player takes the map from the room
     if(this->hasRun) {

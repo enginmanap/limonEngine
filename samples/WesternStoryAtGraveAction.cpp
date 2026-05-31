@@ -5,21 +5,6 @@
 #include <iostream>
 #include "WesternStoryAtGraveAction.h"
 
-std::vector<LimonTypes::GenericParameter> WesternStoryAtGraveAction::getParameters() {
-    std::vector<LimonTypes::GenericParameter> parameters;
-    LimonTypes::GenericParameter param;
-    param.requestType = LimonTypes::GenericParameter::RequestParameterTypes::TRIGGER;
-    param.description = "Check Trigger before";
-    param.isSet = false;
-    parameters.push_back(param);
-    LimonTypes::GenericParameter param2;
-    param2.requestType = LimonTypes::GenericParameter::RequestParameterTypes::SWITCH;
-    param2.description = "Should Trigger be run?";
-    param2.isSet = true;
-    parameters.push_back(param2);
-    return parameters;
-}
-
 bool WesternStoryAtGraveAction::run(std::vector<LimonTypes::GenericParameter> parameters) {
     //this action is for showing text when player is at grave
     if(this->hasRun) {

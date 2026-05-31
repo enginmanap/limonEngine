@@ -19,9 +19,6 @@
 class TriggerObject : public GameObject, public Attachable {
     std::string name;
     Transformation transformation;
-    std::vector<LimonTypes::GenericParameter> firstEnterParameters;
-    std::vector<LimonTypes::GenericParameter> enterParameters;
-    std::vector<LimonTypes::GenericParameter> exitParameters;
 
     uint32_t objectID;
     LimonAPI* limonAPI;
@@ -59,8 +56,7 @@ class TriggerObject : public GameObject, public Attachable {
 
 public:
 
-    static void PutTriggerInGui(LimonAPI *limonAPI, TriggerInterface *&triggerCode, std::vector<LimonTypes::GenericParameter> &parameters,
-                                    bool &enabled, uint32_t index);
+    static void PutTriggerInGui(LimonAPI *limonAPI, TriggerInterface *&triggerCode, bool &enabled, uint32_t index);
 
     TriggerObject(uint32_t id, LimonAPI* limonAPI): objectID(id), limonAPI(limonAPI) {
         ghostObject->setCollisionShape(ghostShape);
@@ -129,14 +125,14 @@ public:
 
             if(!triggered && firstEnterTriggerCode != nullptr) {
                 this->triggered = true;
-                  enterSuccessful = this->firstEnterTriggerCode->run(firstEnterParameters);
+                  enterSuccessful = this->firstEnterTriggerCode->run(firstEnterTriggerCode->getParameters());
                 return enterSuccessful;
             }
             //now we are sure first is not called, either because it was before, or because
             // first is not defined, both cases, call enter trigger
             if(enterTriggerCode != nullptr) {
                 this->triggered = true;
-                enterSuccessful = this->enterTriggerCode->run(enterParameters);
+                enterSuccessful = this->enterTriggerCode->run(enterTriggerCode->getParameters());
                 return enterSuccessful;
             }
         } else {
@@ -144,7 +140,7 @@ public:
             if(this->exitTriggerCode != nullptr) {
                 if(enterSuccessful) {
                     enterSuccessful = false;
-                    return this->exitTriggerCode->run(exitParameters);
+                    return this->exitTriggerCode->run(exitTriggerCode->getParameters());
                 }
             }
         }

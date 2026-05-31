@@ -13,8 +13,6 @@ class ReturnPreviousWorldOnTrigger : public TriggerInterface {
 public:
     ReturnPreviousWorldOnTrigger(LimonAPI *limonAPI);
 
-    std::vector<LimonTypes::GenericParameter> getParameters() override;
-
     std::vector<LimonTypes::GenericParameter> getResults() override;
 
     bool run(std::vector<LimonTypes::GenericParameter> parameters) override;
