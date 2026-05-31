@@ -44,6 +44,7 @@ protected:
     uint32_t modelID = 0;
     InformationRequest informationRequest;
     LimonAPI* limonAPI;
+    std::vector<LimonTypes::GenericParameter> parameters;
 public:
     struct ActorInformation{
         bool canSeePlayerDirectly = false;
@@ -82,8 +83,25 @@ public:
 
     virtual bool interaction(std::vector<LimonTypes::GenericParameter> &interactionInformation) = 0;
 
-    virtual std::vector<LimonTypes::GenericParameter> getParameters() const { return std::vector<LimonTypes::GenericParameter>();};
-    virtual void setParameters(std::vector<LimonTypes::GenericParameter> parameters [[gnu::unused]]) {};
+    /**
+     * Returns the parameters held on this actor instance. The base implementation returns the
+     * protected ``parameters`` member - seed your defaults into it in the constructor and they are
+     * returned here, with configured values written back through setParameters() on edit or load.
+     * Override only if the actor builds its parameter list from its own typed members, converting
+     * them to GenericParameter here; the bundled actors do this.
+     */
+    virtual std::vector<LimonTypes::GenericParameter> getParameters() const {
+        return this->parameters;
+    }
+
+    /**
+     * Stores the configured parameter values on the actor instance. The base implementation keeps
+     * them in the protected ``parameters`` member. Override only if the actor needs to apply the
+     * values onto its own typed members rather than simply hold them.
+     */
+    virtual void setParameters(std::vector<LimonTypes::GenericParameter> parameters) {
+        this->parameters = parameters;
+    }
 
     virtual ~ActorInterface() {};
 
