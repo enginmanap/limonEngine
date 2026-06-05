@@ -196,6 +196,11 @@ private:
     //std::map<std::string, AssetTypes> availableAssetsList;//this map should be ordered, or editor list order would be unpredictable
     AvailableAssetsNode* availableAssetsRootNode = nullptr;
     std::map<std::pair<AssetTypes, std::string>, AvailableAssetsNode*> filteredResults;
+
+    std::atomic<bool> assetListReloadInProgress{false};
+    AvailableAssetsNode* pendingAssetsRootNode = nullptr;
+    std::thread assetReloadThread;
+    uint32_t assetListVersion = 0;
     GraphicsInterface* graphicsWrapper;
     ALHelper *alHelper;
 
@@ -436,6 +441,59 @@ public:
         return availableAssetsRootNode;
     };
 
+    void beginReloadAssetList() {
+        if (assetListReloadInProgress.load()) {
+            return;
+        }
+        assetListReloadInProgress.store(true);
+        if (assetReloadThread.joinable()) {
+            assetReloadThread.join();
+        }
+        assetReloadThread = std::thread([this]() {
+            std::vector<std::pair<std::string, AssetTypes>> fileExtensions = loadAssetExtensionList();
+            AvailableAssetsNode* newRoot = new AvailableAssetsNode();
+            newRoot->assetType = Asset_type_DIRECTORY;
+            newRoot->fullPath = ".";
+            newRoot->nameLower = "";
+            newRoot->name = "Assets";
+            AvailableAssetsNode* data = new AvailableAssetsNode();
+            addAssetsRecursively("./Data", "Data", fileExtensions, data);
+            newRoot->children.push_back(data);
+            AvailableAssetsNode* engine = new AvailableAssetsNode();
+            addAssetsRecursively("./Engine", "Engine", fileExtensions, engine);
+            newRoot->children.push_back(engine);
+            pendingAssetsRootNode = newRoot;
+            assetListReloadInProgress.store(false);
+        });
+    }
+
+    // Call once per frame from the main thread. Returns true when the new tree is swapped in.
+    bool applyPendingAssetListReload() {
+        if (assetListReloadInProgress.load()) {
+            return false;
+        }
+        if (pendingAssetsRootNode == nullptr) {
+            return false;
+        }
+        for (auto treeIterator = filteredResults.begin(); treeIterator != filteredResults.end(); ++treeIterator) {
+            delete treeIterator->second;
+        }
+        filteredResults.clear();
+        delete availableAssetsRootNode;
+        availableAssetsRootNode = pendingAssetsRootNode;
+        pendingAssetsRootNode = nullptr;
+        assetListVersion++;
+        return true;
+    }
+
+    bool isReloadingAssetList() const {
+        return assetListReloadInProgress.load();
+    }
+
+    uint32_t getAssetListVersion() const {
+        return assetListVersion;
+    }
+
     const AvailableAssetsNode* getAvailableAssetsTreeFiltered(AssetTypes type, const std::string &filterText);
 
 
@@ -483,6 +541,10 @@ public:
             delete *assetLoadIterator;
         }
 
+        if (assetReloadThread.joinable()) {
+            assetReloadThread.join();
+        }
+        delete pendingAssetsRootNode;
         delete availableAssetsRootNode;
 
         for (auto tree_iterator = filteredResults.begin(); tree_iterator != filteredResults.end(); ++tree_iterator) {

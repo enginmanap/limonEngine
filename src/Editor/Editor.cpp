@@ -393,8 +393,31 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
             }
         }
 
+        if (world->assetManager->isReloadingAssetList()) {
+            ImGui::Text("Refreshing assets...");
+        } else {
+            if (ImGui::Button("Refresh Asset View")) {
+                world->assetManager->beginReloadAssetList();
+            }
+        }
+
+        world->assetManager->applyPendingAssetListReload();
+
         //list available elements
+        static uint32_t lastAssetListVersion = 0;
         static const AssetManager::AvailableAssetsNode* selectedAsset = nullptr;
+        static std::string selectedAssetPath;
+        uint32_t currentAssetListVersion = world->assetManager->getAssetListVersion();
+        if (lastAssetListVersion != currentAssetListVersion) {
+            if (selectedAsset != nullptr) {
+                const AssetManager::AvailableAssetsNode* foundNode = world->assetManager->getAvailableAssetsTree()->findNode(selectedAssetPath);
+                selectedAsset = foundNode; // null if no longer present, new pointer if still present
+            }
+            lastAssetListVersion = currentAssetListVersion;
+        }
+        if (selectedAsset != nullptr) {
+            selectedAssetPath = selectedAsset->fullPath;
+        }
         glm::vec3 newObjectPosition = world->playerCamera->getPosition() + 10.0f * world->playerCamera->getCenter();
 
 

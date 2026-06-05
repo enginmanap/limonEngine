@@ -103,12 +103,13 @@ private:
         if(assetsNode->assetType == AssetManager::Asset_type_UNKNOWN) {
             return;
         }
-        ImGuiTreeNodeFlags node_flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ((assetsNode == *selectedNode) ? ImGuiTreeNodeFlags_Selected : 0);
+        bool isSelected = *selectedNode != nullptr && assetsNode->fullPath == (*selectedNode)->fullPath;
+        ImGuiTreeNodeFlags node_flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | (isSelected ? ImGuiTreeNodeFlags_Selected : 0);
         if(assetsNode->assetType == AssetManager::AssetTypes::Asset_type_DIRECTORY) {
             if(typeToShow == AssetManager::AssetTypes::Asset_type_DIRECTORY) {
                 if (ImGui::TreeNodeEx((assetsNode->name + "##"+ customPrefix + assetsNode->fullPath).c_str(),node_flags)) {
                     if(ImGui::IsItemClicked()) {
-                        if(*selectedNode != assetsNode) {
+                        if(*selectedNode == nullptr || (*selectedNode)->fullPath != assetsNode->fullPath) {
                             *selectedNode = assetsNode;
                         }
                     }
@@ -129,7 +130,7 @@ private:
             node_flags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
             ImGui::TreeNodeEx((assetsNode->name + "## " + assetsNode->fullPath).c_str(), node_flags);
             if(ImGui::IsItemClicked() || ImGui::IsItemFocused()) {
-                if(*selectedNode != assetsNode) {
+                if(*selectedNode == nullptr || (*selectedNode)->fullPath != assetsNode->fullPath) {
                     *selectedNode = assetsNode;
                 }
             }
