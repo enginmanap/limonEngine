@@ -44,8 +44,9 @@ private:
     ProfilerSystem* profilerSystem;
 
     World *loadMapFromXML(const std::string &worldFileName, LimonAPI *limonAPI) const;
-    bool loadObjectGroupsFromXML(tinyxml2::XMLNode *worldNode, World *world, LimonAPI *limonAPI,
+    bool loadObjectGroupsFromXMLV1(tinyxml2::XMLNode *worldNode, World *world, LimonAPI *limonAPI,
             std::vector<Model*> &notStaticObjects, bool &isAIGridStartPointSet, glm::vec3 &aiGridStartPoint) const;
+    bool loadObjectGroupsFromXMLV2(tinyxml2::XMLNode *worldNode, World *world) const;
     bool loadObjectsFromXML(tinyxml2::XMLNode *objectsNode, World *world, LimonAPI *limonAPI, int saveVersion) const;
     bool loadObjectsFromXMLV2(tinyxml2::XMLNode *objectsNode, World *world, LimonAPI *limonAPI) const;
     void loadPlayerAttachmentV1(tinyxml2::XMLElement* attachmentNode, Model*& attachedModel, LimonAPI* limonAPI) const;

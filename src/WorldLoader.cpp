@@ -388,9 +388,10 @@ World * WorldLoader::loadMapFromXML(const std::string &worldFileName, LimonAPI *
     return world;
 }
 
-bool WorldLoader::loadObjectGroupsFromXML(tinyxml2::XMLNode *worldNode, World *world, LimonAPI *limonAPI,
+// Old V1 path: groups save children nested in <Children>. ModelGroup::deserializeV1 loads
+// them and returns inner models here so they can be added to the world. V2 uses the flat loader below.
+bool WorldLoader::loadObjectGroupsFromXMLV1(tinyxml2::XMLNode *worldNode, World *world, LimonAPI *limonAPI,
         std::vector<Model*> &notStaticObjects, bool &isAIGridStartPointSet, glm::vec3 &aiGridStartPoint) const {
-
     tinyxml2::XMLElement* objectGroupsListNode =  worldNode->FirstChildElement("ObjectGroups");
     if (objectGroupsListNode == nullptr) {
         std::cout << "World doesn't have Object Groups clause." << std::endl;
@@ -408,20 +409,15 @@ bool WorldLoader::loadObjectGroupsFromXML(tinyxml2::XMLNode *worldNode, World *w
     std::vector<std::unique_ptr<ObjectInformation>> innerModels;
 
     while(objectGroupNode != nullptr) {
-        ModelGroup* modelGroup = ModelGroup::deserialize(graphicsWrapper, assetManager, objectGroupNode, requiredSounds,
+        ModelGroup* modelGroup = ModelGroup::deserializeV1(graphicsWrapper, assetManager, objectGroupNode, requiredSounds,
                                                          modelGroups, innerModels, limonAPI, nullptr);
         world->modelGroups[modelGroup->getWorldObjectID()] = modelGroup;
         objectGroupNode = objectGroupNode->NextSiblingElement("ObjectGroup");
     } // end of while (objects)
 
-    //now we have 2 more lists to handle
-
-    // 1) Model groups
     for (auto iterator = modelGroups.begin(); iterator != modelGroups.end(); ++iterator) {
         world->modelGroups[iterator->first] = iterator->second;
     }
-
-    //2) ObjectInformations
 
     for (auto modelIterator = innerModels.begin(); modelIterator != innerModels.end(); ++modelIterator) {
         ObjectInformation* objectInfo = modelIterator->get();
@@ -433,8 +429,6 @@ bool WorldLoader::loadObjectGroupsFromXML(tinyxml2::XMLNode *worldNode, World *w
                 aiGridStartPoint = objectInfo->aiGridStartPoint;
             }
         }
-
-        //ADD NEW ATTRIBUTES GOES UP FROM HERE
         // We will add static objects first, build AI grid, then add other objects
         if(objectInfo->model->getMass() == 0 && !objectInfo->model->isAnimated()) {
             world->addModelToWorld(objectInfo->model);
@@ -443,6 +437,58 @@ bool WorldLoader::loadObjectGroupsFromXML(tinyxml2::XMLNode *worldNode, World *w
         }
     }
 
+    return true;
+}
+
+bool WorldLoader::loadObjectGroupsFromXMLV2(tinyxml2::XMLNode *worldNode, World *world) const {
+
+    tinyxml2::XMLElement* objectGroupsListNode =  worldNode->FirstChildElement("ObjectGroups");
+    if (objectGroupsListNode == nullptr) {
+        std::cout << "World doesn't have Object Groups clause." << std::endl;
+        return true;
+    }
+
+    tinyxml2::XMLElement* objectGroupNode =  objectGroupsListNode->FirstChildElement("ObjectGroup");
+    if (objectGroupNode == nullptr) {
+        std::cout << "World doesn't have any object Groups." << std::endl;
+        return true;
+    }
+
+    // Group children (models and nested groups) are loaded flat: model children come from <Objects>
+    // and nested groups from sibling <ObjectGroup> entries, each reattached via its own <ParentID>.
+    // (notStaticObjects / AI grid start point for those children are handled by the flat <Objects> pass.)
+    struct PendingGroupAttachment { ModelGroup* group; uint32_t parentID; };
+    std::vector<PendingGroupAttachment> pendingGroupAttachments;
+
+    // First pass: create every group (as a root for now).
+    while(objectGroupNode != nullptr) {
+        uint32_t parentID = 0;
+        ModelGroup* modelGroup = ModelGroup::deserialize(graphicsWrapper, objectGroupNode, parentID);
+        if(modelGroup != nullptr) {
+            world->modelGroups[modelGroup->getWorldObjectID()] = modelGroup;
+            if(parentID != 0) {
+                pendingGroupAttachments.push_back({modelGroup, parentID});
+            }
+        }
+        objectGroupNode = objectGroupNode->NextSiblingElement("ObjectGroup");
+    } // end of while (objects)
+
+    // Second pass: wire nested group -> parent. Done here (before flat objects load) so a nested group's
+    // world transform is settled before its own model children attach in the <Objects> second pass.
+    for(auto& pendingGroupAttachment : pendingGroupAttachments) {
+        Attachable* parent = world->findAttachableByID(pendingGroupAttachment.parentID);
+        if(parent == nullptr) {
+            std::cerr << "Object group " << pendingGroupAttachment.group->getWorldObjectID() << " parent "
+                      << pendingGroupAttachment.parentID << " not found, attachment skipped." << std::endl;
+            continue;
+        }
+        ModelGroup* parentGroup = dynamic_cast<ModelGroup*>(parent);
+        if(parentGroup != nullptr) {
+            parentGroup->addChild(pendingGroupAttachment.group);//averaging re-centers the group gizmo on its children's centroid; child world positions are preserved
+        } else {
+            pendingGroupAttachment.group->attachTo(parent);
+        }
+    }
 
     return true;
 }
@@ -539,7 +585,7 @@ bool WorldLoader::loadObjectsFromXML(tinyxml2::XMLNode *objectsNode, World *worl
     glm::vec3 aiGridStartPoint = glm::vec3(0,0,0);
 
     //first load the groups
-    loadObjectGroupsFromXML(objectsNode, world, limonAPI, notStaticObjects, isAIGridStartPointSet, aiGridStartPoint);
+    loadObjectGroupsFromXMLV1(objectsNode, world, limonAPI, notStaticObjects, isAIGridStartPointSet, aiGridStartPoint);
 
     tinyxml2::XMLElement* objectsListNode =  objectsNode->FirstChildElement("Objects");
     if (objectsListNode == nullptr) {
@@ -952,7 +998,7 @@ bool WorldLoader::loadObjectsFromXMLV2(tinyxml2::XMLNode *objectsNode, World *wo
     glm::vec3 aiGridStartPoint = glm::vec3(0,0,0);
     std::vector<PendingAttachment> pendingAttachments;
 
-    loadObjectGroupsFromXML(objectsNode, world, limonAPI, notStaticObjects, isAIGridStartPointSet, aiGridStartPoint);
+    loadObjectGroupsFromXMLV2(objectsNode, world);
 
     tinyxml2::XMLElement* objectsListNode = objectsNode->FirstChildElement("Objects");
     if (objectsListNode == nullptr) {
@@ -1038,7 +1084,10 @@ bool WorldLoader::loadObjectsFromXMLV2(tinyxml2::XMLNode *objectsNode, World *wo
     for(auto& pa : pendingAttachments) {
         Attachable* parent = world->findAttachableByID(pa.parentID);
         if(parent != nullptr) {
-            if(pa.parentBoneID != -1) {
+            ModelGroup* parentGroup = dynamic_cast<ModelGroup*>(parent);
+            if(parentGroup != nullptr) {
+                parentGroup->addChild(pa.child);//averaging re-centers the group gizmo on its children's centroid; child world positions are preserved
+            } else if(pa.parentBoneID != -1) {
                 Model* parentModel = dynamic_cast<Model*>(parent);
                 if(parentModel != nullptr) {
                     pa.child->setParentObject(parentModel, pa.parentBoneID);
@@ -1314,18 +1363,12 @@ bool WorldLoader::loadSounds(tinyxml2::XMLNode *worldNode, World *world) const {
         std::string filePath = fileEl->GetText();
 
         tinyxml2::XMLElement* idEl = soundNode->FirstChildElement("ID");
-        uint32_t soundID;
         if(idEl == nullptr || idEl->GetText() == nullptr) {
-            soundID = world->getNextObjectID();
-            std::cerr << "Sound missing ID, assigning " << soundID << ". Re-save to make permanent." << std::endl;
-        } else {
-            soundID = std::stoul(idEl->GetText());
-            if(world->isIDUsed(soundID)) {
-                uint32_t newID = world->getNextObjectID();
-                std::cerr << "Sound ID " << soundID << " already in use, assigning " << newID << ". Re-save to make permanent." << std::endl;
-                soundID = newID;
-            }
+            std::cerr << "Sound entry missing ID element, skipping." << std::endl;
+            soundNode = soundNode->NextSiblingElement("Sound");
+            continue;
         }
+        uint32_t soundID = std::stoul(idEl->GetText());
 
         Sound* sound = new Sound(soundID, assetManager, filePath);
 

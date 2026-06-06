@@ -255,9 +255,8 @@ void WorldSaver::saveAttachmentChildrenFlat(tinyxml2::XMLDocument& document, tin
 
 bool WorldSaver::fillObjectGroups(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *objectGroupsNode, const World *world){
     for(auto it=world->modelGroups.begin(); it != world->modelGroups.end(); it++) {//object ids are not constant, so they can be removed.
-        if((it->second)->getParentObject() == nullptr) { //if part of group, group object serializes
-            (it->second)->fillObjects(document, objectGroupsNode);
-        }
+        // Every group is written flat; nested groups carry a <ParentID> and are reattached on load.
+        (it->second)->fillObjects(document, objectGroupsNode);
     }
     return true;
 }

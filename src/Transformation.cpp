@@ -279,6 +279,10 @@ void Transformation::getDifferenceStacked(const Transformation &otherTransformat
 }
 
 bool Transformation::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentNode) const {
+    // translate/scale/orientation are a lazily-decomposed cache of the world transform; they can be
+    // stale after a NotPropagate update (e.g. ModelGroup averaging sets the single values + isDirty but
+    // doesn't refresh this node). Honor isDirty so we serialize the same world transform that renders.
+    getWorldTransform();
     tinyxml2::XMLElement* currentElement;
     tinyxml2::XMLElement *classNode = document.NewElement("Transformation");
     parentNode->InsertEndChild(classNode);

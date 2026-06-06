@@ -1603,6 +1603,11 @@ bool World::isIDUsed(uint32_t id) const {
 
 
 bool World::verifyIDs() {
+    // Rebuild the free pool from the actual world state on every call. verifyIDs() runs once before
+    // sounds/lights are loaded (so their IDs would otherwise be seeded as free gaps) and again after
+    // the world is complete; without this reset the stale gaps from the first pass survive into the
+    // live pool and get handed out by getNextObjectID(), producing duplicate IDs that then get saved.
+    std::queue<uint32_t>().swap(unusedIDs);
     std::set<uint32_t > usedIDs;
     uint32_t maxID = 0;
     usedIDs.insert(1);//reserved for physicalPlayer

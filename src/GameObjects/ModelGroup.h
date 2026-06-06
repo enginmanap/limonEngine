@@ -59,7 +59,13 @@ public:
 
     bool fillObjects(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *objectsNode) const override;
 
-    static ModelGroup *deserialize(GraphicsInterface* graphicsWrapper, std::shared_ptr<AssetManager> assetManager, tinyxml2::XMLElement *ModelGroupsNode,
+    // Builds the group from its own metadata only (ID/Name/Transformation). Children are loaded flat
+    // and reattached from their <ParentID>. parentIDOut is set to this group's parent ID, or 0 if root.
+    static ModelGroup *deserialize(GraphicsInterface* graphicsWrapper, tinyxml2::XMLElement *ModelGroupsNode,
+                                   uint32_t &parentIDOut);
+
+    // Legacy V1 loader: children nested inside <Children>. Kept for old world files only.
+    static ModelGroup *deserializeV1(GraphicsInterface* graphicsWrapper, std::shared_ptr<AssetManager> assetManager, tinyxml2::XMLElement *ModelGroupsNode,
                                    std::unordered_map<std::string, std::shared_ptr<Sound>> &requiredSounds,
                                    std::map<uint32_t, ModelGroup *> &childGroups,
                                    std::vector<std::unique_ptr<WorldLoader::ObjectInformation>> &childObjects, LimonAPI *limonAPI,

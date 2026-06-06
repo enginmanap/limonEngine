@@ -5,6 +5,7 @@
 #include "ModelGroup.h"
 #include "Model.h"
 #include "../../libs/ImGui/imgui.h"
+#include <glm/gtx/matrix_decompose.hpp>
 
 void ModelGroup::renderWithProgram(std::shared_ptr<GraphicsProgram> program, uint32_t lodLevel) {
     std::cerr << "Model Groups render with program used, it was not planned, nor tested." << std::endl;
@@ -29,18 +30,15 @@ bool ModelGroup::fillObjects(tinyxml2::XMLDocument &document, tinyxml2::XMLEleme
 
     this->transformation.serialize(document, objectGroupNode);
 
-    tinyxml2::XMLElement *countNode = document.NewElement("ChildCount");
-    countNode->SetText(std::to_string(this->children.size()).c_str());
-    objectGroupNode->InsertEndChild(countNode);
-
-    tinyxml2::XMLElement *childrenNode = document.NewElement("Children");
-    objectGroupNode->InsertEndChild(childrenNode);
-
-    for (size_t i = 0; i < children.size(); ++i) {
-        tinyxml2::XMLElement *currentElement = document.NewElement("Child");
-        currentElement->SetAttribute("Index", std::to_string(i).c_str());
-        if(children[i]->fillObjects(document,currentElement)) {
-            childrenNode->InsertEndChild(currentElement);
+    // Group children (models and nested groups) are serialized flat alongside every other object,
+    // each carrying its own <ParentID>, and are reattached on load from that. The group therefore
+    // stores only its own metadata here; nesting full children would duplicate them in the file.
+    if(this->parentObject != nullptr) {
+        GameObject* parent = dynamic_cast<GameObject*>(this->parentObject);
+        if(parent != nullptr) {
+            tinyxml2::XMLElement *parentIDNode = document.NewElement("ParentID");
+            parentIDNode->SetText(std::to_string(parent->getWorldObjectID()).c_str());
+            objectGroupNode->InsertEndChild(parentIDNode);
         }
     }
     return true;
@@ -67,11 +65,50 @@ ImGuiResult ModelGroup::addImGuiEditorElements(const ImGuiRequest &request) {
     return result;
 }
 
-ModelGroup *ModelGroup::deserialize(GraphicsInterface* graphicsWrapper, std::shared_ptr<AssetManager> assetManager, tinyxml2::XMLElement *ModelGroupsNode,
+ModelGroup *ModelGroup::deserialize(GraphicsInterface* graphicsWrapper, tinyxml2::XMLElement *ModelGroupsNode,
+                                    uint32_t &parentIDOut) {
+    parentIDOut = 0;//0 means no parent; world IDs start at 2 (1 is the player).
+
+    tinyxml2::XMLElement* groupAttribute = ModelGroupsNode->FirstChildElement("Name");
+    if (groupAttribute == nullptr || groupAttribute->GetText() == nullptr) {
+        std::cerr << "Model group must have a Name." << std::endl;
+        return nullptr;
+    }
+    std::string readName = groupAttribute->GetText();
+
+    groupAttribute = ModelGroupsNode->FirstChildElement("ID");
+    if (groupAttribute == nullptr || groupAttribute->GetText() == nullptr) {
+        std::cerr << "Model group must have an ID." << std::endl;
+        return nullptr;
+    }
+    uint32_t readID = std::stoul(groupAttribute->GetText());
+
+    ModelGroup* modelGroup = new ModelGroup(graphicsWrapper, readID, readName);
+
+    groupAttribute = ModelGroupsNode->FirstChildElement("Transformation");
+    if(groupAttribute == nullptr) {
+        std::cerr << "Model group does not have transformation. Can't be loaded" << std::endl;
+        delete modelGroup;
+        return nullptr;
+    }
+    modelGroup->transformation.deserialize(groupAttribute);
+
+    // Children are loaded flat from <Objects>/<ObjectGroups> and reattached via their own <ParentID>.
+    tinyxml2::XMLElement* parentIDElement = ModelGroupsNode->FirstChildElement("ParentID");
+    if(parentIDElement != nullptr && parentIDElement->GetText() != nullptr) {
+        parentIDOut = std::stoul(parentIDElement->GetText());
+    }
+
+    return modelGroup;
+}
+
+ModelGroup *ModelGroup::deserializeV1(GraphicsInterface* graphicsWrapper, std::shared_ptr<AssetManager> assetManager, tinyxml2::XMLElement *ModelGroupsNode,
                                     std::unordered_map<std::string, std::shared_ptr<Sound>> &requiredSounds,
                                     std::map<uint32_t, ModelGroup *> &childGroups,
                                     std::vector<std::unique_ptr<WorldLoader::ObjectInformation>> &childObjects, LimonAPI *limonAPI,
                                     ModelGroup *parentGroup) {
+    // Old loader: group children are saved inside <Children>. to allow old world to load, we still support it.
+    // V2 saves children flat (see deserialize) and reattaches them via addChild. That is the correct patch.
     ModelGroup* modelGroup = nullptr;
 
     tinyxml2::XMLElement* groupAttribute;
@@ -145,7 +182,7 @@ ModelGroup *ModelGroup::deserialize(GraphicsInterface* graphicsWrapper, std::sha
 
                 modelGroup->children[childIndex]->getTransformation()->setParentTransform(modelGroup->getTransformation());
             } else if(childNode->FirstChildElement("ObjectGroup")) {
-                ModelGroup* newModelGroup = ModelGroup::deserialize(graphicsWrapper, assetManager,
+                ModelGroup* newModelGroup = ModelGroup::deserializeV1(graphicsWrapper, assetManager,
                                                                     childNode->FirstChildElement("ObjectGroup"),
                                                                     requiredSounds, childGroups, childObjects, limonAPI,
                                                                     modelGroup);

@@ -70,8 +70,15 @@ public:
         Transformation* myTransform    = this->getTransformation();
         Transformation* parentTransform = parent->getAttachmentTransformFor(boneID);
 
-        // Snapshot world matrices before the parent link changes anything.
-        glm::mat4 myWorld     = myTransform->getWorldTransform();
+        // Snapshot world matrices before the parent link changes anything. Use the child's
+        // OFFSET-FREE world (decomposed members) rather than getWorldTransform(): for a
+        // PhysicalRenderable the latter is processTransformForPyhsics(), which bakes in centerOffset,
+        // and generateWorldTransformWithParent re-applies that offset — double-counting it. The world
+        // members are the offset-free world the parent composition actually reconstructs against.
+        myTransform->getWorldTransform();//refresh world members
+        glm::mat4 myWorld     = glm::translate(glm::mat4(1.0f), myTransform->getTranslate()) *
+                                glm::mat4_cast(myTransform->getOrientation()) *
+                                glm::scale(glm::mat4(1.0f), myTransform->getScale());
         glm::mat4 parentWorld = parentTransform->getWorldTransform();
 
         myTransform->setParentTransform(parentTransform);
