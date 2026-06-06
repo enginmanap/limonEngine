@@ -1285,6 +1285,24 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
 
             }
 
+            // A moved object shifts its group's center position, so we need to update group gizmo.
+            // Recompute it once here (one-shot, non-reactive) walking up the parent chain innermost-first
+            // so nested groups settle before their own parents. recenterOnChildren preserves every child's
+            // world position, so it never feeds back into itself.
+            if (objectEditorResult.updated) {
+                Attachable* attachableAncestor = dynamic_cast<Attachable*>(this->pickedObject);
+                if (attachableAncestor != nullptr) {
+                    Attachable* parentAttachable = attachableAncestor->getParentObject();
+                    while (parentAttachable != nullptr) {
+                        ModelGroup* ancestorGroup = dynamic_cast<ModelGroup*>(parentAttachable);
+                        if (ancestorGroup != nullptr) {
+                            ancestorGroup->recenterOnChildren();
+                        }
+                        parentAttachable = parentAttachable->getParentObject();
+                    }
+                }
+            }
+
             // after this, remove and physics disconnect
             ImGui::NewLine();
             switch (this->pickedObject->getTypeID()) {

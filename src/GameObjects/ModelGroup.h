@@ -41,6 +41,14 @@ public:
     }
     void addChild(PhysicalRenderable *renderable);
 
+
+    // This function is used to recenter the gizmo position of the group. If a child is moved,
+    // Editor is expected to call this, so it would update its own and also childrens locals based on the
+    // new world position of the group.
+    //
+    // NOT CALLED AUTOMATICALLY because that would cause a feedback loop.
+    void recenterOnChildren();
+
     bool removeChild(Attachable* child) override {
         auto* renderable = dynamic_cast<PhysicalRenderable*>(child);
         if(!renderable) return Attachable::removeChild(child);

@@ -199,6 +199,51 @@ ModelGroup *ModelGroup::deserializeV1(GraphicsInterface* graphicsWrapper, std::s
     return modelGroup;
 }
 
+void ModelGroup::recenterOnChildren() {
+    if(children.empty()) {
+        return;
+    }
+
+    // First get each childs current transform. We are not using getWorldTransform because that includes center offset
+    std::vector<glm::mat4> childWorlds;
+    childWorlds.reserve(children.size());
+    glm::vec3 centroid(0.0f, 0.0f, 0.0f);
+    for (auto child : children) {
+        Transformation* childTransform = child->getTransformation();
+        childTransform->getWorldTransform();//refresh world members
+        glm::mat4 childWorld = glm::translate(glm::mat4(1.0f), childTransform->getTranslate()) *
+                               glm::mat4_cast(childTransform->getOrientation()) *
+                               glm::scale(glm::mat4(1.0f), childTransform->getScale());
+        childWorlds.push_back(childWorld);
+        centroid += childTransform->getTranslate();
+    }
+    centroid = centroid * (1.0f / children.size());
+
+    // Calculate where the group position should be, as averaged of the childrens world positions
+    Transformation* groupTransform = this->getTransformation();
+    groupTransform->getWorldTransform();//refresh world members
+    glm::mat4 groupWorldTarget = glm::translate(glm::mat4(1.0f), centroid) *
+                                 glm::mat4_cast(groupTransform->getOrientation()) *
+                                 glm::scale(glm::mat4(1.0f), groupTransform->getScale());
+    glm::mat4 inverseGroupWorldTarget = glm::inverse(groupWorldTarget);
+
+    // Recalculate local transforms for each child
+    size_t childIndex = 0;
+    for (auto child : children) {
+        glm::mat4 localMatrix = inverseGroupWorldTarget * childWorlds[childIndex];
+        ++childIndex;
+        glm::vec3 localTranslate, localScale, skew;
+        glm::quat localOrientation;
+        glm::vec4 perspective;
+        glm::decompose(localMatrix, localScale, localOrientation, localTranslate, skew, perspective);
+        child->getTransformation()->setTransformationsNotPropagate(localTranslate, glm::normalize(localOrientation), localScale);
+    }
+
+    // Then move the group to the center we calculated, so each child will endup exactly where they were
+    glm::vec3 worldDelta = centroid - groupTransform->getTranslate();
+    groupTransform->addTranslate(worldDelta);
+}
+
 void ModelGroup::addChild(PhysicalRenderable *renderable) {
     glm::vec3 averageTranslateDifference(0.0f, 0.0f, 0.0f);
     if(!children.empty()) {
