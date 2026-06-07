@@ -223,7 +223,7 @@ void PipelineExtension::drawTextureSettings() {
     ImGui::Text("Internal Format type:");
     if(ImGui::RadioButton("RED##internalFormat_type_PipelineExtension", currentTextureInfo.internalFormatType == GraphicsInterface::InternalFormatTypes::RED)) { currentTextureInfo.internalFormatType = GraphicsInterface::InternalFormatTypes::RED; }
     ImGui::SameLine();
-    if(ImGui::RadioButton("RG8##internalFormat_type_PipelineExtension", currentTextureInfo.internalFormatType == GraphicsInterface::InternalFormatTypes::RED)) { currentTextureInfo.internalFormatType = GraphicsInterface::InternalFormatTypes::RG8; }
+    if(ImGui::RadioButton("RG8##internalFormat_type_PipelineExtension", currentTextureInfo.internalFormatType == GraphicsInterface::InternalFormatTypes::RG8)) { currentTextureInfo.internalFormatType = GraphicsInterface::InternalFormatTypes::RG8; }
     ImGui::SameLine();
     if(ImGui::RadioButton("R32F##internalFormat_type_PipelineExtension", currentTextureInfo.internalFormatType == GraphicsInterface::InternalFormatTypes::R32F)) { currentTextureInfo.internalFormatType = GraphicsInterface::InternalFormatTypes::R32F; }
     ImGui::SameLine();
@@ -243,7 +243,7 @@ void PipelineExtension::drawTextureSettings() {
     ImGui::Text("Format type:");
     if(ImGui::RadioButton("RED##format_type_PipelineExtension", currentTextureInfo.formatType == GraphicsInterface::FormatTypes::RED)) { currentTextureInfo.formatType = GraphicsInterface::FormatTypes::RED; }
     ImGui::SameLine();
-    if(ImGui::RadioButton("RED##format_type_PipelineExtension", currentTextureInfo.formatType == GraphicsInterface::FormatTypes::RG)) { currentTextureInfo.formatType = GraphicsInterface::FormatTypes::RG; }
+    if(ImGui::RadioButton("RG##format_type_PipelineExtension", currentTextureInfo.formatType == GraphicsInterface::FormatTypes::RG)) { currentTextureInfo.formatType = GraphicsInterface::FormatTypes::RG; }
     ImGui::SameLine();
     if(ImGui::RadioButton("RGB##format_type_PipelineExtension", currentTextureInfo.formatType == GraphicsInterface::FormatTypes::RGB)) { currentTextureInfo.formatType = GraphicsInterface::FormatTypes::RGB; }
     ImGui::SameLine();
@@ -255,9 +255,9 @@ void PipelineExtension::drawTextureSettings() {
     ImGui::Text("Data type:");
     if(ImGui::RadioButton("UNSIGNED_BYTE##data_type_PipelineExtension", currentTextureInfo.dataType == GraphicsInterface::DataTypes::UNSIGNED_BYTE)) { currentTextureInfo.dataType = GraphicsInterface::DataTypes::UNSIGNED_BYTE; }
     ImGui::SameLine();
-    if(ImGui::RadioButton("UNSIGNED_SHORT##data_type_PipelineExtension", currentTextureInfo.dataType == GraphicsInterface::DataTypes::UNSIGNED_SHORT)) { currentTextureInfo.dataType = GraphicsInterface::DataTypes::FLOAT; }
+    if(ImGui::RadioButton("UNSIGNED_SHORT##data_type_PipelineExtension", currentTextureInfo.dataType == GraphicsInterface::DataTypes::UNSIGNED_SHORT)) { currentTextureInfo.dataType = GraphicsInterface::DataTypes::UNSIGNED_SHORT; }
     ImGui::SameLine();
-    if(ImGui::RadioButton("UNSIGNED_INT##data_type_PipelineExtension", currentTextureInfo.dataType == GraphicsInterface::DataTypes::UNSIGNED_INT)) { currentTextureInfo.dataType = GraphicsInterface::DataTypes::FLOAT; }
+    if(ImGui::RadioButton("UNSIGNED_INT##data_type_PipelineExtension", currentTextureInfo.dataType == GraphicsInterface::DataTypes::UNSIGNED_INT)) { currentTextureInfo.dataType = GraphicsInterface::DataTypes::UNSIGNED_INT; }
     ImGui::SameLine();
     if(ImGui::RadioButton("FLOAT##data_type_PipelineExtension", currentTextureInfo.dataType == GraphicsInterface::DataTypes::FLOAT)) { currentTextureInfo.dataType = GraphicsInterface::DataTypes::FLOAT; }
 
