@@ -1032,10 +1032,8 @@ void World::addLight(Light *light) {
     if(light->getLightType() == Light::LightTypes::DIRECTIONAL) {
         directionalLightIndex = (uint32_t)lights.size()-1;
     }
-    const std::vector<Camera*>& cameras = light->getCameras();
-    for(Camera* camera : cameras) {
-        visibilityManager->addCamera(camera);
-    }
+    light->setFrustumChanged(true);//ensure updateActiveLights picks it up even if player hasn't moved
+    //we don't add it to visibility manager threads, because we don't know if it will activate or not.
     updateActiveLights(false);
 }
 
@@ -1465,6 +1463,7 @@ void World::updateActiveLights(bool forceUpdate) {
     }
 
     lastLightUpdatePlayerPosition = currentPlayer->getPosition();
+    std::vector<Light *> previousActiveLights = activeLights;
     activeLights.clear();
     std::vector<Light *> culledPointLights;
     for (size_t lightIndex = 0; lightIndex < lights.size(); ++lightIndex) {
@@ -1490,11 +1489,36 @@ void World::updateActiveLights(bool forceUpdate) {
         std::sort(culledPointLights.begin(), culledPointLights.end(), LightCloserToPlayer(currentPlayer->getPosition()));
         for (uint32_t i = 0; i < pointLightCount; ++i) {
             activeLights.emplace_back(culledPointLights[i]);
-            culledPointLights[i]->setFrustumChanged(true);//we don't know if it was active before
         }
         if (directionalLightIndex != -1) {
             activeLights.emplace_back(lights[directionalLightIndex]);
-            lights[directionalLightIndex]->setFrustumChanged(true);
+        }
+    }
+
+    // Now update visibility manager with new lights we just set
+    //Removal part
+    for (Light* light : previousActiveLights) {
+        bool stillActive = false;
+        for (Light* newLight : activeLights) {
+            if (newLight == light) { stillActive = true; break; }
+        }
+        if (!stillActive) {
+            for (Camera* camera : light->getCameras()) {
+                visibilityManager->removeCamera(camera);
+            }
+        }
+    }
+    //Adding part
+    for (Light* light : activeLights) {
+        bool wasActive = false;
+        for (Light* oldLight : previousActiveLights) {
+            if (oldLight == light) { wasActive = true; break; }
+        }
+        if (!wasActive) {
+            for (Camera* camera : light->getCameras()) {
+                visibilityManager->addCamera(camera);
+            }
+            light->setFrustumChanged(true);
         }
     }
 

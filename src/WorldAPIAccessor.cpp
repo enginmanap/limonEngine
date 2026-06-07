@@ -923,24 +923,13 @@ bool WorldAPIAccessor::removeLightAPI(uint32_t lightID) {
     for (auto iterator = world->lights.begin(); iterator != world->lights.end(); ++iterator) {
         if ((*iterator)->getWorldObjectID() == lightID) {
             world->unusedIDs.push(lightID);
-            const std::vector<Camera*>& cameras = (*iterator)->getCameras();
-            for (auto camera : cameras) {
-                for (auto entry : world->visibilityManager->visibilityThreadPool) {
-                    if (entry.first->camera == camera) {
-                        entry.first->running = false;
-                        world->visibilityManager->wakeThreadsCondition.signalWaiting();
-                        SDL_WaitThread(entry.second, nullptr);
-                        auto visRequest = entry.first;
-                        world->visibilityManager->visibilityThreadPool.erase(visRequest);
-                        delete visRequest;
-                        break;
-                    }
-                }
-                world->visibilityManager->getCullingResults().erase(camera);
-            }
+            world->visibilityManager->removeCameras((*iterator)->getCameras());
             if ((*iterator)->getLightType() == Light::LightTypes::DIRECTIONAL) {
                 world->directionalLightIndex = -1;
             }
+            world->activeLights.erase(
+                std::remove(world->activeLights.begin(), world->activeLights.end(), *iterator),
+                world->activeLights.end());
             delete *iterator;
             world->lights.erase(iterator);
             world->updateActiveLights(true);

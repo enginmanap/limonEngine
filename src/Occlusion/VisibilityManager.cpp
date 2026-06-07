@@ -103,7 +103,28 @@ void VisibilityManager::addCamera(Camera* camera) {
 }
 
 void VisibilityManager::removeCamera(Camera* camera) {
-    cullingResults.erase(camera);
+    for (auto it = visibilityThreadPool.begin(); it != visibilityThreadPool.end(); ++it) {
+        if (it->first->camera == camera) {
+            it->first->running = false;
+            wakeThreadsCondition.signalWaiting();
+            SDL_WaitThread(it->second, nullptr);
+            VisibilityRequest* request = it->first;
+            visibilityThreadPool.erase(it);
+            delete request;
+            break;
+        }
+    }
+    auto cullingIt = cullingResults.find(camera);
+    if (cullingIt != cullingResults.end()) {
+        delete cullingIt->second;
+        cullingResults.erase(cullingIt);
+    }
+}
+
+void VisibilityManager::removeCameras(const std::vector<Camera*>& cameras) {
+    for (Camera* camera : cameras) {
+        removeCamera(camera);
+    }
 }
 
 void VisibilityManager::fillVisibleObjectsUsingTags() {

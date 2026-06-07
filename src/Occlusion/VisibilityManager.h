@@ -53,6 +53,7 @@ public:
     std::unordered_map<Camera*, std::unordered_map<std::vector<uint64_t>, RenderList, VisibilityRequest::uint64_vector_hasher>*>& getCullingResults();
     void addCamera(Camera* camera);
     void removeCamera(Camera* camera);
+    void removeCameras(const std::vector<Camera*>& cameras);
 };
 
 #endif //LIMONENGINE_VISIBILITYMANAGER_H
