@@ -1,22 +1,24 @@
 # limonimp.py
 import limon
-from generic_parameter import RequestParameterType, GenericParameter
+from generic_parameter import RequestParameterType, ValueType, GenericParameter
+from trigger_interface import TriggerInterface
 
 
 """
     This is an example of a trigger interface implementation through Python.
-    
+
 """
-class MyTrigger(limon.TriggerInterface):
+class MyTrigger(TriggerInterface):
     def __init__(self, limon_api):
         super().__init__(limon_api)
-        self._limon_api = limon_api
 
     def get_parameters(self):
         param = GenericParameter()
         param.request_type = RequestParameterType.FREE_TEXT
         param.description = "Test trigger"
+        param.value_type = ValueType.STRING
         param.value = "Hello"
+        param.is_set = True
         return [param]
 
     def run(self, parameters):
@@ -33,21 +35,21 @@ class MyTrigger(limon.TriggerInterface):
 
             # Call the method with Vec4
             print("Calling add_object_translate with Vec4...")
-            result = self._limon_api.add_object_translate(5, vec)
+            result = self.limon_api.add_object_translate(5, vec)
             print(f"add_object_translate result: {result}")
             vec2 = limon.Vec4()
             vec2.x = 1.1
             vec2.y = 1.1
             vec2.z = 1.1
             vec2.w = 0.0
-            result2 = self._limon_api.add_object_scale(5, vec2)
+            result2 = self.limon_api.add_object_scale(5, vec2)
             print(f"add_object_scale result: {result2}")
             vec3 = limon.Vec4()
             vec3.x = 0.0
             vec3.y = -0.079
             vec3.z = 0.0
             vec3.w = 0.007
-            result3 = self._limon_api.add_object_orientation(5, vec3)
+            result3 = self.limon_api.add_object_orientation(5, vec3)
             print(f"add_object_orientation result: {result3}")
         except Exception as e:
             print(f"Error in run method: {type(e).__name__}: {e}")

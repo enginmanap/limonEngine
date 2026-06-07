@@ -7,6 +7,9 @@ class TriggerInterface:
     Base class for game triggers.
     Implement this to create custom trigger behaviors.
     """
+    def __init__(self, limon_api):
+        self.limon_api = limon_api
+
     def get_parameters(self) -> List[GenericParameter]:
         """
         Returns the parameters required by this trigger.
