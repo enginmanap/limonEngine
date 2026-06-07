@@ -45,7 +45,6 @@ private:
     std::vector<std::string> objectTags;
     static const LightType LIGHT_TYPES[];
     uint32_t iterateOverLightType = 0;
-    std::map<uint32_t, int> inputTextureIndexes;//connectionId to input texture index
     std::map<uint32_t, OutputTextureInfo> outputTextures; // connectionId to output information
     ProgramNameInfo programNameInfo;
     int32_t defaultRenderResolution[2] = {1920, 1080};
@@ -58,7 +57,6 @@ private:
     bool depthWriteEnabled = true;
     bool scissorTestEnabled = false;
     bool anyOutputMultiLayered = false;
-    bool toScreen = false;
 
 public:
     void setProgramNameInfo(const ProgramNameInfo &programNameInfo) {
@@ -79,8 +77,6 @@ public:
     bool isBlendEnabled() const {
         return blendEnabled;
     }
-
-    int getInputTextureIndex(const Connection* connection) const;
 
     const std::string &getMethodName() const {
         return currentMethodName;

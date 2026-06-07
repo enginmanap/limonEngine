@@ -18,19 +18,6 @@ const PipelineStageExtension::LightType PipelineStageExtension::LIGHT_TYPES[] = 
 
 void PipelineStageExtension::drawDetailPane(Node *node) {
     ImGui::Indent( 16.0f );
-    if (ImGui::CollapsingHeader("Input Textures##PipelineStageExtension")) {
-        ImGui::BeginChild("Input Textures##PipelineStageExtensionInputRegion", ImVec2(0, 120), true, ImGuiWindowFlags_HorizontalScrollbar);
-        for (const Connection *connection:node->getInputConnections()) {
-            if (inputTextureIndexes.find(connection->getId()) == inputTextureIndexes.end()) {
-                inputTextureIndexes[connection->getId()] = 0;
-            }
-            ImGui::InputInt((connection->getName() + " texture Attachment Index").c_str(), &(inputTextureIndexes[connection->getId()]));
-            if (inputTextureIndexes[connection->getId()] < 0) {
-                inputTextureIndexes[connection->getId()] = 0;//Don't allow negative values
-            }
-        }
-        ImGui::EndChild();
-    }
     if (ImGui::CollapsingHeader("Output Textures##PipelineStageExtension")) {
 
         ImGui::BeginChild("Output Textures##PipelineStageExtensionOutputRegion", ImVec2(0, 120), true, ImGuiWindowFlags_HorizontalScrollbar);
@@ -247,10 +234,6 @@ void PipelineStageExtension::serialize(tinyxml2::XMLDocument &document, tinyxml2
     tinyxml2::XMLElement *anyOutputMultilayeredElement = document.NewElement("AnyOutputMultiLayered");
     anyOutputMultilayeredElement->SetText(anyOutputMultiLayered ? "True" : "False");
     stageExtensionElement->InsertEndChild(anyOutputMultilayeredElement);
-
-    tinyxml2::XMLElement *toScreenElement = document.NewElement("ToScreen");
-    toScreenElement->SetText(toScreen ? "True" : "False");
-    stageExtensionElement->InsertEndChild(toScreenElement);
 
     tinyxml2::XMLElement *cameraTagsElement = document.NewElement("CameraTags");
     cameraTagsElement->SetText(StringUtils::join(cameraTags, ",").c_str());
@@ -569,21 +552,6 @@ void PipelineStageExtension::deserialize(const std::string &nodeName, tinyxml2::
         }
     }
 
-    tinyxml2::XMLElement *toScreenElement = nodeExtensionElement->FirstChildElement("ToScreen");
-    this->toScreen = true;
-    if(toScreenElement == nullptr || toScreenElement->GetText() == nullptr) {
-        std::cerr << "Pipeline stage extension doesn't have ToScreen flag. Defaulting to true" << std::endl;
-    } else {
-        std::string toScreenString = toScreenElement->GetText();
-        if(toScreenString == "True") {
-            toScreen = true;
-        } else if(toScreenString == "False") {
-            toScreen =false;
-        } else {
-            std::cerr << "Pipeline stage extension doesn't Clear ToScreen value is unknown. Defaulting to true" << std::endl;
-        }
-    }
-
     tinyxml2::XMLElement *iterateLightTypeElement = nodeExtensionElement->FirstChildElement("IterateLightType");
     this->iterateOverLightType = 0;
     if(iterateLightTypeElement == nullptr || iterateLightTypeElement->GetText() == nullptr) {
@@ -692,15 +660,6 @@ void PipelineStageExtension::deserialize(const std::string &nodeName, tinyxml2::
         if(!tempProgramNameInfo.vertexShaderName.empty() && !tempProgramNameInfo.fragmentShaderName.empty()) {
             this->programNameInfo = tempProgramNameInfo;
         }
-    }
-}
-
-int PipelineStageExtension::getInputTextureIndex(const Connection *connection) const {
-    auto indexIt = inputTextureIndexes.find(connection->getId());
-    if(indexIt == inputTextureIndexes.end()) {
-        return 0;
-    } else {
-        return indexIt->second;
     }
 }
 
