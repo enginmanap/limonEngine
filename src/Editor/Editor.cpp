@@ -2306,13 +2306,6 @@ void Editor::createNodeGraph() {
     screen->inputConnections.push_back(ConnectionDesc{"Depth", "Texture"});
     nodeTypeVector.push_back(screen);
 
-    NodeType* blend = new NodeType{"Blend", true, "", nullptr,{}, {}, false, {}};
-    blend->inputConnections.push_back(ConnectionDesc{"Input1", "Texture"});
-    blend->inputConnections.push_back(ConnectionDesc{"Input2", "Texture"});
-    blend->inputConnections.push_back(ConnectionDesc{"Input3", "Texture"});
-    blend->outputConnections.push_back(ConnectionDesc{"output", "Texture"});
-    nodeTypeVector.push_back(blend);
-
     this->iterationExtension = new IterationExtension();
 
     NodeType* iterate = new NodeType{"Iterate", false, "IterationExtension", [](const NodeType* nodeType[[gnu::unused]]) -> NodeExtension* {return new IterationExtension();},
