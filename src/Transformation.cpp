@@ -83,8 +83,6 @@ Transformation::addImGuiEditorElements(const glm::mat4 &cameraMatrix, const glm:
             }
             if (updated || crudeUpdated) {
                 setTranslate(tempTranslate);
-            }
-            if (crudeUpdated) {
                 preciseTranslatePoint = isChildWithParent ? translateSingle : translate;
             }
             ImGui::NewLine();
