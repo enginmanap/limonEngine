@@ -1319,7 +1319,7 @@ bool WorldLoader::loadLights(tinyxml2::XMLNode *lightsNode, World* world) const 
 
         glm::vec3 ambientColor(1, 0.1f, 0.01f);
         tinyxml2::XMLElement* lightAmbient =  lightNode->FirstChildElement("Ambient");
-        if(lightAttenuation != nullptr) {
+        if(lightAmbient != nullptr) {
             if(loadVec3(lightAmbient, ambientColor)) {
                 xmlLight->setAmbientColor(ambientColor);
             }
