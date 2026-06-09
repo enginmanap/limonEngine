@@ -445,6 +445,7 @@ public:
 
 
     void updateActiveLights(bool forceUpdate = false);
+    void uploadActiveLightsToGPU() const;
 
 
     void
