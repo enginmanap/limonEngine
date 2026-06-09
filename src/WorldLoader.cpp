@@ -184,6 +184,7 @@ void WorldLoader::attachedAPIMethodsToWorld(World *world, LimonAPI *limonAPI) co
         uint64_t srcloc = ___tracy_alloc_srcloc_name(0, "", 0, "", 0, name, nameLen, 0);
         ___tracy_c_zone_context ctx = ___tracy_emit_zone_begin_alloc(srcloc, 1);
         uint64_t result = 0;
+        static_assert(sizeof(ctx) <= sizeof(uint64_t));
         std::memcpy(&result, &ctx, sizeof(ctx));
         return result;
     };
