@@ -1072,6 +1072,13 @@ void World::afterLoadFinished() {
         }
     }
 
+    for(auto& kv : objects) {
+        Model* model = dynamic_cast<Model*>(kv.second);
+        if(model != nullptr && model->isAnimated()) {
+            model->setupForTime(gameTime);
+        }
+    }
+
     this->visibilityManager->start();
 }
 
