@@ -226,7 +226,6 @@ private:
 
     OptionsUtil::Options::Option<bool> renderInformationsOption;
     OptionsUtil::Options::Option<long> maxLightsOption;
-    std::vector<Model*> updatedModels;
     std::priority_queue<TimedEvent, std::vector<TimedEvent>, std::greater<>> timedEvents;
     long timedEventHandleIndex = 1;//we don't need to keep them, just have them unique
 

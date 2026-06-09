@@ -1173,12 +1173,10 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
                                 world->apiAccessor->reconnectObjectToPhysics(selectedObject->getWorldObjectID());//multiple redirection but should be fine as this is single object in editor mode
                                 world->dynamicsWorld->updateSingleAabb(selectedObject->getRigidBody());
                             }
-                            world->updatedModels.push_back(selectedObject);
                         } else {
                             if(!selectedObject->isDisconnected()) {
                                 world->dynamicsWorld->updateSingleAabb(selectedObject->getRigidBody());
                             }
-                            world->updatedModels.push_back(selectedObject);
                         }
                     }
                     uint32_t removedActorID = 0;
@@ -1222,7 +1220,6 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
                         if (!selectedObject->isDisconnected()) {
                             world->dynamicsWorld->updateSingleAabb(selectedObject->getRigidBody());
                         }
-                        world->updatedModels.push_back(selectedObject);
                     }
                 }
                     /* fall through */

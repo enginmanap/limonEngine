@@ -141,7 +141,6 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
     modelIndicesBuffer.reserve(NR_MAX_MODELS);
     tempRenderedObjectsSet.reserve(NR_MAX_MODELS);
 
-    OptionsUtil::Options::Option<bool> multiThreadCullingOption = options->getOption<bool>(HASH("multiThreadedCulling"));
     renderInformationsOption = options->getOption<bool>(HASH("renderInformations"));
     maxLightsOption = options->getOption<long>(HASH("maximumLights"));
     activeLights.reserve(maxLightsOption.getOrDefault(4));
@@ -253,9 +252,6 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
          for (auto it = objects.begin(); it != objects.end(); ++it) {
              if (!it->second->getRigidBody()->isStaticOrKinematicObject() && it->second->getRigidBody()->isActive()) {
                  it->second->updateTransformFromPhysics();
-                 Model* model = dynamic_cast<Model*>(it->second);
-                 assert(model!= nullptr);
-                 updatedModels.push_back(model);
              }
          }
 
@@ -286,8 +282,6 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
 
      visibilityManager->update();
 
-     //FIXME moved out of fillVisible because for the time being we have 2 (fillVisibleObjects(), fillVisibleObjectsUsingTags()) once one is gone, these 2 clears should go in.
-     updatedModels.clear();
      playerCamera->clearDirty();
     if(sky != nullptr) { // menu worlds don't have sky set, and WIP levels can miss it too.
         sky->step(playerCamera);
@@ -972,7 +966,6 @@ bool World::addModelToWorld(Model *xmlModel) {
     xmlModel->getRigidBody()->getAabb(aabbMin, aabbMax);
 
     updateWorldAABB(GLMConverter::BltToGLM(aabbMin), GLMConverter::BltToGLM(aabbMax));
-    updatedModels.push_back(xmlModel);
     return true;
 
 }
