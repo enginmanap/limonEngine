@@ -696,7 +696,6 @@ void World::renderDebug(const std::shared_ptr<GraphicsProgram>& renderProgram [[
 void World::renderCameraByTag(const std::shared_ptr<GraphicsProgram> &renderProgram, const std::string &cameraName, const std::vector<HashUtil::HashedString> &tags) const {
     PROFILE_RENDERING("World::renderCameraByTag");
     uint64_t hashedCameraTag = HashUtil::hashString(cameraName);
-    tempRenderedObjectsSet.clear();
     for (const auto &visibilityEntry: visibilityManager->getCullingResults()) {
         if (visibilityEntry.first->hasTag(hashedCameraTag)) { //This is a request for this camera
             std::unordered_map<std::vector<uint64_t>, RenderList, VisibilityRequest::uint64_vector_hasher>& renderLists = *visibilityEntry.second;

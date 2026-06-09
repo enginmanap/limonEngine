@@ -218,7 +218,7 @@ private:
     std::queue<uint32_t> unusedIDs;
     std::unordered_map<uint32_t, PhysicalRenderable *> objects;
     std::unordered_map<uint32_t, const std::vector<glm::mat4>*> changedBoneTransforms;//These are used for uploading to GPU. Don't put in if not passing culling.
-    mutable std::unordered_set<uint32_t> tempRenderedObjectsSet;
+    std::unordered_set<uint32_t> tempRenderedObjectsSet;
     std::set<uint32_t> disconnectedModels;
     std::map<uint32_t, ModelGroup*> modelGroups;
 
