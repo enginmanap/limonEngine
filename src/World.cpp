@@ -1328,30 +1328,9 @@ void World::checkAndRunTimedEvents() {
     }
 }
 
-Model* World::findModelByIDChildren(PhysicalRenderable* parent,uint32_t modelID) const {
-    if(parent == nullptr) {
-        return nullptr;
-    }
-    Model* model = dynamic_cast<Model*>(parent);
-    if(model != nullptr) {//FIXME non model attachments are filtered
-        if(model->getWorldObjectID() == modelID) {
-            return model;
-        }else {
-            for (auto iterator = model->getChildren().begin(); iterator != model->getChildren().end(); ++iterator) {
-                PhysicalRenderable* physChild = dynamic_cast<PhysicalRenderable*>(*iterator);
-                Model* child = findModelByIDChildren(physChild, modelID);
-                if(child != nullptr) {
-                    return child;
-                }
-            }
-        }
-    }
-    return nullptr;
-}
-
    Model *World::findModelByID(uint32_t modelID) const {
     if(startingPlayer.attachedModel != nullptr) {
-        Model* playerAttachment = findModelByIDChildren(startingPlayer.attachedModel, modelID);
+        Model * playerAttachment = dynamic_cast<Model *>(findAttachableInSubtree(startingPlayer.attachedModel, modelID));
         if(playerAttachment != nullptr) {
             return playerAttachment;
         }
@@ -1379,7 +1358,7 @@ Attachable* World::findAttachableInSubtree(Attachable *root, uint32_t objectID) 
 
 Attachable* World::findAttachableByID(uint32_t objectID) const {
     if(startingPlayer.attachedModel != nullptr) {
-        Model* playerAttachment = findModelByIDChildren(startingPlayer.attachedModel, objectID);
+        Attachable* playerAttachment = findAttachableInSubtree(startingPlayer.attachedModel, objectID);
         if(playerAttachment != nullptr) {
             return playerAttachment;
         }
@@ -1413,11 +1392,6 @@ Attachable* World::findAttachableByID(uint32_t objectID) const {
     auto soundIt = sounds.find(objectID);
     if(soundIt != sounds.end()) {
         return soundIt->second.get();
-    }
-    // Player attachment models are not in world->objects — search that subtree last.
-    Attachable* playerAttachment = findAttachableInSubtree(startingPlayer.attachedModel, objectID);
-    if(playerAttachment != nullptr) {
-        return playerAttachment;
     }
     return nullptr;
 }
@@ -1520,7 +1494,8 @@ void World::updateActiveLights(bool forceUpdate) {
             light->setFrustumChanged(true);
         }
     }
-
+}
+void World::uploadActiveLightsToGPU() const {
     for (size_t lightIndex = 0; lightIndex < activeLights.size(); ++lightIndex) {
         const Light* currentLight = activeLights[lightIndex];
         graphicsWrapper->setLight(
@@ -1757,12 +1732,6 @@ bool World::verifyIDs() {
            }
            if (vertexShaderNode != nullptr && fragmentShaderNode != nullptr) {
                //if we have both vertex and fragment, then this is a valid program. Geometry is optional.
-               if(vertexShaderNode->fullPath == "./Data/Shaders/Particles/vertex.glsl" &&
-               fragmentShaderNode->fullPath == "./Data/Shaders/Particles/fragment.glsl"
-               ) {
-                   std::cerr << "Found the particles asset" << std::endl;
-               }
-
                std::shared_ptr<GraphicsProgram> foundProgram;
                if (geometryShaderNode != nullptr) {
                    foundProgram = std::make_shared<GraphicsProgram>(assetManager.get(),
@@ -1773,11 +1742,6 @@ bool World::verifyIDs() {
                    foundProgram = std::make_shared<GraphicsProgram>(assetManager.get(),
                                                                     vertexShaderNode->fullPath,
                                                                     fragmentShaderNode->fullPath);
-               }
-               for(auto oldProgram:programs) {
-                   if(oldProgram->getProgramName() == foundProgram->getProgramName()) {
-                       std::cout << "wtf" << std::endl;
-                   }
                }
                programs.emplace_back(foundProgram);
            }

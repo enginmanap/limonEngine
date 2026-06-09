@@ -369,7 +369,6 @@ private:
 
     //API methods
     Model* findModelByID(uint32_t modelID) const;
-    Model* findModelByIDChildren(PhysicalRenderable* parent ,uint32_t modelID) const;
     Attachable* findAttachableByID(uint32_t objectID) const;
 
     std::vector<LimonTypes::GenericParameter>
