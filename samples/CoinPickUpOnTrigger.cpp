@@ -13,6 +13,7 @@
 #include "WesternStoryAtUndertakerAction.h"
 #include "WesternStoryAtTrainAction.h"
 #include "WesternStoryNewGameAction.h"
+#include "OptionsDisplayAction.h"
 
 CoinPickUpOnTrigger::CoinPickUpOnTrigger(LimonAPI *limonAPI) : TriggerInterface(limonAPI) {
     LimonTypes::GenericParameter pr;
@@ -69,4 +70,5 @@ void registerAsTrigger(std::map<std::string, TriggerInterface*(*)(LimonAPI*)>* t
     (*triggerMap)["WesternStoryAtUndertaker"] = &createT<WesternStoryAtUndertakerAction>;
     (*triggerMap)["WesternStoryAtSaloon"] = &createT<WesternStoryAtSaloonAction>;
     (*triggerMap)["WesternStoryAtTrain"] = &createT<WesternStoryAtTrainAction>;
+    (*triggerMap)["OptionsDisplayAction"] = &createT<OptionsDisplayAction>;
 }

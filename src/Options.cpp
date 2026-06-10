@@ -118,8 +118,11 @@ bool OptionsUtil::Options::loadOptionsNew(const std::string &optionsFileName) {
     tinyxml2::XMLDocument xmlDoc;
     tinyxml2::XMLError eResult = xmlDoc.LoadFile(optionsFileName.c_str());
     if (eResult != tinyxml2::XML_SUCCESS) {
+        if (eResult == tinyxml2::XML_ERROR_FILE_NOT_FOUND || eResult == tinyxml2::XML_ERROR_FILE_COULD_NOT_BE_OPENED) {
+            return false;
+        }
         std::cerr << "Error loading XML " << optionsFileName << ": " << xmlDoc.ErrorName() << std::endl;
-        exit(-1);
+        return false;
     }
 
     tinyxml2::XMLNode *allOptionsNode = xmlDoc.FirstChild();
@@ -217,5 +220,25 @@ bool OptionsUtil::Options::loadOptionsNew(const std::string &optionsFileName) {
     }
     heightOption = getOption<long>(HASH("screenHeight"));
     widthOption = getOption<long>(HASH("screenWidth"));
+    return true;
+}
+
+bool OptionsUtil::Options::saveOptions(const std::string &optionsFileName) const {
+    tinyxml2::XMLDocument xmlDoc;
+    tinyxml2::XMLElement *allOptionsNode = xmlDoc.NewElement("Options");
+    xmlDoc.InsertFirstChild(allOptionsNode);
+
+    uint32_t index = 0;
+    for (const auto &optionEntry : options) {
+        APISerializer::serializeParameterRequest(*optionEntry.second, xmlDoc, allOptionsNode, index);
+        ++index;
+    }
+
+    tinyxml2::XMLError eResult = xmlDoc.SaveFile(optionsFileName.c_str());
+    if (eResult != tinyxml2::XML_SUCCESS) {
+        std::cerr << "Error saving options to " << optionsFileName << ": " << xmlDoc.ErrorName() << std::endl;
+        return false;
+    }
+    std::cout << "Options saved to " << optionsFileName << std::endl;
     return true;
 }

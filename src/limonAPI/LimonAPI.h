@@ -31,6 +31,8 @@ public:
 
     const OptionsUtil::Options * getOptions();
 
+    bool saveOptions();
+
     uint32_t animateModel(uint32_t modelID, uint32_t animationID, bool looped, const std::string& soundPath = "");
     uint32_t addGuiText(const std::string &fontFilePath, uint32_t fontSize,
                         const std::string &name, const std::string &text,
@@ -258,8 +260,10 @@ public:
              std::function<bool (const std::string&)> worldLoadNewAndRemoveCurrentMethod,
              std::function<void ()> worldExitMethod,
              std::function<void ()> worldReturnPreviousMethod,
-             std::function<const OptionsUtil::Options*()> worldGetOptions) {
+             std::function<const OptionsUtil::Options*()> worldGetOptions,
+             std::function<bool ()> worldSaveOptions) {
         limonGetOptions = std::move(worldGetOptions);
+        limonSaveOptions = std::move(worldSaveOptions);
         limonLoadWorld = std::move(worldLoadMethod);
         limonReturnOrLoadWorld = std::move(worldReturnOrLoadMethod);
         limonLoadNewAndRemoveCurrentWorld = std::move(worldLoadNewAndRemoveCurrentMethod);
@@ -373,6 +377,7 @@ private:
 
     /*** Non World API calls *******************************************************/
     std::function<const OptionsUtil::Options*()> limonGetOptions;
+    std::function<bool ()> limonSaveOptions;
     std::function<bool (const std::string&)> limonLoadWorld;
     std::function<bool (const std::string&)> limonReturnOrLoadWorld;
     std::function<bool (const std::string&)> limonLoadNewAndRemoveCurrentWorld;

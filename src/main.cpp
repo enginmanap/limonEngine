@@ -15,7 +15,8 @@
 
 const std::string PROGRAM_NAME = "LimonEngine";
 const std::string RELEASE_FILE = "./Data/Release.xml";
-const std::string OPTIONS_FILE = "./Engine/Options.xml";
+const std::string ENGINE_OPTIONS_FILE = "./Engine/Options.xml";
+const std::string USER_OPTIONS_FILE = "./Data/Options.xml";
 
 bool GameEngine::loadAndChangeWorld(const std::string &worldFile) {
     graphicsWrapper->clearDepthBuffer();
@@ -154,7 +155,13 @@ GameEngine::GameEngine() {
 
     options = new OptionsUtil::Options([](){return SDL_GetTicks();});
 
-    options->loadOptionsNew(OPTIONS_FILE);
+    if (!options->loadOptionsNew(ENGINE_OPTIONS_FILE)) {
+        std::cerr << "Failed to load engine options from " << ENGINE_OPTIONS_FILE << std::endl;
+        exit(-1);
+    }
+    if (!options->loadOptionsNew(USER_OPTIONS_FILE)) {
+        std::cout << "No user options found, using engine defaults" << std::endl;
+    }
     std::cout << "Options loaded successfully" << std::endl;
     profilerSystem = new ProfilerSystem(options);
 
@@ -252,9 +259,10 @@ LimonAPI *GameEngine::getNewLimonAPI() {
         pendingSwitch = {PendingSwitchType::RETURN_PREVIOUS, ""};
     };
     std::function<const OptionsUtil::Options*()> limonGetOptions = [this] { return options; };
+    std::function<bool()> limonSaveOptions = [this] { return options->saveOptions(USER_OPTIONS_FILE); };
 
     return new LimonAPI(limonLoadWorld, limonReturnOrLoadWorld, limonLoadNewAndRemoveCurrentWorld, limonExitGame,
-                            limonReturnPrevious, limonGetOptions);
+                            limonReturnPrevious, limonGetOptions, limonSaveOptions);
 }
 
 void GameEngine::run() {

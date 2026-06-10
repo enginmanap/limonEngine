@@ -311,6 +311,8 @@ namespace OptionsUtil {
 
         bool loadOptionsNew(const std::string &optionsFileName);
 
+        bool saveOptions(const std::string &optionsFileName) const;
+
         void *getImeWindowHandle() const {
             return imeWindowHandle;
         }

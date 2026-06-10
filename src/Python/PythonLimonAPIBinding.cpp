@@ -34,6 +34,7 @@ void bindLimonAPI(pybind11::module_& m) {
     pybind11::class_<LimonAPI> limon(m, "LimonAPI");
 
     limon.def("get_options", &LimonAPI::getOptions, "Get engine options")
+            .def("save_options", &LimonAPI::saveOptions, "Save current options to user options file; returns True on success")
 
             // GUI Methods
             .def("add_gui_text",
