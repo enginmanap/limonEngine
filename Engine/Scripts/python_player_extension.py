@@ -1,14 +1,19 @@
 # limonimp.py
 import limon
 from typing import List, Optional
+from player_extension_interface import PlayerExtensionInterface
 from python_third_person_camera import ThirdPersonCamera
 from generic_parameter import RequestParameterType, ValueType, GenericParameter
 
 """
     This is an example of a player extension implementation through Python.
-    
+
+    The base class is the pure-Python PlayerExtensionInterface from
+    Engine/Scripts, NOT limon.PlayerExtensionInterface. `limon` is still
+    imported below only for value/enum types (Vec4, Inputs, LogSubsystem,
+    CameraAttachment) that the engine exposes.
 """
-class PythonPlayerExtension(limon.PlayerExtensionInterface):
+class PythonPlayerExtension(PlayerExtensionInterface):
     def __init__(self, limon_api):
         super().__init__(limon_api)
         self._limon_api = limon_api

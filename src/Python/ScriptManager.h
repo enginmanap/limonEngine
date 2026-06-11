@@ -83,23 +83,27 @@ private:
         }
     }
 
-    bool IsSubclassOf(const pybind11::object& obj, const std::string& baseName) {
+    // Identity-based subclass check against a canonical pure-Python base class.
+    // moduleName/className name one of the Engine/Scripts base classes
+    // (e.g. "trigger_interface"/"TriggerInterface"). The base is imported in the
+    // CURRENT interpreter, so the comparison uses the same class object the
+    // candidate's `from <module> import <Class>` produced — correct per
+    // sub-interpreter. Matching by identity (not by __name__ string) means a
+    // subclass of the unrelated C++ type `limon.TriggerInterface` no longer
+    // matches: scripts must subclass the local pure-Python base. The base class
+    // itself is excluded (issubclass(Base, Base) is True).
+    bool IsSubclassOf(const pybind11::object& obj, const std::string& moduleName, const std::string& className) {
         try {
-            pybind11::object bases = obj.attr("__bases__");
-            for (auto base : bases) {
-                // Convert base (which is a handle) to an object
-                pybind11::object baseObj = pybind11::reinterpret_borrow<pybind11::object>(base);
-                std::string baseTypeName = pybind11::str(baseObj.attr("__name__"));
-
-                if (baseTypeName == baseName) {
-                    return true;
-                }
-                // Check base classes recursively
-                if (IsSubclassOf(baseObj, baseName)) {
-                    return true;
-                }
+            pybind11::object base = pybind11::module_::import(moduleName.c_str()).attr(className.c_str());
+            if (obj.is(base)) {
+                return false;
             }
-            return false;
+            int result = PyObject_IsSubclass(obj.ptr(), base.ptr());
+            if (result < 0) {
+                PyErr_Clear();
+                return false;
+            }
+            return result == 1;
         } catch (...) {
             return false;
         }

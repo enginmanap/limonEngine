@@ -20,15 +20,15 @@ class ThirdPersonCamera:
         self.up = Vec3(0.0, 1.0, 0.0)     # World up vector
         self._raycast_line_buffer = 0      # Debug line buffer ID; 0 = none
 
-    def isDirty(self) -> bool:  # Note: Must match C++ method name exactly
+    def is_dirty(self) -> bool:
         """Return True if the camera parameters have changed."""
         return self._dirty
 
-    def clearDirty(self) -> None:  # Note: Must match C++ method name exactly
+    def clear_dirty(self) -> None:
         """Mark the camera parameters as clean."""
         self._dirty = True
 
-    def getCameraVariables(self, position: Vec3, center: Vec3, up: Vec3, right: Vec3):
+    def get_camera_variables(self, position: Vec3, center: Vec3, up: Vec3, right: Vec3):
         try:
             # Get player position and orientation
             (player_pos,

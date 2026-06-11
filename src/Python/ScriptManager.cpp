@@ -295,7 +295,7 @@ void ScriptManager::LoadScript(WorldInterpreter * worldInterpreter, const std::s
             using ExtensionFactory = PlayerExtensionInterface* (*)(LimonAPI *);
             using ActorFactory = ActorInterface* (*)(uint32_t, LimonAPI *);
 
-            if (IsSubclassOf(obj, "TriggerInterface")) {
+            if (IsSubclassOf(obj, "trigger_interface", "TriggerInterface")) {
                 std::cout << "[ScriptManager] found TriggerInterface: " << moduleName << std::endl;
                 size_t callbackIndex = GetCallbacks().size();
                 GetCallbacks().push_back({obj, CallBackTypes::TRIGGER});
@@ -311,7 +311,7 @@ void ScriptManager::LoadScript(WorldInterpreter * worldInterpreter, const std::s
                 TriggerInterface::registerType(name, factory);
                 std::cout << "[ScriptManager] Registered trigger: " << name << std::endl;
             }
-            else if (IsSubclassOf(obj, "PlayerExtensionInterface")) {
+            else if (IsSubclassOf(obj, "player_extension_interface", "PlayerExtensionInterface")) {
                 std::cout << "[ScriptManager] found PlayerExtensionInterface: " << moduleName << std::endl;
                 size_t callbackIndex = GetCallbacks().size();
                 GetCallbacks().push_back({obj, CallBackTypes::PLAYER_EXTENSION});
@@ -327,7 +327,7 @@ void ScriptManager::LoadScript(WorldInterpreter * worldInterpreter, const std::s
                 PlayerExtensionInterface::registerType(name, factory);
                 std::cout << "[ScriptManager] Registered extension: " << name << std::endl;
             }
-            else if (IsSubclassOf(obj, "ActorInterface")) {
+            else if (IsSubclassOf(obj, "actor_interface", "ActorInterface")) {
                 std::cout << "[ScriptManager] found ActorInterface: " << moduleName << std::endl;
                 size_t callbackIndex = GetCallbacks().size();
                 GetCallbacks().push_back({obj, CallBackTypes::ACTOR});

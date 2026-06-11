@@ -23,11 +23,11 @@ public:
     }
 
     bool isDirty() const override {
-        return pyObj.attr("isDirty")().cast<bool>();
+        return pyObj.attr("is_dirty")().cast<bool>();
     }
 
     void clearDirty() override {
-        pyObj.attr("clearDirty")().cast<void>();
+        pyObj.attr("clear_dirty")().cast<void>();
     }
 
     void getCameraVariables(glm::vec3 &position, glm::vec3 &center, glm::vec3 &up, glm::vec3 &right)  override {
@@ -42,7 +42,7 @@ public:
             pybind11::object pyUp = Vec3Class(up.x, up.y, up.z);
             pybind11::object pyRight = Vec3Class(right.x, right.y, right.z);
 
-            pyObj.attr("getCameraVariables")(pyPosition, pyCenter, pyUp, pyRight);
+            pyObj.attr("get_camera_variables")(pyPosition, pyCenter, pyUp, pyRight);
             
             // Use type caster to convert Vec3 objects back to glm::vec3
             position = pyPosition.cast<glm::vec3>();

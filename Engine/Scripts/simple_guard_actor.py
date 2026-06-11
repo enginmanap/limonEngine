@@ -1,6 +1,5 @@
 from actor_interface import ActorInterface
 from generic_parameter import GenericParameter, RequestParameterType, ValueType
-import limon
 
 
 class SimpleGuardActor(ActorInterface):
