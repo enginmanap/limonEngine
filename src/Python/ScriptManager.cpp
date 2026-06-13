@@ -110,7 +110,8 @@ static constexpr ActorInterface* (*GetActorFactoryHelper(std::index_sequence<Is.
     return (index < factories.size()) ? factories[index] : nullptr;
 }
 
-ScriptManager::ScriptManager(const std::string &directoryPath) : directoryPath(directoryPath) {
+ScriptManager::ScriptManager(const std::string &builtinDirectoryPath, const std::string &userDirectoryPath)
+        : scriptDirectories{builtinDirectoryPath, userDirectoryPath} {
     ensurePythonModuleBindingsLinked();
     std::cout << "[ScriptManager][DEBUG] ScriptManager constructor called " << std::endl;
     try {
@@ -258,7 +259,7 @@ void ScriptManager::LoadScript(WorldInterpreter * worldInterpreter, const std::s
 
         if (isMainInterpreter) {
             pybind11::module_ sys = pybind11::module::import("sys");
-            (void) sys.attr("path").attr("append")(directoryPath);
+            appendScriptDirectoriesToSysPath(sys);
 
             try {
                 pybind11::module_ limon = pybind11::module_::import("limon");
@@ -457,7 +458,7 @@ WorldInterpreter* ScriptManager::createWorldInterpreter(const std::string& world
             activeSubinterpreter = worldInterpreter->activate();
 
             pybind11::module_ sys = pybind11::module::import("sys");
-            (void) sys.attr("path").attr("append")(directoryPath);
+            appendScriptDirectoriesToSysPath(sys);
 
             pybind11::module_ limon = pybind11::module::import("limon");
 

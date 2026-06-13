@@ -151,7 +151,7 @@ void GameEngine::returnPreviousMap() {
 }
 
 GameEngine::GameEngine() {
-    scriptManager = new ScriptManager("./Engine/Scripts");
+    scriptManager = new ScriptManager("./Engine/Scripts", "./Data/Scripts");
 
     options = new OptionsUtil::Options([](){return SDL_GetTicks();});
 

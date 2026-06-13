@@ -9,6 +9,8 @@
 #include <pybind11/subinterpreter.h>
 #include "pybind11/stl_bind.h"
 #include <filesystem>
+#include <set>
+#include <vector>
 
 // Check if we have C++17 support
 #if !defined(PYBIND11_CPP17)
@@ -22,7 +24,12 @@
 
 class WorldInterpreter;
 class ScriptManager {
-    const std::string directoryPath;
+    // Ordered list of directories scanned for scripts. The first entry is the
+    // built-in directory (./Engine/Scripts) and is authoritative; the rest are
+    // user directories (./Data/Scripts). Order matters: built-ins take
+    // precedence so user scripts can import the built-in base classes, and a
+    // user script may not shadow a built-in module name.
+    const std::vector<std::string> scriptDirectories;
 
     WorldInterpreter* activeSubinterpreter = nullptr;
     std::unordered_map<std::string, WorldInterpreter*> subInterpreters;
@@ -48,7 +55,10 @@ class ScriptManager {
 
     void removeWorldInterpreterInternal(WorldInterpreter* world_interpreter);
 public:
-    explicit ScriptManager(const std::string& directoryPath);
+    // builtinDirectoryPath is the engine's own scripts (./Engine/Scripts);
+    // userDirectoryPath is the game-provided scripts (./Data/Scripts). The user
+    // directory is optional - it is silently skipped if it does not exist.
+    ScriptManager(const std::string& builtinDirectoryPath, const std::string& userDirectoryPath);
     ~ScriptManager();
 
     explicit ScriptManager(ScriptManager& other) = delete;
@@ -65,21 +75,64 @@ public:
     static PlayerExtensionInterface* CreatePlayerExtensionWrapper(LimonAPI* api, size_t index);
     static ActorInterface* CreateActorWrapper(uint32_t id, LimonAPI* api, size_t index);
 private:
-    // scans the directory and loads every compatible script
-    void loadScripts(WorldInterpreter * worldInterpreter) {
-        if (!std::filesystem::exists(directoryPath)) {
-            std::cerr << "[Scripting] Directory not found: " << directoryPath << std::endl;
-            return;
-        }
-
-        std::cout << "[Scripting] Scanning: " << directoryPath << "..." << std::endl;
-
-        for (const auto& entry : std::filesystem::directory_iterator(directoryPath)) {
-            if (entry.path().extension() == ".py" &&
-                entry.path().filename() != "__init__.py") {
-                std::string moduleName = entry.path().stem().string();
-                LoadScript(worldInterpreter, moduleName);
+    // Appends every configured script directory to sys.path, in order and
+    // without introducing duplicates. Built-in directory is added first so its
+    // modules win on name collisions during import.
+    void appendScriptDirectoriesToSysPath(pybind11::module_& sys) {
+        pybind11::list pathList = sys.attr("path");
+        for (const std::string& directoryPath : scriptDirectories) {
+            bool alreadyPresent = false;
+            for (pybind11::handle entry : pathList) {
+                if (pybind11::isinstance<pybind11::str>(entry) &&
+                    entry.cast<std::string>() == directoryPath) {
+                    alreadyPresent = true;
+                    break;
                 }
+            }
+            if (!alreadyPresent) {
+                (void) sys.attr("path").attr("append")(directoryPath);
+            }
+        }
+    }
+
+    // Scans every configured directory and loads every compatible script.
+    // Built-in directory is scanned first; a user script whose module name
+    // collides with an already-seen (built-in or earlier) module is skipped,
+    // because Python caches modules by name and the first one wins on import.
+    void loadScripts(WorldInterpreter * worldInterpreter) {
+        std::set<std::string> seenModuleNames;
+        bool isBuiltinDirectory = true;
+        for (const std::string& directoryPath : scriptDirectories) {
+            if (!std::filesystem::exists(directoryPath)) {
+                if (isBuiltinDirectory) {
+                    // The built-in directory is required; its absence is an error.
+                    std::cerr << "[Scripting] Built-in script directory not found: " << directoryPath << std::endl;
+                } else {
+                    // User directories are optional.
+                    std::cout << "[Scripting] No user script directory at: " << directoryPath << " (skipping)" << std::endl;
+                }
+                isBuiltinDirectory = false;
+                continue;
+            }
+
+            std::cout << "[Scripting] Scanning: " << directoryPath << "..." << std::endl;
+
+            for (const auto& entry : std::filesystem::directory_iterator(directoryPath)) {
+                if (entry.path().extension() == ".py" &&
+                    entry.path().filename() != "__init__.py") {
+                    std::string moduleName = entry.path().stem().string();
+                    if (seenModuleNames.count(moduleName) != 0) {
+                        std::cerr << "[Scripting] Skipping '" << entry.path().string()
+                                  << "': module name '" << moduleName
+                                  << "' is already provided by a built-in script. Rename the user script to load it."
+                                  << std::endl;
+                        continue;
+                    }
+                    seenModuleNames.insert(moduleName);
+                    LoadScript(worldInterpreter, moduleName);
+                }
+            }
+            isBuiltinDirectory = false;
         }
     }
 
