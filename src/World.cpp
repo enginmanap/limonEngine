@@ -432,6 +432,7 @@ ActorInterface::ActorInformation World::fillActorInformation(ActorInterface *act
         float cosBetween = glm::dot(normalize(front), normalize(rayDir));
         information.playerDistance = glm::length(rayDir);
         information.playerDirection = normalize(rayDir);
+        information.cosineBetweenPlayer = cosBetween;
         if (cosBetween > 0) {
             information.isPlayerFront = true;
             information.isPlayerBack = false;
