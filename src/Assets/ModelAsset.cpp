@@ -141,6 +141,7 @@ void ModelAsset::loadCPUPart() {
         for (auto child = parentNode->children.begin(); child != parentNode->children.end(); ++child) {
             if((*child)->name == "Mixamo") {
                 std::cout << "searching mixamo animations at path: " << (*child)->fullPath << std::endl;
+                int32_t mixamoCount = 0;
                 Assimp::Importer importer2;
                 const aiScene *mixamoScene = nullptr;
                 for (auto mixamoFile = (*child)->children.begin(); mixamoFile != (*child)->children.end(); ++mixamoFile) {
@@ -156,12 +157,13 @@ void ModelAsset::loadCPUPart() {
                             this->hasAnimation = true;
                             //get the file name
                             fillAnimationSet(mixamoScene->mNumAnimations, mixamoScene->mAnimations, (*mixamoFile)->name.substr(0, (*mixamoFile)->name.find_last_of("."))+ "|");
+                            mixamoCount++;
                         } else {
                             std::cout << "No animation in Mixamo file, it won't effect anyting." << std::endl;
                         }
                     }
-
                 }
+                    std::cout << mixamoCount << " mixamo animations found for model " << this->name << std::endl;
             }
         }
     }
