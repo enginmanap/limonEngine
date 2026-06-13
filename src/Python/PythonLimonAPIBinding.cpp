@@ -193,6 +193,12 @@ void bindLimonAPI(pybind11::module_& m) {
             .def("get_object_transformation", &LimonAPI::getObjectTransformation,
                  "Get an object's transformation",
                  pybind11::arg("object_id"))
+            .def("get_object_position", &LimonAPI::getObjectPosition,
+                 "Get an object's world-space position (Vec4)",
+                 pybind11::arg("object_id"))
+            .def("get_object_front_vector", &LimonAPI::getObjectFrontVector,
+                 "Get an object's world-space forward direction (Vec4)",
+                 pybind11::arg("object_id"))
             .def("get_object_transformation_matrix", &LimonAPI::getObjectTransformationMatrix,
                  "Get an object's transformation matrix. Prefer this over get_object_transformation for physical objects",
                  pybind11::arg("object_id"))

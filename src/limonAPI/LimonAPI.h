@@ -120,6 +120,8 @@ public:
      */
     std::vector<LimonTypes::GenericParameter> getObjectTransformation(uint32_t objectID);
 
+    LimonTypes::Vec4 getObjectPosition(uint32_t objectID);
+    LimonTypes::Vec4 getObjectFrontVector(uint32_t objectID);
     bool setObjectTranslate(uint32_t objectID, const LimonTypes::Vec4& position);
     bool setObjectScale(uint32_t objectID, const LimonTypes::Vec4& scale);
     bool setObjectOrientation(uint32_t objectID, const LimonTypes::Vec4& orientation);

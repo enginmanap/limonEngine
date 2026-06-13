@@ -188,6 +188,43 @@ std::vector<LimonTypes::GenericParameter> LimonAPI::getObjectTransformationMatri
     return worldGetObjectTransformationMatrix(objectID);
 }
 
+LimonTypes::Vec4 LimonAPI::getObjectPosition(uint32_t objectID) {
+    std::vector<LimonTypes::GenericParameter> transformation = getObjectTransformation(objectID);
+    if (transformation.size() >= 1) {
+        return transformation[0].value.vectorValue;// element 0 is the translate component
+    }
+    return LimonTypes::Vec4(0.0f, 0.0f, 0.0f, 0.0f);
+}
+
+LimonTypes::Vec4 LimonAPI::getObjectFrontVector(uint32_t objectID) {
+    std::vector<LimonTypes::GenericParameter> transformation = getObjectTransformation(objectID);
+    // Default orientation matches the historic ActorInterface::getFrontVector packing of
+    // glm::quat(0, 0, 1, 0) interpreted as (w, x, y, z).
+    float w = 0.0f, x = 0.0f, y = 1.0f, z = 0.0f;
+    if (transformation.size() >= 3) {
+        const LimonTypes::Vec4 &orientation = transformation[2].value.vectorValue;// element 2 is orientation
+        // Same packing the previous implementation used: glm::quat(vectorValue.x, .y, .z, .w).
+        w = orientation.x;
+        x = orientation.y;
+        y = orientation.z;
+        z = orientation.w;
+    }
+    // Rotate the forward vector (0, 0, 1) by the quaternion, plain-float port of the glm math so the
+    // ABI-stable LimonAPI carries no glm dependency.
+    float forwardX = 0.0f, forwardY = 0.0f, forwardZ = 1.0f;
+    float dotUF = x * forwardX + y * forwardY + z * forwardZ;
+    float dotUU = x * x + y * y + z * z;
+    float crossX = y * forwardZ - z * forwardY;
+    float crossY = z * forwardX - x * forwardZ;
+    float crossZ = x * forwardY - y * forwardX;
+    LimonTypes::Vec4 result;
+    result.x = 2.0f * dotUF * x + (w * w - dotUU) * forwardX + 2.0f * w * crossX;
+    result.y = 2.0f * dotUF * y + (w * w - dotUU) * forwardY + 2.0f * w * crossY;
+    result.z = 2.0f * dotUF * z + (w * w - dotUU) * forwardZ + 2.0f * w * crossZ;
+    result.w = 0.0f;
+    return result;
+}
+
 bool LimonAPI::interactWithAI(uint32_t AIID, std::vector<LimonTypes::GenericParameter> &interactionInformation) {
     return worldInteractWithAI(AIID, interactionInformation);
 }
