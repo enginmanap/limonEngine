@@ -126,6 +126,13 @@ public:
     bool isSoundPlaying(uint32_t soundID);
     bool setSoundTemporaryAPI(uint32_t soundID, bool temporary);
 
+    // Music (dedicated MUSIC channel, single level track, optional crossfade)
+    bool setMusic(const std::string& musicPath, float fadeSeconds, bool looped);
+    bool stopMusic(float fadeSeconds);
+    std::string getMusicName() const;
+    bool isMusicPlaying() const;
+    // Channel (bus) volumes are option-driven (see World::applyAudioVolumeOptionsIfChanged), not set here.
+
     // Lights
     uint32_t addLightAPI(uint32_t lightType, const LimonTypes::Vec4& position, const LimonTypes::Vec4& color);
     bool removeLightAPI(uint32_t lightID);

@@ -159,6 +159,22 @@ bool LimonAPI::setSoundTemporary(uint32_t soundID, bool temporary) {
     return worldSetSoundTemporary(soundID, temporary);
 }
 
+bool LimonAPI::setMusic(const std::string &musicPath, float fadeSeconds, bool looped) {
+    return worldSetMusic(musicPath, fadeSeconds, looped);
+}
+
+bool LimonAPI::stopMusic(float fadeSeconds) {
+    return worldStopMusic(fadeSeconds);
+}
+
+std::string LimonAPI::getMusicName() {
+    return worldGetMusicName();
+}
+
+bool LimonAPI::isMusicPlaying() {
+    return worldIsMusicPlaying();
+}
+
 bool LimonAPI::loadAndSwitchWorld(const std::string& worldFileName) {
     return limonLoadWorld(worldFileName);
 }

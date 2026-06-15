@@ -76,6 +76,15 @@ public:
     bool isSoundPlaying(uint32_t soundID);
     bool setSoundTemporary(uint32_t soundID, bool temporary);
 
+    /** Switch the level music on the dedicated MUSIC channel. fadeSeconds > 0 crossfades. */
+    bool setMusic(const std::string &musicPath, float fadeSeconds = 0.0f, bool looped = true);
+    bool stopMusic(float fadeSeconds = 0.0f);
+    std::string getMusicName();
+    bool isMusicPlaying();
+    // Channel (bus) volumes are not set directly through the API. They are global options
+    // ("soundVolumeMaster/Music/SFX/Speech"); change them via getOptions()/saveOptions() and
+    // the engine applies them to the audio mixer.
+
     bool interactWithAI(uint32_t AIID, std::vector<LimonTypes::GenericParameter> &interactionInformation);
 
     bool disableParticleEmitter(uint32_t particleEmitterId);
@@ -335,6 +344,11 @@ private:
     std::function<bool (uint32_t, bool)> worldSetSoundLooped;
     std::function<bool (uint32_t)> worldIsSoundPlaying;
     std::function<bool (uint32_t, bool)> worldSetSoundTemporary;
+
+    std::function<bool (const std::string&, float, bool)> worldSetMusic;
+    std::function<bool (float)> worldStopMusic;
+    std::function<std::string ()> worldGetMusicName;
+    std::function<bool ()> worldIsMusicPlaying;
 
     std::function<std::vector<LimonTypes::GenericParameter>()> worldRayCastToCursor;
     std::function<std::vector<LimonTypes::GenericParameter>(const LimonTypes::Vec4&, const LimonTypes::Vec4&)> worldRayCast;

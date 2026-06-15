@@ -102,6 +102,10 @@ void WorldLoader::attachedAPIMethodsToWorld(World *world, LimonAPI *limonAPI) co
     limonAPI->worldSetSoundLooped = std::bind(&WorldAPIAccessor::setSoundLooped, world->apiAccessor, std::placeholders::_1, std::placeholders::_2);
     limonAPI->worldIsSoundPlaying = std::bind(&WorldAPIAccessor::isSoundPlaying, world->apiAccessor, std::placeholders::_1);
     limonAPI->worldSetSoundTemporary = std::bind(&WorldAPIAccessor::setSoundTemporaryAPI, world->apiAccessor, std::placeholders::_1, std::placeholders::_2);
+    limonAPI->worldSetMusic = std::bind(&WorldAPIAccessor::setMusic, world->apiAccessor, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+    limonAPI->worldStopMusic = std::bind(&WorldAPIAccessor::stopMusic, world->apiAccessor, std::placeholders::_1);
+    limonAPI->worldGetMusicName = std::bind(&WorldAPIAccessor::getMusicName, world->apiAccessor);
+    limonAPI->worldIsMusicPlaying = std::bind(&WorldAPIAccessor::isMusicPlaying, world->apiAccessor);
     limonAPI->worldRayCastToCursor = std::bind(&WorldAPIAccessor::rayCastToCursorAPI, world->apiAccessor);
     limonAPI->worldRayCast = std::bind(&WorldAPIAccessor::rayCastAPI, world->apiAccessor, std::placeholders::_1, std::placeholders::_2);
     limonAPI->worldGetObjectTransformation = std::bind(&WorldAPIAccessor::getObjectTransformationAPI, world->apiAccessor, std::placeholders::_1);
@@ -302,7 +306,9 @@ World * WorldLoader::loadMapFromXML(const std::string &worldFileName, LimonAPI *
     } else {
         std::string musicName = musicNameNode->GetText();
         std::cout << "reading music as as " << musicName << std::endl;
-        world->music = new Sound(world->getNextObjectID(), assetManager, musicName);
+        //configure here but defer play() to World::loadAndChangeWorld (the "switch to this world" moment)
+        world->music = std::make_unique<Sound>(world->getNextObjectID(), assetManager, musicName);
+        world->music->setChannel(LimonTypes::AudioChannel::MUSIC);
         world->music->setLoop(true);
         world->music->setWorldPosition(glm::vec3(0,0,0), true);
     }
@@ -1378,7 +1384,13 @@ bool WorldLoader::loadSounds(tinyxml2::XMLNode *worldNode, World *world) const {
 
         tinyxml2::XMLElement* gainEl = soundNode->FirstChildElement("Gain");
         if(gainEl != nullptr && gainEl->GetText() != nullptr) {
-            sound->changeGain(std::stof(gainEl->GetText()));
+            //Gain is now normalized 0..1. Levels saved before normalization stored it on a 0..1000+ scale;
+            //any value above the normalized max must be legacy, so migrate it on load.
+            float storedGain = std::stof(gainEl->GetText());
+            if(storedGain > 1.0f) {
+                storedGain = storedGain / 1000.0f;
+            }
+            sound->changeGain(storedGain);
         }
 
         tinyxml2::XMLElement* refDistEl = soundNode->FirstChildElement("ReferenceDistance");

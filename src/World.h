@@ -222,10 +222,17 @@ private:
     std::set<uint32_t> disconnectedModels;
     std::map<uint32_t, ModelGroup*> modelGroups;
 
-    Sound* music = nullptr;
+    std::unique_ptr<Sound> music = nullptr;          //currently playing level music
+    std::unique_ptr<Sound> musicOutgoing = nullptr;  //previous track kept alive while it crossfades out
 
     OptionsUtil::Options::Option<bool> renderInformationsOption;
     OptionsUtil::Options::Option<long> maxLightsOption;
+
+    // Audio channel volumes are driven by global options (the source of truth, persisted).
+    // World reads the options and pushes changes to ALHelper; nothing sets channel gain directly.
+    OptionsUtil::Options::Option<double> soundVolumeOptions[(size_t)LimonTypes::AudioChannel::COUNT];
+    float appliedChannelVolumes[(size_t)LimonTypes::AudioChannel::COUNT] = {-1.0f, -1.0f, -1.0f, -1.0f};
+    void applyAudioVolumeOptionsIfChanged();
     std::priority_queue<TimedEvent, std::vector<TimedEvent>, std::greater<>> timedEvents;
     long timedEventHandleIndex = 1;//we don't need to keep them, just have them unique
 

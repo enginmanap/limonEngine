@@ -144,6 +144,22 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
     renderInformationsOption = options->getOption<bool>(HASH("renderInformations"));
     maxLightsOption = options->getOption<long>(HASH("maximumLights"));
     activeLights.reserve(maxLightsOption.getOrDefault(4));
+
+    soundVolumeOptions[(size_t)LimonTypes::AudioChannel::MASTER] = options->getOption<double>(HASH("soundVolumeMaster"));
+    soundVolumeOptions[(size_t)LimonTypes::AudioChannel::MUSIC]  = options->getOption<double>(HASH("soundVolumeMusic"));
+    soundVolumeOptions[(size_t)LimonTypes::AudioChannel::SFX]    = options->getOption<double>(HASH("soundVolumeSFX"));
+    soundVolumeOptions[(size_t)LimonTypes::AudioChannel::SPEECH] = options->getOption<double>(HASH("soundVolumeSpeech"));
+}
+
+void World::applyAudioVolumeOptionsIfChanged() {
+    // Options are the source of truth; push any changes down to the audio mixer. Cheap no-op when unchanged.
+    for (size_t channel = 0; channel < (size_t)LimonTypes::AudioChannel::COUNT; ++channel) {
+        float volume = (float)soundVolumeOptions[channel].getOrDefault(1.0);
+        if (volume != appliedChannelVolumes[channel]) {
+            alHelper->setChannelGain((LimonTypes::AudioChannel)channel, volume);
+            appliedChannelVolumes[channel] = volume;
+        }
+    }
 }
 
    RenderMethods World::buildRenderMethods() {
@@ -227,6 +243,7 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
          currentPlayer->processPhysicsWorld(dynamicsWorld);
      }
      checkAndRunTimedEvents();//no londer requires to be in world simulation, because it checks both game time and wall time now
+     applyAudioVolumeOptionsIfChanged();
      if(playerCamera->isDirty()) {
          graphicsWrapper->setPlayerMatrices(playerCamera->getPosition(), playerCamera->getCameraMatrix(), gameTime);//this is required for any render
          alHelper->setListenerPositionAndOrientation(playerCamera->getPosition(), playerCamera->getCenter(), playerCamera->getUp());
@@ -880,9 +897,7 @@ World::~World() {
     delete dynamicsWorld;
     delete animationInProgress;
 
-    if(this->music != nullptr) {
-        delete this->music;
-    }
+    //music and musicOutgoing are unique_ptr, cleaned up automatically
 
     //FIXME clear GUIlayer elements
     for (auto it = objects.begin(); it != objects.end(); ++it) {
@@ -1097,6 +1112,7 @@ void World::afterLoadFinished() {
     }
 
     if(music != nullptr) {
+        music->setChannel(LimonTypes::AudioChannel::MUSIC);
         music->play();
     }
 
@@ -1178,6 +1194,9 @@ void World::setupForPlay(InputHandler &inputHandler) {
                 this->music->resume();
             }
         }
+        if(this->musicOutgoing != nullptr && this->musicOutgoing->getState() == Sound::State::PAUSED) {
+            this->musicOutgoing->resume();
+        }
     } else {
         alHelper->pausePlay();
     }
@@ -1214,12 +1233,18 @@ void World::setupForPauseOrStop() {
     if(this->music != nullptr) {
         this->music->pause();
     }
+    if(this->musicOutgoing != nullptr) {
+        this->musicOutgoing->pause();
+    }
 }
 
 void World::setupForUnpause() {
     this->visibilityManager->start();
     if(this->music != nullptr) {
         this->music->resume();
+    }
+    if(this->musicOutgoing != nullptr) {
+        this->musicOutgoing->resume();
     }
 }
 

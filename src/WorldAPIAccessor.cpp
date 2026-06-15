@@ -929,6 +929,69 @@ bool WorldAPIAccessor::isSoundPlaying(uint32_t soundID) {
     return state == Sound::State::PLAYING || state == Sound::State::STOP_AFTER_FINISH;
 }
 
+bool WorldAPIAccessor::setMusic(const std::string &musicPath, float fadeSeconds, bool looped) {
+    // Single source of truth for switching level music. Editor, scripts, triggers and the loader all route here.
+    // Move any currently playing track to the outgoing slot and fade it out, then start the new one.
+    if(world->musicOutgoing != nullptr) {
+        // A previous crossfade may still be in flight; drop its (now silent or near-silent) wrapper.
+        world->musicOutgoing->stop();
+        world->musicOutgoing.reset();
+    }
+    if(world->music != nullptr) {
+        if(fadeSeconds > 0.0f) {
+            world->musicOutgoing = std::move(world->music);
+            world->musicOutgoing->fadeOutAndStop(fadeSeconds);
+        } else {
+            world->music->stop();
+            world->music.reset();
+        }
+    }
+
+    if(musicPath.empty()) {
+        return true; // setMusic("") just clears the music
+    }
+
+    world->music = std::make_unique<Sound>(world->getNextObjectID(), world->assetManager, musicPath);
+    world->music->setChannel(LimonTypes::AudioChannel::MUSIC);
+    world->music->setLoop(looped);
+    world->music->setWorldPosition(glm::vec3(0, 0, 0), true);
+    world->music->play(fadeSeconds);
+    return true;
+}
+
+bool WorldAPIAccessor::stopMusic(float fadeSeconds) {
+    if(world->musicOutgoing != nullptr) {
+        world->musicOutgoing->stop();
+        world->musicOutgoing.reset();
+    }
+    if(world->music == nullptr) {
+        return false;
+    }
+    if(fadeSeconds > 0.0f) {
+        world->musicOutgoing = std::move(world->music);
+        world->musicOutgoing->fadeOutAndStop(fadeSeconds);
+    } else {
+        world->music->stop();
+        world->music.reset();
+    }
+    return true;
+}
+
+std::string WorldAPIAccessor::getMusicName() const {
+    if(world->music == nullptr) {
+        return "";
+    }
+    return world->music->getName();
+}
+
+bool WorldAPIAccessor::isMusicPlaying() const {
+    if(world->music == nullptr) {
+        return false;
+    }
+    Sound::State state = world->music->getState();
+    return state == Sound::State::PLAYING || state == Sound::State::STOP_AFTER_FINISH;
+}
+
 uint32_t WorldAPIAccessor::addLightAPI(uint32_t lightType, const LimonTypes::Vec4 &position, const LimonTypes::Vec4 &color) {
     Light::LightTypes type;
     switch(lightType) {

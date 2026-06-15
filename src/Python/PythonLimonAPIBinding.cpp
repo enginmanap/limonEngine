@@ -21,6 +21,13 @@ void bindLimonAPI(pybind11::module_& m) {
             .def_readwrite("z", &LimonTypes::Vec4::z)
             .def_readwrite("w", &LimonTypes::Vec4::w);
 
+    // Bind audio mixing channels (buses)
+    pybind11::enum_<LimonTypes::AudioChannel>(m, "AudioChannel")
+            .value("MASTER", LimonTypes::AudioChannel::MASTER)
+            .value("MUSIC", LimonTypes::AudioChannel::MUSIC)
+            .value("SFX", LimonTypes::AudioChannel::SFX)
+            .value("SPEECH", LimonTypes::AudioChannel::SPEECH);
+
     // Bind ProfileScope — non-constructable from Python; obtained only via LimonAPI.profile_scope()
     pybind11::class_<ProfileScope>(m, "ProfileScope")
         .def("__enter__", [](ProfileScope& self) -> ProfileScope& { return self; },
@@ -233,6 +240,20 @@ void bindLimonAPI(pybind11::module_& m) {
             .def("is_sound_playing", &LimonAPI::isSoundPlaying,
                  "Returns True if the sound is currently playing",
                  pybind11::arg("sound_id"))
+
+            // Music (dedicated MUSIC channel)
+            .def("set_music", &LimonAPI::setMusic,
+                 "Switch the level music on the MUSIC channel. fade_seconds > 0 crossfades. Returns True on success",
+                 pybind11::arg("music_path"), pybind11::arg("fade_seconds") = 0.0f, pybind11::arg("looped") = true)
+            .def("stop_music", &LimonAPI::stopMusic,
+                 "Stop the level music, optionally fading out over fade_seconds. Returns False if no music set",
+                 pybind11::arg("fade_seconds") = 0.0f)
+            .def("get_music_name", &LimonAPI::getMusicName,
+                 "Get the current music asset path, or empty string if none")
+            .def("is_music_playing", &LimonAPI::isMusicPlaying,
+                 "Returns True if level music is currently playing")
+            // Channel volumes are global options ("soundVolumeMaster/Music/SFX/Speech"); change them
+            // via get_options()/save_options() and the engine applies them to the audio mixer.
 
             // AI / Player Interaction
             .def("interact_with_player", [](LimonAPI& self, pybind11::object py_params) {

@@ -11,6 +11,7 @@
 #include "../Attachable.h"
 #include "../Editor/ImGuiResult.h"
 #include "../Editor/ImGuiRequest.h"
+#include "../limonAPI/LimonTypes.h"
 
 class SoundAsset;
 class AssetManager;
@@ -30,12 +31,13 @@ private:
     State playState = State::STOPPED;
     float startSecond = 0;
     float stopPosition = 0;
-    float gain = 1000;//default
+    float gain = 1.0f;//default, normalized 0..1
     float referenceDistance = 2.0f;
     float maxDistance = 50.0f;
     bool looped = false;
     bool autoPlay = false;
     bool temporary = false;
+    LimonTypes::AudioChannel channel = LimonTypes::AudioChannel::SFX;
 
     Transformation transformation;
 
@@ -49,7 +51,10 @@ public:
 
     void setStopPosition(float stopPosition);
 
-    void play();
+    void play(float fadeInSeconds = 0.0f);
+
+    /** Fade the gain to zero over the given duration, then stop. Used for music crossfade-out. */
+    void fadeOutAndStop(float seconds);
 
     void stop();
 
@@ -115,6 +120,14 @@ public:
 
     bool isListenerRelative() const {
         return listenerRelative;
+    }
+
+    LimonTypes::AudioChannel getChannel() const {
+        return channel;
+    }
+
+    void setChannel(LimonTypes::AudioChannel channel) {
+        this->channel = channel;
     }
 
     bool isTemporary() const {

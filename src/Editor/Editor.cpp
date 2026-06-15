@@ -902,27 +902,29 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
                                                   "Music",
                                                   &selectedSoundAsset);
 
-                if (world->music != nullptr) {
-                    ImGui::Text("Current Music: %s", world->music->getName().c_str());
+                // Drive music through the same API scripts use, so editor and runtime behaviour stay identical.
+                std::string currentMusic = world->apiInstance->getMusicName();
+                if (!currentMusic.empty()) {
+                    ImGui::Text("Current Music: %s", currentMusic.c_str());
                 } else {
                     ImGui::Text("No music set for level. ");
                 }
 
+                // Editor only authors which track is the level music (saved as the <Music> path).
+                // Crossfade and channel volumes are runtime concerns and have no effect here, since
+                // the editor player sets audioPlaying = false (the audio thread is paused).
                 if (selectedSoundAsset != nullptr) {
                     if (ImGui::Button("Change Music")) {
-                        if (world->music != nullptr) {
-                            world->music->stop();
-                            delete world->music;
-                        }
-                        world->music = new Sound(world->getNextObjectID(), world->assetManager, selectedSoundAsset->fullPath);
-                        world->music->setLoop(true);
-                        world->music->setWorldPosition(glm::vec3(0, 0, 0), true);
-                        world->music->play();
+                        world->apiInstance->setMusic(selectedSoundAsset->fullPath, 0.0f, true);
                     }
                 } else {
                     ImGui::Button("Change Music");
                     ImGui::SameLine();
                     ImGuiHelper::ShowHelpMarker("No sound asset selected");
+                }
+                ImGui::SameLine();
+                if (ImGui::Button("Clear Music")) {
+                    world->apiInstance->setMusic("", 0.0f, true);
                 }
             }
             if(ImGui::CollapsingHeader("Sound Settings")) {

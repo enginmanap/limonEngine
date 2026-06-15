@@ -106,6 +106,23 @@ int ALHelper::soundManager() {
 
                     }
                 } else {
+                    if(temp->fadeDurationMs > 0.0f) {
+                        temp->fadeElapsedMs += 10.0f; //this loop ticks every SDL_Delay(10)
+                        float t = temp->fadeElapsedMs / temp->fadeDurationMs;
+                        if(t >= 1.0f) {
+                            t = 1.0f;
+                        }
+                        temp->gain = temp->fadeFrom + (temp->fadeTarget - temp->fadeFrom) * t;
+                        applyEffectiveGain(*temp);
+                        if(t >= 1.0f) {
+                            temp->fadeDurationMs = 0.0f;
+                            if(temp->stopAtFadeEnd) {
+                                temp->looped = false; //ensure the finished/erase path below picks it up
+                                alSourceStop(temp->source);
+                                temp->stopped = true;
+                            }
+                        }
+                    }
                     refreshBuffers(temp);
                     ++iterator;
                 }
@@ -202,14 +219,25 @@ bool ALHelper::resume(uint32_t soundID) {
     }
 }
 
-uint32_t ALHelper::play(std::shared_ptr<SoundAsset> soundAsset, bool looped, float gain, float referenceDistance, float maxDistance) {
+uint32_t ALHelper::play(std::shared_ptr<SoundAsset> soundAsset, bool looped, float gain, float referenceDistance,
+                        float maxDistance, LimonTypes::AudioChannel channel, float fadeInSeconds) {
     uint32_t id = getNextRequestID();
     auto sound = std::unique_ptr<PlayingSound>(new PlayingSound(id));
     sound->asset = soundAsset;
     sound->looped = looped;
-    sound->gain = gain;
+    sound->channel = channel;
     sound->referenceDistance = referenceDistance;
     sound->maxDistance = maxDistance;
+    if(fadeInSeconds > 0.0f) {
+        //start silent and let the audio thread ramp up to the requested gain
+        sound->gain = 0.0f;
+        sound->fadeFrom = 0.0f;
+        sound->fadeTarget = gain;
+        sound->fadeElapsedMs = 0.0f;
+        sound->fadeDurationMs = fadeInSeconds * 1000.0f;
+    } else {
+        sound->gain = gain;
+    }
 
     SDL_AtomicLock(&playRequestLock);
     this->playRequests.push_back(std::move(sound));
@@ -222,7 +250,7 @@ bool ALHelper::startPlay(std::unique_ptr<PlayingSound> &sound) {
     alGenBuffers(NUM_BUFFERS, sound->buffers);
     alGenSources(1, &sound->source);
 
-    alSourcef(sound->source,AL_GAIN,sound->gain / 1000.0f);
+    applyEffectiveGain(*sound);
     alSourcef(sound->source, AL_REFERENCE_DISTANCE, sound->referenceDistance);
     alSourcef(sound->source, AL_MAX_DISTANCE, sound->maxDistance);
 
@@ -359,6 +387,69 @@ ALHelper::~ALHelper() {
     alcDestroyContext(ctx);
     alcCloseDevice(dev);
 
+}
+
+void ALHelper::applyEffectiveGain(PlayingSound &sound) {
+    float effective = sound.gain * channelGain[(size_t)sound.channel];
+    if(sound.channel != LimonTypes::AudioChannel::MASTER) {
+        effective *= channelGain[(size_t)LimonTypes::AudioChannel::MASTER];
+    }
+    alSourcef(sound.source, AL_GAIN, effective);
+}
+
+void ALHelper::fadeGain(uint32_t soundID, float targetGain, float seconds, bool stopAtEnd) {
+    removeSoundLock.lock();
+    auto it = playingSounds.find(soundID);
+    if(it != playingSounds.end()) {
+        PlayingSound& sound = *it->second;
+        if(seconds <= 0.0f) {
+            sound.gain = targetGain;
+            sound.fadeDurationMs = 0.0f;
+            applyEffectiveGain(sound);
+            if(stopAtEnd && targetGain <= 0.0f) {
+                sound.looped = false;
+                alSourceStop(sound.source);
+                sound.stopped = true;
+            }
+        } else {
+            sound.fadeFrom = sound.gain;
+            sound.fadeTarget = targetGain;
+            sound.fadeElapsedMs = 0.0f;
+            sound.fadeDurationMs = seconds * 1000.0f;
+            sound.stopAtFadeEnd = stopAtEnd;
+        }
+    }
+    removeSoundLock.unlock();
+
+    //the sound may still be a pending request (not yet started); set up the fade there too
+    SDL_AtomicLock(&playRequestLock);
+    for (auto request = playRequests.begin(); request != playRequests.end(); ++request) {
+        if((*request)->soundID == soundID) {
+            if(seconds <= 0.0f) {
+                (*request)->gain = targetGain;
+                (*request)->fadeDurationMs = 0.0f;
+            } else {
+                (*request)->fadeFrom = (*request)->gain;
+                (*request)->fadeTarget = targetGain;
+                (*request)->fadeElapsedMs = 0.0f;
+                (*request)->fadeDurationMs = seconds * 1000.0f;
+                (*request)->stopAtFadeEnd = stopAtEnd;
+            }
+            break;
+        }
+    }
+    SDL_AtomicUnlock(&playRequestLock);
+}
+
+void ALHelper::setChannelGain(LimonTypes::AudioChannel channel, float gain) {
+    channelGain[(size_t)channel] = gain;
+    removeSoundLock.lock();
+    for (auto& entry : playingSounds) {
+        if(channel == LimonTypes::AudioChannel::MASTER || entry.second->channel == channel) {
+            applyEffectiveGain(*entry.second);
+        }
+    }
+    removeSoundLock.unlock();
 }
 
 bool ALHelper::setLooped(uint32_t soundID, bool looped) {

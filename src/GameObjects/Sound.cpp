@@ -37,7 +37,7 @@ void Sound::setStopPosition(float stopPosition) {
     std::cerr << "This method [setStopPosition] is not implemented yet " << std::endl;
 }
 
-void Sound::play() {
+void Sound::play(float fadeInSeconds) {
     if(playState == State::STOP_AFTER_FINISH) {
         if(this->looped && assetManager->getAlHelper()->isPlaying(soundHandleID)) {
             assetManager->getAlHelper()->setLooped(soundHandleID, this->looped);
@@ -50,17 +50,24 @@ void Sound::play() {
         if (soundHandleID != 0) {
             if (!assetManager->getAlHelper()->isPlaying(soundHandleID)) {//don't play if already playing
                 soundHandleID = assetManager->getAlHelper()->play(assetManager->loadAsset<SoundAsset>({this->name}),
-                                                                  this->looped, gain, referenceDistance, maxDistance);
+                                                                  this->looped, gain, referenceDistance, maxDistance, channel, fadeInSeconds);
                 assetManager->getAlHelper()->setSourcePosition(soundHandleID, this->listenerRelative, this->position);
             }
         } else {
             soundHandleID = assetManager->getAlHelper()->play(assetManager->loadAsset<SoundAsset>({this->name}),
-                                                              this->looped, gain, referenceDistance, maxDistance);
+                                                              this->looped, gain, referenceDistance, maxDistance, channel, fadeInSeconds);
             assetManager->getAlHelper()->setSourcePosition(soundHandleID, this->listenerRelative, this->position);
 
         }
         this->playState = State::PLAYING;
     }
+}
+
+void Sound::fadeOutAndStop(float seconds) {
+    if(soundHandleID != 0) {
+        assetManager->getAlHelper()->fadeGain(soundHandleID, 0.0f, seconds, true);
+    }
+    this->playState = State::STOPPED;
 }
 
 void Sound::stop() {
@@ -147,7 +154,7 @@ ImGuiResult Sound::addImGuiEditorElements(const ImGuiRequest& request) {
     ImGui::NewLine();
 
     float gainEdit = gain;
-    if (ImGui::DragFloat("Gain", &gainEdit, 1.0f, 0.0f, 5000.0f)) {
+    if (ImGui::DragFloat("Gain", &gainEdit, 0.01f, 0.0f, 1.0f)) {
         changeGain(gainEdit);
         result.updated = true;
     }

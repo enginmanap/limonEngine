@@ -6,9 +6,24 @@
 #define LIMONENGINE_LIMONTYPES_H
 
 #include <cassert>
+#include <cstdint>
 #include <string>
 
 namespace LimonTypes {
+
+    /**
+     * Audio mixing channels (buses). Each playing sound is assigned to one channel.
+     * The effective OpenAL gain of a sound is sound.gain * channelGain[channel] * channelGain[MASTER].
+     * MASTER is the global multiplier and must not be assigned to an individual sound.
+     * The order here must stay in sync with the channelGain array sizing in ALHelper.
+     */
+    enum class AudioChannel : uint8_t {
+        MASTER = 0,
+        MUSIC  = 1,
+        SFX    = 2,
+        SPEECH = 3,
+        COUNT  = 4
+    };
 
     struct Vec2 {
         float x, y;

@@ -20,6 +20,7 @@
 #include <SDL_thread.h>
 #include "SDL2Helper.h"
 #include "SDL2MultiThreading.h"
+#include "limonAPI/LimonTypes.h"
 
 class SoundAsset;
 
@@ -44,7 +45,8 @@ private:
         ALuint source = 0;
         ALenum format = AL_FORMAT_STEREO16;
         ALuint buffers[NUM_BUFFERS];
-        float gain = 1.0f;
+        float gain = 1.0f; //normalized 0..1 (per-source); multiplied by channel and master gain on apply
+        LimonTypes::AudioChannel channel = LimonTypes::AudioChannel::SFX;
         const int16_t *nextDataToBuffer = nullptr;
         bool looped = false;
         bool paused = false;
@@ -53,6 +55,12 @@ private:
         bool isPositionRelative = true;
         float referenceDistance = 2.0f;
         float maxDistance = 50.0f;
+        // Time-based gain fade, advanced by the audio thread. fadeDurationMs == 0 means no active fade.
+        float fadeFrom = 1.0f;
+        float fadeTarget = 1.0f;
+        float fadeElapsedMs = 0.0f;
+        float fadeDurationMs = 0.0f;
+        bool stopAtFadeEnd = false; //when a fade-out completes, stop (and unloop) the source so it gets cleaned up
         bool isFinished();
         PlayingSound(uint32_t id): soundID(id) {};
 
@@ -68,6 +76,7 @@ private:
 
     glm::vec3 ListenerPosition = glm::vec3(0.0f,0.0f,0.0f);
     DistanceModel distanceModel = DistanceModel::LINEAR_CLAMPED;
+    float channelGain[(size_t)LimonTypes::AudioChannel::COUNT] = {1.0f, 1.0f, 1.0f, 1.0f};
     bool running = true;
     bool paused = false;
     bool resumed = false;
@@ -99,6 +108,9 @@ private:
     }
 
     int soundManager();
+
+    /** Single choke point for writing AL_GAIN: combines per-source, channel and master gain. */
+    void applyEffectiveGain(PlayingSound &sound);
 
     bool startPlay(std::unique_ptr<PlayingSound> &sound);
 
@@ -140,7 +152,9 @@ public:
 
     ~ALHelper();
 
-    uint32_t play(const std::shared_ptr<SoundAsset> soundAsset, bool looped, float gain = 1000.0f, float referenceDistance = 2.0f, float maxDistance = 50.0f);
+    uint32_t play(const std::shared_ptr<SoundAsset> soundAsset, bool looped, float gain = 1.0f,
+                  float referenceDistance = 2.0f, float maxDistance = 50.0f,
+                  LimonTypes::AudioChannel channel = LimonTypes::AudioChannel::SFX, float fadeInSeconds = 0.0f);
 
     bool isPlaying(uint32_t soundID) {
         if(playingSounds.find(soundID) != playingSounds.end()) {
@@ -161,8 +175,10 @@ public:
 
     bool changeGain(uint32_t soundID, float gain) {
         if(playingSounds.find(soundID) != playingSounds.end()) {
-            playingSounds[soundID]->gain = gain;
-            alSourcef(playingSounds[soundID]->source,AL_GAIN,gain);
+            std::unique_ptr<PlayingSound>& sound = playingSounds[soundID];
+            sound->gain = gain;
+            sound->fadeDurationMs = 0; //an explicit volume change cancels any running fade
+            applyEffectiveGain(*sound);
             return true;
         }
         //it is possible that play is requested, but not yet started, they should be considered playing too, check it
@@ -171,12 +187,26 @@ public:
         for (auto request = playRequests.begin(); request != playRequests.end(); ++request) {
             if((*request)->soundID == soundID) {
                 (*request)->gain = gain;
+                (*request)->fadeDurationMs = 0;
                 result = true;
                 break;
             }
         }
         SDL_AtomicUnlock(&playRequestLock);
         return result;
+    }
+
+    /**
+     * Ramp a sound's gain to targetGain over the given duration. seconds <= 0 applies instantly.
+     * The ramp is advanced on the audio thread. If stopAtEnd is true and the target is 0, the source
+     * is stopped (and unlooped) when the fade completes so it gets cleaned up (used for crossfade-out).
+     */
+    void fadeGain(uint32_t soundID, float targetGain, float seconds, bool stopAtEnd = false);
+
+    /** Set the master gain for a channel (bus). Re-applies to all sounds currently on that channel. */
+    void setChannelGain(LimonTypes::AudioChannel channel, float gain);
+    float getChannelGain(LimonTypes::AudioChannel channel) const {
+        return channelGain[(size_t)channel];
     }
 
     bool stop(uint32_t soundID);
