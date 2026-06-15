@@ -672,9 +672,17 @@ bool WorldSaver::fillOnloadAnimations(tinyxml2::XMLDocument &document, tinyxml2:
         modelIDNode->SetText(std::to_string(objectID).c_str());
         onloadActionNode->InsertEndChild(modelIDNode);
 
-        tinyxml2::XMLElement *animationIDNode = document.NewElement("AnimationID");
-        animationIDNode->SetText(std::to_string(loadedAnimationID).c_str());
-        onloadActionNode->InsertEndChild(animationIDNode);
+        // Name is the key we save and load by now. We used to save ID, but that is depending on the load order, so it was not safe.
+        // Loader still supports ID based loading, but as backward compatibility, we don't wanna keep that around so we will not save it.
+        if(loadedAnimationID < world->loadedAnimations.size()) {
+            tinyxml2::XMLElement *animationNameNode = document.NewElement("Name");
+            animationNameNode->SetText(world->loadedAnimations[loadedAnimationID].getName().c_str());
+            onloadActionNode->InsertEndChild(animationNameNode);
+        } else {
+            std::cerr << "OnLoad animation index " << loadedAnimationID
+                      << " is out of range, animation can't be saved by name, skipping." << std::endl;
+            isSuccess = false;
+        }
     }
     return isSuccess;
 }

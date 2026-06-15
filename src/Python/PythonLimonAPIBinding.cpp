@@ -400,10 +400,19 @@ void bindLimonAPI(pybind11::module_& m) {
                  pybind11::arg("name"));
 
     // Animation methods
+    // TODO: remove this binding only after 0.7 is released and 0.8 work has started.
     limon.def("animate_model", &LimonAPI::animateModel,
-              "Animate a model",
+              "[DEPRECATED] Animate a model by numeric animation index. Animation indices are positional and depend on load order; use animate_model_by_name() instead.",
               pybind11::arg("model_id"), pybind11::arg("animation_id"),
               pybind11::arg("looped") = false, pybind11::arg("sound_path") = "");
+
+    limon.def("animate_model_by_name", &LimonAPI::animateModelByName,
+              "Animate a model using the loaded animation's name instead of its index. Returns the model id, or 0 if no loaded animation matches the name",
+              pybind11::arg("model_id"), pybind11::arg("animation_name"),
+              pybind11::arg("looped") = false, pybind11::arg("sound_path") = "");
+
+    limon.def("list_loaded_animations", &LimonAPI::listLoadedAnimations,
+              "Returns the names of all custom (transformation) animations loaded in the world. These names can be passed to animate_model_by_name");
 
     limon.def("get_model_animation_name", &LimonAPI::getModelAnimationName,
               "Get the name of the current animation for a model",

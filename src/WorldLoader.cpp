@@ -65,6 +65,8 @@ void WorldLoader::attachedAPIMethodsToWorld(World *world, LimonAPI *limonAPI) co
     world->apiAccessor = new WorldAPIAccessor(world);
 
     limonAPI->worldAddAnimationToObject = std::bind(&WorldAPIAccessor::addAnimationToObjectWithSound, world->apiAccessor, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, false, std::placeholders::_4);
+    limonAPI->worldAddAnimationToObjectByName = std::bind(&WorldAPIAccessor::addAnimationToObjectByNameWithSound, world->apiAccessor, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, false, std::placeholders::_4);
+    limonAPI->worldListLoadedAnimations = std::bind(&WorldAPIAccessor::listLoadedAnimationsAPI, world->apiAccessor);
     limonAPI->worldAddGuiText = std::bind(&WorldAPIAccessor::addGuiText, world->apiAccessor, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5, std::placeholders::_6, std::placeholders::_7);
     limonAPI->worldAddGuiImage = std::bind(&WorldAPIAccessor::addGuiImageAPI, world->apiAccessor, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5);
 
@@ -2245,13 +2247,29 @@ bool WorldLoader::loadOnLoadAnimations(tinyxml2::XMLNode *worldNode, World *worl
             } else {
                 uint32_t modelID = std::stoi(modelIDNode->GetText());
 
-                tinyxml2::XMLElement *animationIDNode = onloadAnimationNode->FirstChildElement("AnimationID");
-                if (animationIDNode == nullptr) {
-                    std::cerr << "Animation ID can't be read. Animation loading not possible, skipping"  << std::endl;
-                } else {
-                    uint32_t animationID = std::stoi(animationIDNode->GetText());
+                //We wanna use name to load, as ID depends on loading order and not safe.
+                bool applied = false;
+                tinyxml2::XMLElement *animationNameNode = onloadAnimationNode->FirstChildElement("Name");
+                if (animationNameNode != nullptr && animationNameNode->GetText() != nullptr) {
+                    std::string animationName = animationNameNode->GetText();
+                    if (world->apiAccessor->addAnimationToObjectByNameWithSound(modelID, animationName, true, true, "") != 0) {
+                        applied = true;
+                    } else {
+                        std::cerr << "OnLoad animation name \"" << animationName
+                                  << "\" could not be resolved, falling back to AnimationID." << std::endl;
+                    }
+                }
 
-                    world->apiAccessor->addAnimationToObject(modelID, animationID, true, true);
+                //AnimationID is only a fallback, for maps saved before names were stored.
+                if (!applied) {
+                    tinyxml2::XMLElement *animationIDNode = onloadAnimationNode->FirstChildElement("AnimationID");
+                    if (animationIDNode == nullptr) {
+                        std::cerr << "Animation has neither resolvable Name nor AnimationID. Animation loading not possible, skipping"  << std::endl;
+                    } else {
+                        uint32_t animationID = std::stoi(animationIDNode->GetText());
+
+                        world->apiAccessor->addAnimationToObject(modelID, animationID, true, true);
+                    }
                 }
             }
             onloadAnimationNode = onloadAnimationNode->NextSiblingElement("OnLoadAnimation");

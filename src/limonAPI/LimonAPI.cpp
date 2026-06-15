@@ -17,6 +17,14 @@ uint32_t LimonAPI::animateModel(uint32_t modelID, uint32_t animationID, bool loo
     return worldAddAnimationToObject(modelID, animationID, looped, soundPath);
 }
 
+uint32_t LimonAPI::animateModelByName(uint32_t modelID, const std::string& animationName, bool looped, const std::string& soundPath) {
+    return worldAddAnimationToObjectByName(modelID, animationName, looped, soundPath);
+}
+
+std::vector<std::string> LimonAPI::listLoadedAnimations() {
+    return worldListLoadedAnimations();
+}
+
 uint32_t LimonAPI::addGuiText(const std::string &fontFilePath, uint32_t fontSize, const std::string &name, const std::string &text,
                               const glm::vec3 &color, const glm::vec2 &position, float rotation) {
     return worldAddGuiText(fontFilePath, fontSize, name, text, color, position,rotation);

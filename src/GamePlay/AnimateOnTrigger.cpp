@@ -13,6 +13,10 @@ bool AnimateOnTrigger::run(std::vector<LimonTypes::GenericParameter> parameters)
     if(parameters[3].value.stringValue[0] != '\0') {
         sound = parameters[3].value.stringValue;
     }
+    // This trigger animates by editor-selected animation index (the ANIMATION request
+    // parameter resolves to an index), so it still uses the deprecated index-based API.
+    // The deprecation warning is intentionally left visible as a migration reminder.
+    // TODO: remove this index-based call only after 0.7 is released and 0.8 work has started.
     limonAPI->animateModel(static_cast<uint32_t>(parameters[0].value.longValue),
                            static_cast<uint32_t>(parameters[1].value.longValue),
                            parameters[2].value.boolValue,

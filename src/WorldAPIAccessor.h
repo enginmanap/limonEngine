@@ -28,6 +28,9 @@ public:
     uint32_t addAnimationToObject(uint32_t modelID, uint32_t animationID, bool looped, bool startOnLoad) {
         return addAnimationToObjectWithSound(modelID, animationID, looped, startOnLoad, "");
     }
+    uint32_t addAnimationToObjectByNameWithSound(uint32_t modelID, const std::string& animationName, bool looped,
+                                                 bool startOnLoad, const std::string& soundToPlay);
+    std::vector<std::string> listLoadedAnimationsAPI() const;
 
     // GUI
     uint32_t addGuiText(const std::string& fontFilePath, uint32_t fontSize, const std::string& name,

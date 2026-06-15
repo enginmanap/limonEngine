@@ -100,6 +100,27 @@ uint32_t WorldAPIAccessor::addAnimationToObjectWithSound(uint32_t modelID, uint3
     return modelID;
 }
 
+uint32_t WorldAPIAccessor::addAnimationToObjectByNameWithSound(uint32_t modelID, const std::string& animationName, bool looped,
+                                                               bool startOnLoad, const std::string& soundToPlay) {
+    for(uint32_t index = 0; index < world->loadedAnimations.size(); ++index) {
+        if(world->loadedAnimations[index].getName() == animationName) {
+            return addAnimationToObjectWithSound(modelID, index, looped, startOnLoad, soundToPlay);
+        }
+    }
+    world->options->getLogger()->log(Logger::log_Subsystem_ANIMATION, Logger::log_level_WARN,
+                                     "add animation by name called for unknown animation \"" + animationName + "\", skipping.");
+    return 0;
+}
+
+std::vector<std::string> WorldAPIAccessor::listLoadedAnimationsAPI() const {
+    std::vector<std::string> result;
+    result.reserve(world->loadedAnimations.size());
+    for(const AnimationCustom& animation : world->loadedAnimations) {
+        result.push_back(animation.getName());
+    }
+    return result;
+}
+
 uint32_t WorldAPIAccessor::addGuiText(const std::string &fontFilePath, uint32_t fontSize, const std::string &name,
                                       const std::string &text, const glm::vec3 &color,
                                       const glm::vec2 &position, float rotation) {
