@@ -392,6 +392,10 @@ bool LimonAPI::setObjectScale(uint32_t objectID, const LimonTypes::Vec4 &scale) 
     return worldSetObjectScale(objectID, scale);
 }
 
+bool LimonAPI::setObjectMass(uint32_t objectID, float mass) {
+    return worldSetObjectMass(objectID, mass);
+}
+
 bool LimonAPI::setObjectOrientation(uint32_t objectID, const LimonTypes::Vec4 &orientation) {
     return worldSetObjectOrientation(objectID, orientation);
 }

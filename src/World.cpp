@@ -970,6 +970,51 @@ bool World::addModelToWorld(Model *xmlModel) {
 
 }
 
+bool World::changeModelMass(uint32_t objectID, float newMass) {
+    Model *model = findModelByID(objectID);
+    if (model == nullptr) {
+        return false;
+    }
+    if (model->isAnimated()) {
+        //animated bodies are kinematic and always use the convex hull regardless of mass; nothing to switch.
+        options->getLogger()->log(Logger::log_Subsystem_MODEL, Logger::log_level_WARN,
+                                  "Mass change requested for animated model, ignored.");
+        return false;
+    }
+
+    model->setMassValue(newMass);
+
+    //switching static<->dynamic moves the model between render/visibility tag buckets; drop its stale membership
+    //so the next culling pass re-buckets it from the freshly updated tags.
+    for (auto &perCameraVisibility : visibilityManager->getCullingResults()) {
+        for (auto perTagVisibilityIt = perCameraVisibility.second->begin(); perTagVisibilityIt != perCameraVisibility.second->end(); ++perTagVisibilityIt) {
+            perTagVisibilityIt->second.removeModelFromAll(objectID);
+        }
+    }
+
+    //Bullet requires the body to be out of the world while its collision shape and mass props change.
+    bool connected = !model->isDisconnected();
+    btRigidBody *rigidBody = model->getRigidBody();
+    if (connected) {
+        dynamicsWorld->removeRigidBody(rigidBody);
+    }
+
+    model->reloadPhysicsShape();
+
+    if (connected) {
+        //re-add with the collision group matching the new static/dynamic state (mirrors addModelToWorld).
+        if (rigidBody->isStaticObject()) {
+            dynamicsWorld->addRigidBody(rigidBody, COLLIDE_MODELS | COLLIDE_STATIC_MODELS,
+                                        COLLIDE_DYNAMIC_MODELS | COLLIDE_PLAYER | COLLIDE_EVERYTHING);
+        } else {
+            dynamicsWorld->addRigidBody(rigidBody, COLLIDE_MODELS | COLLIDE_DYNAMIC_MODELS,
+                                        COLLIDE_MODELS | COLLIDE_PLAYER | COLLIDE_EVERYTHING);
+        }
+        dynamicsWorld->updateSingleAabb(rigidBody);
+    }
+    return true;
+}
+
 bool World::addGUIElementToWorld(GUIRenderable *guiRenderable, GUILayer *guiLayer) {
     GameObject* object = dynamic_cast<GameObject*>(guiRenderable);
     if(object == nullptr) {

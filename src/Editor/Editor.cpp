@@ -1221,6 +1221,12 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
                             world->dynamicsWorld->updateSingleAabb(selectedObject->getRigidBody());
                         }
                     }
+                    if (objectEditorResult.massChanged) {
+                        //the widget already stored the new value on the model; world reloads the shape and re-registers
+                        //the body with the collision group matching its new static/dynamic state.
+                        Model *selectedObject = static_cast<Model *>(this->pickedObject);
+                        world->changeModelMass(selectedObject->getWorldObjectID(), selectedObject->getMass());
+                    }
                 }
                     /* fall through */
 /************** ATTENTION, NO BREAK ******************/

@@ -585,6 +585,10 @@ bool WorldAPIAccessor::setObjectTranslateAPI(uint32_t objectID, const LimonTypes
     return true;
 }
 
+bool WorldAPIAccessor::setObjectMassAPI(uint32_t objectID, float mass) {
+    return world->changeModelMass(objectID, mass);
+}
+
 bool WorldAPIAccessor::setObjectScaleAPI(uint32_t objectID, const LimonTypes::Vec4 &scale) {
     Model* model = world->findModelByID(objectID);
     if(model == nullptr) {

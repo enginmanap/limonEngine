@@ -362,6 +362,27 @@ ImGuiResult Model::addImGuiEditorElements(const ImGuiRequest &request) {
     ImGui::InputText("Custom Tags##ForModelObject",tempTagsBuffer, sizeof(tempTagsBuffer), ImGuiInputTextFlags_CharsNoBlank);
     joinedTags = tempTagsBuffer;
     this->setTagsCustomOnly(StringUtils::split(joinedTags, ","));
+
+    if (isAnimated()) {
+        ImGui::TextDisabled("Mass: animated objects are kinematic");
+    } else {
+        float editMass = this->mass;
+        if (ImGui::DragFloat("Mass##ForModelObject", &editMass, 0.1f, 0.0f, 1000.0f)) {
+            if (editMass < 0.0f) {
+                editMass = 0.0f;
+            }
+            //store the value live (single home for mass, cheap); the actual physics reload is applied on release
+            //below, since switching between 0 and >0 removes/re-adds the body and shouldn't run every drag frame.
+            this->setMassValue(editMass);
+        }
+        if (ImGui::IsItemDeactivatedAfterEdit()) {
+            result.massChanged = true;
+        }
+        if (ImGui::IsItemHovered()) {
+            ImGui::SetTooltip("0 = static (triangle mesh), >0 = dynamic (convex hull). Applied on release.");
+        }
+    }
+
     if (isAnimated()) {
         if (ImGui::CollapsingHeader("Model animation properties")) {
             if (ImGui::BeginCombo("Animation Name", animationName.c_str())) {
@@ -715,21 +736,7 @@ void Model::reloadWithFlip(const std::string &newFlipAxes) {
     this->centerOffsetMatrix = glm::translate(glm::mat4(1.0f), centerOffset);
     this->transformation.markDirty();
 
-    delete compoundShape;
-    for (btCollisionShape *shape : childrenPhysicsShapes) { delete shape; }
-    childrenPhysicsShapes.clear();
-    boneIdCompoundChildMap.clear();
-
-    compoundShape = modelAsset->getCompoundShapeForMass(this->mass, this->boneIdCompoundChildMap, childrenPhysicsShapes);
-    rigidBody->setCollisionShape(compoundShape);
-    glm::vec3 currentScale = transformation.getScale();
-    rigidBody->getCollisionShape()->setLocalScaling(btVector3(currentScale.x, currentScale.y, currentScale.z));
-
-    if (this->mass > 0) {
-        btVector3 fallInertia(0, 0, 0);
-        compoundShape->calculateLocalInertia(mass, fallInertia);
-        rigidBody->setMassProps(mass, fallInertia);
-    }
+    reloadPhysicsShape();
 
     for (size_t i = 0; i < meshMetaData.size(); ++i) { delete meshMetaData[i]; }
     meshMetaData.clear();
@@ -742,6 +749,36 @@ void Model::reloadWithFlip(const std::string &newFlipAxes) {
 
     this->dirtyForFrustum = true;
     graphicsWrapper->setModel(this->getWorldObjectID(), this->transformation.getWorldTransform());
+}
+
+void Model::reloadPhysicsShape() {
+    delete compoundShape;
+    for (btCollisionShape *shape : childrenPhysicsShapes) { delete shape; }
+    childrenPhysicsShapes.clear();
+    boneIdCompoundChildMap.clear();
+
+    compoundShape = modelAsset->getCompoundShapeForMass(this->mass, this->boneIdCompoundChildMap, childrenPhysicsShapes);
+    rigidBody->setCollisionShape(compoundShape);
+    glm::vec3 currentScale = transformation.getScale();
+    rigidBody->getCollisionShape()->setLocalScaling(btVector3(currentScale.x, currentScale.y, currentScale.z));
+
+    btVector3 fallInertia(0, 0, 0);
+    if (this->mass > 0) {
+        compoundShape->calculateLocalInertia(this->mass, fallInertia);
+        //became (or stayed) dynamic: clear the static flag and make sure the body is awake
+        rigidBody->setCollisionFlags(rigidBody->getCollisionFlags() & ~btCollisionObject::CF_STATIC_OBJECT);
+    } else {
+        //became (or stayed) static: Bullet decides static-ness by this flag, the group selection on re-add reads it
+        rigidBody->setCollisionFlags(rigidBody->getCollisionFlags() | btCollisionObject::CF_STATIC_OBJECT);
+    }
+    rigidBody->setMassProps(this->mass, fallInertia);
+    rigidBody->updateInertiaTensor();
+    rigidBody->activate();
+
+    //the STATIC/PHYSICAL tags drive render and visibility bucketing, keep them in sync with the mass
+    this->removeTag(HardCodedTags::OBJECT_MODEL_PHYSICAL);
+    this->removeTag(HardCodedTags::OBJECT_MODEL_STATIC);
+    this->addTag(this->mass > 0 ? HardCodedTags::OBJECT_MODEL_PHYSICAL : HardCodedTags::OBJECT_MODEL_STATIC);
 }
 
 void Model::convertAssetToLimon(std::set<std::vector<std::string>> &convertedModels [[gnu::unused]]) {

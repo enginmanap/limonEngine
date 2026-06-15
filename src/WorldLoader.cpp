@@ -106,6 +106,7 @@ void WorldLoader::attachedAPIMethodsToWorld(World *world, LimonAPI *limonAPI) co
     limonAPI->worldGetObjectTransformationMatrix = std::bind(&WorldAPIAccessor::getObjectTransformationMatrixAPI, world->apiAccessor, std::placeholders::_1);
 
     limonAPI->worldSetObjectTranslate =   std::bind(&WorldAPIAccessor::setObjectTranslateAPI,   world->apiAccessor, std::placeholders::_1, std::placeholders::_2);
+    limonAPI->worldSetObjectMass =        std::bind(&WorldAPIAccessor::setObjectMassAPI,        world->apiAccessor, std::placeholders::_1, std::placeholders::_2);
     limonAPI->worldSetObjectScale =       std::bind(&WorldAPIAccessor::setObjectScaleAPI,       world->apiAccessor, std::placeholders::_1, std::placeholders::_2);
     limonAPI->worldSetObjectOrientation = std::bind(&WorldAPIAccessor::setObjectOrientationAPI, world->apiAccessor, std::placeholders::_1, std::placeholders::_2);
     limonAPI->worldAddObjectTranslate =   std::bind(&WorldAPIAccessor::addObjectTranslateAPI,   world->apiAccessor, std::placeholders::_1, std::placeholders::_2);

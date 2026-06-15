@@ -124,6 +124,11 @@ public:
     LimonTypes::Vec4 getObjectFrontVector(uint32_t objectID);
     bool setObjectTranslate(uint32_t objectID, const LimonTypes::Vec4& position);
     bool setObjectScale(uint32_t objectID, const LimonTypes::Vec4& scale);
+    /**
+     * Changes a model's mass. 0 makes it a static triangle-mesh collider, >0 makes it a dynamic convex-hull body.
+     * Reloads the collision shape and re-registers the body. No effect on animated models.
+     */
+    bool setObjectMass(uint32_t objectID, float mass);
     bool setObjectOrientation(uint32_t objectID, const LimonTypes::Vec4& orientation);
 
     bool addObjectTranslate(uint32_t objectID, const LimonTypes::Vec4& position);
@@ -296,6 +301,7 @@ private:
     std::function<bool (uint32_t, bool)> worldRemoveObject;
     std::function<std::vector<LimonTypes::GenericParameter>(uint32_t)> worldGetObjectTransformation;
     std::function<bool (uint32_t, const LimonTypes::Vec4&)> worldSetObjectTranslate;
+    std::function<bool (uint32_t, float)> worldSetObjectMass;
     std::function<bool (uint32_t, const LimonTypes::Vec4&)> worldSetObjectScale;
     std::function<bool (uint32_t, const LimonTypes::Vec4&)> worldSetObjectOrientation;
     std::function<bool (uint32_t, const LimonTypes::Vec4&)> worldAddObjectTranslate;

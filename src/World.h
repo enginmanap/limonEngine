@@ -331,6 +331,13 @@ private:
     void updateWorldAABB(glm::vec3 aabbMin, glm::vec3 aabbMax);
 
     bool addModelToWorld(Model *xmlModel);
+    /**
+     * Changes a model's mass, reloading its collision shape (mass 0 = static triangle mesh, >0 = dynamic convex hull).
+     * Removes the body from the dynamics world, reloads the shape, then re-adds it with the collision group matching
+     * its new static/dynamic state, and drops its stale visibility-culling membership. No-op for animated models.
+     * @return false if the object does not exist, is not a Model, or is animated.
+     */
+    bool changeModelMass(uint32_t objectID, float newMass);
     bool addGUIElementToWorld(GUIRenderable *guiRenderable, GUILayer *guiLayer);
 
     void setPlayerAttachmentsForChangedBoneTransforms(Model *playerAttachment);

@@ -184,6 +184,9 @@ void bindLimonAPI(pybind11::module_& m) {
             .def("set_object_translate", &LimonAPI::setObjectTranslate,
                  "Set an object's position",
                  pybind11::arg("object_id"), pybind11::arg("translation"))
+            .def("set_object_mass", &LimonAPI::setObjectMass,
+                 "Set a model's mass (0 = static triangle mesh, >0 = dynamic convex hull). No effect on animated models.",
+                 pybind11::arg("object_id"), pybind11::arg("mass"))
             .def("set_object_scale", &LimonAPI::setObjectScale,
                  "Set an object's scale",
                  pybind11::arg("object_id"), pybind11::arg("scale"))

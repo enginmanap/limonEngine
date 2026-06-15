@@ -107,6 +107,15 @@ public:
     void reloadWithFlip(const std::string &newFlipAxes);
 
     /**
+     * Rebuilds the rigid body's collision shape from the current mass: mass 0 uses the triangle mesh (static),
+     * mass > 0 uses the convex hulls (dynamic). Also toggles CF_STATIC_OBJECT and flips the STATIC/PHYSICAL tags.
+     * The rigid body pointer is preserved. The caller MUST remove the body from the dynamics world before calling
+     * and re-add it afterwards (the collision filter group changes between static and dynamic) — see
+     * World::changeModelMass. Does not touch the dynamics world itself.
+     */
+    void reloadPhysicsShape();
+
+    /**
      * This method returns a copy of compound shape, composed of convex shapes for sweep test. It is used for raycast and other sweep tests.
      * It is on caller's responsibility to delete the returned shape.
      *

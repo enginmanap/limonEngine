@@ -16,7 +16,7 @@ protected:
     glm::mat4 centerOffsetMatrix;
     glm::vec3 centerOffset;//init by list for constructor
     glm::vec3 aabbMax, aabbMin;
-    const float mass;
+    float mass;//not const: can be switched between 0 (static) and >0 (dynamic) at runtime, which reloads the collision shape
     btRigidBody *rigidBody = nullptr;
     bool disconnected = false;
     const float NOT_SCALE_LIMIT = 0.01;
@@ -89,6 +89,15 @@ public:
     float getMass() const {
         return mass;
     };
+
+    /**
+     * Stores the mass value only. It does NOT rebuild the collision shape or touch the physics world; the body's
+     * collision shape must be reloaded separately (see Model::reloadPhysicsShape) while the body is removed from
+     * the dynamics world. Switching between 0 and >0 changes the shape type, so this must be followed by a reload.
+     */
+    void setMassValue(float newMass) {
+        this->mass = newMass;
+    }
 
     bool disconnectFromPhysicsWorld(btDiscreteDynamicsWorld *dynamicsWorld) {
         if(this->disconnected) {
