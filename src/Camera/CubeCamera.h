@@ -136,8 +136,8 @@ private:
         sWidth = shadowMapWidthOption.getOrDefault(512);
         sHeight = shadowMapHeightOption.getOrDefault(512);
 
-        OptionsUtil::Options::Option<double> near = options->getOption<double>(HASH("lightPerspectiveProjectionNearPlane"));
-        OptionsUtil::Options::Option<double> far = options->getOption<double>(HASH("lightPerspectiveProjectionFarPlane"));
+        OptionsUtil::Options::Option<double> near = options->getOption<double>(HASH("lightPointNearPlane"));
+        OptionsUtil::Options::Option<double> far = options->getOption<double>(HASH("lightPointFarPlane"));
 
         glm::mat4 lightProjectionMatrixPoint = glm::perspective(glm::radians(90.0f),
                                                       (float)sWidth/(float)sHeight,

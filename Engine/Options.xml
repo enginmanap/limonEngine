@@ -113,7 +113,7 @@
     </Parameter>
     <Parameter>
         <RequestType>FreeNumber</RequestType>
-        <Description>lightPerspectiveProjectionNearPlane</Description>
+        <Description>lightPointNearPlane</Description>
         <Value>0.1</Value>
         <valueType>Double</valueType>
         <IsSet>True</IsSet>
@@ -121,7 +121,7 @@
     </Parameter>
     <Parameter>
         <RequestType>FreeNumber</RequestType>
-        <Description>lightPerspectiveProjectionFarPlane</Description>
+        <Description>lightPointFarPlane</Description>
         <Value>100</Value>
         <valueType>Double</valueType>
         <IsSet>True</IsSet>
@@ -185,28 +185,6 @@
         <IsSet>True</IsSet>
         <Index>2</Index>
     </Parameter>
-    <Parameter>
-        <RequestType>Coordinate</RequestType>
-        <Description>lightOrthogonalProjectionValues</Description>
-        <Value>
-            <X>-100.0</X>
-            <Y>100.0</Y>
-            <Z>-100.0</Z>
-            <W>100.0</W>
-        </Value>
-        <valueType>Vec4</valueType>
-        <IsSet>True</IsSet>
-        <Index>2</Index>
-    </Parameter>
-    <Parameter>
-        <RequestType>FreeText</RequestType>
-        <Description>SSAOEnabled</Description>
-        <Value>True</Value>
-        <valueType>Boolean</valueType>
-        <IsSet>True</IsSet>
-        <Index>2</Index>
-    </Parameter>
-
     <Parameter>
         <RequestType>FreeText</RequestType>
         <Description>renderInformations</Description>
