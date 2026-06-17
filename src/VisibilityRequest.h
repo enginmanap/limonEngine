@@ -74,6 +74,7 @@ public:
         const OptionsUtil::Options::Option<bool> SoftwareOcclusionRenderDumpOption;
         const OptionsUtil::Options::Option<long> SoftwareOcclusionRenderDumpFrequencyOption;
         const OptionsUtil::Options::Option<double> SoftwareOcclusionOccluderSizeOption;
+        const OptionsUtil::Options::Option<bool> occlusionCullingEnabledOption;
 
         const std::unordered_map<uint32_t, PhysicalRenderable *>* const objects;
         std::unordered_map<std::vector<uint64_t>, RenderList, uint64_vector_hasher>* visibility;
@@ -95,6 +96,7 @@ public:
                 SoftwareOcclusionRenderDumpOption(options->getOption<bool>(HASH("SoftwareOcclusionRenderDump"))),
                 SoftwareOcclusionRenderDumpFrequencyOption(options->getOption<long>(HASH("SoftwareOcclusionRenderDumpFrequency"))),
                 SoftwareOcclusionOccluderSizeOption(options->getOption<double>(HASH("SoftwareOcclusionOccluderSize"))),
+                occlusionCullingEnabledOption(options->getOption<bool>(HASH("occlusionCulling"))),
                 objects(objects), visibility(visibility),
                 occlusionCuller(options->getOption<long>(HASH("SoftwareOcclusionRenderWidth")),
                 options->getOption<long>(HASH("SoftwareOcclusionRenderHeight"))) {

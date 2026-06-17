@@ -263,6 +263,10 @@ void VisibilityManager::fillVisibleObjectPerCamera(const void* visibilityRequest
         viewMatrix = visibilityRequest->camera->getProjectionMatrix() * visibilityRequest->camera->getCameraMatrixConst();
     }
     static int frameCount = 0;
+    // Read live (realtime toggle, editor exposed). When disabled, the player camera still rebuilds its render
+    // lists every frame (skipOcclusionCulling stays false for it), but the software occluder is bypassed and
+    // every frustum/LOD-passing object is added directly. runOcclusion gates only the occluder work.
+    bool occlusionCullingEnabled = visibilityRequest->occlusionCullingEnabledOption.getOrDefault(true);
 
     bool skipOcclusionCulling = false;
     if (visibilityRequest->camera->getType() != Camera::CameraTypes::PERSPECTIVE) {
@@ -276,8 +280,12 @@ void VisibilityManager::fillVisibleObjectPerCamera(const void* visibilityRequest
         softwareOcclusionRenderDumpFrequency = visibilityRequest->SoftwareOcclusionRenderDumpFrequencyOption.getOrDefault(500);
         softwareOcclusionOccluderSize = visibilityRequest->SoftwareOcclusionOccluderSizeOption.getOrDefault(0.25f);
 
-        visibilityRequest->occlusionCuller.newFrame(cameraPos, viewDirection, visibilityRequest->camera->getCameraMatrixConst(), visibilityRequest->camera->getProjectionMatrix());
+        if (occlusionCullingEnabled) {
+            visibilityRequest->occlusionCuller.newFrame(cameraPos, viewDirection, visibilityRequest->camera->getCameraMatrixConst(), visibilityRequest->camera->getProjectionMatrix());
+        }
     }
+    // Occluder rasterization + occludee resolution only runs for the player camera when culling is enabled.
+    const bool runOcclusion = !skipOcclusionCulling && occlusionCullingEnabled;
     uint32_t frustumCulledCount = 0;
     uint32_t totalCounter = 0;
     uint32_t lodSkipCounter = 0;
@@ -303,13 +311,13 @@ void VisibilityManager::fillVisibleObjectPerCamera(const void* visibilityRequest
                         totalCounter += meshMetas.size();
                         uint32_t lod = getLodLevel(lodDistances, skipRenderDistance, skipRenderSize, maxSkipRenderSize, viewMatrix, visibilityRequest->playerPosition, objectIt->second->getAabbMin(), objectIt->second->getAabbMax(), objectAverageDepth, objectScreenSize);
                         if (lod != SKIP_LOD_LEVEL) {
-                            if (objectScreenSize > softwareOcclusionOccluderSize || skipOcclusionCulling) {
+                            if (objectScreenSize > softwareOcclusionOccluderSize || !runOcclusion) {
                                 if (objectScreenSize > maxScreenSize) {
                                     maxScreenSize = objectScreenSize;
                                     maxScreenSizeObjectName = currentModel->getName();
                                 }
                                 occluderCounter += meshMetas.size();
-                                if (!skipOcclusionCulling) {
+                                if (runOcclusion) {
                                     visibilityRequest->occlusionCuller.renderOccluder(currentModel);
                                     //std::cout << currentModel->getName() << ":" << " is occluder " << std::endl;
                                 }
@@ -330,13 +338,13 @@ void VisibilityManager::fillVisibleObjectPerCamera(const void* visibilityRequest
                                                                      currentModel->getTransformation()->getWorldTransform() * meshMeta->mesh->getAabbMax())) {
                                 uint32_t lod = getLodLevel(lodDistances, skipRenderDistance, skipRenderSize, maxSkipRenderSize, viewMatrix, visibilityRequest->playerPosition, meshMeta->mesh->getAabbMin(), meshMeta->mesh->getAabbMax(), objectAverageDepth, objectScreenSize);
                                 if (lod != SKIP_LOD_LEVEL) {
-                                    if (objectScreenSize > 0.25f || skipOcclusionCulling) {
+                                    if (objectScreenSize > 0.25f || !runOcclusion) {
                                         if (objectScreenSize > maxScreenSize) {
                                             maxScreenSize = objectScreenSize;
                                             maxScreenSizeObjectName = currentModel->getName();
                                         }
                                         occluderCounter++;
-                                        if (!skipOcclusionCulling) {
+                                        if (runOcclusion) {
                                             visibilityRequest->occlusionCuller.renderOccluder(meshMeta, currentModel->getTransformation()->getWorldTransform());
                                         }
                                         visibilityEntry.second.addMeshMaterial(meshMeta->material, meshMeta->mesh, currentModel, lod, objectAverageDepth);
@@ -370,7 +378,7 @@ void VisibilityManager::fillVisibleObjectPerCamera(const void* visibilityRequest
         }
     }
     //now we can actually check the occlusion:
-    if (!skipOcclusionCulling) {
+    if (runOcclusion) {
         std::vector<OcculudeeMetaData*> nonOccludedMeshes = visibilityRequest->occlusionCuller.getNonOccludedMeshMeta();
         for (auto metaData:nonOccludedMeshes) {
             metaData->renderList->addMeshMaterial(metaData->meshMeta->material, metaData->meshMeta->mesh, metaData->model, metaData->lod, metaData->averageDepth);

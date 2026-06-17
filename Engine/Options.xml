@@ -210,6 +210,15 @@
         <Index>2</Index>
     </Parameter>
     <Parameter>
+        <RequestType>FreeText</RequestType>
+        <Description>occlusionCulling</Description>
+        <!--Enables software occlusion culling for the player camera. Can be toggled at runtime from the editor.-->
+        <Value>True</Value>
+        <valueType>Boolean</valueType>
+        <IsSet>True</IsSet>
+        <Index>2</Index>
+    </Parameter>
+    <Parameter>
         <RequestType>FreeNumber</RequestType>
         <Description>lookAroundSpeed</Description>
         <Value>-6.5</Value>

@@ -1075,6 +1075,13 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
             this->showNodeGraph = true;
         }
         if (ImGui::CollapsingHeader("Render Debugging")) {
+            OptionsUtil::Options::Option<bool> occlusionCullingOption = world->options->getOption<bool>(world->options->getHash("occlusionCulling"));
+            bool occlusionCullingEnabled = occlusionCullingOption.getOrDefault(true);
+            if (ImGui::Checkbox("Occlusion Culling", &occlusionCullingEnabled)) {
+                if (occlusionCullingOption.isUsable()) {
+                    occlusionCullingOption.set(occlusionCullingEnabled);
+                }
+            }
             static int listbox_item_current = -1;//not static because I don't want user to select a item.
             static ImGuiImageWrapper wrapper;//keeps selected texture and layer;
             std::vector<std::shared_ptr<Texture>> allTextures = world->renderPipeline->getTextures();
