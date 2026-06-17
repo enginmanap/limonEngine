@@ -10,9 +10,9 @@ from vec3 import Vec3
     This is an example of a camera attachment implementation through Python.
     
 """
-class ThirdPersonCamera:
+class ThirdPersonCamera(CameraAttachment):
     def __init__(self, limon_api):
-        self.limon_api = limon_api
+        super().__init__(limon_api)
         self._dirty = True
         self.distance = 5.0  # Distance from target
         self.height = 2.0    # Height above target

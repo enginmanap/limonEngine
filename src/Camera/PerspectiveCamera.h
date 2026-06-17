@@ -32,9 +32,24 @@ class PerspectiveCamera : public Camera {
     glm::vec3 position, center, up, right;
     CameraAttachment* cameraAttachment;
     float aspect;
+    CameraAttachment::ProjectionParameters projectionParameters;
+    std::vector<float> cascadeLimits;
 
     OptionsUtil::Options *options;
     bool dirty = true;
+
+    // Builds the main + per-cascade projection matrices from the current projectionParameters.
+    void rebuildProjection() {
+        const float invAspect = 1.0f / aspect; // width/height
+        perspectiveProjectionMatrix = glm::perspective(projectionParameters.verticalFieldOfView, invAspect,
+                                                       projectionParameters.nearPlane, projectionParameters.farPlane);
+        cascadePerspectiveProjectionMatrices.clear();
+        for (size_t i = 1; i < cascadeLimits.size(); ++i) {
+            cascadePerspectiveProjectionMatrices.emplace_back(glm::perspective(projectionParameters.verticalFieldOfView, invAspect,
+                                                                              cascadeLimits[i - 1], cascadeLimits[i]));
+        }
+        frustumCorners.resize(cascadePerspectiveProjectionMatrices.size());
+    }
 
 public:
 
@@ -51,46 +66,16 @@ public:
         aspect = float(options->getScreenHeight()) / float(options->getScreenWidth());
         this->frustumPlanes.resize(6);
 
-        perspectiveProjectionMatrix = glm::perspective(OptionsUtil::Options::PI/3.0f, 1.0f / aspect, 0.01f, 10000.0f);
-
-        std::vector<float> cascadeLimits;
-        OptionsUtil::Options::Option<long> cascadeCountOption = options->getOption<long>(HASH("CascadeCount"));
-        long cascadeCount = cascadeCountOption.getOrDefault(4L);
-
-        const OptionsUtil::Options::Option<std::vector<float>> cascadeLimitListOptionOption = options->getOption<std::vector<float>>(HASH("CascadeLimitList"));
-        if(cascadeLimitListOptionOption.isUsable()) {
-            std::vector<float> cascadeListOption = cascadeLimitListOptionOption.get();
-            //we have the option list, lets process
-            if(cascadeListOption.size() != static_cast<size_t>(cascadeCount)) {
-                std::cerr << "\"CascadeLimitList doesn't contain same number of elements as cascade count. Cascade setup will use defaults" << std::endl;
-                cascadeLimits.emplace_back(0.01);
-                cascadeLimits.emplace_back(10.0f);
-                cascadeLimits.emplace_back(100.0f);
-                cascadeLimits.emplace_back(1000.0f);
-                cascadeLimits.emplace_back(10000.0f);
-            } else {
-                cascadeLimits.emplace_back(0.01);
-                for (size_t i = 0; i < cascadeListOption.size(); ++i) {
-                    cascadeLimits.emplace_back(cascadeListOption[i]);
-                }
-            }
-        } else {
-            std::cerr << "\"CascadeLimitList option not found, cascade setup will use defaults" << std::endl;
-            cascadeLimits.emplace_back(0.01);
-            cascadeLimits.emplace_back(10.0f);
-            cascadeLimits.emplace_back(100.0f);
-            cascadeLimits.emplace_back(1000.0f);
-            cascadeLimits.emplace_back(10000.0f);
-        }
-        //Now use the cascade limist to create the array of perspective projection matrixes
-        for (size_t i = 1; i < cascadeLimits.size(); ++i) {
-            cascadePerspectiveProjectionMatrices.emplace_back(glm::perspective(OptionsUtil::Options::PI / 3.0f, 1.0f / aspect, cascadeLimits[i - 1], cascadeLimits[i]));
-        }
-        frustumCorners.resize(cascadePerspectiveProjectionMatrices.size());
+        cascadeLimits = Camera::readCascadeLimits(options);
+        projectionParameters = cameraAttachment->getProjection();
+        rebuildProjection();
     }
 
-    void setCameraAttachment(CameraAttachment *cameraAttachment) {
+    void setCameraAttachment(CameraAttachment *cameraAttachment) override {
         PerspectiveCamera::cameraAttachment = cameraAttachment;
+        // A new attachment may declare different projection parameters (fov/near/far).
+        projectionParameters = cameraAttachment->getProjection();
+        rebuildProjection();
     }
 
     const glm::mat4& getCameraMatrix() override {
@@ -123,15 +108,15 @@ public:
         this->dirty = false;
     }
 
-    glm::vec3 const& getPosition() const {
+    const glm::vec3& getPosition() const override {
         return position;
     }
 
-    glm::vec3 const& getCenter() const {
+    const glm::vec3& getCenter() const override {
         return center;
     }
 
-    const glm::vec3 &getUp() const {
+    const glm::vec3 &getUp() const override {
         return up;
     }
 
@@ -173,7 +158,7 @@ public:
         }
     }
 
-    const std::vector<std::vector<glm::vec4>>& getFrustumCorners() const {
+    const std::vector<std::vector<glm::vec4>>& getFrustumCorners() const override {
         return frustumCorners;
     }
 

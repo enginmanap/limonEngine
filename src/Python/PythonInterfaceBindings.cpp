@@ -65,6 +65,19 @@ void bindInterfaces(pybind11::module_& m) {
             .def_readwrite("position", &PlayerExtensionInterface::PlayerInformation::position)
             .def_readwrite("look_direction", &PlayerExtensionInterface::PlayerInformation::lookDirection);
 
+    // Bind CameraAttachment projection descriptor
+    pybind11::enum_<CameraAttachment::ProjectionType>(m, "ProjectionType")
+            .value("PERSPECTIVE", CameraAttachment::ProjectionType::PERSPECTIVE)
+            .value("ORTHOGRAPHIC", CameraAttachment::ProjectionType::ORTHOGRAPHIC);
+
+    pybind11::class_<CameraAttachment::ProjectionParameters>(m, "ProjectionParameters")
+            .def(pybind11::init<>())
+            .def_readwrite("type", &CameraAttachment::ProjectionParameters::type)
+            .def_readwrite("vertical_field_of_view", &CameraAttachment::ProjectionParameters::verticalFieldOfView)
+            .def_readwrite("orthographic_half_height", &CameraAttachment::ProjectionParameters::orthographicHalfHeight)
+            .def_readwrite("near_plane", &CameraAttachment::ProjectionParameters::nearPlane)
+            .def_readwrite("far_plane", &CameraAttachment::ProjectionParameters::farPlane);
+
     // Bind CameraAttachment
     pybind11::class_<CameraAttachment, PyCameraAttachment>(m, "CameraAttachment")
             .def(pybind11::init([](LimonAPI *api) {

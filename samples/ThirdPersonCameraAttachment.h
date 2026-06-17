@@ -21,6 +21,10 @@ public:
     void clearDirty() override {
         //do nothing
     }
+
+    CameraAttachment::ProjectionParameters getProjection() const override {
+        return CameraAttachment::ProjectionParameters{}; // perspective
+    }
     void getCameraVariables(glm::vec3 &position, glm::vec3 &center, glm::vec3 &up, glm::vec3 &right) override {
         limonAPI->getPlayerPosition(position, center, up, right);
         //starting info

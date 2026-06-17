@@ -27,8 +27,32 @@ class OrthographicCamera : public Camera {
     mutable bool dirty = true;
     OptionsUtil::Options::Option<bool> debugDrawLinesOption = options->getOption<bool>(HASH("DebugDrawLines"));
 
+    // Behaviour changes based on whether it is a player camera or a shadow camera, so we have a flag
+    bool playerMode = false;
+    float aspect = 1.0f;
+    CameraAttachment::ProjectionParameters projectionParameters;
+    std::vector<float> cascadeLimits;
+    std::vector<glm::mat4> cascadeProjectionMatrices;
+    std::vector<std::vector<glm::vec4>> playerFrustumCorners;
+
+    // Builds the main + per-cascade orthographic projections from projectionParameters (player role only).
+    void rebuildPlayerProjection() {
+        const float invAspect = 1.0f / aspect; // width/height
+        const float halfHeight = projectionParameters.orthographicHalfHeight;
+        const float halfWidth  = halfHeight * invAspect;
+        orthogonalProjectionMatrix = glm::ortho(-halfWidth, halfWidth, -halfHeight, halfHeight,
+                                                projectionParameters.nearPlane, projectionParameters.farPlane);
+        cascadeProjectionMatrices.clear();
+        for (size_t i = 1; i < cascadeLimits.size(); ++i) {
+            cascadeProjectionMatrices.emplace_back(glm::ortho(-halfWidth, halfWidth, -halfHeight, halfHeight,
+                                                              cascadeLimits[i - 1], cascadeLimits[i]));
+        }
+        playerFrustumCorners.resize(cascadeProjectionMatrices.size());
+    }
+
 public:
 
+    // Directional-shadow constructor: one camera per cascade, view/projection fit to the player frustum.
     OrthographicCamera(const std::string &name, OptionsUtil::Options *options, uint32_t cascadeIndex, CameraAttachment *cameraAttachment) :
             cameraAttachment(cameraAttachment),
             position(0,20,0),
@@ -44,11 +68,35 @@ public:
         this->frustumCorners.resize(8);
     }
 
+    // Player-camera constructor: an orthographic player view driven by the attachment's projection.
+    OrthographicCamera(const std::string &name, OptionsUtil::Options *options, CameraAttachment *cameraAttachment) :
+            cameraAttachment(cameraAttachment),
+            position(0,20,0),
+            center(glm::vec3(0, 0, -1)),
+            up(glm::vec3(0, 1, 0)),
+            right(glm::vec3(-1, 0, 0)),
+            cascadeIndex(0),
+            options(options),
+            lightOrthogonalProjectionZBottom(options->getOption<double>(HASH("lightOrthogonalProjectionBackOff"))){
+        this->name = name;
+        this->playerMode = true;
+        frustumPlanes.resize(6);
+        aspect = float(options->getScreenHeight()) / float(options->getScreenWidth());
+        cascadeLimits = Camera::readCascadeLimits(options);
+        projectionParameters = cameraAttachment->getProjection();
+        rebuildPlayerProjection();
+        cameraTransformMatrix = glm::lookAt(position, position + center, up);
+    }
+
     CameraTypes getType() const override {
         return CameraTypes::ORTHOGRAPHIC;
     };
 
     bool isDirty() const override {
+        if (playerMode) {
+            // As a player camera, attachment movement must propagate so the frame re-renders.
+            return this->dirty || cameraAttachment->isDirty();
+        }
         return this->dirty;// || cameraAttachment->isDirty(); this was here to allow clearDirty from culling threads. Now it is cleared by rendering.
     };
 
@@ -89,12 +137,32 @@ public:
     }
 
     const glm::mat4 &getCameraMatrix() override {
+        if (playerMode) {
+            // Player role: build the view from the attachment and regenerate cascade corners. Unlike the
+            // shadow role, cameraTransformMatrix here is the pure view matrix (projection stays separate).
+            if (cameraAttachment->isDirty()) {
+                this->dirty = true;
+                cameraAttachment->getCameraVariables(position, center, up, right);
+                cameraTransformMatrix = glm::lookAt(position, position + center, up);
+                calculateFrustumPlanes(cameraTransformMatrix, orthogonalProjectionMatrix, frustumPlanes);
+                for (size_t i = 0; i < cascadeProjectionMatrices.size(); ++i) {
+                    calculateFrustumCorners(cameraTransformMatrix, cascadeProjectionMatrices[i], playerFrustumCorners[i]);
+                }
+                cameraAttachment->clearDirty();
+            }
+            return cameraTransformMatrix;
+        }
         if (cameraAttachment->isDirty()) {
             this->dirty = true;
             glm::vec3 tempCenter;
             cameraAttachment->getCameraVariables(position, tempCenter, up, right);
         }
         return cameraTransformMatrix;
+    }
+
+    // Player-role cascade corners for CSM fitting (empty in the shadow role).
+    const std::vector<std::vector<glm::vec4>>& getFrustumCorners() const override {
+        return playerFrustumCorners;
     }
 
     const glm::mat4 &getCameraMatrixConst() const override {
@@ -109,8 +177,34 @@ public:
         return cameraTransformMatrix;
     }
 
-    void recalculateView(const PerspectiveCamera* playerCamera) noexcept {
+    const glm::vec3& getPosition() const override {
+        return position;
+    }
+
+    const glm::vec3& getCenter() const override {
+        return center;
+    }
+
+    const glm::vec3& getUp() const override {
+        return up;
+    }
+
+    void setCameraAttachment(CameraAttachment* cameraAttachment) override {
+        this->cameraAttachment = cameraAttachment;
+        if (playerMode) {
+            projectionParameters = cameraAttachment->getProjection();
+            rebuildPlayerProjection();
+        }
+    }
+
+    void recalculateView(const Camera* playerCamera) noexcept {
         const std::vector<std::vector<glm::vec4>>& playerFrustumCorners = playerCamera->getFrustumCorners();
+        // Projection-agnostic: any player camera that supplies cascade corners works here. A camera
+        // that doesn't populate this cascade index yet (e.g. an orthographic camera before its
+        // cascade generation lands) is simply skipped rather than special-cased by type.
+        if(cascadeIndex >= playerFrustumCorners.size()) {
+            return;
+        }
         glm::vec3 firstLine = (-1.0f * position) + center;
         glm::mat4 lightView = glm::lookAt(firstLine,
                                           center,

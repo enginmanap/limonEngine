@@ -35,7 +35,9 @@ static const int SKIP_LOD_LEVEL = 9999;
 
 class Editor;
 class btGhostPairCallback;
+class Camera;
 class PerspectiveCamera;
+class CameraAttachment;
 class BulletDebugDrawer;
 
 class AIMovementGrid;
@@ -277,7 +279,12 @@ private:
     Player* beforePlayer = nullptr;
     const Player::WorldSettings* currentPlayersSettings = nullptr;
 
-    PerspectiveCamera* playerCamera;// This camera itself never changes, but the attachment does.
+    Camera* playerCamera = nullptr;// Concrete type (perspective/orthographic) follows the active attachment's projection.
+
+    // Creates or swaps playerCamera to the concrete camera type matching the attachment's projection type,
+    // re-registering it with the visibility manager on a swap. Reuses the existing camera when the type
+    // is unchanged (just rebinding the attachment).
+    void activateCameraAttachment(CameraAttachment* attachment);
     //std::vector<Camera*> allCameras;//the info about all cameras is inferred by culling results, might need fixing.
     BulletDebugDrawer *debugDrawer;
 

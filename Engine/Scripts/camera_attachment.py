@@ -1,5 +1,7 @@
 from typing import Tuple
 
+import limon
+
 
 class CameraAttachment:
     def __init__(self, limon_api):
@@ -37,3 +39,12 @@ class CameraAttachment:
             tuple: (position, target, up, right) as (x,y,z) tuples
         """
         raise NotImplementedError("get_camera_variables() not implemented")
+
+    def get_projection(self) -> "limon.ProjectionParameters":
+        """
+        Return the projection the engine should build for the camera this attachment drives.
+        Default is a standard perspective camera. Override and set
+        params.type = limon.ProjectionType.ORTHOGRAPHIC (and orthographic_half_height) for an
+        orthographic camera.
+        """
+        return limon.ProjectionParameters()

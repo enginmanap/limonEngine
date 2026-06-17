@@ -9,6 +9,7 @@
 #include "NodeEditorExtensions/PipelineStageExtension.h"
 
 #include "Camera/PerspectiveCamera.h"
+#include "Camera/OrthographicCamera.h"
 #include "BulletDebugDrawer.h"
 #include "AI/AIMovementGrid.h"
 
@@ -109,9 +110,7 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
     quadRender = std::make_shared<QuadRender>(graphicsWrapper);
     visibilityManager = std::make_unique<VisibilityManager>(this);
     //FIXME adding camera after dynamic world because static only world is needed for ai movement grid generation
-    playerCamera = new PerspectiveCamera("Player camera", options, currentPlayer->getCameraAttachment());//register is just below
-    playerCamera->addTag(HardCodedTags::CAMERA_PLAYER);
-    visibilityManager->addCamera(playerCamera);
+    activateCameraAttachment(currentPlayer->getCameraAttachment());//creates playerCamera + registers it
     currentPlayer->registerToPhysicalWorld(dynamicsWorld, COLLIDE_PLAYER,
                                            COLLIDE_MODELS | COLLIDE_TRIGGER_VOLUME | COLLIDE_EVERYTHING,
                                            COLLIDE_MODELS | COLLIDE_EVERYTHING, worldAABBMin,
@@ -245,7 +244,10 @@ void World::applyAudioVolumeOptionsIfChanged() {
      checkAndRunTimedEvents();//no londer requires to be in world simulation, because it checks both game time and wall time now
      applyAudioVolumeOptionsIfChanged();
      if(playerCamera->isDirty()) {
-         graphicsWrapper->setPlayerMatrices(playerCamera->getPosition(), playerCamera->getCameraMatrix(), gameTime);//this is required for any render
+         // getCameraMatrix() refreshes the view AND rebuilds the projection from the attachment, so it
+         // must be evaluated before getProjectionMatrix() (argument evaluation order is unspecified).
+         const glm::mat4& cameraMatrix = playerCamera->getCameraMatrix();
+         graphicsWrapper->setPlayerMatrices(playerCamera->getPosition(), cameraMatrix, playerCamera->getProjectionMatrix(), gameTime);//this is required for any render
          alHelper->setListenerPositionAndOrientation(playerCamera->getPosition(), playerCamera->getCenter(), playerCamera->getUp());
      }
 
@@ -1124,7 +1126,7 @@ void World::afterLoadFinished() {
             playerExtension->setParameters(startingPlayer.parameters);
             this->currentPlayer->setPlayerExtension(playerExtension);
             this->currentPlayer->setCameraOverride(playerExtension->getCustomCameraAttachment());
-            playerCamera->setCameraAttachment(currentPlayer->getCameraAttachment());
+            activateCameraAttachment(currentPlayer->getCameraAttachment());
         }
     }
 
@@ -1142,6 +1144,36 @@ void World::afterLoadFinished() {
     }
 
     this->visibilityManager->start();
+}
+
+void World::activateCameraAttachment(CameraAttachment* attachment) {
+    const bool wantOrthographic = (attachment->getProjection().type == CameraAttachment::ProjectionType::ORTHOGRAPHIC);
+    const bool haveOrthographic = (playerCamera != nullptr && playerCamera->getType() == Camera::CameraTypes::ORTHOGRAPHIC);
+
+    if (playerCamera != nullptr && wantOrthographic == haveOrthographic) {
+        // Same projection type: keep the camera object, just rebind the attachment (and refresh its params).
+        playerCamera->setCameraAttachment(attachment);
+        return;
+    }
+
+    // Projection type changed (or first creation): swap to the matching concrete camera type.
+    if (playerCamera != nullptr) {
+        visibilityManager->removeCamera(playerCamera);
+        delete playerCamera;
+        playerCamera = nullptr;
+    }
+    if (wantOrthographic) {
+        playerCamera = new OrthographicCamera("Player camera", options, attachment);
+    } else {
+        playerCamera = new PerspectiveCamera("Player camera", options, attachment);
+    }
+    playerCamera->addTag(HardCodedTags::CAMERA_PLAYER);
+    // Prime the freshly-created camera so its view, frustum planes and cascade corners are valid before it
+    // is registered for culling and before the first light/shadow pass. Otherwise the initial visibility
+    // cull and point-light culling run against an uninitialised (zero) frustum and cull everything (black
+    // scene), and the light-update early-out keeps that state stuck until the player next moves.
+    playerCamera->getCameraMatrix();
+    visibilityManager->addCamera(playerCamera);
 }
 
 void World::switchPlayer(Player *targetPlayer, InputHandler &inputHandler) {
@@ -1168,7 +1200,7 @@ void World::switchPlayer(Player *targetPlayer, InputHandler &inputHandler) {
     targetPlayer->ownControl(beforePlayer->getPosition(), beforePlayer->getLookDirection());
 
     dynamicsWorld->updateAabbs();
-    playerCamera->setCameraAttachment(currentPlayer->getCameraAttachment());
+    activateCameraAttachment(currentPlayer->getCameraAttachment());
 
 }
 

@@ -102,6 +102,12 @@ public:
         return this;
     }
 
+    // Players drive a standard perspective camera. A custom attachment (e.g. an orthographic
+    // CameraRig) overrides this when it takes over via setCameraOverride().
+    CameraAttachment::ProjectionParameters getProjection() const override {
+        return CameraAttachment::ProjectionParameters{};
+    }
+
     /************Game Object methods **************/
     uint32_t getWorldObjectID() const override {
         std::cerr << "Player doesn't have a world object ID, it shouldn't have been needed." << std::endl;

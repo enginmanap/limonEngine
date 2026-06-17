@@ -9,6 +9,9 @@
 #include "vector"
 #include "Utils/HashUtil.h"
 #include "iostream"
+#include "limonAPI/Options.h"
+
+class CameraAttachment;
 
 class Camera {
     std::vector<HashUtil::HashedString> selfTags;
@@ -107,6 +110,29 @@ public:
 
     enum class CameraTypes {PERSPECTIVE, ORTHOGRAPHIC, CUBE, INVALID};
 
+    // moved here so both perpective and orthographic can use it
+    static std::vector<float> readCascadeLimits(OptionsUtil::Options* options) {
+        std::vector<float> cascadeLimits;
+        const long cascadeCount = options->getOption<long>(HASH("CascadeCount")).getOrDefault(4L);
+        const OptionsUtil::Options::Option<std::vector<float>> cascadeLimitListOption = options->getOption<std::vector<float>>(HASH("CascadeLimitList"));
+        if(cascadeLimitListOption.isUsable()) {
+            const std::vector<float> cascadeListOption = cascadeLimitListOption.get();
+            if(cascadeListOption.size() != static_cast<size_t>(cascadeCount)) {
+                std::cerr << "\"CascadeLimitList doesn't contain same number of elements as cascade count. Cascade setup will use defaults" << std::endl;
+                cascadeLimits = {0.01f, 10.0f, 100.0f, 1000.0f, 10000.0f};
+            } else {
+                cascadeLimits.emplace_back(0.01f);
+                for (size_t i = 0; i < cascadeListOption.size(); ++i) {
+                    cascadeLimits.emplace_back(cascadeListOption[i]);
+                }
+            }
+        } else {
+            std::cerr << "\"CascadeLimitList option not found, cascade setup will use defaults" << std::endl;
+            cascadeLimits = {0.01f, 10.0f, 100.0f, 1000.0f, 10000.0f};
+        }
+        return cascadeLimits;
+    }
+
     const std::string& getName() const {
         return name;
     }
@@ -129,6 +155,21 @@ public:
 
     virtual const glm::mat4& getProjectionMatrix() const = 0;
 
+    virtual const glm::vec3& getPosition() const = 0;
+
+    virtual const glm::vec3& getCenter() const = 0;
+
+    virtual const glm::vec3& getUp() const = 0;
+
+    virtual void setCameraAttachment(CameraAttachment* cameraAttachment) = 0;
+
+    // We support cascades on both types of camera
+    // It might not be ideal for orthographic cameras, but it allows us to align the rendering without knowing camera type
+    virtual const std::vector<std::vector<glm::vec4>>& getFrustumCorners() const {
+        static const std::vector<std::vector<glm::vec4>> empty;
+        return empty;
+    }
+
     void addTag(const std::string& text) {
         HashUtil::HashedString tag(text);
         if(!hasTag(tag.hash)) {
@@ -137,7 +178,7 @@ public:
     }
 
     //FIXME this is slower than it needs to be
-    bool hasTag(uint64_t hash) {
+    bool hasTag(uint64_t hash) const {
         for (const HashUtil::HashedString& hashedString:selfTags) {
             if(hashedString.hash == hash) {
                 return true;

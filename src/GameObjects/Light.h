@@ -48,7 +48,7 @@ private:
     // Its translate is kept in sync with position.
     Transformation attachTransformation;
 
-    void updateLightView(const PerspectiveCamera* playerCamera) {
+    void updateLightView(const Camera* playerCamera) {
         frustumChanged = true;
 
         std::vector<long> intervalOptions = cascadeStaggerIntervalListOption.get();
@@ -147,9 +147,9 @@ public:
         return position;
     }
 
-    void setPosition(glm::vec3 position, const PerspectiveCamera* playerCamera);
+    void setPosition(glm::vec3 position, const Camera* playerCamera);
 
-    void step(long time [[gnu::unused]], PerspectiveCamera* playerCamera) {
+    void step(long time [[gnu::unused]], Camera* playerCamera) {
         if(lightType == LightTypes::DIRECTIONAL) {
             updateLightView(playerCamera);
         } else if(lightType == LightTypes::POINT && frustumChanged) {
@@ -293,6 +293,12 @@ public:
 
     void clearDirty() override {
         this->frustumChanged = false;
+    }
+
+    // Light drives shadow cameras (cube/orthographic), which build their own projection from
+    // light parameters. This is never consulted for the player camera path; returned for contract only.
+    CameraAttachment::ProjectionParameters getProjection() const override {
+        return CameraAttachment::ProjectionParameters{};
     }
 };
 

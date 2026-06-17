@@ -11,7 +11,7 @@
 #include <vector>
 #include <cstdint>
 #include "limonAPI/LimonTypes.h"
-class PerspectiveCamera;
+class Camera;
 class ImGuiHelper;
 
 //Renders editable ImGui widgets for a parameter list and returns whether all parameters are set.
@@ -27,13 +27,13 @@ struct ImGuiRequest {
     const uint32_t& screenHeight;
     const uint32_t& screenWidth;
 
-    const PerspectiveCamera* playerCamera;
+    const Camera* playerCamera;
     GenerateEditorElementsCallback generateEditorElementsForParameters;
     ImGuiHelper* imgGuiHelper = nullptr;
 
     ImGuiRequest(const glm::mat4 &perspectiveCameraMatrix, const glm::mat4 &perspectiveMatrix,
                  const glm::mat4 &orthogonalMatrix, const uint32_t &screenHeight, const uint32_t &screenWidth,
-                 const PerspectiveCamera* playerCamera, GenerateEditorElementsCallback generateEditorElementsForParameters, ImGuiHelper* imgGuiHelper)
+                 const Camera* playerCamera, GenerateEditorElementsCallback generateEditorElementsForParameters, ImGuiHelper* imgGuiHelper)
             : perspectiveCameraMatrix(perspectiveCameraMatrix), perspectiveMatrix(perspectiveMatrix),
               orthogonalMatrix(orthogonalMatrix), screenHeight(screenHeight), screenWidth(screenWidth),
               playerCamera(playerCamera), generateEditorElementsForParameters(std::move(generateEditorElementsForParameters)), imgGuiHelper(imgGuiHelper) {}

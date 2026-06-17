@@ -88,6 +88,22 @@ public:
         return renderMatrices;
     }
 
+    const glm::vec3& getPosition() const override {
+        return position;
+    }
+
+    const glm::vec3& getCenter() const override {
+        return center;
+    }
+
+    const glm::vec3& getUp() const override {
+        return up;
+    }
+
+    void setCameraAttachment(CameraAttachment* cameraAttachment) override {
+        this->cameraAttachment = cameraAttachment;
+    }
+
     float getActiveDistance() const {
         return activeDistance;
     }

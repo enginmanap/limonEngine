@@ -30,6 +30,13 @@ public:
         pyObj.attr("clear_dirty")().cast<void>();
     }
 
+    CameraAttachment::ProjectionParameters getProjection() const override {
+        // Required by the contract: Python attachments subclass camera_attachment.CameraAttachment,
+        // which provides get_projection() (perspective by default; override returns a
+        // limon.ProjectionParameters for orthographic).
+        return pyObj.attr("get_projection")().cast<CameraAttachment::ProjectionParameters>();
+    }
+
     void getCameraVariables(glm::vec3 &position, glm::vec3 &center, glm::vec3 &up, glm::vec3 &right)  override {
         try {
             // Import Vec3 module and convert glm::vec3 to Vec3 objects

@@ -1624,17 +1624,20 @@ void OpenGLGraphics::setModelIndexesUBO(const std::vector<glm::uvec4> &modelIndi
     checkErrors("setModelIndexesUBO");
 }
 
-void OpenGLGraphics::setPlayerMatrices(const glm::vec3 &cameraPosition, const glm::mat4 &cameraTransform, long currentTime) {
+void OpenGLGraphics::setPlayerMatrices(const glm::vec3 &cameraPosition, const glm::mat4 &cameraTransform, const glm::mat4 &cameraProjection, long currentTime) {
     this->cameraMatrix = cameraTransform;
+    // Projection is driven by the player camera (perspective or orthographic), so it can change per frame.
+    this->perspectiveProjectionMatrix = cameraProjection;
+    this->inverseProjection = glm::inverse(cameraProjection);
     this->cameraPosition= cameraPosition;
     glm::vec3 cameraSpacePosition = glm::vec3(cameraMatrix * glm::vec4(cameraPosition, 1.0));
     glm::mat4 inverseCameraMatrix = glm::inverse(cameraTransform);
     glBindBuffer(GL_UNIFORM_BUFFER, playerUBOLocation);
     glBufferSubData(GL_UNIFORM_BUFFER, 0 * sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(cameraMatrix));//changes with camera
-    glBufferSubData(GL_UNIFORM_BUFFER, 1 * sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(perspectiveProjectionMatrix));//never changes
+    glBufferSubData(GL_UNIFORM_BUFFER, 1 * sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(perspectiveProjectionMatrix));//changes with camera projection
     glm::mat4 viewMatrix = perspectiveProjectionMatrix * cameraMatrix;
     glBufferSubData(GL_UNIFORM_BUFFER, 2 * sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(viewMatrix));//changes with camera
-    glBufferSubData(GL_UNIFORM_BUFFER, 3 * sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(inverseProjection));//never changes
+    glBufferSubData(GL_UNIFORM_BUFFER, 3 * sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(inverseProjection));//changes with camera projection
 
     glBufferSubData(GL_UNIFORM_BUFFER, 4 * sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(inverseCameraMatrix));//changes with camera
     glBufferSubData(GL_UNIFORM_BUFFER, 5 * sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(glm::transpose(inverseCameraMatrix)));//changes with camera

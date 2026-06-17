@@ -6,7 +6,7 @@
 #include "Light.h"
 
 
-void Light::setPosition(glm::vec3 position, const PerspectiveCamera* playerCamera) {
+void Light::setPosition(glm::vec3 position, const Camera* playerCamera) {
     this->position = position;
     switch (lightType) {
         case LightTypes::NONE:

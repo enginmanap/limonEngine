@@ -4,6 +4,7 @@
 #include "Graphics/GraphicsPipeline.h"
 #include "GameObjects/Model.h"
 #include "GameObjects/Players/Player.h"
+#include "Utils/HardCodedTags.h"
 #include "../Profiler/ProfilerMacros.h"
 
 VisibilityManager::VisibilityManager(World* world) : world(world) {
@@ -72,10 +73,12 @@ void VisibilityManager::addCamera(Camera* camera) {
     auto* tagMap = new std::unordered_map<std::vector<uint64_t>, RenderList, VisibilityRequest::uint64_vector_hasher>();
     cullingResults.insert(std::make_pair(camera, tagMap));
 
-    // If threads are already running (world loaded and playing), wire up the new camera fully.
-    // During initial load the pool is empty; onPipelineChange()+start() handle setup after loadLights().
-    if (!visibilityThreadPool.empty()) {
-        // Populate render-tag sets from the current pipeline, same logic as resetCameraTagsFromPipeline
+    // Populate render-tag sets from the current pipeline whenever one is loaded. This must NOT be gated on
+    // the thread pool being non-empty: a camera swapped in after onPipelineChange() but before start()
+    // (e.g. the player camera switching to an orthographic type at load) would otherwise keep an empty
+    // tag map and produce no render lists (black scene). During the earliest construction the pipeline is
+    // not loaded yet; onPipelineChange()+start() populate tags then.
+    if (world->renderPipeline != nullptr) {
         for (const auto& pipelineEntry : world->renderPipeline->getCameraTagToRenderTagSetMap()) {
             if (camera->hasTag(HashUtil::hashString(pipelineEntry.first))) {
                 for (const std::set<std::string>& tagSet : pipelineEntry.second) {
@@ -87,8 +90,12 @@ void VisibilityManager::addCamera(Camera* camera) {
                 }
             }
         }
+    }
 
-        // Create a thread entry so fillVisibleObjectsUsingTags processes this camera
+    // If threads are already running (world loaded and playing), also create a thread entry so
+    // fillVisibleObjectsUsingTags processes this camera. During initial load the pool is empty and start()
+    // creates the threads.
+    if (!visibilityThreadPool.empty()) {
         VisibilityRequest* request = new VisibilityRequest(camera, &world->objects, tagMap,
                                                            world->currentPlayer->getPosition(),
                                                            world->options, &wakeThreadsCondition);
@@ -128,9 +135,12 @@ void VisibilityManager::removeCameras(const std::vector<Camera*>& cameras) {
 }
 
 void VisibilityManager::fillVisibleObjectsUsingTags() {
-    //first clear up dirty cameras, and perspective camera, because Perspective camera needs to write occlusion culling depth map, so it has to iterate over all.
+    //first clear up dirty cameras, and the player camera, because the player camera writes the occlusion
+    //culling depth map and re-evaluates all objects every frame (keyed on the player role, not projection
+    //type, so an orthographic player camera is handled the same as a perspective one).
+    static const uint64_t playerCameraTag = HashUtil::hashString(HardCodedTags::CAMERA_PLAYER);
     for (auto &it: cullingResults) {
-        if (it.first->isDirty() || it.first->getType() == Camera::CameraTypes::PERSPECTIVE) {
+        if (it.first->isDirty() || it.first->hasTag(playerCameraTag)) {
             for(auto renderEntries:*it.second) {
                 renderEntries.second.clear();
             }
@@ -268,8 +278,11 @@ void VisibilityManager::fillVisibleObjectPerCamera(const void* visibilityRequest
     // every frustum/LOD-passing object is added directly. runOcclusion gates only the occluder work.
     bool occlusionCullingEnabled = visibilityRequest->occlusionCullingEnabledOption.getOrDefault(true);
 
+    // Software occlusion culling runs for the player camera (perspective OR orthographic), not for shadow
+    // cameras. Keyed on the player role rather than projection type, since the player can now be orthographic.
+    static const uint64_t playerCameraTag = HashUtil::hashString(HardCodedTags::CAMERA_PLAYER);
     bool skipOcclusionCulling = false;
-    if (visibilityRequest->camera->getType() != Camera::CameraTypes::PERSPECTIVE) {
+    if (!visibilityRequest->camera->hasTag(playerCameraTag)) {
         skipOcclusionCulling = true;
     } else {
         glm::mat4 invertedView = glm::inverse(visibilityRequest->camera->getCameraMatrixConst());
