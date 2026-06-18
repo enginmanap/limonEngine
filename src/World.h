@@ -38,6 +38,7 @@ class btGhostPairCallback;
 class Camera;
 class PerspectiveCamera;
 class CameraAttachment;
+class CameraExtensionInterface;
 class BulletDebugDrawer;
 
 class AIMovementGrid;
@@ -281,10 +282,16 @@ private:
 
     Camera* playerCamera = nullptr;// Concrete type (perspective/orthographic) follows the active attachment's projection.
 
-    // Creates or swaps playerCamera to the concrete camera type matching the attachment's projection type,
-    // re-registering it with the visibility manager on a swap. Reuses the existing camera when the type
-    // is unchanged (just rebinding the attachment).
+    // Creates or swaps playerCamera
+    // re-registering it with the visibility manager
     void activateCameraAttachment(CameraAttachment* attachment);
+
+    // Always called. Only works if there is an active camera extension and if it attached to an object.
+    void feedAttachedTransformToActiveCamera();
+
+    // We allow at most 1 active camera at a time
+    // It can be null, in that case player camera is used.
+    CameraExtensionInterface* activeCameraExtension = nullptr;
     //std::vector<Camera*> allCameras;//the info about all cameras is inferred by culling results, might need fixing.
     BulletDebugDrawer *debugDrawer;
 

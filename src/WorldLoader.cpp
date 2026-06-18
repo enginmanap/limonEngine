@@ -34,6 +34,7 @@
 #include "GameObjects/GUIAnimation.h"
 #include "GameObjects/ModelGroup.h"
 #include "GamePlay/APISerializer.h"
+#include "limonAPI/CameraExtensionInterface.h"
 
 WorldLoader::WorldLoader(std::shared_ptr<AssetManager> assetManager, InputHandler *inputHandler, OptionsUtil::Options *options, ProfilerSystem* profilerSystem) :
         options(options),
@@ -299,6 +300,36 @@ World * WorldLoader::loadMapFromXML(const std::string &worldFileName, LimonAPI *
 
     attachedAPIMethodsToWorld(world, limonAPI);
     world->loadingImage = loadingImageStr;
+
+    // World-level camera rig: a registered CameraExtensionInterface activated independent of a player
+    // extension. Instantiated here (plugins are loaded and apiInstance is wired); afterLoadFinished activates it.
+    tinyxml2::XMLElement* cameraExtensionNode = worldNode->FirstChildElement("CameraExtension");
+    if(cameraExtensionNode != nullptr) {
+        tinyxml2::XMLElement* cameraExtensionNameNode = cameraExtensionNode->FirstChildElement("Name");
+        if(cameraExtensionNameNode != nullptr && cameraExtensionNameNode->GetText() != nullptr) {
+            std::string cameraExtensionName = cameraExtensionNameNode->GetText();
+            CameraExtensionInterface* cameraExtension = CameraExtensionInterface::createExtension(cameraExtensionName, world->apiInstance);
+            if(cameraExtension == nullptr) {
+                std::cerr << "Camera extension '" << cameraExtensionName << "' not found. Is the correct plugin loaded?" << std::endl;
+            } else {
+                std::vector<LimonTypes::GenericParameter> cameraExtensionParameters;
+                tinyxml2::XMLElement* cameraExtensionParametersNode = cameraExtensionNode->FirstChildElement("Parameters");
+                if(cameraExtensionParametersNode != nullptr) {
+                    tinyxml2::XMLElement* parameterNode = cameraExtensionParametersNode->FirstChildElement("Parameter");
+                    uint32_t index;
+                    while(parameterNode != nullptr) {
+                        std::shared_ptr<LimonTypes::GenericParameter> request = APISerializer::deserializeParameterRequest(parameterNode, index);
+                        if(request != nullptr && index <= cameraExtensionParameters.size()) {
+                            cameraExtensionParameters.insert(cameraExtensionParameters.begin() + index, *request);
+                        }
+                        parameterNode = parameterNode->NextSiblingElement("Parameter");
+                    }
+                }
+                cameraExtension->setParameters(cameraExtensionParameters);
+                world->activeCameraExtension = cameraExtension;
+            }
+        }
+    }
 
     tinyxml2::XMLElement* musicNameNode =  worldNode->FirstChildElement("Music");
     if (musicNameNode == nullptr) {

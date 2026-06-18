@@ -9,6 +9,7 @@
 #include "limonAPI/LimonAPI.h"
 #include "limonAPI/TriggerInterface.h"
 #include "limonAPI/PlayerExtensionInterface.h"
+#include "limonAPI/CameraExtensionInterface.h"
 #include "limonAPI/ActorInterface.h"
 #include "limonAPI/Graphics/RenderMethodInterface.h"
 
@@ -134,6 +135,7 @@ bool SDL2Helper::loadCustomTriggers(const std::string &fileName) {
     bool result = loadTriggers(objectHandle);
     result = loadActors(objectHandle) && result;
     result = loadPlayerExtensions(objectHandle) && result;
+    result = loadCameraExtensions(objectHandle) && result;
     return loadRenderMethods(objectHandle) && result;
 }
 
@@ -157,6 +159,24 @@ bool SDL2Helper::loadPlayerExtensions(void *objectHandle) const {
         std::cerr << "Custom Player extension load failed!" << std::endl;
         return false;
     }
+}
+
+bool SDL2Helper::loadCameraExtensions(void *objectHandle) const {
+    const std::string registerFunctionName = "registerCameraExtensions";
+    void(*registerFunction)(std::map<std::string, CameraExtensionInterface*(*)(LimonAPI*)>*);
+    registerFunction = (void(*)(
+            std::map<std::string, CameraExtensionInterface*(*)(LimonAPI*)>*))SDL_LoadFunction(objectHandle, registerFunctionName.c_str());
+    if(registerFunction != nullptr) {
+        std::cout << "Camera extension register method found " << std::endl;
+        std::map<std::string, CameraExtensionInterface*(*)(LimonAPI*)> elements;
+        registerFunction(&elements);
+        for (auto it = elements.begin(); it != elements.end(); it++) {
+            CameraExtensionInterface::registerType(it->first, it->second);
+            std::cout << "registered Camera extension: " << it->first << std::endl;
+        }
+    }
+    // Camera extensions are an optional extension point; a plugin without them is not an error.
+    return true;
 }
 
 bool SDL2Helper::loadTriggers(void *objectHandle) const {

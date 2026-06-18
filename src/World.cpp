@@ -10,6 +10,7 @@
 
 #include "Camera/PerspectiveCamera.h"
 #include "Camera/OrthographicCamera.h"
+#include "limonAPI/CameraExtensionInterface.h"
 #include "BulletDebugDrawer.h"
 #include "AI/AIMovementGrid.h"
 
@@ -243,6 +244,10 @@ void World::applyAudioVolumeOptionsIfChanged() {
      }
      checkAndRunTimedEvents();//no londer requires to be in world simulation, because it checks both game time and wall time now
      applyAudioVolumeOptionsIfChanged();
+     // Attachment-system bridge: feed the active rig its target object/bone world transform before the
+     // camera reads pose, so the rig composes its offset/behaviour on the engine-resolved parent transform.
+     // We should feed the transform
+     feedAttachedTransformToActiveCamera();
      if(playerCamera->isDirty()) {
          // getCameraMatrix() refreshes the view AND rebuilds the projection from the attachment, so it
          // must be evaluated before getProjectionMatrix() (argument evaluation order is unspecified).
@@ -933,6 +938,7 @@ World::~World() {
 
     delete grid;
     delete playerCamera;
+    delete activeCameraExtension;
     delete physicalPlayer;
     delete debugPlayer;
     delete editorPlayer;
@@ -1130,6 +1136,16 @@ void World::afterLoadFinished() {
         }
     }
 
+    // The world's camera rig (created at load) is activated last, so it takes precedence over any
+    // player-extension camera. It drives the player's camera override so it survives player switches.
+    if(activeCameraExtension != nullptr) {
+        std::cout << "Activating camera rig '" << activeCameraExtension->getName()
+                  << "', attached object id " << activeCameraExtension->getAttachedObjectID()
+                  << " (0 means unattached / parameter not parsed)" << std::endl;
+        currentPlayer->setCameraOverride(activeCameraExtension);
+        activateCameraAttachment(currentPlayer->getCameraAttachment());
+    }
+
     for(auto& kv : sounds) {
         if(kv.second->isAutoPlay()) {
             kv.second->play();
@@ -1144,6 +1160,31 @@ void World::afterLoadFinished() {
     }
 
     this->visibilityManager->start();
+}
+
+void World::feedAttachedTransformToActiveCamera() {
+    if (activeCameraExtension == nullptr) {
+        return;
+    }
+    if (currentPlayer->getCameraAttachment() != activeCameraExtension) {
+        return; // the active rig isn't driving the current player camera right now (e.g. editor mode)
+    }
+    const uint32_t targetObjectID = activeCameraExtension->getAttachedObjectID();
+    if (targetObjectID == 0) {
+        return; // unattached rig: it produces its own pose
+    }
+    auto objectIt = objects.find(targetObjectID);
+    if (objectIt == objects.end()) {
+        return; // target not found; leave the rig's previous transform untouched
+    }
+    const glm::mat4 attachmentWorldTransform =
+        objectIt->second->getAttachmentTransformFor(activeCameraExtension->getAttachedBoneID())->getWorldTransform();
+    // Decompose once here (C++) and feed components, so the rig — including any Python rig — never has to.
+    glm::vec3 position, scale, skew;
+    glm::quat orientation;
+    glm::vec4 perspective;
+    glm::decompose(attachmentWorldTransform, scale, orientation, position, skew, perspective);
+    activeCameraExtension->setAttachmentTransform(position, orientation, scale);
 }
 
 void World::activateCameraAttachment(CameraAttachment* attachment) {
@@ -1168,6 +1209,8 @@ void World::activateCameraAttachment(CameraAttachment* attachment) {
         playerCamera = new PerspectiveCamera("Player camera", options, attachment);
     }
     playerCamera->addTag(HardCodedTags::CAMERA_PLAYER);
+    // Feed the rig its target transform before priming, so the primed pose is correct from the first frame.
+    feedAttachedTransformToActiveCamera();
     // Prime the freshly-created camera so its view, frustum planes and cascade corners are valid before it
     // is registered for culling and before the first light/shadow pass. Otherwise the initial visibility
     // cull and point-light culling run against an uninitialised (zero) frustum and cull everything (black

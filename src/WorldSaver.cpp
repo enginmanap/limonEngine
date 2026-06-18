@@ -15,6 +15,7 @@
 #include "GUI/GUILayer.h"
 #include "GameObjects/Sound.h"
 #include "GameObjects/Players/PhysicalPlayer.h"
+#include "limonAPI/CameraExtensionInterface.h"
 #include "GamePlay/APISerializer.h"
 
 
@@ -125,6 +126,21 @@ bool WorldSaver::saveWorld(const std::string& mapName, const World* world) {
     }
     currentElement->InsertEndChild(playerAttachment);
     rootNode->InsertEndChild(currentElement);
+
+    // The world's active camera rig (a registered CameraExtensionInterface).
+    if(world->activeCameraExtension != nullptr) {
+        tinyxml2::XMLElement *cameraExtension = mapDocument.NewElement("CameraExtension");
+        tinyxml2::XMLElement *cameraExtensionName = mapDocument.NewElement("Name");
+        cameraExtensionName->SetText(world->activeCameraExtension->getName().c_str());
+        cameraExtension->InsertEndChild(cameraExtensionName);
+        tinyxml2::XMLElement *cameraExtensionParameters = mapDocument.NewElement("Parameters");
+        std::vector<LimonTypes::GenericParameter> cameraParameters = world->activeCameraExtension->getParameters();
+        for (size_t i = 0; i < cameraParameters.size(); ++i) {
+            APISerializer::serializeParameterRequest(cameraParameters[i], mapDocument, cameraExtensionParameters, i);
+        }
+        cameraExtension->InsertEndChild(cameraExtensionParameters);
+        rootNode->InsertEndChild(cameraExtension);
+    }
 
     if(world->music != nullptr) {
         currentElement = mapDocument.NewElement("Music");
