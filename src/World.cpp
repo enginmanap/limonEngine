@@ -1219,6 +1219,29 @@ void World::activateCameraAttachment(CameraAttachment* attachment) {
     visibilityManager->addCamera(playerCamera);
 }
 
+Player* World::getStartingPlayer() {
+    switch (startingPlayer.type) {
+        case PlayerInfo::Types::DEBUG_PLAYER:    return debugPlayer;
+        case PlayerInfo::Types::EDITOR_PLAYER:   return editorPlayer;
+        case PlayerInfo::Types::PHYSICAL_PLAYER: return physicalPlayer;
+        case PlayerInfo::Types::MENU_PLAYER:     return menuPlayer;
+    }
+    return nullptr;
+}
+
+void World::applyCameraExtension(CameraExtensionInterface* rig) {
+    delete activeCameraExtension; // single-active: free the previous rig
+    activeCameraExtension = rig;
+    Player* startingPlayerObject = getStartingPlayer();
+    if (startingPlayerObject != nullptr) {
+        startingPlayerObject->setCameraOverride(rig); // nullptr reverts to the player's own attachment
+        // If we're already playing as that player (not in editor), refresh the live camera now.
+        if (currentPlayer == startingPlayerObject) {
+            activateCameraAttachment(currentPlayer->getCameraAttachment());
+        }
+    }
+}
+
 void World::switchPlayer(Player *targetPlayer, InputHandler &inputHandler) {
     //we should reconnect disconnected object if switching to editor mode, because we use physics for pickup
     if(targetPlayer->getWorldSettings().editorShown && (currentPlayersSettings == nullptr ||!currentPlayersSettings->editorShown)) {

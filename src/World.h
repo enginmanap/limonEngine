@@ -292,6 +292,10 @@ private:
     // We allow at most 1 active camera at a time
     // It can be null, in that case player camera is used.
     CameraExtensionInterface* activeCameraExtension = nullptr;
+
+    Player* getStartingPlayer();
+    // Replace the active camera rig (nullptr clears it).
+    void applyCameraExtension(CameraExtensionInterface* rig);
     //std::vector<Camera*> allCameras;//the info about all cameras is inferred by culling results, might need fixing.
     BulletDebugDrawer *debugDrawer;
 

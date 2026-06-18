@@ -14,6 +14,7 @@
 #include "GameObjects/Players/MenuPlayer.h"
 #include "GameObjects/Players/FreeCursorPlayer.h"
 #include "GameObjects/Players/FreeMovingPlayer.h"
+#include "limonAPI/CameraExtensionInterface.h"
 #include "GameObjects/TriggerObject.h"
 #include "GUI/GUICursor.h"
 #include "GUI/GUILayer.h"
@@ -855,6 +856,56 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
             }
         }
         ImGui::Separator();
+        if(ImGui::CollapsingHeader("Camera Extension")) {
+            if(this->cameraExtensionNameBuffer[0] == '\0' && world->activeCameraExtension != nullptr) {
+                strncpy(this->cameraExtensionNameBuffer, world->activeCameraExtension->getName().c_str(), sizeof(this->cameraExtensionNameBuffer) - 1);
+                this->cameraExtensionNameBuffer[sizeof(this->cameraExtensionNameBuffer) - 1] = '\0';
+            }
+            static bool showCameraError = false;
+            ImGui::TextWrapped("Select which camera rig drives the player. Edit its parameters by selecting the player in the object tree.");
+            if (ImGui::BeginCombo("Camera Rig Type", this->cameraExtensionNameBuffer[0] == '\0' ? "(None)" : this->cameraExtensionNameBuffer)) {
+                bool isNoneSelected = (this->cameraExtensionNameBuffer[0] == '\0');
+                if (ImGui::Selectable("(None)", isNoneSelected)) {
+                    this->cameraExtensionNameBuffer[0] = '\0';
+                    showCameraError = false;
+                }
+                for (const std::string &rigName : CameraExtensionInterface::getExtensionNames()) {
+                    bool isThisRigSelected = (rigName == this->cameraExtensionNameBuffer);
+                    if (ImGui::Selectable(rigName.c_str(), isThisRigSelected)) {
+                        strncpy(this->cameraExtensionNameBuffer, rigName.c_str(), sizeof(this->cameraExtensionNameBuffer) - 1);
+                        this->cameraExtensionNameBuffer[sizeof(this->cameraExtensionNameBuffer) - 1] = '\0';
+                        showCameraError = false;
+                    }
+                    if (isThisRigSelected) {
+                        ImGui::SetItemDefaultFocus();
+                    }
+                }
+                ImGui::EndCombo();
+            }
+
+            if(ImGui::Button("Apply##CameraExtensionUpdate")) {
+                std::string rigName = this->cameraExtensionNameBuffer;
+                if(rigName.empty()) {
+                    world->applyCameraExtension(nullptr); //clear the active rig, revert to the player's own camera
+                } else if(world->activeCameraExtension != nullptr && rigName == world->activeCameraExtension->getName()) {
+                    //already the active rig; parameters are tuned under the player, so leave the live instance untouched
+                } else {
+                    //new rig type: create it with its default parameters; tuning happens under the player afterwards
+                    CameraExtensionInterface* rig = CameraExtensionInterface::createExtension(rigName, world->apiInstance);
+                    if(rig != nullptr) {
+                        world->applyCameraExtension(rig);
+                    } else {
+                        showCameraError = true;
+                    }
+                }
+            }
+            if(showCameraError) {
+                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.0f, 0.0f, 1.0f));
+                ImGui::Text("The name didn't match a camera rig. The change won't be saved!");
+                ImGui::PopStyleColor();
+            }
+        }
+        ImGui::Separator();
         if(ImGui::CollapsingHeader("World properties")) {
             ImGui::Indent( 16.0f );
 
@@ -1158,6 +1209,29 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
         if(this->pickedObject != nullptr) {
             //search for the selected element in the rendered elements
             ImGuiResult objectEditorResult = this->pickedObject->addImGuiEditorElements(*this->request);
+            //the player owns its camera, so the active camera rig's parameters are tuned here, under the player.
+            //the rig is CHOSEN in the "Camera Extension" panel; this edits the live, already-active instance in place.
+            if(this->pickedObject == world->physicalPlayer) {
+                ImGui::Separator();
+                if(world->activeCameraExtension == nullptr) {
+                    ImGui::TextWrapped("No camera rig active. Choose one in the Camera Extension panel.");
+                    this->shownCameraExtensionParametersName.clear();
+                    this->cameraExtensionParameters.clear();
+                } else {
+                    std::string activeRigName = world->activeCameraExtension->getName();
+                    ImGui::Text("Camera Rig: %s", activeRigName.c_str());
+                    //resync the edit buffer whenever the active rig changes (e.g. a type swap from the Camera Extension panel)
+                    if(activeRigName != this->shownCameraExtensionParametersName) {
+                        this->cameraExtensionParameters = world->activeCameraExtension->getParameters();
+                        this->shownCameraExtensionParametersName = activeRigName;
+                    }
+                    this->generateEditorElementsForParameters(this->cameraExtensionParameters, 300);
+                    if(ImGui::Button("Apply##CameraRigParameters")) {
+                        //edit the live rig in place so changes take effect immediately while playing
+                        world->activeCameraExtension->setParameters(this->cameraExtensionParameters);
+                    }
+                }
+            }
             if (objectEditorResult.materialChanged) {
                 world->onModelMaterialChanged(this->pickedObjectID);
             }

@@ -73,6 +73,10 @@ public:
     char extensionNameBuffer[32] = {0};
     std::string shownExtensionParametersName;//tracks which extension's parameters are currently mirrored in startingPlayer.parameters
 
+    char cameraExtensionNameBuffer[32] = {0};
+    std::string shownCameraExtensionParametersName;
+    std::vector<LimonTypes::GenericParameter> cameraExtensionParameters;
+
     Editor(World* world);
     ~Editor();
     bool generateEditorElementsForParameters(std::vector<LimonTypes::GenericParameter> &runParameters, uint32_t index);
