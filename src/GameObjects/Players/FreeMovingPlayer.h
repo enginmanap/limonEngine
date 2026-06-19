@@ -26,15 +26,15 @@ public:
     FreeMovingPlayer(OptionsUtil::Options* options, GUIRenderable* cursor, const glm::vec3 &position,
                      const glm::vec3 &lookDirection);
 
-    bool isDirty() const override {
+    bool isCameraDirty() const override {
         return dirty;
     }
 
-    void clearDirty() override {
+    void clearCameraDirty() override {
         this->dirty = false;
     }
 
-    void getCameraVariables(glm::vec3 &position, glm::vec3 &center, glm::vec3 &up, glm::vec3 &right) {
+    void fillCameraPose(glm::vec3 &position, glm::vec3 &center, glm::vec3 &up, glm::vec3 &right) override {
         position = this->position;
         center = this->center;
         up = this->up;

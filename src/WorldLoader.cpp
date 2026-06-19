@@ -24,6 +24,7 @@
 #include "GameObjects/GUIText.h"
 #include "ALHelper.h"
 #include "GameObjects/Sound.h"
+#include "GameObjects/CameraRig.h"
 #include "GameObjects/GUIImage.h"
 #include "GameObjects/GUIButton.h"
 
@@ -301,35 +302,7 @@ World * WorldLoader::loadMapFromXML(const std::string &worldFileName, LimonAPI *
     attachedAPIMethodsToWorld(world, limonAPI);
     world->loadingImage = loadingImageStr;
 
-    // World-level camera rig: a registered CameraExtensionInterface activated independent of a player
-    // extension. Instantiated here (plugins are loaded and apiInstance is wired); afterLoadFinished activates it.
-    tinyxml2::XMLElement* cameraExtensionNode = worldNode->FirstChildElement("CameraExtension");
-    if(cameraExtensionNode != nullptr) {
-        tinyxml2::XMLElement* cameraExtensionNameNode = cameraExtensionNode->FirstChildElement("Name");
-        if(cameraExtensionNameNode != nullptr && cameraExtensionNameNode->GetText() != nullptr) {
-            std::string cameraExtensionName = cameraExtensionNameNode->GetText();
-            CameraExtensionInterface* cameraExtension = CameraExtensionInterface::createExtension(cameraExtensionName, world->apiInstance);
-            if(cameraExtension == nullptr) {
-                std::cerr << "Camera extension '" << cameraExtensionName << "' not found. Is the correct plugin loaded?" << std::endl;
-            } else {
-                std::vector<LimonTypes::GenericParameter> cameraExtensionParameters;
-                tinyxml2::XMLElement* cameraExtensionParametersNode = cameraExtensionNode->FirstChildElement("Parameters");
-                if(cameraExtensionParametersNode != nullptr) {
-                    tinyxml2::XMLElement* parameterNode = cameraExtensionParametersNode->FirstChildElement("Parameter");
-                    uint32_t index;
-                    while(parameterNode != nullptr) {
-                        std::shared_ptr<LimonTypes::GenericParameter> request = APISerializer::deserializeParameterRequest(parameterNode, index);
-                        if(request != nullptr && index <= cameraExtensionParameters.size()) {
-                            cameraExtensionParameters.insert(cameraExtensionParameters.begin() + index, *request);
-                        }
-                        parameterNode = parameterNode->NextSiblingElement("Parameter");
-                    }
-                }
-                cameraExtension->setParameters(cameraExtensionParameters);
-                world->activeCameraExtension = cameraExtension;
-            }
-        }
-    }
+    // Camera rigs are loaded later (loadCameraRigs), after objects exist, because a rig may attach to one.
 
     tinyxml2::XMLElement* musicNameNode =  worldNode->FirstChildElement("Music");
     if (musicNameNode == nullptr) {
@@ -419,6 +392,7 @@ World * WorldLoader::loadMapFromXML(const std::string &worldFileName, LimonAPI *
     }
     loadLights(worldNode, world);
     loadSounds(worldNode, world);
+    loadCameraRigs(worldNode, world);
 
     //load onloadActions
     loadOnLoadActions(worldNode, world);
@@ -1473,6 +1447,92 @@ bool WorldLoader::loadSounds(tinyxml2::XMLNode *worldNode, World *world) const {
             ps.sound->attachTo(parent);
         } else {
             std::cerr << "Sound parent ID " << ps.parentID << " not found, attachment skipped." << std::endl;
+        }
+    }
+
+    return true;
+}
+
+bool WorldLoader::loadCameraRigs(tinyxml2::XMLNode *worldNode, World *world) const {
+    tinyxml2::XMLElement* cameraRigsListNode = worldNode->FirstChildElement("CameraRigs");
+    if(cameraRigsListNode == nullptr) {
+        return true; // No camera rigs section — valid for all pre-feature world files.
+    }
+
+    uint32_t activeCameraRigID = 0; // 0 == none
+    tinyxml2::XMLElement* activeIDNode = cameraRigsListNode->FirstChildElement("ActiveID");
+    if(activeIDNode != nullptr && activeIDNode->GetText() != nullptr) {
+        activeCameraRigID = std::stoul(activeIDNode->GetText());
+    }
+
+    struct PendingCameraRig { CameraRig* rig; uint32_t parentID; };
+    std::vector<PendingCameraRig> pendingAttachments;
+
+    tinyxml2::XMLElement* cameraRigNode = cameraRigsListNode->FirstChildElement("CameraRig");
+    while(cameraRigNode != nullptr) {
+        tinyxml2::XMLElement* typeEl = cameraRigNode->FirstChildElement("Type");
+        tinyxml2::XMLElement* idEl   = cameraRigNode->FirstChildElement("ID");
+        if(typeEl == nullptr || typeEl->GetText() == nullptr || idEl == nullptr || idEl->GetText() == nullptr) {
+            std::cerr << "CameraRig entry missing Type or ID element, skipping." << std::endl;
+            cameraRigNode = cameraRigNode->NextSiblingElement("CameraRig");
+            continue;
+        }
+        std::string rigTypeName = typeEl->GetText();
+        uint32_t rigID = std::stoul(idEl->GetText());
+
+        CameraExtensionInterface* heldAttachment = CameraExtensionInterface::createExtension(rigTypeName, world->apiInstance);
+        if(heldAttachment == nullptr) {
+            std::cerr << "Camera rig type '" << rigTypeName << "' not found. Is the correct plugin loaded? Skipping." << std::endl;
+            cameraRigNode = cameraRigNode->NextSiblingElement("CameraRig");
+            continue;
+        }
+
+        std::vector<LimonTypes::GenericParameter> rigParameters;
+        tinyxml2::XMLElement* parametersNode = cameraRigNode->FirstChildElement("Parameters");
+        if(parametersNode != nullptr) {
+            tinyxml2::XMLElement* parameterNode = parametersNode->FirstChildElement("Parameter");
+            uint32_t index;
+            while(parameterNode != nullptr) {
+                std::shared_ptr<LimonTypes::GenericParameter> request = APISerializer::deserializeParameterRequest(parameterNode, index);
+                if(request != nullptr && index <= rigParameters.size()) {
+                    rigParameters.insert(rigParameters.begin() + index, *request);
+                }
+                parameterNode = parameterNode->NextSiblingElement("Parameter");
+            }
+        }
+        heldAttachment->setParameters(rigParameters);
+
+        std::string rigName = rigTypeName + "_" + std::to_string(rigID);
+        tinyxml2::XMLElement* nameEl = cameraRigNode->FirstChildElement("Name");
+        if(nameEl != nullptr && nameEl->GetText() != nullptr) {
+            rigName = nameEl->GetText();
+        }
+
+        std::unique_ptr<CameraRig> cameraRig(new CameraRig(rigID, rigName, heldAttachment));
+
+        tinyxml2::XMLElement* transformEl = cameraRigNode->FirstChildElement("Transformation");
+        if(transformEl != nullptr) {
+            cameraRig->getTransformation()->deserialize(transformEl);
+        }
+
+        tinyxml2::XMLElement* parentEl = cameraRigNode->FirstChildElement("ParentID");
+        if(parentEl != nullptr && parentEl->GetText() != nullptr) {
+            pendingAttachments.push_back({cameraRig.get(), std::stoul(parentEl->GetText())});
+        }
+
+        if(rigID == activeCameraRigID) {
+            world->activeCameraRig = cameraRig.get(); // afterLoadFinished activates it once players exist
+        }
+        world->addCameraRig(std::move(cameraRig));
+        cameraRigNode = cameraRigNode->NextSiblingElement("CameraRig");
+    }
+
+    for(auto& pca : pendingAttachments) {
+        Attachable* parent = world->findAttachableByID(pca.parentID);
+        if(parent != nullptr) {
+            pca.rig->attachTo(parent);
+        } else {
+            std::cerr << "CameraRig parent ID " << pca.parentID << " not found, attachment skipped." << std::endl;
         }
     }
 

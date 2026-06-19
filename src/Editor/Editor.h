@@ -73,9 +73,7 @@ public:
     char extensionNameBuffer[32] = {0};
     std::string shownExtensionParametersName;//tracks which extension's parameters are currently mirrored in startingPlayer.parameters
 
-    char cameraExtensionNameBuffer[32] = {0};
-    std::string shownCameraExtensionParametersName;
-    std::vector<LimonTypes::GenericParameter> cameraExtensionParameters;
+    char cameraExtensionNameBuffer[32] = {0};//selected csm type in the "Add Camera Rig" creation combo
 
     Editor(World* world);
     ~Editor();

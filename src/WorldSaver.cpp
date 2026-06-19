@@ -16,6 +16,7 @@
 #include "GameObjects/Sound.h"
 #include "GameObjects/Players/PhysicalPlayer.h"
 #include "limonAPI/CameraExtensionInterface.h"
+#include "GameObjects/CameraRig.h"
 #include "GamePlay/APISerializer.h"
 
 
@@ -127,19 +128,52 @@ bool WorldSaver::saveWorld(const std::string& mapName, const World* world) {
     currentElement->InsertEndChild(playerAttachment);
     rootNode->InsertEndChild(currentElement);
 
-    // The world's active camera rig (a registered CameraExtensionInterface).
-    if(world->activeCameraExtension != nullptr) {
-        tinyxml2::XMLElement *cameraExtension = mapDocument.NewElement("CameraExtension");
-        tinyxml2::XMLElement *cameraExtensionName = mapDocument.NewElement("Name");
-        cameraExtensionName->SetText(world->activeCameraExtension->getName().c_str());
-        cameraExtension->InsertEndChild(cameraExtensionName);
-        tinyxml2::XMLElement *cameraExtensionParameters = mapDocument.NewElement("Parameters");
-        std::vector<LimonTypes::GenericParameter> cameraParameters = world->activeCameraExtension->getParameters();
-        for (size_t i = 0; i < cameraParameters.size(); ++i) {
-            APISerializer::serializeParameterRequest(cameraParameters[i], mapDocument, cameraExtensionParameters, i);
+    // The world's camera rigs (each a CameraRig GameObject owning a registered CameraExtensionInterface).
+    if(!world->cameraRigs.empty()) {
+        tinyxml2::XMLElement *cameraRigsNode = mapDocument.NewElement("CameraRigs");
+
+        tinyxml2::XMLElement *activeIDNode = mapDocument.NewElement("ActiveID");
+        activeIDNode->SetText(std::to_string(world->activeCameraRig != nullptr ? world->activeCameraRig->getWorldObjectID() : 0).c_str());
+        cameraRigsNode->InsertEndChild(activeIDNode);
+
+        for(const std::unique_ptr<CameraRig>& cameraRig : world->cameraRigs) {
+            tinyxml2::XMLElement *cameraRigNode = mapDocument.NewElement("CameraRig");
+
+            tinyxml2::XMLElement *typeNode = mapDocument.NewElement("Type");
+            typeNode->SetText(cameraRig->getRigTypeName().c_str());
+            cameraRigNode->InsertEndChild(typeNode);
+
+            tinyxml2::XMLElement *idNode = mapDocument.NewElement("ID");
+            idNode->SetText(std::to_string(cameraRig->getWorldObjectID()).c_str());
+            cameraRigNode->InsertEndChild(idNode);
+
+            tinyxml2::XMLElement *nameNode = mapDocument.NewElement("Name");
+            nameNode->SetText(cameraRig->getName().c_str());
+            cameraRigNode->InsertEndChild(nameNode);
+
+            tinyxml2::XMLElement *parametersNode = mapDocument.NewElement("Parameters");
+            std::vector<LimonTypes::GenericParameter> rigParameters =
+                cameraRig->getHeldAttachment() != nullptr ? cameraRig->getHeldAttachment()->getParameters()
+                                                          : std::vector<LimonTypes::GenericParameter>();
+            for (size_t i = 0; i < rigParameters.size(); ++i) {
+                APISerializer::serializeParameterRequest(rigParameters[i], mapDocument, parametersNode, i);
+            }
+            cameraRigNode->InsertEndChild(parametersNode);
+
+            cameraRig->getTransformation()->serialize(mapDocument, cameraRigNode);
+
+            if(cameraRig->getParentObject() != nullptr) {
+                const GameObject* parentGO = dynamic_cast<const GameObject*>(cameraRig->getParentObject());
+                if(parentGO != nullptr) {
+                    tinyxml2::XMLElement *parentIDNode = mapDocument.NewElement("ParentID");
+                    parentIDNode->SetText(std::to_string(parentGO->getWorldObjectID()).c_str());
+                    cameraRigNode->InsertEndChild(parentIDNode);
+                }
+            }
+
+            cameraRigsNode->InsertEndChild(cameraRigNode);
         }
-        cameraExtension->InsertEndChild(cameraExtensionParameters);
-        rootNode->InsertEndChild(cameraExtension);
+        rootNode->InsertEndChild(cameraRigsNode);
     }
 
     if(world->music != nullptr) {

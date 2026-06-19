@@ -699,7 +699,7 @@ bool WorldAPIAccessor::cancelTimedEventAPI(long handleId) {
 }
 
 void WorldAPIAccessor::getPlayerPositionAPI(glm::vec3 &position, glm::vec3 &center, glm::vec3 &up, glm::vec3 &right) {
-    world->currentPlayer->getCameraVariables(position, center, up, right);
+    world->currentPlayer->fillCameraPose(position, center, up, right);
 }
 
 LimonTypes::Vec4 WorldAPIAccessor::getPlayerPositionVec4API() {
@@ -717,7 +717,7 @@ LimonTypes::Vec4 WorldAPIAccessor::getCameraPositionAPI() {
     if(world->currentPlayer->cameraAttachment != nullptr) {
         world->currentPlayer->cameraAttachment->getCameraVariables(position, center, up, right);
     } else {
-        world->currentPlayer->getCameraVariables(position, center, up, right);
+        world->currentPlayer->fillCameraPose(position, center, up, right);
     }
     return LimonTypes::Vec4(position.x, position.y, position.z, 1.0f);
 }
@@ -727,7 +727,7 @@ LimonTypes::Vec4 WorldAPIAccessor::getCameraLookDirectionAPI() {
     if(world->currentPlayer->cameraAttachment != nullptr) {
         world->currentPlayer->cameraAttachment->getCameraVariables(position, center, up, right);
     } else {
-        world->currentPlayer->getCameraVariables(position, center, up, right);
+        world->currentPlayer->fillCameraPose(position, center, up, right);
     }
     // center is a direction vector (camera uses lookAt(position, position+center, up))
     return LimonTypes::Vec4(center.x, center.y, center.z, 0.0f);

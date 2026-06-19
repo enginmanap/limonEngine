@@ -15,6 +15,7 @@
 #include "GameObjects/Players/FreeCursorPlayer.h"
 #include "GameObjects/Players/FreeMovingPlayer.h"
 #include "limonAPI/CameraExtensionInterface.h"
+#include "GameObjects/CameraRig.h"
 #include "GameObjects/TriggerObject.h"
 #include "GUI/GUICursor.h"
 #include "GUI/GUILayer.h"
@@ -856,19 +857,9 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
             }
         }
         ImGui::Separator();
-        if(ImGui::CollapsingHeader("Camera Extension")) {
-            if(this->cameraExtensionNameBuffer[0] == '\0' && world->activeCameraExtension != nullptr) {
-                strncpy(this->cameraExtensionNameBuffer, world->activeCameraExtension->getName().c_str(), sizeof(this->cameraExtensionNameBuffer) - 1);
-                this->cameraExtensionNameBuffer[sizeof(this->cameraExtensionNameBuffer) - 1] = '\0';
-            }
-            static bool showCameraError = false;
-            ImGui::TextWrapped("Select which camera rig drives the player. Edit its parameters by selecting the player in the object tree.");
-            if (ImGui::BeginCombo("Camera Rig Type", this->cameraExtensionNameBuffer[0] == '\0' ? "(None)" : this->cameraExtensionNameBuffer)) {
-                bool isNoneSelected = (this->cameraExtensionNameBuffer[0] == '\0');
-                if (ImGui::Selectable("(None)", isNoneSelected)) {
-                    this->cameraExtensionNameBuffer[0] = '\0';
-                    showCameraError = false;
-                }
+        if(ImGui::CollapsingHeader("Add Camera Rig")) {
+           static bool showCameraError = false;
+            if (ImGui::BeginCombo("Camera Rig Type", this->cameraExtensionNameBuffer[0] == '\0' ? "(Select type)" : this->cameraExtensionNameBuffer)) {
                 for (const std::string &rigName : CameraExtensionInterface::getExtensionNames()) {
                     bool isThisRigSelected = (rigName == this->cameraExtensionNameBuffer);
                     if (ImGui::Selectable(rigName.c_str(), isThisRigSelected)) {
@@ -883,17 +874,15 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
                 ImGui::EndCombo();
             }
 
-            if(ImGui::Button("Apply##CameraExtensionUpdate")) {
-                std::string rigName = this->cameraExtensionNameBuffer;
-                if(rigName.empty()) {
-                    world->applyCameraExtension(nullptr); //clear the active rig, revert to the player's own camera
-                } else if(world->activeCameraExtension != nullptr && rigName == world->activeCameraExtension->getName()) {
-                    //already the active rig; parameters are tuned under the player, so leave the live instance untouched
-                } else {
-                    //new rig type: create it with its default parameters; tuning happens under the player afterwards
-                    CameraExtensionInterface* rig = CameraExtensionInterface::createExtension(rigName, world->apiInstance);
-                    if(rig != nullptr) {
-                        world->applyCameraExtension(rig);
+            if(ImGui::Button("Add##CameraRigAdd")) {
+                std::string rigTypeName = this->cameraExtensionNameBuffer;
+                if(!rigTypeName.empty()) {
+                    CameraExtensionInterface* heldAttachment = CameraExtensionInterface::createExtension(rigTypeName, world->apiInstance);
+                    if(heldAttachment != nullptr) {
+                        uint32_t rigID = world->getNextObjectID();
+                        std::string rigName = rigTypeName + "_" + std::to_string(rigID);
+                        world->addCameraRig(std::unique_ptr<CameraRig>(new CameraRig(rigID, rigName, heldAttachment)));
+                        showCameraError = false;
                     } else {
                         showCameraError = true;
                     }
@@ -901,7 +890,7 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
             }
             if(showCameraError) {
                 ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.0f, 0.0f, 1.0f));
-                ImGui::Text("The name didn't match a camera rig. The change won't be saved!");
+                ImGui::Text("The name didn't match a camera rig. Nothing was added.");
                 ImGui::PopStyleColor();
             }
         }
@@ -1211,24 +1200,28 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
             ImGuiResult objectEditorResult = this->pickedObject->addImGuiEditorElements(*this->request);
             //the player owns its camera, so the active camera rig's parameters are tuned here, under the player.
             //the rig is CHOSEN in the "Camera Extension" panel; this edits the live, already-active instance in place.
-            if(this->pickedObject == world->physicalPlayer) {
+            if(this->pickedObject->getTypeID() == GameObject::ObjectTypes::CAMERA_RIG) {
+                CameraRig* selectedRig = static_cast<CameraRig*>(this->pickedObject);
                 ImGui::Separator();
-                if(world->activeCameraExtension == nullptr) {
-                    ImGui::TextWrapped("No camera rig active. Choose one in the Camera Extension panel.");
-                    this->shownCameraExtensionParametersName.clear();
-                    this->cameraExtensionParameters.clear();
-                } else {
-                    std::string activeRigName = world->activeCameraExtension->getName();
-                    ImGui::Text("Camera Rig: %s", activeRigName.c_str());
-                    //resync the edit buffer whenever the active rig changes (e.g. a type swap from the Camera Extension panel)
-                    if(activeRigName != this->shownCameraExtensionParametersName) {
-                        this->cameraExtensionParameters = world->activeCameraExtension->getParameters();
-                        this->shownCameraExtensionParametersName = activeRigName;
+                ImGui::Text("Type: %s", selectedRig->getRigTypeName().c_str());
+
+                bool isActive = (world->activeCameraRig == selectedRig);
+                ImGui::Text("Status: %s", isActive ? "ACTIVE (driving the player camera)" : "inactive");
+                if(isActive) {
+                    if(ImGui::Button("Deactivate##CameraRig")) {
+                        world->activateCameraRig(nullptr);
                     }
-                    this->generateEditorElementsForParameters(this->cameraExtensionParameters, 300);
+                } else {
+                    if(ImGui::Button("Activate##CameraRig")) {
+                        world->activateCameraRig(selectedRig);
+                    }
+                }
+
+                if(selectedRig->getHeldAttachment() != nullptr) {
+                    std::vector<LimonTypes::GenericParameter> rigParameters = selectedRig->getHeldAttachment()->getParameters();
+                    this->generateEditorElementsForParameters(rigParameters, 300);
                     if(ImGui::Button("Apply##CameraRigParameters")) {
-                        //edit the live rig in place so changes take effect immediately while playing
-                        world->activeCameraExtension->setParameters(this->cameraExtensionParameters);
+                        selectedRig->getHeldAttachment()->setParameters(rigParameters);
                     }
                 }
             }
@@ -1715,6 +1708,26 @@ void Editor::buildTreeFromAllGameObjects() {
                     this->pickedObject = currentObject.get();//FIXME this is an unsafe use
                     this->pickedObjectID = this->pickedObject->getWorldObjectID();
                 }
+            }
+        }
+        ImGui::TreePop();
+    }
+
+    if(!parentageList.empty()) {
+        ImGui::SetNextItemOpen(false);
+    }
+    //Cameras
+    if (ImGui::TreeNode("Cameras##CamerasTreeRoot")) {
+        for (const std::unique_ptr<CameraRig>& cameraRig : world->cameraRigs) {
+            bool isSelected = cameraRig->getWorldObjectID() == this->pickedObjectID;
+            std::string label = cameraRig->getName() + (world->activeCameraRig == cameraRig.get() ? " (active)" : "");
+            ImGui::TreeNodeEx(label.c_str(), leafFlags | (isSelected ? ImGuiTreeNodeFlags_Selected : 0));
+            if (ImGui::IsItemClicked()) {
+                if(this->pickedObject != nullptr) {
+                    this->pickedObject->removeTag(HardCodedTags::PICKED_OBJECT);
+                }
+                this->pickedObject = cameraRig.get();
+                this->pickedObject->addTag(HardCodedTags::PICKED_OBJECT);
             }
         }
         ImGui::TreePop();

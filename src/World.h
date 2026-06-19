@@ -39,6 +39,7 @@ class Camera;
 class PerspectiveCamera;
 class CameraAttachment;
 class CameraExtensionInterface;
+class CameraRig;
 class BulletDebugDrawer;
 
 class AIMovementGrid;
@@ -286,16 +287,18 @@ private:
     // re-registering it with the visibility manager
     void activateCameraAttachment(CameraAttachment* attachment);
 
-    // Always called. Only works if there is an active camera extension and if it attached to an object.
-    void feedAttachedTransformToActiveCamera();
+    // Feed the active camera rig its attachment-target transform before the camera reads pose.
+    void feedActiveCameraRig();
 
-    // We allow at most 1 active camera at a time
-    // It can be null, in that case player camera is used.
-    CameraExtensionInterface* activeCameraExtension = nullptr;
+    // Many camera rigs may exist in a world; at most one is active (drives the player camera) at a time.
+    std::vector<std::unique_ptr<CameraRig>> cameraRigs;
+    CameraRig* activeCameraRig = nullptr;
 
     Player* getStartingPlayer();
-    // Replace the active camera rig (nullptr clears it).
-    void applyCameraExtension(CameraExtensionInterface* rig);
+    void addCameraRig(std::unique_ptr<CameraRig> rig);
+    CameraRig* findCameraRigByID(uint32_t id) const;
+    // Make rig the active camera (nullptr deactivates, reverting to the player's own camera).
+    void activateCameraRig(CameraRig* rig);
     //std::vector<Camera*> allCameras;//the info about all cameras is inferred by culling results, might need fixing.
     BulletDebugDrawer *debugDrawer;
 

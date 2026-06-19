@@ -12,11 +12,14 @@
 #include "limonAPI/Options.h"
 #include "limonAPI/PlayerExtensionInterface.h"
 #include "limonAPI/CameraAttachment.h"
+#include "PlayerCameraAttachment.h"
 
 class btDiscreteDynamicsWorld;
 class GUIRenderable;
 
-class Player : public GameObject, public CameraAttachment {
+// A Player is NOT a camera. It owns a default PlayerCameraAttachment that it feeds its eye pose to; the
+// player camera reads that attachment (or a CameraRig override set via setCameraOverride).
+class Player : public GameObject {
 public:
     enum DebugModes { DEBUG_ENABLED, DEBUG_DISABLED, DEBUG_NOCHANGE };
     struct WorldSettings {
@@ -79,7 +82,9 @@ public:
                                             const glm::vec3 &worldAABBMin [[gnu::unused]],
                                             const glm::vec3 &worldAABBMax [[gnu::unused]]) {}
 
-    CameraAttachment * cameraAttachment = nullptr;
+    // The default camera attachment this player feeds its own eye pose to (used when no rig overrides it).
+    PlayerCameraAttachment defaultCameraAttachment;
+    CameraAttachment * cameraAttachment = nullptr; // override (e.g. an active CameraRig's behaviour), or null
 
     void setCameraOverride(CameraAttachment * camera_attachment) {
         this->cameraAttachment = camera_attachment;
@@ -95,17 +100,29 @@ public:
         return this->worldSettings;
     }
 
+    // The attachment the player camera should read: an active override (CameraRig behaviour) if set,
+    // otherwise this player's own default attachment (the backup).
     CameraAttachment* getCameraAttachment() {
         if(this->cameraAttachment != nullptr) {
             return this->cameraAttachment;
         }
-        return this;
+        return &this->defaultCameraAttachment;
     }
 
-    // Players drive a standard perspective camera. A custom attachment (e.g. an orthographic
-    // CameraRig) overrides this when it takes over via setCameraOverride().
-    CameraAttachment::ProjectionParameters getProjection() const override {
-        return CameraAttachment::ProjectionParameters{};
+    // Per-player camera surface (the player is no longer a CameraAttachment itself):
+    // compute the player's current eye pose, and report/clear whether it changed.
+    virtual void fillCameraPose(glm::vec3 &position, glm::vec3 &center, glm::vec3 &up, glm::vec3 &right) = 0;
+    virtual bool isCameraDirty() const = 0;
+    virtual void clearCameraDirty() = 0;
+
+    // Push the player's current eye pose into its default attachment when it has changed.
+    void syncDefaultCameraAttachment() {
+        if(isCameraDirty()) {
+            glm::vec3 position, center, up, right;
+            fillCameraPose(position, center, up, right);
+            defaultCameraAttachment.setPose(position, center, up, right);
+            clearCameraDirty();
+        }
     }
 
     /************Game Object methods **************/

@@ -26,17 +26,18 @@ class LimonAPI;
  * pose (getCameraVariables) and projection (getProjection).
  *
  * Attachment bridging (the engine is the Attachable, on the rig's behalf):
- *   - A rig may follow a world object by returning its id from getAttachedObjectID() (and optionally a
- *     bone from getAttachedBoneID()).
- *   - Each frame, BEFORE getCameraVariables(), the engine resolves that object/bone's world transform via
- *     the transform/bone system and hands it to the rig through setAttachmentTransform() as already-
- *     decomposed translate / orientation / scale (the engine does the single decomposition, so no rig —
- *     and in particular no Python rig — has to decompose a matrix every frame).
+ *   - The rig is held by an engine-side CameraRig GameObject, which IS-A Attachable. To follow a world
+ *     object, the CameraRig is attached to it through the engine's standard attachment system.
+ *   - Each frame, BEFORE getCameraVariables(), the engine resolves the attachment target's world transform
+ *     and hands it to the rig through setAttachmentTransform() as already-decomposed translate /
+ *     orientation / scale (the engine does the single decomposition, so no rig — and in particular no
+ *     Python rig — has to decompose a matrix every frame).
  *   - getCameraVariables() then composes the rig's own local offset and any custom behaviour (smoothing,
  *     collision pushback, look-ahead) on top of that engine-provided parent transform.
- *   - A rig that returns 0 from getAttachedObjectID() is "unattached" and produces its pose itself.
+ *   - When the CameraRig is unattached, setAttachmentTransform() is never called and the rig produces its
+ *     own pose.
  *
- * Single-active: many rig types may be registered, but only one is bound to the player camera at a time.
+ * Single-active: many rigs may exist in a world, but only one is bound to the player camera at a time.
  */
 class CameraExtensionInterface : public CameraAttachment {
     static std::map<std::string, CameraExtensionInterface*(*)(LimonAPI*)>* extensionTypesMap;
@@ -87,18 +88,10 @@ public:
     }
 
     /**
-     * World object id this rig follows, or 0 if it is unattached (produces its pose itself).
-     * When non-zero, the engine feeds the resolved world transform via setAttachmentTransform().
-     */
-    virtual uint32_t getAttachedObjectID() const { return 0; }
-
-    /** Bone of the attached object to follow, or -1 for the object's origin transform. */
-    virtual int32_t getAttachedBoneID() const { return -1; }
-
-    /**
      * Engine-provided world transform of the attachment target (object or bone), pre-decomposed into
-     * translate / orientation / scale and set before getCameraVariables() each frame. Default no-op for
-     * rigs that don't attach. Components are passed (not a matrix) so rigs never decompose.
+     * translate / orientation / scale and set before getCameraVariables() each frame. Only called while
+     * the owning CameraRig is attached to a target. Components are passed (not a matrix) so rigs never
+     * decompose.
      */
     virtual void setAttachmentTransform(const glm::vec3& position [[gnu::unused]],
                                         const glm::quat& orientation [[gnu::unused]],

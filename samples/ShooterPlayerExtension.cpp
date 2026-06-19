@@ -285,3 +285,9 @@ extern "C" void registerPlayerExtensions(std::map<std::string, PlayerExtensionIn
     (*playerExtensionMap)["WesternMenuExtension"] = &createPlayerExtension<WesternMenuPlayerExtension>;
 
 }
+
+extern "C" void registerCameraExtensions(std::map<std::string, CameraExtensionInterface*(*)(LimonAPI*)>* cameraExtensionMap) {
+    (*cameraExtensionMap)["ObjectAttachedCameraRig"] = &createCameraExtension<ObjectAttachedCameraRig>;
+    (*cameraExtensionMap)["OrthographicCameraRig"] = &createCameraExtension<OrthographicCameraRig>;
+    (*cameraExtensionMap)["ThirdPersonCameraRig"] = &createCameraExtension<ThirdPersonCameraRig>;
+}

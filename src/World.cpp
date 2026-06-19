@@ -11,6 +11,7 @@
 #include "Camera/PerspectiveCamera.h"
 #include "Camera/OrthographicCamera.h"
 #include "limonAPI/CameraExtensionInterface.h"
+#include "GameObjects/CameraRig.h"
 #include "BulletDebugDrawer.h"
 #include "AI/AIMovementGrid.h"
 
@@ -244,10 +245,8 @@ void World::applyAudioVolumeOptionsIfChanged() {
      }
      checkAndRunTimedEvents();//no londer requires to be in world simulation, because it checks both game time and wall time now
      applyAudioVolumeOptionsIfChanged();
-     // Attachment-system bridge: feed the active rig its target object/bone world transform before the
-     // camera reads pose, so the rig composes its offset/behaviour on the engine-resolved parent transform.
-     // We should feed the transform
-     feedAttachedTransformToActiveCamera();
+     // Feed the active rig its attachment-target transform, or sync the player's default camera if no rig is active.
+     feedActiveCameraRig();
      if(playerCamera->isDirty()) {
          // getCameraMatrix() refreshes the view AND rebuilds the projection from the attachment, so it
          // must be evaluated before getProjectionMatrix() (argument evaluation order is unspecified).
@@ -938,7 +937,7 @@ World::~World() {
 
     delete grid;
     delete playerCamera;
-    delete activeCameraExtension;
+    // cameraRigs are owned via unique_ptr and free themselves (each deletes its held attachment).
     delete physicalPlayer;
     delete debugPlayer;
     delete editorPlayer;
@@ -1131,19 +1130,18 @@ void World::afterLoadFinished() {
         } else {
             playerExtension->setParameters(startingPlayer.parameters);
             this->currentPlayer->setPlayerExtension(playerExtension);
-            this->currentPlayer->setCameraOverride(playerExtension->getCustomCameraAttachment());
-            activateCameraAttachment(currentPlayer->getCameraAttachment());
         }
     }
 
-    // The world's camera rig (created at load) is activated last, so it takes precedence over any
-    // player-extension camera. It drives the player's camera override so it survives player switches.
-    if(activeCameraExtension != nullptr) {
-        std::cout << "Activating camera rig '" << activeCameraExtension->getName()
-                  << "', attached object id " << activeCameraExtension->getAttachedObjectID()
-                  << " (0 means unattached / parameter not parsed)" << std::endl;
-        currentPlayer->setCameraOverride(activeCameraExtension);
-        activateCameraAttachment(currentPlayer->getCameraAttachment());
+    // The world's active camera rig (set at load) is activated last. It drives the player's camera override
+    // so it survives player switches.
+    if(activeCameraRig != nullptr) {
+        std::cout << "Activating camera rig '" << activeCameraRig->getName() << "' (type "
+                  << activeCameraRig->getRigTypeName() << ")"
+                  << (activeCameraRig->getParentObject() != nullptr ? ", attached" : ", unattached") << std::endl;
+        CameraRig* rigToActivate = activeCameraRig;
+        activeCameraRig = nullptr; // activateCameraRig sets it; clear first so it re-runs the full activation
+        activateCameraRig(rigToActivate);
     }
 
     for(auto& kv : sounds) {
@@ -1162,29 +1160,12 @@ void World::afterLoadFinished() {
     this->visibilityManager->start();
 }
 
-void World::feedAttachedTransformToActiveCamera() {
-    if (activeCameraExtension == nullptr) {
+void World::feedActiveCameraRig() {
+    if (activeCameraRig == nullptr || currentPlayer->getCameraAttachment() != activeCameraRig->getHeldAttachment()) {
+        currentPlayer->syncDefaultCameraAttachment();
         return;
     }
-    if (currentPlayer->getCameraAttachment() != activeCameraExtension) {
-        return; // the active rig isn't driving the current player camera right now (e.g. editor mode)
-    }
-    const uint32_t targetObjectID = activeCameraExtension->getAttachedObjectID();
-    if (targetObjectID == 0) {
-        return; // unattached rig: it produces its own pose
-    }
-    auto objectIt = objects.find(targetObjectID);
-    if (objectIt == objects.end()) {
-        return; // target not found; leave the rig's previous transform untouched
-    }
-    const glm::mat4 attachmentWorldTransform =
-        objectIt->second->getAttachmentTransformFor(activeCameraExtension->getAttachedBoneID())->getWorldTransform();
-    // Decompose once here (C++) and feed components, so the rig — including any Python rig — never has to.
-    glm::vec3 position, scale, skew;
-    glm::quat orientation;
-    glm::vec4 perspective;
-    glm::decompose(attachmentWorldTransform, scale, orientation, position, skew, perspective);
-    activeCameraExtension->setAttachmentTransform(position, orientation, scale);
+    activeCameraRig->feedHeldAttachmentTransform();
 }
 
 void World::activateCameraAttachment(CameraAttachment* attachment) {
@@ -1209,8 +1190,9 @@ void World::activateCameraAttachment(CameraAttachment* attachment) {
         playerCamera = new PerspectiveCamera("Player camera", options, attachment);
     }
     playerCamera->addTag(HardCodedTags::CAMERA_PLAYER);
-    // Feed the rig its target transform before priming, so the primed pose is correct from the first frame.
-    feedAttachedTransformToActiveCamera();
+    // Feed the active rig its attachment-target transform, or sync the player's default camera if no rig is active,
+    // so the primed pose is correct from the first frame.
+    feedActiveCameraRig();
     // Prime the freshly-created camera so its view, frustum planes and cascade corners are valid before it
     // is registered for culling and before the first light/shadow pass. Otherwise the initial visibility
     // cull and point-light culling run against an uninitialised (zero) frustum and cull everything (black
@@ -1229,12 +1211,28 @@ Player* World::getStartingPlayer() {
     return nullptr;
 }
 
-void World::applyCameraExtension(CameraExtensionInterface* rig) {
-    delete activeCameraExtension; // single-active: free the previous rig
-    activeCameraExtension = rig;
+void World::addCameraRig(std::unique_ptr<CameraRig> rig) {
+    cameraRigs.push_back(std::move(rig));
+}
+
+CameraRig* World::findCameraRigByID(uint32_t id) const {
+    for (const std::unique_ptr<CameraRig>& rig : cameraRigs) {
+        if (rig->getWorldObjectID() == id) {
+            return rig.get();
+        }
+    }
+    return nullptr;
+}
+
+void World::activateCameraRig(CameraRig* rig) {
+    if (activeCameraRig == rig) {
+        return; // already the active rig (or both null)
+    }
+    activeCameraRig = rig;
     Player* startingPlayerObject = getStartingPlayer();
     if (startingPlayerObject != nullptr) {
-        startingPlayerObject->setCameraOverride(rig); // nullptr reverts to the player's own attachment
+        // nullptr held attachment reverts the player to its own camera (the backup).
+        startingPlayerObject->setCameraOverride(rig != nullptr ? rig->getHeldAttachment() : nullptr);
         // If we're already playing as that player (not in editor), refresh the live camera now.
         if (currentPlayer == startingPlayerObject) {
             activateCameraAttachment(currentPlayer->getCameraAttachment());
@@ -1562,6 +1560,11 @@ Attachable* World::findAttachableByID(uint32_t objectID) const {
     if(soundIt != sounds.end()) {
         return soundIt->second.get();
     }
+    for(const std::unique_ptr<CameraRig>& cameraRig : cameraRigs) {
+        if(cameraRig->getWorldObjectID() == objectID) {
+            return cameraRig.get();
+        }
+    }
     return nullptr;
 }
 
@@ -1860,6 +1863,16 @@ bool World::verifyIDs() {
             return false;
         }
         maxID = std::max(maxID, kv.first);
+    }
+
+    for (const std::unique_ptr<CameraRig>& cameraRig : cameraRigs) {
+        uint32_t cameraRigID = cameraRig->getWorldObjectID();
+        auto result = usedIDs.insert(cameraRigID);
+        if (!result.second) {
+            std::cerr << "world ID repetition on camera rig detected! with id " << cameraRigID << std::endl;
+            return false;
+        }
+        maxID = std::max(maxID, cameraRigID);
     }
 
     uint32_t unusedIDCount = 0;
