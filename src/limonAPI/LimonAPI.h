@@ -63,6 +63,11 @@ public:
     float getObjectMass(uint32_t objectID);
     bool disconnectObjectFromPhysics(uint32_t modelID);
     bool reconnectObjectToPhysics(uint32_t modelID);
+
+    uint32_t createCameraRig(const std::string& cameraRigTypeName);
+    bool activateCameraRig(uint32_t cameraRigId);
+    void deactivateCameraRig();
+
     bool applyForce(uint32_t modelID, const LimonTypes::Vec4 &forcePosition, const LimonTypes::Vec4 &forceAmount);
     bool applyForceToPlayer(const LimonTypes::Vec4 &forceAmount);
 
@@ -332,6 +337,10 @@ private:
     std::function<float (uint32_t)> worldGetObjectMass;
     std::function<bool (uint32_t)> worldDisconnectObjectFromPhysics;
     std::function<bool (uint32_t)> worldReconnectObjectToPhysics;
+
+    std::function<uint32_t (const std::string&)> worldCreateCameraRig;
+    std::function<bool (uint32_t)> worldActivateCameraRig;
+    std::function<void ()> worldDeactivateCameraRig;
 
     std::function<bool (uint32_t, const LimonTypes::Vec4&, const LimonTypes::Vec4&)> worldApplyForce;
     std::function<bool (const LimonTypes::Vec4&)> worldApplyForceToPlayer;

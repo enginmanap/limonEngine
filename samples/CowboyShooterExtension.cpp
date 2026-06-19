@@ -12,6 +12,18 @@
 void CowboyShooterExtension::processInput(const InputStates &inputState, const PlayerExtensionInterface::PlayerInformation &playerInformation,
                                           long time) {
     this->lastInputTime = time;
+
+    // Create and activate the third-person camera rig once, on the first tick. Doing it here (rather than in
+    // the constructor) means it runs after world load finished, so the load-time camera setup does not
+    // overwrite it. The third-person camera is a registered camera rig, activated through the runtime API.
+    if(!thirdPersonCameraActivated) {
+        uint32_t cameraRigId = limonAPI->createCameraRig("ThirdPersonCameraRig");
+        if(cameraRigId != 0) {
+            limonAPI->activateCameraRig(cameraRigId);
+        }
+        thirdPersonCameraActivated = true;
+    }
+
     if(inputState.isSimulated()) {
         return;
     }

@@ -18,6 +18,34 @@
 #include "Graphics/GraphicsPipeline.h"
 #include "Occlusion/VisibilityManager.h"
 #include "Graphics/Particles/Emitter.h"
+#include "GameObjects/CameraRig.h"
+#include "limonAPI/CameraExtensionInterface.h"
+
+uint32_t WorldAPIAccessor::createCameraRig(const std::string& cameraRigTypeName) {
+    CameraExtensionInterface* behaviour = CameraExtensionInterface::createExtension(cameraRigTypeName, world->apiInstance);
+    if(behaviour == nullptr) {
+        std::cerr << "createCameraRig: camera rig type '" << cameraRigTypeName << "' not found. Is the plugin loaded?" << std::endl;
+        return 0;
+    }
+    uint32_t cameraRigId = world->getNextObjectID();
+    std::string cameraRigName = cameraRigTypeName + "_" + std::to_string(cameraRigId);
+    world->addCameraRig(std::unique_ptr<CameraRig>(new CameraRig(cameraRigId, cameraRigName, behaviour)));
+    return cameraRigId;
+}
+
+bool WorldAPIAccessor::activateCameraRig(uint32_t cameraRigId) {
+    CameraRig* cameraRig = world->findCameraRigByID(cameraRigId);
+    if(cameraRig == nullptr) {
+        std::cerr << "activateCameraRig: no camera rig with id " << cameraRigId << std::endl;
+        return false;
+    }
+    world->activateCameraRig(cameraRig);
+    return true;
+}
+
+void WorldAPIAccessor::deactivateCameraRig() {
+    world->activateCameraRig(nullptr);
+}
 
 uint32_t WorldAPIAccessor::addAnimationToObjectWithSound(uint32_t modelID, uint32_t animationID, bool looped, bool startOnLoad,
                                                          const std::string& soundToPlay) {

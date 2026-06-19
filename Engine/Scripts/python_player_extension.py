@@ -186,9 +186,5 @@ class PythonPlayerExtension(PlayerExtensionInterface):
         """Get the name of this extension."""
         return self.__class__.__name__
 
-    def get_custom_camera_attachment(self) -> Optional[limon.CameraAttachment]:
-        """Get a custom camera attachment if this extension provides one."""
-        return self.camera_instance if hasattr(self, 'camera_instance') and self.camera_instance is not None else None
-
     def get_name(self):
         return "PythonPlayerExtension"

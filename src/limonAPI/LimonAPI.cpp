@@ -118,6 +118,18 @@ bool LimonAPI::reconnectObjectToPhysics(uint32_t modelID) {
     return worldReconnectObjectToPhysics(modelID);
 }
 
+uint32_t LimonAPI::createCameraRig(const std::string& cameraRigTypeName) {
+    return worldCreateCameraRig(cameraRigTypeName);
+}
+
+bool LimonAPI::activateCameraRig(uint32_t cameraRigId) {
+    return worldActivateCameraRig(cameraRigId);
+}
+
+void LimonAPI::deactivateCameraRig() {
+    worldDeactivateCameraRig();
+}
+
 bool LimonAPI::applyForce(uint32_t modelID, const LimonTypes::Vec4 &forcePosition, const LimonTypes::Vec4 &forceAmount) {
     return worldApplyForce(modelID, forcePosition, forceAmount);
 }

@@ -21,6 +21,7 @@
 #include <limonAPI/PlayerExtensionInterface.h>
 #include <limonAPI/ActorInterface.h>
 #include <limonAPI/TriggerInterface.h>
+#include <limonAPI/CameraExtensionInterface.h>
 
 class WorldInterpreter;
 class ScriptManager {
@@ -40,7 +41,8 @@ class ScriptManager {
     enum class CallBackTypes {
         TRIGGER,
         PLAYER_EXTENSION,
-        ACTOR
+        ACTOR,
+        CAMERA_EXTENSION
     };
     struct PythonCallback {
         pybind11::object pyClass;
@@ -74,6 +76,7 @@ public:
     static TriggerInterface* CreateTriggerWrapper(LimonAPI* api, size_t index);
     static PlayerExtensionInterface* CreatePlayerExtensionWrapper(LimonAPI* api, size_t index);
     static ActorInterface* CreateActorWrapper(uint32_t id, LimonAPI* api, size_t index);
+    static CameraExtensionInterface* CreateCameraExtensionWrapper(LimonAPI* api, size_t index);
 private:
     // Appends every configured script directory to sys.path, in order and
     // without introducing duplicates. Built-in directory is added first so its

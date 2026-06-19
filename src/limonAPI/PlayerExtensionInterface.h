@@ -18,8 +18,6 @@
  * For each trigger, the name of trigger and a constructor should be put in the map.
  */
 
-class CameraAttachment;
-
 class PlayerExtensionInterface {
     static std::map<std::string, PlayerExtensionInterface*(*)(LimonAPI*)>* extensionTypesMap;
 protected:
@@ -80,9 +78,6 @@ public:
     virtual void setParameters(std::vector<LimonTypes::GenericParameter> parameters) {
         this->parameters = parameters;
     }
-
-    virtual CameraAttachment* getCustomCameraAttachment() { return nullptr; }
-
 
     static PlayerExtensionInterface * createExtension(std::string const& s, LimonAPI* apiInstance) {
         auto it = getMap()->find(s);

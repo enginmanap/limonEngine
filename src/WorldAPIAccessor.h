@@ -69,6 +69,10 @@ public:
     bool applyForceAPI(uint32_t objectID, const LimonTypes::Vec4& forcePosition, const LimonTypes::Vec4& forceAmount);
     bool applyForceToPlayerAPI(const LimonTypes::Vec4& forceAmount);
 
+    uint32_t createCameraRig(const std::string& cameraRigTypeName);
+    bool activateCameraRig(uint32_t cameraRigId);
+    void deactivateCameraRig();
+
     // Raycasting
     std::vector<LimonTypes::GenericParameter> rayCastToCursorAPI() const;
     std::vector<LimonTypes::GenericParameter> rayCastAPI(const LimonTypes::Vec4& start, const LimonTypes::Vec4& direction) const;

@@ -1,5 +1,4 @@
-from typing import Dict, Any, Optional
-from camera_attachment import CameraAttachment
+from typing import Dict, Any
 
 
 class PlayerExtensionInterface:
@@ -38,11 +37,3 @@ class PlayerExtensionInterface:
             str: The extension's name
         """
         raise NotImplementedError("get_name() not implemented")
-
-    def get_custom_camera_attachment(self) -> Optional[CameraAttachment]:
-        """
-        Returns the camera attachment for this player extension. If no camera attachment is returned, the default camera is first person.
-        Returns:
-            Optional[CameraAttachment]: A CameraAttachment instance, or None to use default camera
-        """
-        return None

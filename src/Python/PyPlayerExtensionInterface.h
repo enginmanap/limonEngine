@@ -5,7 +5,6 @@
 #ifndef LIMONENGINE_PYPLAYEREXTENSIONINTERFACE_H
 #define LIMONENGINE_PYPLAYEREXTENSIONINTERFACE_H
 #include <iostream>
-#include "PyCameraAttachment.h"
 #include "limonAPI/InputStates.h"
 #include "limonAPI/LimonTypes.h"
 #include "limonAPI/PlayerExtensionInterface.h"
@@ -48,20 +47,6 @@ public:
             std::cerr << "[PyPlayer] get_name: " << e.what() << std::endl;
             PyErr_Clear();
             return "<error>";
-        }
-    }
-
-    CameraAttachment* getCustomCameraAttachment() noexcept override {
-        try {
-            pybind11::object pyCam = pyObj.attr("get_custom_camera_attachment")();
-            if (pyCam.is_none()) {
-                return nullptr;
-            }
-            return new PyCameraAttachment(limonAPI, pyCam);
-        } catch (const std::exception& e) {
-            std::cerr << "[PyPlayer] get_custom_camera_attachment: " << e.what() << std::endl;
-            PyErr_Clear();
-            return nullptr;
         }
     }
 };

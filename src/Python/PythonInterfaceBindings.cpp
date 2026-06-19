@@ -6,7 +6,8 @@
 #include <limonAPI/TriggerInterface.h>
 #include <limonAPI/ActorInterface.h>
 #include <limonAPI/PlayerExtensionInterface.h>
-#include "PyCameraAttachment.h"
+#include <limonAPI/CameraExtensionInterface.h>
+#include "PyCameraExtensionInterface.h"
 #include "PyPlayerExtensionInterface.h"
 #include "PyActorInterface.h"
 #include "PyTriggerInterface.h"
@@ -78,21 +79,6 @@ void bindInterfaces(pybind11::module_& m) {
             .def_readwrite("near_plane", &CameraAttachment::ProjectionParameters::nearPlane)
             .def_readwrite("far_plane", &CameraAttachment::ProjectionParameters::farPlane);
 
-    // Bind CameraAttachment
-    pybind11::class_<CameraAttachment, PyCameraAttachment>(m, "CameraAttachment")
-            .def(pybind11::init([](LimonAPI *api) {
-                pybind11::object pyClass = pybind11::module_::import("camera_attachment").attr("CameraAttachment");
-                pybind11::object pyInstance = pyClass.attr("__new__")(pyClass);
-                return new PyCameraAttachment(api, pyInstance);
-            }))
-            .def("is_dirty", &CameraAttachment::isDirty)
-            .def("clear_dirty", &CameraAttachment::clearDirty)
-            .def("get_camera_variables", [](CameraAttachment &self) {
-                glm::vec3 pos, center, up, right;
-                self.getCameraVariables(pos, center, up, right);
-                return pybind11::make_tuple(pos, center, up, right);
-            });
-
     pybind11::class_<TriggerInterface, PyTriggerInterface>(m, "TriggerInterface")
             .def(pybind11::init([](LimonAPI *api) {
                 pybind11::object pyClass = pybind11::module_::import("trigger_interface").attr("TriggerInterface");
@@ -113,8 +99,6 @@ void bindInterfaces(pybind11::module_& m) {
             .def("process_input", &PlayerExtensionInterface::processInput)
             .def("interact", &PlayerExtensionInterface::interact)
             .def("get_name", &PlayerExtensionInterface::getName)
-            .def("get_custom_camera_attachment", &PlayerExtensionInterface::getCustomCameraAttachment,
-                 pybind11::return_value_policy::reference)
             .def_static("create_extension", [](const std::string &name, LimonAPI *api) -> PlayerExtensionInterface * {
                 PlayerExtensionInterface* ptr = PlayerExtensionInterface::createExtension(name, api);
                 if (!ptr) {
@@ -168,6 +152,38 @@ void bindInterfaces(pybind11::module_& m) {
                 return ptr;
             }, pybind11::return_value_policy::reference);
 
+    // Bind CameraExtensionInterface (registered, configurable camera rig) - full parity with C++.
+    pybind11::class_<CameraExtensionInterface, PyCameraExtensionInterface>(m, "CameraExtensionInterface")
+            .def(pybind11::init([](LimonAPI *api) {
+                pybind11::object pyClass = pybind11::module_::import("camera_extension_interface").attr("CameraExtensionInterface");
+                pybind11::object pyInstance = pyClass.attr("__new__")(pyClass);
+                return new PyCameraExtensionInterface(api, pyInstance);
+            }))
+            .def("get_name", &CameraExtensionInterface::getName)
+            .def("get_parameters", [](CameraExtensionInterface& self) -> std::vector<LimonTypes::GenericParameter> {
+                pybind11::object py_result = pybind11::cast(&self).attr("get_parameters")();
+                return GenericParameterConverter::convertPythonListToGenericParameterVector(py_result);
+            }, "Get configurable parameters for this camera rig")
+            .def("set_parameters", [](CameraExtensionInterface& self, pybind11::object pyParams) {
+                std::vector<LimonTypes::GenericParameter> params = GenericParameterConverter::convertPythonListToGenericParameterVector(pyParams);
+                self.setParameters(params);
+            })
+            .def("is_dirty", &CameraExtensionInterface::isDirty)
+            .def("clear_dirty", &CameraExtensionInterface::clearDirty)
+            .def("get_projection", &CameraExtensionInterface::getProjection)
+            .def("get_camera_variables", [](CameraExtensionInterface &self) {
+                glm::vec3 pos, center, up, right;
+                self.getCameraVariables(pos, center, up, right);
+                return pybind11::make_tuple(pos, center, up, right);
+            })
+            .def_static("create_extension", [](const std::string &name, LimonAPI *api) -> CameraExtensionInterface * {
+                CameraExtensionInterface* ptr = CameraExtensionInterface::createExtension(name, api);
+                if (!ptr) {
+                    throw std::runtime_error("Failed to create camera rig: " + name);
+                }
+                return ptr;
+            }, pybind11::return_value_policy::reference);
+
     // Plugin registration functions
     m.def("register_trigger_type", &TriggerInterface::registerType);
     m.def("register_extension_type", &PlayerExtensionInterface::registerType);
@@ -175,6 +191,8 @@ void bindInterfaces(pybind11::module_& m) {
     m.def("get_extension_names", &PlayerExtensionInterface::getExtensionNames);
     m.def("register_actor_type", &ActorInterface::registerType);
     m.def("get_actor_names", &ActorInterface::getActorNames);
+    m.def("register_camera_extension_type", &CameraExtensionInterface::registerType);
+    m.def("get_camera_extension_names", &CameraExtensionInterface::getExtensionNames);
 
     // Binding for std::out
     pybind11::class_<PythonStdOut>(m, "StdOut")

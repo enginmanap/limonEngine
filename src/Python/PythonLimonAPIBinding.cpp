@@ -360,6 +360,12 @@ void bindLimonAPI(pybind11::module_& m) {
                  "Returns the camera's world position as Vec4 (same as player position)")
             .def("get_camera_look_direction", &LimonAPI::getCameraLookDirection,
                  "Returns the camera's normalized look direction as Vec4 (w=0)")
+            .def("create_camera_rig", &LimonAPI::createCameraRig,
+                 "Create a registered camera rig type and return its world object id (0 if unknown)")
+            .def("activate_camera_rig", &LimonAPI::activateCameraRig,
+                 "Make the camera rig with this id drive the player camera (true if found)")
+            .def("deactivate_camera_rig", &LimonAPI::deactivateCameraRig,
+                 "Revert to the player's own camera")
             .def("set_model_animation", &LimonAPI::setModelAnimation,
                  "Set an animation for a model",
                  pybind11::arg("model_id"), pybind11::arg("animation_name"),

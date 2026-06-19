@@ -93,6 +93,9 @@ void WorldLoader::attachedAPIMethodsToWorld(World *world, LimonAPI *limonAPI) co
     limonAPI->worldGetObjectMass = std::bind(&WorldAPIAccessor::getObjectMass, world->apiAccessor, std::placeholders::_1);
     limonAPI->worldDisconnectObjectFromPhysics = std::bind(&WorldAPIAccessor::disconnectObjectFromPhysics, world->apiAccessor, std::placeholders::_1);
     limonAPI->worldReconnectObjectToPhysics = std::bind(&WorldAPIAccessor::reconnectObjectToPhysics, world->apiAccessor, std::placeholders::_1);
+    limonAPI->worldCreateCameraRig = std::bind(&WorldAPIAccessor::createCameraRig, world->apiAccessor, std::placeholders::_1);
+    limonAPI->worldActivateCameraRig = std::bind(&WorldAPIAccessor::activateCameraRig, world->apiAccessor, std::placeholders::_1);
+    limonAPI->worldDeactivateCameraRig = std::bind(&WorldAPIAccessor::deactivateCameraRig, world->apiAccessor);
     limonAPI->worldApplyForce = std::bind(&WorldAPIAccessor::applyForceAPI, world->apiAccessor, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
     limonAPI->worldApplyForceToPlayer = std::bind(&WorldAPIAccessor::applyForceToPlayerAPI, world->apiAccessor, std::placeholders::_1);
 

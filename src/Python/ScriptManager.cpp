@@ -8,6 +8,7 @@
 #include "PyTriggerInterface.h"
 #include "PyPlayerExtensionInterface.h"
 #include "PyActorInterface.h"
+#include "PyCameraExtensionInterface.h"
 
 #include <utility>
 
@@ -42,15 +43,22 @@ namespace {
         return ScriptManager::CreateActorWrapper(id, api, N);
     }
 
+    template<size_t N>
+    CameraExtensionInterface* CreateCameraExtensionByIndex(LimonAPI* api) {
+        return ScriptManager::CreateCameraExtensionWrapper(api, N);
+    }
+
     template<int N>
     struct template_instantiator {
         static void instantiate() {
             TriggerInterface* (*trigger_func)(LimonAPI*) = &CreateTriggerByIndex<N>;
             PlayerExtensionInterface* (*extension_func)(LimonAPI*) = &CreatePlayerExtensionByIndex<N>;
             ActorInterface* (*actor_func)(uint32_t, LimonAPI*) = &CreateActorByIndex<N>;
+            CameraExtensionInterface* (*camera_func)(LimonAPI*) = &CreateCameraExtensionByIndex<N>;
             (void)trigger_func;
             (void)extension_func;
             (void)actor_func;
+            (void)camera_func;
         }
     };
 
@@ -106,6 +114,14 @@ template<size_t... Is>
 static constexpr ActorInterface* (*GetActorFactoryHelper(std::index_sequence<Is...>, size_t index))(uint32_t, LimonAPI*) {
     constexpr std::array<ActorInterface* (*)(uint32_t, LimonAPI*), sizeof...(Is)> factories = {
         &CreateActorByIndex<Is>...
+    };
+    return (index < factories.size()) ? factories[index] : nullptr;
+}
+
+template<size_t... Is>
+static constexpr CameraExtensionInterface* (*GetCameraExtensionFactoryHelper(std::index_sequence<Is...>, size_t index))(LimonAPI*) {
+    constexpr std::array<CameraExtensionInterface* (*)(LimonAPI*), sizeof...(Is)> factories = {
+        &CreateCameraExtensionByIndex<Is>...
     };
     return (index < factories.size()) ? factories[index] : nullptr;
 }
@@ -295,6 +311,7 @@ void ScriptManager::LoadScript(WorldInterpreter * worldInterpreter, const std::s
             using TriggerFactory = TriggerInterface* (*)(LimonAPI *);
             using ExtensionFactory = PlayerExtensionInterface* (*)(LimonAPI *);
             using ActorFactory = ActorInterface* (*)(uint32_t, LimonAPI *);
+            using CameraExtensionFactory = CameraExtensionInterface* (*)(LimonAPI *);
 
             if (IsSubclassOf(obj, "trigger_interface", "TriggerInterface")) {
                 std::cout << "[ScriptManager] found TriggerInterface: " << moduleName << std::endl;
@@ -344,6 +361,22 @@ void ScriptManager::LoadScript(WorldInterpreter * worldInterpreter, const std::s
                 ActorInterface::registerType(name, factory);
                 std::cout << "[ScriptManager] Registered actor: " << name << std::endl;
             }
+            else if (IsSubclassOf(obj, "camera_extension_interface", "CameraExtensionInterface")) {
+                std::cout << "[ScriptManager] found CameraExtensionInterface: " << moduleName << std::endl;
+                size_t callbackIndex = GetCallbacks().size();
+                GetCallbacks().push_back({obj, CallBackTypes::CAMERA_EXTENSION});
+
+                constexpr size_t MAX_CAMERA_EXTENSIONS = MAX_PYTHON_SCRIPT_COUNT;
+                CameraExtensionFactory factory = GetCameraExtensionFactoryHelper(std::make_index_sequence<MAX_CAMERA_EXTENSIONS>{}, callbackIndex);
+
+                if (!factory) {
+                    std::cerr << "[ScriptManager] Too many camera rig types registered (max " << MAX_CAMERA_EXTENSIONS << ")" << std::endl;
+                    continue;
+                }
+
+                CameraExtensionInterface::registerType(name, factory);
+                std::cout << "[ScriptManager] Registered camera rig: " << name << std::endl;
+            }
         }
     } catch (const std::exception &e) {
         std::cerr << "[ScriptManager] Error loading script " << moduleName
@@ -380,8 +413,7 @@ PlayerExtensionInterface* ScriptManager::CreatePlayerExtensionWrapper(LimonAPI* 
 
                 if (!pybind11::hasattr(instance, "process_input") ||
                     !pybind11::hasattr(instance, "interact") ||
-                    !pybind11::hasattr(instance, "get_name") ||
-                    !pybind11::hasattr(instance, "get_custom_camera_attachment")) {
+                    !pybind11::hasattr(instance, "get_name")) {
                     std::cerr << "[ScriptManager] Python extension class is missing required methods" << std::endl;
                     return nullptr;
                 }
@@ -436,6 +468,42 @@ ActorInterface* ScriptManager::CreateActorWrapper(uint32_t id, LimonAPI* api, si
         }
     } catch (const std::exception& e) {
         std::cerr << "[ScriptManager] Error in CreateActorWrapper: " << e.what() << std::endl;
+    }
+    return nullptr;
+}
+
+CameraExtensionInterface* ScriptManager::CreateCameraExtensionWrapper(LimonAPI* api, size_t index) {
+    try {
+        std::vector<ScriptManager::PythonCallback>& callbacks = GetCallbacks();
+        if (index < callbacks.size() && callbacks[index].callBackType == CallBackTypes::CAMERA_EXTENSION) {
+            try {
+                pybind11::object pyClass = callbacks[index].pyClass;
+                pybind11::object instance = pyClass.attr("__new__")(pyClass);
+                instance.attr("__init__")(pybind11::cast(api, pybind11::return_value_policy::reference));
+
+                if (!pybind11::hasattr(instance, "get_name") ||
+                    !pybind11::hasattr(instance, "get_camera_variables") ||
+                    !pybind11::hasattr(instance, "get_projection") ||
+                    !pybind11::hasattr(instance, "is_dirty") ||
+                    !pybind11::hasattr(instance, "clear_dirty")) {
+                    std::cerr << "[ScriptManager] Python camera rig class is missing required methods" << std::endl;
+                    return nullptr;
+                }
+
+                std::cout << "Successfully created Python CameraExtensionInterface instance" << std::endl;
+                return new PyCameraExtensionInterface(api, instance);
+
+            } catch (const pybind11::error_already_set& e) {
+                std::cerr << "[ScriptManager] Python error during camera rig creation: " << e.what() << std::endl;
+                PyErr_Print();
+                return nullptr;
+            } catch (const std::exception& e) {
+                std::cerr << "[ScriptManager] C++ error during camera rig creation: " << e.what() << std::endl;
+                return nullptr;
+            }
+        }
+    } catch (const std::exception& e) {
+        std::cerr << "[ScriptManager] Error in CreateCameraExtensionWrapper: " << e.what() << std::endl;
     }
     return nullptr;
 }
