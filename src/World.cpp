@@ -654,28 +654,36 @@ void World::render() {
 
 void World::renderGUIImages(const std::shared_ptr<GraphicsProgram>& renderProgram, const std::string &cameraName [[gnu::unused]], const std::vector<HashUtil::HashedString> &tags [[gnu::unused]]) const {
     PROFILE_RENDERING("World::renderGUIImages");
-    cursor->renderWithProgram(renderProgram, 0);
-
+    // We are assuming depth 0 - 0,019 would be close enough for GUI layers occupy the reserved depth zone [0, 0.019]; level 0 is furthest back.
+    // 0 is the furthest back
+    // This would work for perspective camera anyways, but for ortho,
+    // you need to limit it to -20 (which means ortho can use roughly 98% of the depth
     for (auto it = guiLayers.begin(); it != guiLayers.end(); ++it) {
+        float layerDepth = 0.019f * (1.0f - static_cast<float>((*it)->getLevel()) / 512.0f);
+        renderProgram->setUniform("layerDepth", layerDepth);
         (*it)->renderImageWithProgram(renderProgram);
     }
-    //render API gui layer
+    renderProgram->setUniform("layerDepth", 0.019f / 256.0f);
     apiGUILayer->renderImageWithProgram(renderProgram);
-
+    renderProgram->setUniform("layerDepth", 0.019f / 512.0f);
+    cursor->renderWithProgram(renderProgram, 0);
 }
 
 void World::renderGUITexts(const std::shared_ptr<GraphicsProgram>& renderProgram, const std::string &cameraName [[gnu::unused]], const std::vector<HashUtil::HashedString> &tags [[gnu::unused]]) const {
     PROFILE_RENDERING("World::renderGUITexts");
     for (auto it = guiLayers.begin(); it != guiLayers.end(); ++it) {
+        float layerDepth = 0.019f * (1.0f - static_cast<float>((*it)->getLevel()) / 512.0f);
+        renderProgram->setUniform("layerDepth", layerDepth);
         (*it)->renderTextWithProgram(renderProgram);
     }
-    //render API gui layer
+    renderProgram->setUniform("layerDepth", 0.019f / 256.0f);
     apiGUILayer->renderTextWithProgram(renderProgram);
 
     uint32_t triangle, line;
     graphicsWrapper->getRenderTriangleAndLineCount(triangle, line);
     renderCounts->updateText("Tris: " + std::to_string(triangle) + ", lines: " + std::to_string(line));
     bool renderInformations =renderInformationsOption.getOrDefault(false);
+    renderProgram->setUniform("layerDepth", 0.019f / 512.0f);
     if (renderInformations) {
         renderCounts->renderWithProgram(renderProgram, 0);
         debugOutputGUI->renderWithProgram(renderProgram, 0);

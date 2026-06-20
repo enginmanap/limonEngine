@@ -1,6 +1,7 @@
 
 uniform mat4 worldTransformMatrix;
 uniform mat4 orthogonalProjectionMatrix;
+uniform float layerDepth;
 
 layout (location = 2) in vec4 position;
 layout (location = 3) in vec2 textureCoordinate;
@@ -12,5 +13,6 @@ void main(void)
 {
     vs_fs_textureCoord = textureCoordinate;
     gl_Position = orthogonalProjectionMatrix * (worldTransformMatrix * position);
+    gl_Position.z = (2.0 * layerDepth - 1.0) * gl_Position.w;
     externalAlpha = 1.0 - worldTransformMatrix[3][2];
 }

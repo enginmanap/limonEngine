@@ -27,14 +27,17 @@
  *                  is never exactly parallel to world-up.
  *   params[3]    : orthographicHalfHeight (THE ZOOM) — half the vertical span of the view volume in world
  *                  units; the horizontal span follows the screen aspect. Smaller = more zoomed in.
- *   params[4..5] : near / far planes. Orthographic has uniform depth precision, so a wide range is cheap.
+ *   params[4..5] : near / far planes. nearPlane MUST be <= -farPlane/49 so that the depth range
+ *                  [0, 0.02) is reserved for GUI elements and scene geometry starts above that.
+ *                  Values that violate this are clamped on load. Orthographic has uniform depth
+ *                  precision, so the ~2% reservation costs negligible precision.
  */
 class OrthographicCameraRig : public CameraExtensionInterface {
     bool dirty = true;
 public:
     glm::vec3 offset                 = glm::vec3(0.0f, 20.0f, 20.0f);
     float     orthographicHalfHeight = 15.0f;
-    float     nearPlane              = 0.1f;
+    float     nearPlane              = -20.0f;
     float     farPlane               = 1000.0f;
 
     explicit OrthographicCameraRig(LimonAPI* limonAPI) : CameraExtensionInterface(limonAPI) {}
@@ -75,6 +78,10 @@ public:
                 orthographicHalfHeight = static_cast<float>(this->parameters[3].value.doubleValue);
                 nearPlane              = static_cast<float>(this->parameters[4].value.doubleValue);
                 farPlane               = static_cast<float>(this->parameters[5].value.doubleValue);
+                float nearPlaneLimit = -farPlane / 49.0f;
+                if (nearPlane > nearPlaneLimit) {
+                    nearPlane = nearPlaneLimit;
+                }
             }
         }
     }
