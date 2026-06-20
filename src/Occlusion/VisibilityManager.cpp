@@ -278,8 +278,9 @@ void VisibilityManager::fillVisibleObjectPerCamera(const void* visibilityRequest
     // every frustum/LOD-passing object is added directly. runOcclusion gates only the occluder work.
     bool occlusionCullingEnabled = visibilityRequest->occlusionCullingEnabledOption.getOrDefault(true);
 
-    // Software occlusion culling runs for the player camera (perspective OR orthographic), not for shadow
-    // cameras. Keyed on the player role rather than projection type, since the player can now be orthographic.
+    // Software occlusion culling runs for the player camera (perspective or orthographic). Shadow cameras
+    // are skipped. SDOC handles orthographic via auto-detection in the submodule (see snapdragon-oc
+    // commit 42a9b69c): it detects ortho from the VP bottom row and carries clip-Z in the invW slot.
     static const uint64_t playerCameraTag = HashUtil::hashString(HardCodedTags::CAMERA_PLAYER);
     bool skipOcclusionCulling = false;
     if (!visibilityRequest->camera->hasTag(playerCameraTag)) {
@@ -349,9 +350,11 @@ void VisibilityManager::fillVisibleObjectPerCamera(const void* visibilityRequest
                             totalCounter++;
                             if (visibilityRequest->camera->isVisible(currentModel->getTransformation()->getWorldTransform() * meshMeta->mesh->getAabbMin(),
                                                                      currentModel->getTransformation()->getWorldTransform() * meshMeta->mesh->getAabbMax())) {
-                                uint32_t lod = getLodLevel(lodDistances, skipRenderDistance, skipRenderSize, maxSkipRenderSize, viewMatrix, visibilityRequest->playerPosition, meshMeta->mesh->getAabbMin(), meshMeta->mesh->getAabbMax(), objectAverageDepth, objectScreenSize);
+                                glm::vec3 meshWorldMin, meshWorldMax;
+                                AABBConverter::getWorldSpaceAABB(currentModel->getTransformation()->getWorldTransform(), meshMeta->mesh->getAabbMin(), meshMeta->mesh->getAabbMax(), meshWorldMin, meshWorldMax);
+                                uint32_t lod = getLodLevel(lodDistances, skipRenderDistance, skipRenderSize, maxSkipRenderSize, viewMatrix, visibilityRequest->playerPosition, meshWorldMin, meshWorldMax, objectAverageDepth, objectScreenSize);
                                 if (lod != SKIP_LOD_LEVEL) {
-                                    if (objectScreenSize > 0.25f || !runOcclusion) {
+                                    if (objectScreenSize > softwareOcclusionOccluderSize || !runOcclusion) {
                                         if (objectScreenSize > maxScreenSize) {
                                             maxScreenSize = objectScreenSize;
                                             maxScreenSizeObjectName = currentModel->getName();
