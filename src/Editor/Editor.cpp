@@ -1535,6 +1535,31 @@ void Editor::addAnimationDefinitionToEditor() {
     }
 }
 
+bool Editor::buildFilteredVisibleIDs(PhysicalRenderable *physicalRenderable, const std::string& filterText,
+                                     std::unordered_set<uint32_t>& visibleIDs) {
+    GameObject* gameObject = dynamic_cast<GameObject*>(physicalRenderable);
+    if (physicalRenderable == nullptr || gameObject == nullptr) {
+        return false;
+    }
+    std::string lower = gameObject->getName();
+    std::transform(lower.begin(), lower.end(), lower.begin(), [](unsigned char character){ return std::tolower(character); });
+    bool selfMatches = lower.find(filterText) != std::string::npos;
+
+    bool childMatches = false;
+    for (Attachable* childAttachable : physicalRenderable->getChildren()) {
+        PhysicalRenderable* child = dynamic_cast<PhysicalRenderable*>(childAttachable);
+        if (child != nullptr && buildFilteredVisibleIDs(child, filterText, visibleIDs)) {
+            childMatches = true;
+        }
+    }
+
+    if (selfMatches || childMatches) {
+        visibleIDs.insert(gameObject->getWorldObjectID());
+        return true;
+    }
+    return false;
+}
+
 void Editor::buildTreeFromAllGameObjects() {
 
     std::vector<uint32_t> parentageList;
@@ -1562,6 +1587,30 @@ void Editor::buildTreeFromAllGameObjects() {
         this->pickedObjectID = this->pickedObject->getWorldObjectID();
     }
 
+    ImGui::InputText("Filter##objectFilter", objectFilterBuffer, sizeof(objectFilterBuffer));
+    std::string filterText = objectFilterBuffer;
+    std::transform(filterText.begin(), filterText.end(), filterText.begin(), [](unsigned char character){ return std::tolower(character); });
+    bool hasFilter = !filterText.empty();
+
+    std::unordered_set<uint32_t> filteredVisibleIDs;
+    if (hasFilter) {
+        for (auto iterator = world->modelGroups.begin(); iterator != world->modelGroups.end(); ++iterator) {
+            if (iterator->second->getParentObject() != nullptr) {
+                continue;
+            }
+            buildFilteredVisibleIDs(iterator->second, filterText, filteredVisibleIDs);
+        }
+        for (auto iterator = world->objects.begin(); iterator != world->objects.end(); ++iterator) {
+            if (iterator->second->getParentObject() != nullptr) {
+                continue;
+            }
+            buildFilteredVisibleIDs(iterator->second, filterText, filteredVisibleIDs);
+        }
+        if (world->startingPlayer.attachedModel != nullptr) {
+            buildFilteredVisibleIDs(world->startingPlayer.attachedModel, filterText, filteredVisibleIDs);
+        }
+    }
+
     ImGui::BeginChild("Game Object Selector##treeMode", ImVec2(400, 200), true, ImGuiWindowFlags_HorizontalScrollbar);
     ImGuiTreeNodeFlags nodeFlags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick;
     ImGuiTreeNodeFlags leafFlags = nodeFlags | ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;//no recursion after this point
@@ -1576,7 +1625,13 @@ void Editor::buildTreeFromAllGameObjects() {
             if(iterator->second->getParentObject() != nullptr) {
                 continue; //the parent will show this group
             }
-            createObjectTreeRecursive(iterator->second, this->pickedObjectID, nodeFlags, leafFlags, parentageList);
+            if(hasFilter) {
+                GameObject* gameObject = dynamic_cast<GameObject*>(iterator->second);
+                if(gameObject == nullptr || filteredVisibleIDs.count(gameObject->getWorldObjectID()) == 0) {
+                    continue;
+                }
+            }
+            createObjectTreeRecursive(iterator->second, this->pickedObjectID, nodeFlags, leafFlags, parentageList, filterText, filteredVisibleIDs);
         }
         //ModelGroups end
 
@@ -1586,10 +1641,19 @@ void Editor::buildTreeFromAllGameObjects() {
                 continue; //the parent will show this group
             }
             if(iterator->second->hasChildren()) {
-                createObjectTreeRecursive(iterator->second, this->pickedObjectID, nodeFlags, leafFlags, parentageList);
+                if(hasFilter) {
+                    GameObject* gameObject = dynamic_cast<GameObject*>(iterator->second);
+                    if(gameObject == nullptr || filteredVisibleIDs.count(gameObject->getWorldObjectID()) == 0) {
+                        continue;
+                    }
+                }
+                createObjectTreeRecursive(iterator->second, this->pickedObjectID, nodeFlags, leafFlags, parentageList, filterText, filteredVisibleIDs);
             } else {
                 GameObject* currentObject = dynamic_cast<GameObject*>(iterator->second);
                 if(currentObject != nullptr) {
+                    if(hasFilter && filteredVisibleIDs.count(currentObject->getWorldObjectID()) == 0) {
+                        continue;
+                    }
                     bool isSelected = currentObject->getWorldObjectID() == this->pickedObjectID;
                     ImGui::TreeNodeEx(currentObject->getName().c_str(), leafFlags | (isSelected ? ImGuiTreeNodeFlags_Selected : 0));
                     if(isSelected && !parentageList.empty()) {
@@ -1615,9 +1679,30 @@ void Editor::buildTreeFromAllGameObjects() {
     //GUI elements
     if (ImGui::TreeNode("GUI Elements##guiElementsTreeRoot")) {
         for (auto iterator = world->guiLayers.begin(); iterator != world->guiLayers.end(); ++iterator) {
+            std::vector<GameObject*> thisLayersElements = (*iterator)->getGuiElements();
+            if (hasFilter) {
+                bool layerHasMatch = false;
+                for (GameObject* guiElement : thisLayersElements) {
+                    std::string lower = guiElement->getName();
+                    std::transform(lower.begin(), lower.end(), lower.begin(), [](unsigned char character){ return std::tolower(character); });
+                    if (lower.find(filterText) != std::string::npos) {
+                        layerHasMatch = true;
+                        break;
+                    }
+                }
+                if (!layerHasMatch) {
+                    continue;
+                }
+            }
             if (ImGui::TreeNode((std::to_string((*iterator)->getLevel()) + "##guiLayerLevelTreeNode").c_str())) {
-                std::vector<GameObject*> thisLayersElements = (*iterator)->getGuiElements();
                 for (auto guiElement = thisLayersElements.begin(); guiElement != thisLayersElements.end(); ++guiElement) {
+                    if (hasFilter) {
+                        std::string lower = (*guiElement)->getName();
+                        std::transform(lower.begin(), lower.end(), lower.begin(), [](unsigned char character){ return std::tolower(character); });
+                        if (lower.find(filterText) == std::string::npos) {
+                            continue;
+                        }
+                    }
                     ImGui::TreeNodeEx((*guiElement)->getName().c_str(), leafFlags | (((*guiElement)->getWorldObjectID() == this->pickedObjectID) ? ImGuiTreeNodeFlags_Selected : 0));
                     if (ImGui::IsItemClicked()) {
                         if(this->pickedObject != nullptr ) {
@@ -1626,7 +1711,6 @@ void Editor::buildTreeFromAllGameObjects() {
                         this->pickedObject = *guiElement;
                         this->pickedObject->addTag(HardCodedTags::PICKED_OBJECT);
                     }
-
                 }
                 ImGui::TreePop();
             }
@@ -1642,6 +1726,13 @@ void Editor::buildTreeFromAllGameObjects() {
         for (auto iterator = world->lights.begin(); iterator != world->lights.end(); ++iterator) {
             GameObject* currentObject = dynamic_cast<GameObject*>(*iterator);
             if(currentObject != nullptr) {
+                if (hasFilter) {
+                    std::string lower = currentObject->getName();
+                    std::transform(lower.begin(), lower.end(), lower.begin(), [](unsigned char character){ return std::tolower(character); });
+                    if (lower.find(filterText) == std::string::npos) {
+                        continue;
+                    }
+                }
                 ImGui::TreeNodeEx(currentObject->getName().c_str(), leafFlags | ((currentObject->getWorldObjectID() == this->pickedObjectID) ? ImGuiTreeNodeFlags_Selected : 0));
                 if (ImGui::IsItemClicked()) {
                     if(this->pickedObject != nullptr ) {
@@ -1665,6 +1756,13 @@ void Editor::buildTreeFromAllGameObjects() {
             if(currentSound->getParentObject() != nullptr) {
                 continue; // shown under parent in the Objects tree
             }
+            if (hasFilter) {
+                std::string lower = currentSound->getName();
+                std::transform(lower.begin(), lower.end(), lower.begin(), [](unsigned char character){ return std::tolower(character); });
+                if (lower.find(filterText) == std::string::npos) {
+                    continue;
+                }
+            }
             bool isSelected = currentSound->getWorldObjectID() == this->pickedObjectID;
             ImGui::TreeNodeEx(currentSound->getName().c_str(), leafFlags | (isSelected ? ImGuiTreeNodeFlags_Selected : 0));
             if(ImGui::IsItemClicked()) {
@@ -1686,6 +1784,13 @@ void Editor::buildTreeFromAllGameObjects() {
         for (auto iterator = world->triggers.begin(); iterator != world->triggers.end(); ++iterator) {
             GameObject* currentObject = dynamic_cast<GameObject*>(iterator->second);
             if(currentObject != nullptr) {
+                if (hasFilter) {
+                    std::string lower = currentObject->getName();
+                    std::transform(lower.begin(), lower.end(), lower.begin(), [](unsigned char character){ return std::tolower(character); });
+                    if (lower.find(filterText) == std::string::npos) {
+                        continue;
+                    }
+                }
                 ImGui::TreeNodeEx(currentObject->getName().c_str(), leafFlags | ((currentObject->getWorldObjectID() == this->pickedObjectID) ? ImGuiTreeNodeFlags_Selected : 0));
                 if (ImGui::IsItemClicked()) {
                     this->pickedObject = currentObject;
@@ -1703,6 +1808,13 @@ void Editor::buildTreeFromAllGameObjects() {
         for (auto iterator = world->emitters.begin(); iterator != world->emitters.end(); ++iterator) {
             std::shared_ptr<GameObject> currentObject = std::dynamic_pointer_cast<GameObject>(iterator->second);
             if(currentObject != nullptr) {
+                if (hasFilter) {
+                    std::string lower = currentObject->getName();
+                    std::transform(lower.begin(), lower.end(), lower.begin(), [](unsigned char character){ return std::tolower(character); });
+                    if (lower.find(filterText) == std::string::npos) {
+                        continue;
+                    }
+                }
                 ImGui::TreeNodeEx(currentObject->getName().c_str(), leafFlags | ((currentObject->getWorldObjectID() == this->pickedObjectID) ? ImGuiTreeNodeFlags_Selected : 0));
                 if (ImGui::IsItemClicked()) {
                     this->pickedObject = currentObject.get();//FIXME this is an unsafe use
@@ -1719,6 +1831,13 @@ void Editor::buildTreeFromAllGameObjects() {
     //Cameras
     if (ImGui::TreeNode("Cameras##CamerasTreeRoot")) {
         for (const std::unique_ptr<CameraRig>& cameraRig : world->cameraRigs) {
+            if (hasFilter) {
+                std::string lower = cameraRig->getName();
+                std::transform(lower.begin(), lower.end(), lower.begin(), [](unsigned char character){ return std::tolower(character); });
+                if (lower.find(filterText) == std::string::npos) {
+                    continue;
+                }
+            }
             bool isSelected = cameraRig->getWorldObjectID() == this->pickedObjectID;
             std::string label = cameraRig->getName() + (world->activeCameraRig == cameraRig.get() ? " (active)" : "");
             ImGui::TreeNodeEx(label.c_str(), leafFlags | (isSelected ? ImGuiTreeNodeFlags_Selected : 0));
@@ -1753,7 +1872,7 @@ void Editor::buildTreeFromAllGameObjects() {
         this->pickedObject = world->physicalPlayer;
     }
     if(isOpen) {
-        createObjectTreeRecursive(world->startingPlayer.attachedModel, this->pickedObjectID, nodeFlags, leafFlags, parentageList);
+        createObjectTreeRecursive(world->startingPlayer.attachedModel, this->pickedObjectID, nodeFlags, leafFlags, parentageList, filterText, filteredVisibleIDs);
         ImGui::TreePop();
     }
 
@@ -1762,18 +1881,22 @@ void Editor::buildTreeFromAllGameObjects() {
 
 void Editor::createObjectTreeRecursive(PhysicalRenderable *physicalRenderable, uint32_t pickedObjectID,
                                       ImGuiTreeNodeFlags nodeFlags, ImGuiTreeNodeFlags leafFlags,
-                                      std::vector<uint32_t> parentage) {
+                                      std::vector<uint32_t> parentage,
+                                      const std::string& filterText,
+                                      const std::unordered_set<uint32_t>& filteredVisibleIDs) {
     GameObject* gameObjectOfSame = dynamic_cast<GameObject*>(physicalRenderable);
     if(physicalRenderable == nullptr || gameObjectOfSame == nullptr) {
         return;
     }
-    if(!parentage.empty()) {
+    bool hasFilter = !filterText.empty();
+    if(hasFilter) {
+        ImGui::SetNextItemOpen(true);
+    } else if(!parentage.empty()) {
         if(gameObjectOfSame->getWorldObjectID() == parentage[0]) {
             ImGui::SetNextItemOpen(true);
         } else {
             ImGui::SetNextItemOpen(false);
         }
-
     }
     bool isSelected = gameObjectOfSame->getWorldObjectID() == pickedObjectID;
     bool isNodeOpen = ImGui::TreeNodeEx((gameObjectOfSame->getName() + "##ModelGroupsTreeElement" + std::to_string(gameObjectOfSame->getWorldObjectID())).c_str(),
@@ -1793,13 +1916,19 @@ void Editor::createObjectTreeRecursive(PhysicalRenderable *physicalRenderable, u
            GameObject* currentObject = dynamic_cast<GameObject*>(*iterator);
            if(currentObject != nullptr) {
                if((*iterator)->hasChildren()) {
+                   if(hasFilter && filteredVisibleIDs.count(currentObject->getWorldObjectID()) == 0) {
+                       continue;
+                   }
                    //if we came here, it means the first element of the parentage was this, remove that element and pass
                    if(!parentage.empty()) {
                        parentage.erase(parentage.begin());
                    }
                    createObjectTreeRecursive(static_cast<ModelGroup *>(currentObject), pickedObjectID, nodeFlags,
-                                             leafFlags, parentage);
+                                             leafFlags, parentage, filterText, filteredVisibleIDs);
                } else {
+                   if(hasFilter && filteredVisibleIDs.count(currentObject->getWorldObjectID()) == 0) {
+                       continue;
+                   }
                    isSelected = currentObject->getWorldObjectID() == pickedObjectID;
                    ImGui::TreeNodeEx(currentObject->getName().c_str(), leafFlags |
                                                                        (isSelected ? ImGuiTreeNodeFlags_Selected

@@ -6,11 +6,13 @@
 #define LIMONENGINE_EDITOR_H
 
 #include "ImGui/imgui.h"
+#include <algorithm>
 #include <set>
 #include <memory>
 #include <vector>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <glm/glm.hpp>
 #include "Editor/ImGuiRequest.h"
 #include "limonAPI/LimonTypes.h"
@@ -70,6 +72,7 @@ public:
 
     char worldSaveNameBuffer[256] = {0};
     char quitWorldNameBuffer[256] = {0};
+    char objectFilterBuffer[128] = {0};
     char extensionNameBuffer[32] = {0};
     std::string shownExtensionParametersName;//tracks which extension's parameters are currently mirrored in startingPlayer.parameters
 
@@ -98,7 +101,12 @@ private:
     void addAnimationDefinitionToEditor();
     void createObjectTreeRecursive(PhysicalRenderable *physicalRenderable, uint32_t pickedObjectID,
                                           ImGuiTreeNodeFlags nodeFlags, ImGuiTreeNodeFlags leafFlags,
-                                          std::vector<uint32_t> parentage);
+                                          std::vector<uint32_t> parentage,
+                                          const std::string& filterText,
+                                          const std::unordered_set<uint32_t>& filteredVisibleIDs);
+
+    bool buildFilteredVisibleIDs(PhysicalRenderable *physicalRenderable, const std::string& filterText,
+                                 std::unordered_set<uint32_t>& visibleIDs);
 
     void renderSelectedObject(Model* model, std::shared_ptr<GraphicsProgram> graphicsProgram) const;
 
