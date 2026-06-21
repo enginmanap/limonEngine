@@ -7,7 +7,6 @@
 
 #include <iostream>
 #include "limonAPI/PlayerExtensionInterface.h"
-#include "ThirdPersonCameraAttachment.h"
 #include "glm/gtc/quaternion.hpp"
 /**
  * Cowboy attachment of player can be doing one of these:
@@ -57,7 +56,9 @@ class CowboyShooterExtension : public  PlayerExtensionInterface {
 
     InputStates inputState;
 
-    ThirdPersonCameraAttachment *cameraAttachment;
+    // The third-person camera is now a registered camera rig, activated through the runtime API on the
+    // first tick (see processInput). This guards that one-time activation.
+    bool thirdPersonCameraActivated = false;
 
     void shootingTransition();
     void walkingTransition();
@@ -81,8 +82,27 @@ public:
                 currentGun = Gun::PISTOL;
             }
         }
-        cameraAttachment = new ThirdPersonCameraAttachment(limonAPI);
+        //seed the editor-configurable default parameters
+        LimonTypes::GenericParameter healthParameter;
+        healthParameter.requestType = LimonTypes::GenericParameter::RequestParameterTypes::FREE_NUMBER;
+        healthParameter.valueType = LimonTypes::GenericParameter::ValueTypes::LONG;
+        healthParameter.description = "Health";
+        healthParameter.value.longValue = 100;
+        healthParameter.isSet = true;//optional: editor allows saving with the default
+        this->parameters.push_back(healthParameter);
     }
+
+    /**
+     * Stores the configured parameters and applies the Health value onto the live hit point counter,
+     * so a value set in the editor (or loaded from a map) takes effect.
+     */
+    void setParameters(std::vector<LimonTypes::GenericParameter> parameters) override {
+        PlayerExtensionInterface::setParameters(parameters);//keep the base parameters member in sync
+        if(!this->parameters.empty() && this->parameters[0].valueType == LimonTypes::GenericParameter::ValueTypes::LONG) {
+            this->hitPoints = static_cast<int>(this->parameters[0].value.longValue);
+        }
+    }
+
     void removeDamageIndicator(std::vector<LimonTypes::GenericParameter> parameters);
     void removeMuzzleFlash(std::vector<LimonTypes::GenericParameter> parameters);
     void processInput(const InputStates &inputState, const PlayerExtensionInterface::PlayerInformation &playerInformation,
@@ -95,8 +115,6 @@ public:
     void processHitReaction();
 
     void addDamageIndicator(const std::vector<LimonTypes::GenericParameter> &interactionData);
-
-    CameraAttachment* getCustomCameraAttachment() override { return cameraAttachment; }
 };
 
 
