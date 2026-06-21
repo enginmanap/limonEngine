@@ -32,11 +32,20 @@ std::vector<glm::vec3> SSAOKernelRenderMethod::generateSSAOKernels(uint32_t kern
 }
 
 
-bool SSAOKernelRenderMethod::initRender(std::shared_ptr<GraphicsProgram> program, std::vector<LimonTypes::GenericParameter> parameters [[gnu::unused]]) {
+bool SSAOKernelRenderMethod::initRender(std::shared_ptr<GraphicsProgram> program, std::vector<LimonTypes::GenericParameter> parameters) {
     setupQuad();
     long sampleCount;
-    OptionsUtil::Options::Option<long> sampleCountOption = graphicsInterface->getOptions()->getOption<long>(graphicsInterface->getOptions()->getHash("SSAOSampleCount"));
-    sampleCount = sampleCountOption.getOrDefault(9);
+    long sampleOverride = 0;
+    if(!parameters.empty()) {
+        sampleOverride = parameters[0].value.longValue;
+    }
+    if(sampleOverride != 0) {
+        // a non-zero sampleOverride parameter takes precedence over the engine option
+        sampleCount = sampleOverride;
+    } else {
+        OptionsUtil::Options::Option<long> sampleCountOption = graphicsInterface->getOptions()->getOption<long>(graphicsInterface->getOptions()->getHash("SSAOSampleCount"));
+        sampleCount = sampleCountOption.getOrDefault(9);
+    }
     std::vector<glm::vec3> kernels = generateSSAOKernels(sampleCount);
     if(!program->setUniform("ssaoKernel[0]", kernels)) {
         std::cerr << "uniform variable \"ssaoKernel\" couldn't be set" << std::endl;
