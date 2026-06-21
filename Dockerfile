@@ -9,7 +9,7 @@
 # Fix: Actions → "Build base image" → Run workflow, then re-run this build.
 FROM ghcr.io/enginmanap/limonengine-base:latest
 
-RUN git clone --recurse-submodules https://github.com/enginmanap/limonEngine.git /limonEngine
+RUN git clone --depth 1 --recurse-submodules --shallow-submodules https://github.com/enginmanap/limonEngine.git /limonEngine
 WORKDIR /limonEngine
 RUN mkdir -p build
 WORKDIR /limonEngine/build
