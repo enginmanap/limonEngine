@@ -1048,7 +1048,9 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
                     if(heldAttachment != nullptr) {
                         uint32_t rigID = world->getNextObjectID();
                         std::string rigName = rigTypeName + "_" + std::to_string(rigID);
-                        world->addCameraRig(std::unique_ptr<CameraRig>(new CameraRig(rigID, rigName, heldAttachment)));
+                        CameraRig* newRig = new CameraRig(rigID, rigName, heldAttachment);
+                        world->addCameraRig(std::unique_ptr<CameraRig>(newRig));
+                        this->pickedObject = newRig;
                         showCameraError = false;
                     } else {
                         showCameraError = true;
@@ -2011,8 +2013,12 @@ void Editor::buildTreeFromAllGameObjects() {
                     continue;
                 }
             }
-            bool isSelected = cameraRig->getWorldObjectID() == this->pickedObjectID;
-            std::string label = cameraRig->getName() + (world->activeCameraRig == cameraRig.get() ? " (active)" : "");
+            bool isActive = cameraRig.get() == world->activeCameraRig;
+            if(isActive) {
+                ImGui::BeginDisabled();
+            }
+            bool isSelected = !isActive && cameraRig->getWorldObjectID() == this->pickedObjectID;
+            std::string label = cameraRig->getName() + (isActive ? " (active)" : "") + "##CamRig" + std::to_string(cameraRig->getWorldObjectID());
             ImGui::TreeNodeEx(label.c_str(), leafFlags | (isSelected ? ImGuiTreeNodeFlags_Selected : 0));
             if (ImGui::IsItemClicked()) {
                 if(this->pickedObject != nullptr) {
@@ -2020,6 +2026,9 @@ void Editor::buildTreeFromAllGameObjects() {
                 }
                 this->pickedObject = cameraRig.get();
                 this->pickedObject->addTag(HardCodedTags::PICKED_OBJECT);
+            }
+            if(isActive) {
+                ImGui::EndDisabled();
             }
         }
         ImGui::TreePop();
@@ -2029,23 +2038,32 @@ void Editor::buildTreeFromAllGameObjects() {
     if(world->physicalPlayer == nullptr) {
         world->physicalPlayer = new PhysicalPlayer(1, world->options, world->cursor, world->startingPlayer.position, world->startingPlayer.orientation, world->startingPlayer.attachedModel);// 1 is reserved for physical player
     }
-    bool isOpen = false;
-    if(world->startingPlayer.attachedModel == nullptr) {
-        ImGui::TreeNodeEx(world->physicalPlayer->getName().c_str(), leafFlags |
-                                                                   ((world->physicalPlayer->getWorldObjectID() ==
-                                                                     this->pickedObjectID) ? ImGuiTreeNodeFlags_Selected
-                                                                                     : 0));
-    } else {
-        isOpen = ImGui::TreeNodeEx(world->physicalPlayer->getName().c_str(), nodeFlags |
-                                                                   ((world->physicalPlayer->getWorldObjectID() ==
-                                                                     this->pickedObjectID) ? ImGuiTreeNodeFlags_Selected
-                                                                                     : 0));
-    }
+    bool isOpen = ImGui::TreeNodeEx(world->physicalPlayer->getName().c_str(), nodeFlags |
+                                                               ((world->physicalPlayer->getWorldObjectID() ==
+                                                                 this->pickedObjectID) ? ImGuiTreeNodeFlags_Selected
+                                                                                 : 0));
     if (ImGui::IsItemClicked()) {
         this->pickedObject = world->physicalPlayer;
     }
     if(isOpen) {
-        createObjectTreeRecursive(world->startingPlayer.attachedModel, this->pickedObjectID, nodeFlags, leafFlags, parentageList, filterText, filteredVisibleIDs);
+        if(world->startingPlayer.attachedModel != nullptr) {
+            createObjectTreeRecursive(world->startingPlayer.attachedModel, this->pickedObjectID, nodeFlags, leafFlags, parentageList, filterText, filteredVisibleIDs);
+        }
+        if(world->activeCameraRig != nullptr) {
+            bool rigSelected = world->activeCameraRig->getWorldObjectID() == this->pickedObjectID;
+            std::string rigLabel = world->activeCameraRig->getName() + " (active)##PlayerCamRig" + std::to_string(world->activeCameraRig->getWorldObjectID());
+            ImGui::TreeNodeEx(rigLabel.c_str(), leafFlags | (rigSelected ? ImGuiTreeNodeFlags_Selected : 0));
+            if(ImGui::IsItemClicked()) {
+                if(this->pickedObject != nullptr) {
+                    this->pickedObject->removeTag(HardCodedTags::PICKED_OBJECT);
+                }
+                this->pickedObject = world->activeCameraRig;
+                this->pickedObject->addTag(HardCodedTags::PICKED_OBJECT);
+                this->pickedObjectID = this->pickedObject->getWorldObjectID();
+            }
+        } else {
+            ImGui::TextDisabled("Default Camera");
+        }
         ImGui::TreePop();
     }
 
