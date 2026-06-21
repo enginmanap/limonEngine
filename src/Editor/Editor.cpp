@@ -35,6 +35,9 @@
 #include "GameObjects/GUIAnimation.h"
 #include "Occlusion/VisibilityManager.h"
 #include "ProfilerUI.h"
+#include "Utils/GLMConverter.h"
+#include <glm/gtx/matrix_decompose.hpp>
+#include <glm/gtx/euler_angles.hpp>
 
 std::shared_ptr<const Material> EditorNS::selectedMeshesMaterial = nullptr;
 std::shared_ptr<Material> EditorNS::selectedFromListMaterial = nullptr;
@@ -99,8 +102,10 @@ bool Editor::generateEditorElementsForParameters(std::vector<LimonTypes::Generic
                 parameter.valueType = LimonTypes::GenericParameter::ValueTypes::LONG;
                 std::string currentObject;
                 if (parameter.isSet) {
-                    if(world->objects.find((uint32_t) (parameter.value.longValue)) != world->objects.end()) {
-                        currentObject = dynamic_cast<Model *>(world->objects[(uint32_t) (parameter.value.longValue)])->getName();
+                    auto objectIt = world->objects.find((uint32_t)(parameter.value.longValue));
+                    Model* foundModel = (objectIt != world->objects.end()) ? dynamic_cast<Model*>(objectIt->second) : nullptr;
+                    if (foundModel != nullptr) {
+                        currentObject = foundModel->getName();
                     } else {
                         parameter.isSet = false;
                         currentObject = "Not selected";
@@ -136,7 +141,14 @@ bool Editor::generateEditorElementsForParameters(std::vector<LimonTypes::Generic
                 parameter.valueType = LimonTypes::GenericParameter::ValueTypes::LONG;
                 std::string currentAnimation;
                 if (parameter.isSet) {
-                    currentAnimation = world->loadedAnimations[static_cast<uint32_t>(parameter.value.longValue)].getName();
+                    uint32_t animIndex = static_cast<uint32_t>(parameter.value.longValue);
+                    if (animIndex < world->loadedAnimations.size()) {
+                        currentAnimation = world->loadedAnimations[animIndex].getName();
+                    } else {
+                        parameter.isSet = false;
+                        currentAnimation = "Not selected";
+                        isAllSet = false;
+                    }
                 } else {
                     currentAnimation = "Not selected";
                     isAllSet = false;
@@ -230,34 +242,33 @@ bool Editor::generateEditorElementsForParameters(std::vector<LimonTypes::Generic
             case LimonTypes::GenericParameter::RequestParameterTypes::FREE_NUMBER: {
                 switch (parameter.valueType) {
                     case LimonTypes::GenericParameter::ValueTypes::DOUBLE: {
-                        parameter.valueType = LimonTypes::GenericParameter::ValueTypes::DOUBLE;
                         if (!parameter.isSet) {
                             isAllSet = false;
                         }
-                        float value = parameter.value.doubleValue;
-                        if (ImGui::DragFloat((parameter.description + "##triggerParam" + std::to_string(i) + "##" +
-                                              std::to_string(index)).c_str(),
-                                             &value, sizeof(parameter.value.doubleValue))) {
+                        double value = parameter.value.doubleValue;
+                        if (ImGui::InputDouble((parameter.description + "##triggerParam" + std::to_string(i) + "##" +
+                                               std::to_string(index)).c_str(), &value)) {
                             parameter.value.doubleValue = value;
                             parameter.isSet = true;
                         };
                     }
                     break;
-                    case LimonTypes::GenericParameter::ValueTypes::LONG:
-                    default: {
-                        parameter.valueType = LimonTypes::GenericParameter::ValueTypes::LONG;
+                    case LimonTypes::GenericParameter::ValueTypes::LONG: {
                         if (!parameter.isSet) {
                             isAllSet = false;
                         }
-                        int value = parameter.value.longValue;
+                        int value = static_cast<int>(parameter.value.longValue);
                         if (ImGui::DragInt((parameter.description + "##triggerParam" + std::to_string(i) + "##" +
-                                            std::to_string(index)).c_str(),
-                                           &value, sizeof(parameter.value.longValue))) {
+                                            std::to_string(index)).c_str(), &value, 1)) {
                             parameter.value.longValue = value;
                             parameter.isSet = true;
                         };
                     }
-                        break;
+                    break;
+                    default: {
+                        std::cerr << "FREE_NUMBER with unhandled value type " << parameter.valueType << std::endl;
+                    }
+                    break;
                 }
             }
             break;
@@ -266,7 +277,14 @@ bool Editor::generateEditorElementsForParameters(std::vector<LimonTypes::Generic
                 parameter.value.longValues[0] = 3;
                 std::string currentObject;
                 if (parameter.isSet) {
-                    currentObject = dynamic_cast<TriggerObject*>(world->triggers[(uint32_t)(parameter.value.longValues[1])])->getName();
+                    auto triggerIt = world->triggers.find((uint32_t)(parameter.value.longValues[1]));
+                    if (triggerIt != world->triggers.end()) {
+                        currentObject = dynamic_cast<TriggerObject*>(triggerIt->second)->getName();
+                    } else {
+                        parameter.isSet = false;
+                        currentObject = "Not selected";
+                        isAllSet = false;
+                    }
                 } else {
                     currentObject = "Not selected";
                     isAllSet = false;
@@ -300,9 +318,158 @@ bool Editor::generateEditorElementsForParameters(std::vector<LimonTypes::Generic
             }
             break;
 
-            case LimonTypes::GenericParameter::RequestParameterTypes::COORDINATE:
-            case LimonTypes::GenericParameter::RequestParameterTypes::TRANSFORM:
-                std::cerr << "These parameter types are not handled!" << std::endl;
+            case LimonTypes::GenericParameter::RequestParameterTypes::LIGHT: {
+                parameter.valueType = LimonTypes::GenericParameter::ValueTypes::LONG;
+                std::string currentLight;
+                if (parameter.isSet) {
+                    Light* foundLight = nullptr;
+                    for (Light* light : world->lights) {
+                        if (light->getWorldObjectID() == (uint32_t)(parameter.value.longValue)) {
+                            foundLight = light;
+                            break;
+                        }
+                    }
+                    if (foundLight != nullptr) {
+                        currentLight = foundLight->getName();
+                    } else {
+                        parameter.isSet = false;
+                        currentLight = "Not selected";
+                        isAllSet = false;
+                    }
+                } else {
+                    currentLight = "Not selected";
+                    isAllSet = false;
+                }
+                if (ImGui::BeginCombo((parameter.description + "##triggerParam" + std::to_string(i) + "##" + std::to_string(index)).c_str(),
+                                      currentLight.c_str())) {
+                    for (Light* light : world->lights) {
+                        bool isThisLightSelected = (currentLight == light->getName());
+                        if (ImGui::Selectable(light->getName().c_str(), isThisLightSelected)) {
+                            parameter.value.longValue = static_cast<long>(light->getWorldObjectID());
+                            parameter.isSet = true;
+                        }
+                        if (isThisLightSelected) {
+                            ImGui::SetItemDefaultFocus();
+                        }
+                    }
+                    ImGui::EndCombo();
+                }
+            }
+            break;
+
+            case LimonTypes::GenericParameter::RequestParameterTypes::SOUND: {
+                parameter.valueType = LimonTypes::GenericParameter::ValueTypes::LONG;
+                std::string currentSound;
+                if (parameter.isSet) {
+                    auto soundIt = world->sounds.find((uint32_t)(parameter.value.longValue));
+                    if (soundIt != world->sounds.end()) {
+                        currentSound = soundIt->second->getName();
+                    } else {
+                        parameter.isSet = false;
+                        currentSound = "Not selected";
+                        isAllSet = false;
+                    }
+                } else {
+                    currentSound = "Not selected";
+                    isAllSet = false;
+                }
+                if (ImGui::BeginCombo((parameter.description + "##triggerParam" + std::to_string(i) + "##" + std::to_string(index)).c_str(),
+                                      currentSound.c_str())) {
+                    for (auto it = world->sounds.begin(); it != world->sounds.end(); ++it) {
+                        bool isThisSoundSelected = (currentSound == it->second->getName());
+                        if (ImGui::Selectable(it->second->getName().c_str(), isThisSoundSelected)) {
+                            parameter.value.longValue = static_cast<long>(it->first);
+                            parameter.isSet = true;
+                        }
+                        if (isThisSoundSelected) {
+                            ImGui::SetItemDefaultFocus();
+                        }
+                    }
+                    ImGui::EndCombo();
+                }
+            }
+            break;
+
+            case LimonTypes::GenericParameter::RequestParameterTypes::CAMERA_RIG: {
+                parameter.valueType = LimonTypes::GenericParameter::ValueTypes::LONG;
+                std::string currentRig;
+                if (parameter.isSet) {
+                    CameraRig* foundRig = world->findCameraRigByID((uint32_t)(parameter.value.longValue));
+                    if (foundRig != nullptr) {
+                        currentRig = foundRig->getName();
+                    } else {
+                        parameter.isSet = false;
+                        currentRig = "Not selected";
+                        isAllSet = false;
+                    }
+                } else {
+                    currentRig = "Not selected";
+                    isAllSet = false;
+                }
+                if (ImGui::BeginCombo((parameter.description + "##triggerParam" + std::to_string(i) + "##" + std::to_string(index)).c_str(),
+                                      currentRig.c_str())) {
+                    for (const std::unique_ptr<CameraRig>& rig : world->cameraRigs) {
+                        bool isThisRigSelected = (currentRig == rig->getName());
+                        if (ImGui::Selectable(rig->getName().c_str(), isThisRigSelected)) {
+                            parameter.value.longValue = static_cast<long>(rig->getWorldObjectID());
+                            parameter.isSet = true;
+                        }
+                        if (isThisRigSelected) {
+                            ImGui::SetItemDefaultFocus();
+                        }
+                    }
+                    ImGui::EndCombo();
+                }
+            }
+            break;
+
+            case LimonTypes::GenericParameter::RequestParameterTypes::COORDINATE: {
+                parameter.valueType = LimonTypes::GenericParameter::ValueTypes::VEC4;
+                if (!parameter.isSet) {
+                    isAllSet = false;
+                }
+                std::string coordLabel = "##triggerParam" + std::to_string(i) + "##" + std::to_string(index);
+                if (ImGui::DragFloat((parameter.description + " X" + coordLabel).c_str(), &parameter.value.vectorValue.x, 1.0f)) { parameter.isSet = true; }
+                if (ImGui::DragFloat((parameter.description + " Y" + coordLabel).c_str(), &parameter.value.vectorValue.y, 1.0f)) { parameter.isSet = true; }
+                if (ImGui::DragFloat((parameter.description + " Z" + coordLabel).c_str(), &parameter.value.vectorValue.z, 1.0f)) { parameter.isSet = true; }
+            }
+            break;
+
+            case LimonTypes::GenericParameter::RequestParameterTypes::TRANSFORM: {
+                parameter.valueType = LimonTypes::GenericParameter::ValueTypes::MAT4;
+                if (!parameter.isSet) {
+                    parameter.value.matrixValue = GLMConverter::GLMToLimon(glm::mat4(1.0f));
+                    isAllSet = false;
+                }
+                glm::mat4 currentMatrix = GLMConverter::LimonToGLM(parameter.value.matrixValue);
+                glm::vec3 translate, scale, skew;
+                glm::quat orientation;
+                glm::vec4 perspective;
+                glm::decompose(currentMatrix, scale, orientation, translate, skew, perspective);
+                glm::vec3 euler = glm::degrees(glm::eulerAngles(orientation));
+
+                std::string transformLabel = "##triggerParam" + std::to_string(i) + "##" + std::to_string(index);
+                bool transformChanged = false;
+                ImGui::Text("%s", parameter.description.c_str());
+                if (ImGui::DragFloat(("Pos X" + transformLabel).c_str(), &translate.x, 1.0f)) { transformChanged = true; }
+                if (ImGui::DragFloat(("Pos Y" + transformLabel).c_str(), &translate.y, 1.0f)) { transformChanged = true; }
+                if (ImGui::DragFloat(("Pos Z" + transformLabel).c_str(), &translate.z, 1.0f)) { transformChanged = true; }
+                if (ImGui::DragFloat(("Rot X" + transformLabel).c_str(), &euler.x, 1.0f)) { transformChanged = true; }
+                if (ImGui::DragFloat(("Rot Y" + transformLabel).c_str(), &euler.y, 1.0f)) { transformChanged = true; }
+                if (ImGui::DragFloat(("Rot Z" + transformLabel).c_str(), &euler.z, 1.0f)) { transformChanged = true; }
+                if (ImGui::DragFloat(("Scale X" + transformLabel).c_str(), &scale.x, 0.01f)) { transformChanged = true; }
+                if (ImGui::DragFloat(("Scale Y" + transformLabel).c_str(), &scale.y, 0.01f)) { transformChanged = true; }
+                if (ImGui::DragFloat(("Scale Z" + transformLabel).c_str(), &scale.z, 0.01f)) { transformChanged = true; }
+                if (transformChanged) {
+                    glm::quat newOrientation = glm::quat(glm::radians(euler));
+                    glm::mat4 newMatrix = glm::translate(glm::mat4(1.0f), translate)
+                                       * glm::mat4_cast(newOrientation)
+                                       * glm::scale(glm::mat4(1.0f), scale);
+                    parameter.value.matrixValue = GLMConverter::GLMToLimon(newMatrix);
+                    parameter.isSet = true;
+                }
+            }
+            break;
 
         }
     }

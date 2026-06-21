@@ -142,7 +142,8 @@ namespace LimonTypes {
 
     struct GenericParameter {
         enum RequestParameterTypes {
-            MODEL, ANIMATION, SWITCH, FREE_TEXT, TRIGGER, GUI_TEXT, FREE_NUMBER, COORDINATE, TRANSFORM, MULTI_SELECT
+            MODEL, ANIMATION, SWITCH, FREE_TEXT, TRIGGER, GUI_TEXT, FREE_NUMBER, COORDINATE, TRANSFORM, MULTI_SELECT,
+            LIGHT, SOUND, CAMERA_RIG
         };
         RequestParameterTypes requestType = FREE_NUMBER;
         std::string description;

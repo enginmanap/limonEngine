@@ -29,6 +29,9 @@ class RequestParameterType(Enum):
     COORDINATE = 7
     TRANSFORM = 8
     MULTI_SELECT = 9
+    LIGHT = 10
+    SOUND = 11
+    CAMERA_RIG = 12
 
 
 class GenericParameter:
