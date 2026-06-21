@@ -1611,7 +1611,7 @@ void Editor::buildTreeFromAllGameObjects() {
         }
     }
 
-    ImGui::BeginChild("Game Object Selector##treeMode", ImVec2(400, 200), true, ImGuiWindowFlags_HorizontalScrollbar);
+    ImGui::BeginChild("Game Object Selector##treeMode", ImVec2(0, 200), true, ImGuiWindowFlags_HorizontalScrollbar);
     ImGuiTreeNodeFlags nodeFlags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick;
     ImGuiTreeNodeFlags leafFlags = nodeFlags | ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;//no recursion after this point
 
