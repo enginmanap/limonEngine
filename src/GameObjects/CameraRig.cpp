@@ -5,6 +5,17 @@
 #include "CameraRig.h"
 
 #include <glm/gtx/matrix_decompose.hpp>
+#include "ImGui/imgui.h"
+
+ImGuiResult CameraRig::addImGuiEditorElements(const ImGuiRequest &request) {
+    ImGuiResult result;
+    result.updated = transformation.addImGuiEditorElements(
+        request.perspectiveCameraMatrix, request.perspectiveMatrix, false, getParentObject() != nullptr);
+    if (ImGui::Button("Remove Camera Rig")) {
+        result.remove = true;
+    }
+    return result;
+}
 
 void CameraRig::feedHeldAttachmentTransform() {
     if (heldAttachment == nullptr) {

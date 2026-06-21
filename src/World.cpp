@@ -1248,6 +1248,17 @@ void World::activateCameraRig(CameraRig* rig) {
     }
 }
 
+void World::removeCameraRig(uint32_t rigID) {
+    if (activeCameraRig != nullptr && activeCameraRig->getWorldObjectID() == rigID) {
+        activateCameraRig(nullptr);
+    }
+    cameraRigs.erase(
+        std::remove_if(cameraRigs.begin(), cameraRigs.end(),
+            [rigID](const std::unique_ptr<CameraRig>& rig) { return rig->getWorldObjectID() == rigID; }),
+        cameraRigs.end());
+    unusedIDs.push(rigID);
+}
+
 void World::switchPlayer(Player *targetPlayer, InputHandler &inputHandler) {
     //we should reconnect disconnected object if switching to editor mode, because we use physics for pickup
     if(targetPlayer->getWorldSettings().editorShown && (currentPlayersSettings == nullptr ||!currentPlayersSettings->editorShown)) {

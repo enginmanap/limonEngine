@@ -130,6 +130,10 @@ void LimonAPI::deactivateCameraRig() {
     worldDeactivateCameraRig();
 }
 
+bool LimonAPI::removeCameraRig(uint32_t rigID) {
+    return worldRemoveCameraRig(rigID);
+}
+
 bool LimonAPI::applyForce(uint32_t modelID, const LimonTypes::Vec4 &forcePosition, const LimonTypes::Vec4 &forceAmount) {
     return worldApplyForce(modelID, forcePosition, forceAmount);
 }

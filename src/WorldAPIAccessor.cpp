@@ -47,6 +47,15 @@ void WorldAPIAccessor::deactivateCameraRig() {
     world->activateCameraRig(nullptr);
 }
 
+bool WorldAPIAccessor::removeCameraRig(uint32_t rigID) {
+    if (world->findCameraRigByID(rigID) == nullptr) {
+        std::cerr << "removeCameraRig: no camera rig with id " << rigID << std::endl;
+        return false;
+    }
+    world->removeCameraRig(rigID);
+    return true;
+}
+
 uint32_t WorldAPIAccessor::addAnimationToObjectWithSound(uint32_t modelID, uint32_t animationID, bool looped, bool startOnLoad,
                                                          const std::string& soundToPlay) {
     World::AnimationStatus* as = new World::AnimationStatus;

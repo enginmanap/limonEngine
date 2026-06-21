@@ -66,6 +66,7 @@ public:
     ObjectTypes getTypeID() const override { return ObjectTypes::CAMERA_RIG; }
     std::string getName() const override { return name; }
     uint32_t getWorldObjectID() const override { return worldID; }
+    ImGuiResult addImGuiEditorElements(const ImGuiRequest &request) override;
 };
 
 #endif //LIMONENGINE_CAMERARIG_H

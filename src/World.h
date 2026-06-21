@@ -299,6 +299,7 @@ private:
     CameraRig* findCameraRigByID(uint32_t id) const;
     // Make rig the active camera (nullptr deactivates, reverting to the player's own camera).
     void activateCameraRig(CameraRig* rig);
+    void removeCameraRig(uint32_t rigID);
     //std::vector<Camera*> allCameras;//the info about all cameras is inferred by culling results, might need fixing.
     BulletDebugDrawer *debugDrawer;
 

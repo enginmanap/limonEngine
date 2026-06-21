@@ -96,6 +96,7 @@ void WorldLoader::attachedAPIMethodsToWorld(World *world, LimonAPI *limonAPI) co
     limonAPI->worldCreateCameraRig = std::bind(&WorldAPIAccessor::createCameraRig, world->apiAccessor, std::placeholders::_1);
     limonAPI->worldActivateCameraRig = std::bind(&WorldAPIAccessor::activateCameraRig, world->apiAccessor, std::placeholders::_1);
     limonAPI->worldDeactivateCameraRig = std::bind(&WorldAPIAccessor::deactivateCameraRig, world->apiAccessor);
+    limonAPI->worldRemoveCameraRig = std::bind(&WorldAPIAccessor::removeCameraRig, world->apiAccessor, std::placeholders::_1);
     limonAPI->worldApplyForce = std::bind(&WorldAPIAccessor::applyForceAPI, world->apiAccessor, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
     limonAPI->worldApplyForceToPlayer = std::bind(&WorldAPIAccessor::applyForceToPlayerAPI, world->apiAccessor, std::placeholders::_1);
 

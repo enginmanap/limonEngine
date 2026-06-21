@@ -67,6 +67,7 @@ public:
     uint32_t createCameraRig(const std::string& cameraRigTypeName);
     bool activateCameraRig(uint32_t cameraRigId);
     void deactivateCameraRig();
+    bool removeCameraRig(uint32_t rigID);
 
     bool applyForce(uint32_t modelID, const LimonTypes::Vec4 &forcePosition, const LimonTypes::Vec4 &forceAmount);
     bool applyForceToPlayer(const LimonTypes::Vec4 &forceAmount);
@@ -341,6 +342,7 @@ private:
     std::function<uint32_t (const std::string&)> worldCreateCameraRig;
     std::function<bool (uint32_t)> worldActivateCameraRig;
     std::function<void ()> worldDeactivateCameraRig;
+    std::function<bool (uint32_t)> worldRemoveCameraRig;
 
     std::function<bool (uint32_t, const LimonTypes::Vec4&, const LimonTypes::Vec4&)> worldApplyForce;
     std::function<bool (const LimonTypes::Vec4&)> worldApplyForceToPlayer;

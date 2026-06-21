@@ -72,6 +72,7 @@ public:
     uint32_t createCameraRig(const std::string& cameraRigTypeName);
     bool activateCameraRig(uint32_t cameraRigId);
     void deactivateCameraRig();
+    bool removeCameraRig(uint32_t rigID);
 
     // Raycasting
     std::vector<LimonTypes::GenericParameter> rayCastToCursorAPI() const;

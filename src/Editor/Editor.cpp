@@ -1220,9 +1220,7 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
                 if(selectedRig->getHeldAttachment() != nullptr) {
                     std::vector<LimonTypes::GenericParameter> rigParameters = selectedRig->getHeldAttachment()->getParameters();
                     this->generateEditorElementsForParameters(rigParameters, 300);
-                    if(ImGui::Button("Apply##CameraRigParameters")) {
-                        selectedRig->getHeldAttachment()->setParameters(rigParameters);
-                    }
+                    selectedRig->getHeldAttachment()->setParameters(rigParameters);
                 }
             }
             if (objectEditorResult.materialChanged) {
@@ -1442,6 +1440,14 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
                         }
                         world->unusedIDs.push(soundID);
                         world->sounds.erase(soundID);
+                    }
+                }
+                    break;
+                case GameObject::ObjectTypes::CAMERA_RIG: {
+                    if (objectEditorResult.remove) {
+                        uint32_t rigID = this->pickedObject->getWorldObjectID();
+                        this->pickedObject = nullptr;
+                        world->apiAccessor->removeCameraRig(rigID);
                     }
                 }
                     break;
