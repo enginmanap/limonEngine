@@ -10,6 +10,9 @@
 
 #include "limonAPI/LimonConverter.h"
 #include "CowboyShooterExtension.h"
+#include "OrthographicCameraRig.h"
+#include "ObjectAttachedCameraRig.h"
+#include "ThirdPersonCameraRig.h"
 #include "WesternMenuPlayerExtension.h"
 
 const glm::quat ShooterPlayerExtension::direction = glm::quat(0.0f, 0.0f, 1.0f, 0.0f);//this is used to reverse hit normal
