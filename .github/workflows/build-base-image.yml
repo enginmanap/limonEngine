@@ -1,0 +1,43 @@
+# Builds and pushes the limonEngine CI base image to GitHub Container Registry.
+# Runs ONLY when Dockerfile.base changes, so the base image stays stable and
+# normal CI runs skip the apt-get install step entirely.
+#
+# Resulting image: ghcr.io/enginmanap/limonengine-base:latest
+# Consumer:        .github/workflows/docker-image.yml (FROM that image)
+#
+# To manually rebuild (e.g. Ubuntu security update, accidental deletion):
+#   Actions → "Build base image" → Run workflow
+
+name: Build base image
+
+on:
+  push:
+    branches: ["master"]
+    paths:
+      - "Dockerfile.base"
+  workflow_dispatch: # manual trigger from the Actions UI
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write # required to push to ghcr.io
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push base image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: Dockerfile.base
+          push: true
+          tags: ghcr.io/enginmanap/limonengine-base:latest

@@ -1,0 +1,30 @@
+# Pre-built dependency layer for limonEngine CI.
+# Stored on GitHub Container Registry and rebuilt ONLY when this file changes
+# (see .github/workflows/build-base-image.yml).
+#
+# If you add, remove, or upgrade a system dependency:
+#   1. Edit the apt-get install line below.
+#   2. Commit and push — the "Build base image" workflow detects the change
+#      and pushes a new :latest to ghcr.io/enginmanap/limonengine-base.
+#   3. The main CI workflow (docker-image.yml) picks it up automatically
+#      on its next run.
+#
+# If you need to force a rebuild without changing deps (e.g. after an Ubuntu
+# security update), go to Actions → "Build base image" → Run workflow.
+
+FROM ubuntu:24.04
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git \
+    cmake \
+    build-essential \
+    libassimp-dev \
+    libsdl2-dev \
+    libsdl2-image-dev \
+    libfreetype6-dev \
+    libtinyxml2-dev \
+    libglew-dev \
+    libglm-dev \
+    python3-dev \
+    libssl-dev \
+    && rm -rf /var/lib/apt/lists/*

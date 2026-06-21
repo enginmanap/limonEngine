@@ -1,18 +1,38 @@
+# Main CI workflow — builds the limonEngine Docker image on every push/PR to master.
+# Uses ghcr.io/enginmanap/limonengine-base:latest as the FROM layer so the
+# apt-get install step is skipped, keeping builds fast.
+#
+# If this workflow fails with "manifest unknown" or "pull access denied":
+#   The base image needs to exist first. Go to Actions → "Build base image"
+#   → Run workflow, then re-run this job.
+#
+# If you change system dependencies, edit Dockerfile.base (not Dockerfile).
+# The "Build base image" workflow will push a new base automatically.
+
 name: Docker Image CI
 
 on:
   push:
-    branches: [ "master" ]
+    branches: ["master"]
   pull_request:
-    branches: [ "master" ]
+    branches: ["master"]
 
 jobs:
-
   build:
-
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read # required to pull from ghcr.io
 
     steps:
-    - uses: actions/checkout@v4
-    - name: Build the Docker image
-      run: docker build . --file Dockerfile --tag my-image-name:$(date +%s)
+      - uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build the Docker image
+        run: docker build . --file Dockerfile --tag my-image-name:$(date +%s)
