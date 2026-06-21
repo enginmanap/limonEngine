@@ -54,6 +54,19 @@ bool APISerializer::serializeParameterRequest(const LimonTypes::GenericParameter
         case LimonTypes::GenericParameter::MULTI_SELECT: {
             currentElement->SetText("MultiSelect");
         }
+            break;
+        case LimonTypes::GenericParameter::LIGHT: {
+            currentElement->SetText("Light");
+        }
+            break;
+        case LimonTypes::GenericParameter::SOUND: {
+            currentElement->SetText("Sound");
+        }
+            break;
+        case LimonTypes::GenericParameter::CAMERA_RIG: {
+            currentElement->SetText("CameraRig");
+        }
+            break;
 
     }
     parameterNode->InsertEndChild(currentElement);
@@ -200,6 +213,12 @@ APISerializer::deserializeParameterRequest(tinyxml2::XMLElement *parameterNode, 
         newParameterRequest->requestType = LimonTypes::GenericParameter::RequestParameterTypes::TRANSFORM;
     } else if(strcmp(parameterAttribute->GetText(), "MultiSelect") == 0) {
         newParameterRequest->requestType = LimonTypes::GenericParameter::RequestParameterTypes::MULTI_SELECT;
+    } else if(strcmp(parameterAttribute->GetText(), "Light") == 0) {
+        newParameterRequest->requestType = LimonTypes::GenericParameter::RequestParameterTypes::LIGHT;
+    } else if(strcmp(parameterAttribute->GetText(), "Sound") == 0) {
+        newParameterRequest->requestType = LimonTypes::GenericParameter::RequestParameterTypes::SOUND;
+    } else if(strcmp(parameterAttribute->GetText(), "CameraRig") == 0) {
+        newParameterRequest->requestType = LimonTypes::GenericParameter::RequestParameterTypes::CAMERA_RIG;
     } else {
         std::cerr << "Trigger parameter request type was unknown. " << parameterAttribute->GetText() << std::endl;
         return nullptr;
