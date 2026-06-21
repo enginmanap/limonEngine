@@ -794,14 +794,13 @@ WorldLoader::loadObject( std::shared_ptr<AssetManager> assetManager, tinyxml2::X
         //std::cout << "Object does not have AI." << std::endl;
 #endif
     } else {
-        ActorInterface* actor = APISerializer::deserializeActorInterface(objectAttribute, limonAPI);
+        ActorInterface* actor = APISerializer::deserializeActorInterface(objectAttribute, limonAPI, loadedObjectInformation->model->getWorldObjectID());
 
         loadedObjectInformation->aiGridStartPoint = GLMConverter::BltToGLM(loadedObjectInformation->model->getRigidBody()->getCenterOfMassPosition()) +
                            glm::vec3(0, 2.0f, 0);
         loadedObjectInformation->isAIGridStartPointSet = true;
         if(actor != nullptr) {//most likely shared library not found, but in general possible.
             loadedObjectInformation->modelActor = actor;
-            loadedObjectInformation->modelActor->setModel(loadedObjectInformation->model->getWorldObjectID());
             loadedObjectInformation->model->attachAI(loadedObjectInformation->modelActor);
         }
     }
@@ -949,13 +948,12 @@ WorldLoader::loadObjectV2(std::shared_ptr<AssetManager> assetManager, tinyxml2::
 
     objectAttribute = objectNode->FirstChildElement("Actor");
     if (objectAttribute != nullptr) {
-        ActorInterface* actor = APISerializer::deserializeActorInterface(objectAttribute, limonAPI);
+        ActorInterface* actor = APISerializer::deserializeActorInterface(objectAttribute, limonAPI, loadedObjectInformation->model->getWorldObjectID());
         loadedObjectInformation->aiGridStartPoint = GLMConverter::BltToGLM(loadedObjectInformation->model->getRigidBody()->getCenterOfMassPosition()) +
                                                     glm::vec3(0, 2.0f, 0);
         loadedObjectInformation->isAIGridStartPointSet = true;
         if(actor != nullptr) {
             loadedObjectInformation->modelActor = actor;
-            loadedObjectInformation->modelActor->setModel(loadedObjectInformation->model->getWorldObjectID());
             loadedObjectInformation->model->attachAI(loadedObjectInformation->modelActor);
         }
     }

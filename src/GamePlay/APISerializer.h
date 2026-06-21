@@ -27,7 +27,7 @@ public:
 
     static void serializeActorInterface(const ActorInterface& actor, tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentNode);
 
-    static ActorInterface *deserializeActorInterface(tinyxml2::XMLElement *actorNode, LimonAPI *limonAPI);
+    static ActorInterface *deserializeActorInterface(tinyxml2::XMLElement *actorNode, LimonAPI *limonAPI, uint32_t modelID);
 
     static void loadVec4(tinyxml2::XMLNode *vectorNode, LimonTypes::Vec4 &vector);
 

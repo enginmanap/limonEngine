@@ -466,7 +466,7 @@ void APISerializer::serializeActorInterface(const ActorInterface& actor, tinyxml
     AINode->InsertEndChild(parametersNode);
 }
 
-ActorInterface *APISerializer::deserializeActorInterface(tinyxml2::XMLElement *actorNode, LimonAPI *limonAPI) {
+ActorInterface *APISerializer::deserializeActorInterface(tinyxml2::XMLElement *actorNode, LimonAPI *limonAPI, uint32_t modelID) {
     ActorInterface* actor = nullptr;
     if (actorNode != nullptr) {
         std::string typeName;
@@ -477,20 +477,21 @@ ActorInterface *APISerializer::deserializeActorInterface(tinyxml2::XMLElement *a
             std::cerr << "Name can't be found for Actor load, failed." << std::endl;
             return nullptr;
         }
-        uint32_t id;
+        uint32_t worldActorID;
         tinyxml2::XMLElement* idNode = actorNode->FirstChildElement("ID");
         if(idNode != nullptr && idNode->GetText() != nullptr){
-            id = std::atoi(idNode->GetText());
+            worldActorID = std::atoi(idNode->GetText());
         } else {
             std::cerr << "ID can't be found for Actor load, failed." << std::endl;
             return nullptr;
         }
 
-        actor = ActorInterface::createActor(typeName, id, limonAPI);
+        actor = ActorInterface::createActor(typeName, worldActorID, limonAPI);
         if(actor == nullptr) {
             std::cerr << "Actor with given name " << typeName << " can't be created. Please check if extensions loaded successfully." << std::endl;
             return nullptr;
         }
+        actor->setModel(modelID);
         tinyxml2::XMLElement* allParametersNode = actorNode->FirstChildElement("parameters");
         if(allParametersNode == nullptr) {
             return actor;//no parameters saved, use defaults
