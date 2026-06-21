@@ -1183,6 +1183,8 @@ void World::activateCameraAttachment(CameraAttachment* attachment) {
     if (playerCamera != nullptr && wantOrthographic == haveOrthographic) {
         // Same projection type: keep the camera object, just rebind the attachment (and refresh its params).
         playerCamera->setCameraAttachment(attachment);
+        feedActiveCameraRig();
+        playerCamera->getCameraMatrix();
         return;
     }
 

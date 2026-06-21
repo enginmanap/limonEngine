@@ -68,6 +68,7 @@ public:
         this->view.y = this->center.y;
         this->view.z = this->center.z;
         this->view.w = 0;
+        dirty = true;
     };
 
     void rotate(float xPosition, float yPosition, float xChange, float yChange) override;

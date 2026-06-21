@@ -65,6 +65,7 @@ public:
         this->view.y = this->center.y;
         this->view.z = this->center.z;
         this->view.w = 0;
+        dirty = true;
 
         cursor->setTranslate(glm::vec2(options->getScreenWidth()/2.0f, options->getScreenHeight()/2.0f));
     };

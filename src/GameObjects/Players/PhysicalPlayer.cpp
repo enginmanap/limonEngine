@@ -560,6 +560,7 @@ void PhysicalPlayer::ownControl(const glm::vec3& position, const glm::vec3 &look
     if(attachedModel != nullptr) {
         attachedModel->getTransformation()->setOrientation(calculatePlayerRotation());
     }
+    dirty = true;
 };
 void PhysicalPlayer::setDead() {
     player->setAngularFactor(0.1);

@@ -72,6 +72,7 @@ public:
         this->view.y = this->center.y;
         this->view.z = this->center.z;
         this->view.w = 0;
+        dirty = true;
         //FIXME Do we need release control?
     };
 
