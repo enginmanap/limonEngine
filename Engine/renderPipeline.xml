@@ -735,17 +735,8 @@
         <StageInformation>
             <RenderMethods>
                 <Method>
-                    <Name>Render Debug Information</Name>
-                    <Index>2</Index>
-                    <GraphicsProgram>
-                        <VertexShader>./Engine/Shaders/Lines/vertex.glsl</VertexShader>
-                        <GeometryShader></GeometryShader>
-                        <FragmentShader>./Engine/Shaders/Lines/fragment.glsl</FragmentShader>
-                                            </GraphicsProgram>
-                </Method>
-                <Method>
                     <Name>Render GUI Images</Name>
-                    <Index>1</Index>
+                    <Index>0</Index>
                     <GraphicsProgram>
                         <VertexShader>./Engine/Shaders/GUIImage/vertex.glsl</VertexShader>
                         <GeometryShader></GeometryShader>
@@ -754,11 +745,20 @@
                 </Method>
                 <Method>
                     <Name>Render GUI Texts</Name>
-                    <Index>0</Index>
+                    <Index>1</Index>
                     <GraphicsProgram>
                         <VertexShader>./Engine/Shaders/GUIText/vertex.glsl</VertexShader>
                         <GeometryShader></GeometryShader>
                         <FragmentShader>./Engine/Shaders/GUIText/fragment.glsl</FragmentShader>
+                                            </GraphicsProgram>
+                </Method>
+                <Method>
+                    <Name>Render Debug Information</Name>
+                    <Index>2</Index>
+                    <GraphicsProgram>
+                        <VertexShader>./Engine/Shaders/Lines/vertex.glsl</VertexShader>
+                        <GeometryShader></GeometryShader>
+                        <FragmentShader>./Engine/Shaders/Lines/fragment.glsl</FragmentShader>
                                             </GraphicsProgram>
                 </Method>
             </RenderMethods>

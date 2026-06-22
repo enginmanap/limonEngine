@@ -153,10 +153,10 @@ private:
             priority = 14;
             return renderGPUParticleEmitters;
         } else if(name == "Render GUI Texts") {
-            priority = 21;
+            priority = 22;
             return renderGUITexts;
         } else if(name == "Render GUI Images") {
-            priority = 22;
+            priority = 21;
             return renderGUIImages;
         } else if(name == "Render Editor") {
             priority = 90;
