@@ -26,7 +26,6 @@ class APISerializer;
 
 
 class LimonAPI {
-    friend class APISerializer;
 public:
 
     const OptionsUtil::Options * getOptions();
@@ -297,8 +296,7 @@ public:
         limonReturnPrevious = std::move(worldReturnPreviousMethod);
     }
 private:
-    friend class WorldLoader;
-    friend class ProfileScope;
+    friend class WorldAPIAccessor;
 
     std::map<std::string, LimonTypes::GenericParameter> variableStore;
 

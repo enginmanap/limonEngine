@@ -2,7 +2,8 @@
 // Holds all LimonAPI-exposed World methods, keeping World.cpp focused on simulation logic.
 //
 
-#pragma once
+#ifndef LIMONENGINE_WORLDAPIACCESSOR_H
+#define LIMONENGINE_WORLDAPIACCESSOR_H
 
 #include <string>
 #include <vector>
@@ -14,13 +15,14 @@
 
 #include "limonAPI/LimonTypes.h"
 #include "limonAPI/InputStates.h"
+#include "limonAPI/LimonAPI.h"
 
 class World;
 
 class WorldAPIAccessor {
     World* world;
 public:
-    explicit WorldAPIAccessor(World* world) : world(world) {}
+    WorldAPIAccessor(World* world, LimonAPI* limonAPI);
 
     // Animation
     uint32_t addAnimationToObjectWithSound(uint32_t modelID, uint32_t animationID, bool looped, bool startOnLoad,
@@ -161,3 +163,5 @@ public:
     bool setEmitterParticleSpeed(uint32_t emitterID, const LimonTypes::Vec4& speedMultiplier, const LimonTypes::Vec4& speedOffset);
     bool setEmitterParticleGravity(uint32_t emitterID, const LimonTypes::Vec4& gravity);
 };
+
+#endif //LIMONENGINE_WORLDAPIACCESSOR_H

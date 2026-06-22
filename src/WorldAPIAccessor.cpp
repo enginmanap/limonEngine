@@ -1,5 +1,6 @@
 #include "WorldAPIAccessor.h"
 #include "World.h"
+#include "limonAPI/LimonAPI.h"
 #include <algorithm>
 #include <cmath>
 #include "GameObjects/GUIText.h"
@@ -20,6 +21,150 @@
 #include "Graphics/Particles/Emitter.h"
 #include "GameObjects/CameraRig.h"
 #include "limonAPI/CameraExtensionInterface.h"
+
+#ifdef TRACY_ENABLE
+#include <cstring>
+#include "tracy/TracyC.h"
+#endif
+
+WorldAPIAccessor::WorldAPIAccessor(World* world, LimonAPI* limonAPI) : world(world) {
+    limonAPI->worldAddAnimationToObject           = std::bind(&WorldAPIAccessor::addAnimationToObjectWithSound,       this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, false, std::placeholders::_4);
+    limonAPI->worldAddAnimationToObjectByName     = std::bind(&WorldAPIAccessor::addAnimationToObjectByNameWithSound, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, false, std::placeholders::_4);
+    limonAPI->worldListLoadedAnimations           = std::bind(&WorldAPIAccessor::listLoadedAnimationsAPI,             this);
+    limonAPI->worldAddGuiText                     = std::bind(&WorldAPIAccessor::addGuiText,                         this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5, std::placeholders::_6, std::placeholders::_7);
+    limonAPI->worldAddGuiImage                    = std::bind(&WorldAPIAccessor::addGuiImageAPI,                     this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5);
+    limonAPI->worldAddModel                       = std::bind(&WorldAPIAccessor::addModelApi,                        this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5, std::placeholders::_6);
+    limonAPI->worldSetModelTemporary              = std::bind(&WorldAPIAccessor::setModelTemporaryAPI,               this, std::placeholders::_1, std::placeholders::_2);
+    limonAPI->worldUpdateGuiText                  = std::bind(&WorldAPIAccessor::updateGuiText,                      this, std::placeholders::_1, std::placeholders::_2);
+    limonAPI->worldGetResultOfTrigger             = std::bind(&WorldAPIAccessor::getResultOfTrigger,                 this, std::placeholders::_1, std::placeholders::_2);
+    limonAPI->worldIsInsideTrigger                = std::bind(&WorldAPIAccessor::isInsideTrigger,                    this, std::placeholders::_1);
+    limonAPI->worldGetObjectByName                = std::bind(&WorldAPIAccessor::getObjectByName,                    this, std::placeholders::_1);
+    limonAPI->worldGetObjectParent                = std::bind(&WorldAPIAccessor::getObjectParent,                    this, std::placeholders::_1);
+    limonAPI->worldIsObjectPhysicsConnected       = std::bind(&WorldAPIAccessor::isObjectPhysicsConnected,           this, std::placeholders::_1);
+    limonAPI->worldRemoveGuiElement               = std::bind(&WorldAPIAccessor::removeGuiElement,                   this, std::placeholders::_1);
+    limonAPI->worldGetGuiElementPosition          = std::bind(&WorldAPIAccessor::getGuiElementPositionAPI,           this, std::placeholders::_1);
+    limonAPI->worldSetGuiElementPosition          = std::bind(&WorldAPIAccessor::setGuiElementPositionAPI,           this, std::placeholders::_1, std::placeholders::_2);
+    limonAPI->worldSetGuiElementVisible           = std::bind(&WorldAPIAccessor::setGuiElementVisibleAPI,            this, std::placeholders::_1, std::placeholders::_2);
+    limonAPI->worldRemoveObject                   = std::bind(&WorldAPIAccessor::removeObject,                       this, std::placeholders::_1, std::placeholders::_2);
+    limonAPI->worldAttachObjectToObject           = std::bind(&WorldAPIAccessor::attachObjectToObject,               this, std::placeholders::_1, std::placeholders::_2);
+    limonAPI->worldAttachObjectToObjectAtWorldPosition = std::bind(&WorldAPIAccessor::attachObjectToObjectAtWorldPosition, this, std::placeholders::_1, std::placeholders::_2);
+    limonAPI->worldRemoveTriggerObject            = std::bind(&WorldAPIAccessor::removeTriggerObject,                this, std::placeholders::_1);
+    limonAPI->worldGetObjectLinearVelocity        = std::bind(&WorldAPIAccessor::getObjectLinearVelocity,            this, std::placeholders::_1);
+    limonAPI->worldSetObjectLinearVelocity        = std::bind(&WorldAPIAccessor::setObjectLinearVelocity,            this, std::placeholders::_1, std::placeholders::_2);
+    limonAPI->worldGetObjectMass                  = std::bind(&WorldAPIAccessor::getObjectMass,                      this, std::placeholders::_1);
+    limonAPI->worldDisconnectObjectFromPhysics    = std::bind(&WorldAPIAccessor::disconnectObjectFromPhysics,        this, std::placeholders::_1);
+    limonAPI->worldReconnectObjectToPhysics       = std::bind(&WorldAPIAccessor::reconnectObjectToPhysics,           this, std::placeholders::_1);
+    limonAPI->worldCreateCameraRig                = std::bind(&WorldAPIAccessor::createCameraRig,                    this, std::placeholders::_1);
+    limonAPI->worldActivateCameraRig              = std::bind(&WorldAPIAccessor::activateCameraRig,                  this, std::placeholders::_1);
+    limonAPI->worldDeactivateCameraRig            = std::bind(&WorldAPIAccessor::deactivateCameraRig,                this);
+    limonAPI->worldRemoveCameraRig                = std::bind(&WorldAPIAccessor::removeCameraRig,                    this, std::placeholders::_1);
+    limonAPI->worldApplyForce                     = std::bind(&WorldAPIAccessor::applyForceAPI,                      this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+    limonAPI->worldApplyForceToPlayer             = std::bind(&WorldAPIAccessor::applyForceToPlayerAPI,              this, std::placeholders::_1);
+    limonAPI->worldPlaySound                      = std::bind(&WorldAPIAccessor::playSound,                          this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5, std::placeholders::_6, std::placeholders::_7);
+    limonAPI->worldStopSound                      = std::bind(&WorldAPIAccessor::stopSound,                          this, std::placeholders::_1);
+    limonAPI->worldPauseSound                     = std::bind(&WorldAPIAccessor::pauseSound,                         this, std::placeholders::_1);
+    limonAPI->worldResumeSound                    = std::bind(&WorldAPIAccessor::resumeSound,                        this, std::placeholders::_1);
+    limonAPI->worldSetSoundVolume                 = std::bind(&WorldAPIAccessor::setSoundVolume,                     this, std::placeholders::_1, std::placeholders::_2);
+    limonAPI->worldSetSoundLooped                 = std::bind(&WorldAPIAccessor::setSoundLooped,                     this, std::placeholders::_1, std::placeholders::_2);
+    limonAPI->worldIsSoundPlaying                 = std::bind(&WorldAPIAccessor::isSoundPlaying,                     this, std::placeholders::_1);
+    limonAPI->worldSetSoundTemporary              = std::bind(&WorldAPIAccessor::setSoundTemporaryAPI,               this, std::placeholders::_1, std::placeholders::_2);
+    limonAPI->worldSetMusic                       = std::bind(&WorldAPIAccessor::setMusic,                           this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+    limonAPI->worldStopMusic                      = std::bind(&WorldAPIAccessor::stopMusic,                          this, std::placeholders::_1);
+    limonAPI->worldGetMusicName                   = std::bind(&WorldAPIAccessor::getMusicName,                       this);
+    limonAPI->worldIsMusicPlaying                 = std::bind(&WorldAPIAccessor::isMusicPlaying,                     this);
+    limonAPI->worldRayCastToCursor                = std::bind(&WorldAPIAccessor::rayCastToCursorAPI,                 this);
+    limonAPI->worldRayCast                        = std::bind(&WorldAPIAccessor::rayCastAPI,                         this, std::placeholders::_1, std::placeholders::_2);
+    limonAPI->worldGetObjectTransformation        = std::bind(&WorldAPIAccessor::getObjectTransformationAPI,         this, std::placeholders::_1);
+    limonAPI->worldGetObjectTransformationMatrix  = std::bind(&WorldAPIAccessor::getObjectTransformationMatrixAPI,   this, std::placeholders::_1);
+    limonAPI->worldSetObjectTranslate             = std::bind(&WorldAPIAccessor::setObjectTranslateAPI,              this, std::placeholders::_1, std::placeholders::_2);
+    limonAPI->worldSetObjectMass                  = std::bind(&WorldAPIAccessor::setObjectMassAPI,                   this, std::placeholders::_1, std::placeholders::_2);
+    limonAPI->worldSetObjectScale                 = std::bind(&WorldAPIAccessor::setObjectScaleAPI,                  this, std::placeholders::_1, std::placeholders::_2);
+    limonAPI->worldSetObjectOrientation           = std::bind(&WorldAPIAccessor::setObjectOrientationAPI,            this, std::placeholders::_1, std::placeholders::_2);
+    limonAPI->worldAddObjectTranslate             = std::bind(&WorldAPIAccessor::addObjectTranslateAPI,              this, std::placeholders::_1, std::placeholders::_2);
+    limonAPI->worldAddObjectScale                 = std::bind(&WorldAPIAccessor::addObjectScaleAPI,                  this, std::placeholders::_1, std::placeholders::_2);
+    limonAPI->worldAddObjectOrientation           = std::bind(&WorldAPIAccessor::addObjectOrientationAPI,            this, std::placeholders::_1, std::placeholders::_2);
+    limonAPI->worldInteractWithAI                 = std::bind(&WorldAPIAccessor::interactWithAIAPI,                  this, std::placeholders::_1, std::placeholders::_2);
+    limonAPI->worldInteractWithPlayer             = std::bind(&WorldAPIAccessor::interactWithPlayerAPI,              this, std::placeholders::_1);
+    limonAPI->worldSimulateInput                  = std::bind(&WorldAPIAccessor::simulateInputAPI,                   this, std::placeholders::_1);
+    limonAPI->worldAddTimedEvent                  = std::bind(&WorldAPIAccessor::addTimedEventAPI,                   this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);
+    limonAPI->worldCancelTimedEvent               = std::bind(&WorldAPIAccessor::cancelTimedEventAPI,                this, std::placeholders::_1);
+    limonAPI->worldKillPlayer                     = std::bind(&WorldAPIAccessor::killPlayerAPI,                      this);
+    limonAPI->worldGetPlayerAttachedModel         = std::bind(&WorldAPIAccessor::getPlayerAttachedModelAPI,          this);
+    limonAPI->worldGetModelChildren               = std::bind(&WorldAPIAccessor::getModelChildrenAPI,                this, std::placeholders::_1);
+    limonAPI->worldGetModelAnimationName          = std::bind(&WorldAPIAccessor::getModelAnimationNameAPI,           this, std::placeholders::_1);
+    limonAPI->worldGetModelAnimationFinished      = std::bind(&WorldAPIAccessor::getModelAnimationFinishedAPI,       this, std::placeholders::_1);
+    limonAPI->worldGetModelAnimationProgress      = std::bind(&WorldAPIAccessor::getModelAnimationProgressAPI,       this, std::placeholders::_1);
+    limonAPI->worldListModelAnimations            = std::bind(&WorldAPIAccessor::listModelAnimationsAPI,             this, std::placeholders::_1);
+    limonAPI->worldSetAnimationOfModel            = std::bind(&WorldAPIAccessor::setModelAnimationAPI,               this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+    limonAPI->worldSetAnimationOfModelWithBlend   = std::bind(&WorldAPIAccessor::setModelAnimationWithBlendAPI,      this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);
+    limonAPI->worldSetModelAnimationSpeed         = std::bind(&WorldAPIAccessor::setModelAnimationSpeedAPI,          this, std::placeholders::_1, std::placeholders::_2);
+    limonAPI->worldGetPlayerPosition              = std::bind(&WorldAPIAccessor::getPlayerPositionAPI,               this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);
+    limonAPI->worldGetPlayerPositionVec4          = std::bind(&WorldAPIAccessor::getPlayerPositionVec4API,           this);
+    limonAPI->worldGetPlayerLookDirection         = std::bind(&WorldAPIAccessor::getPlayerLookDirectionAPI,          this);
+    limonAPI->worldGetCameraPosition              = std::bind(&WorldAPIAccessor::getCameraPositionAPI,               this);
+    limonAPI->worldGetCameraLookDirection         = std::bind(&WorldAPIAccessor::getCameraLookDirectionAPI,          this);
+    limonAPI->worldGetPlayerAttachmentOffset      = std::bind(&WorldAPIAccessor::getPlayerModelOffsetAPI,            this);
+    limonAPI->worldSetPlayerAttachmentOffset      = std::bind(&WorldAPIAccessor::setPlayerModelOffsetAPI,            this, std::placeholders::_1);
+    limonAPI->worldEnableParticleEmitter          = std::bind(&WorldAPIAccessor::enableParticleEmitter,              this, std::placeholders::_1);
+    limonAPI->worldDisableParticleEmitter         = std::bind(&WorldAPIAccessor::disableParticleEmitter,             this, std::placeholders::_1);
+    limonAPI->worldAddParticleEmitter             = std::bind(&WorldAPIAccessor::addParticleEmitter,                 this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5, std::placeholders::_6, std::placeholders::_7, std::placeholders::_8, std::placeholders::_9);
+    limonAPI->worldRemoveParticleEmitter          = std::bind(&WorldAPIAccessor::removeParticleEmitter,              this, std::placeholders::_1);
+    limonAPI->worldSetEmitterParticleSpeed        = std::bind(&WorldAPIAccessor::setEmitterParticleSpeed,            this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+    limonAPI->worldSetEmitterParticleGravity      = std::bind(&WorldAPIAccessor::setEmitterParticleGravity,          this, std::placeholders::_1, std::placeholders::_2);
+    limonAPI->worldChangeRenderPipeline           = std::bind(&WorldAPIAccessor::changeRenderPipeline,               this, std::placeholders::_1);
+    limonAPI->worldAddLight                       = std::bind(&WorldAPIAccessor::addLightAPI,                        this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+    limonAPI->worldRemoveLight                    = std::bind(&WorldAPIAccessor::removeLightAPI,                     this, std::placeholders::_1);
+    limonAPI->worldAddLightTranslate              = std::bind(&WorldAPIAccessor::addLightTranslateAPI,               this, std::placeholders::_1, std::placeholders::_2);
+    limonAPI->worldSetLightColor                  = std::bind(&WorldAPIAccessor::setLightColorAPI,                   this, std::placeholders::_1, std::placeholders::_2);
+    limonAPI->worldGetLightPosition               = std::bind(&WorldAPIAccessor::getLightPositionAPI,                this, std::placeholders::_1);
+    limonAPI->worldGetLightColor                  = std::bind(&WorldAPIAccessor::getLightColorAPI,                   this, std::placeholders::_1);
+    limonAPI->worldSetLightTranslate              = std::bind(&WorldAPIAccessor::setLightTranslateAPI,               this, std::placeholders::_1, std::placeholders::_2);
+
+    limonAPI->worldLog = [world](Logger::Subsystem subsystem, Logger::Level level, const std::string& text) {
+        world->options->getLogger()->log(subsystem, level, text);
+    };
+    limonAPI->worldDrawDebugLine = [world](const LimonTypes::Vec4& from, const LimonTypes::Vec4& to,
+                                           const LimonTypes::Vec4& fromColor, const LimonTypes::Vec4& toColor,
+                                           bool requireCameraTransform) -> uint32_t {
+        return world->options->getLogger()->drawLine(
+            glm::vec3(from.x, from.y, from.z), glm::vec3(to.x, to.y, to.z),
+            glm::vec3(fromColor.x, fromColor.y, fromColor.z), glm::vec3(toColor.x, toColor.y, toColor.z),
+            requireCameraTransform);
+    };
+    limonAPI->worldAddToDebugLine = [world](uint32_t bufferIndex,
+                                            const LimonTypes::Vec4& from, const LimonTypes::Vec4& to,
+                                            const LimonTypes::Vec4& fromColor, const LimonTypes::Vec4& toColor,
+                                            bool requireCameraTransform) -> bool {
+        return world->options->getLogger()->drawLine(bufferIndex,
+            glm::vec3(from.x, from.y, from.z), glm::vec3(to.x, to.y, to.z),
+            glm::vec3(fromColor.x, fromColor.y, fromColor.z), glm::vec3(toColor.x, toColor.y, toColor.z),
+            requireCameraTransform);
+    };
+    limonAPI->worldClearDebugLines = [world](uint32_t bufferIndex) -> bool {
+        return world->options->getLogger()->clearLineBuffer(bufferIndex);
+    };
+
+#ifdef TRACY_ENABLE
+    limonAPI->worldBeginProfileZone = [](const char* name, size_t nameLen) noexcept -> uint64_t {
+        uint64_t srcloc = ___tracy_alloc_srcloc_name(0, "", 0, "", 0, name, nameLen, 0);
+        ___tracy_c_zone_context ctx = ___tracy_emit_zone_begin_alloc(srcloc, 1);
+        uint64_t result = 0;
+        static_assert(sizeof(ctx) <= sizeof(uint64_t));
+        std::memcpy(&result, &ctx, sizeof(ctx));
+        return result;
+    };
+    limonAPI->worldEndProfileZone = [](uint64_t zoneContext) noexcept {
+        ___tracy_c_zone_context ctx;
+        std::memcpy(&ctx, &zoneContext, sizeof(ctx));
+        ___tracy_emit_zone_end(ctx);
+    };
+#else
+    limonAPI->worldBeginProfileZone = [](const char*, size_t) -> uint64_t { return 0; };
+    limonAPI->worldEndProfileZone   = [](uint64_t) {};
+#endif
+
+    world->apiInstance = limonAPI;
+}
 
 uint32_t WorldAPIAccessor::createCameraRig(const std::string& cameraRigTypeName) {
     CameraExtensionInterface* behaviour = CameraExtensionInterface::createExtension(cameraRigTypeName, world->apiInstance);
