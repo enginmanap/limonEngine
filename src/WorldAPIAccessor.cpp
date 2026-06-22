@@ -901,11 +901,16 @@ bool WorldAPIAccessor::setSoundTemporaryAPI(uint32_t soundID, bool temporary) {
     return true;
 }
 
-uint32_t WorldAPIAccessor::playSound(const std::string &soundPath, const glm::vec3 &position, bool positionRelative, bool looped, float referenceDistance, float maxDistance) {
+uint32_t WorldAPIAccessor::playSound(const std::string &soundPath, const glm::vec3 &position, bool positionRelative, bool looped, float referenceDistance, float maxDistance, LimonTypes::AudioChannel channel) {
+    if (channel == LimonTypes::AudioChannel::MASTER || channel == LimonTypes::AudioChannel::MUSIC) {
+        std::cerr << "playSound: MASTER and MUSIC are not valid channels for playSound." << std::endl;
+        return 0;
+    }
     std::unique_ptr<Sound> sound = std::make_unique<Sound>(world->getNextObjectID(), world->assetManager, soundPath);
     sound->setLoop(looped);
     sound->setReferenceDistance(referenceDistance);
     sound->setMaxDistance(maxDistance);
+    sound->setChannel(channel);
     sound->setWorldPosition(position, positionRelative);
     sound->play();
     uint32_t soundID = sound->getWorldObjectID();

@@ -440,4 +440,12 @@
         <IsSet>True</IsSet>
         <Index>0</Index>
     </Parameter>
+    <Parameter>
+        <RequestType>FreeNumber</RequestType>
+        <Description>soundVolumeAmbient</Description>
+        <Value>1.0</Value>
+        <valueType>Double</valueType>
+        <IsSet>True</IsSet>
+        <Index>0</Index>
+    </Parameter>
 </Options>

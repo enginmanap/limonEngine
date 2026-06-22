@@ -122,7 +122,7 @@ public:
     bool setModelAnimationSpeedAPI(uint32_t modelID, float speed);
 
     // Sound
-    uint32_t playSound(const std::string& soundPath, const glm::vec3& position, bool positionRelative, bool looped, float referenceDistance, float maxDistance);
+    uint32_t playSound(const std::string& soundPath, const glm::vec3& position, bool positionRelative, bool looped, float referenceDistance, float maxDistance, LimonTypes::AudioChannel channel = LimonTypes::AudioChannel::SFX);
     bool stopSound(uint32_t soundID);
     bool pauseSound(uint32_t soundID);
     bool resumeSound(uint32_t soundID);

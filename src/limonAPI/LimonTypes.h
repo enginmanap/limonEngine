@@ -15,14 +15,16 @@ namespace LimonTypes {
      * Audio mixing channels (buses). Each playing sound is assigned to one channel.
      * The effective OpenAL gain of a sound is sound.gain * channelGain[channel] * channelGain[MASTER].
      * MASTER is the global multiplier and must not be assigned to an individual sound.
+     * MUSIC is managed exclusively by setMusic()/stopMusic(); do not pass it to playSound().
      * The order here must stay in sync with the channelGain array sizing in ALHelper.
      */
     enum class AudioChannel : uint8_t {
-        MASTER = 0,
-        MUSIC  = 1,
-        SFX    = 2,
-        SPEECH = 3,
-        COUNT  = 4
+        MASTER  = 0,
+        MUSIC   = 1,
+        SFX     = 2,
+        SPEECH  = 3,
+        AMBIENT = 4,
+        COUNT   = 5
     };
 
     struct Vec2 {

@@ -23,10 +23,9 @@ void bindLimonAPI(pybind11::module_& m) {
 
     // Bind audio mixing channels (buses)
     pybind11::enum_<LimonTypes::AudioChannel>(m, "AudioChannel")
-            .value("MASTER", LimonTypes::AudioChannel::MASTER)
-            .value("MUSIC", LimonTypes::AudioChannel::MUSIC)
             .value("SFX", LimonTypes::AudioChannel::SFX)
-            .value("SPEECH", LimonTypes::AudioChannel::SPEECH);
+            .value("SPEECH", LimonTypes::AudioChannel::SPEECH)
+            .value("AMBIENT", LimonTypes::AudioChannel::AMBIENT);
 
     // Bind ProfileScope — non-constructable from Python; obtained only via LimonAPI.profile_scope()
     pybind11::class_<ProfileScope>(m, "ProfileScope")
@@ -221,7 +220,8 @@ void bindLimonAPI(pybind11::module_& m) {
                  "Play a sound. Returns sound ID",
                  pybind11::arg("sound_path"), pybind11::arg("position"),
                  pybind11::arg("position_relative") = false, pybind11::arg("looped") = false,
-                 pybind11::arg("reference_distance") = 2.0f, pybind11::arg("max_distance") = 50.0f)
+                 pybind11::arg("reference_distance") = 2.0f, pybind11::arg("max_distance") = 50.0f,
+                 pybind11::arg("channel") = LimonTypes::AudioChannel::SFX)
             .def("stop_sound", &LimonAPI::stopSound,
                  "Stop a playing sound. Returns False if not found",
                  pybind11::arg("sound_id"))

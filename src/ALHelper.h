@@ -76,7 +76,7 @@ private:
 
     glm::vec3 ListenerPosition = glm::vec3(0.0f,0.0f,0.0f);
     DistanceModel distanceModel = DistanceModel::LINEAR_CLAMPED;
-    float channelGain[(size_t)LimonTypes::AudioChannel::COUNT] = {1.0f, 1.0f, 1.0f, 1.0f};
+    float channelGain[(size_t)LimonTypes::AudioChannel::COUNT] = {1.0f, 1.0f, 1.0f, 1.0f, 1.0f};
     bool running = true;
     bool paused = false;
     bool resumed = false;

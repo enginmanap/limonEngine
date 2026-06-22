@@ -143,8 +143,8 @@ bool LimonAPI::applyForceToPlayer(const LimonTypes::Vec4 &forceAmount) {
 }
 
 uint32_t
-LimonAPI::playSound(const std::string &soundPath, const glm::vec3 &position, bool positionRelative, bool looped, float referenceDistance, float maxDistance) {
-    return worldPlaySound(soundPath, position, positionRelative, looped, referenceDistance, maxDistance);
+LimonAPI::playSound(const std::string &soundPath, const glm::vec3 &position, bool positionRelative, bool looped, float referenceDistance, float maxDistance, LimonTypes::AudioChannel channel) {
+    return worldPlaySound(soundPath, position, positionRelative, looped, referenceDistance, maxDistance, channel);
 }
 
 bool LimonAPI::stopSound(uint32_t soundID) {

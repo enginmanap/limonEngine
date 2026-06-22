@@ -146,10 +146,11 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
     maxLightsOption = options->getOption<long>(HASH("maximumLights"));
     activeLights.reserve(maxLightsOption.getOrDefault(4));
 
-    soundVolumeOptions[(size_t)LimonTypes::AudioChannel::MASTER] = options->getOption<double>(HASH("soundVolumeMaster"));
-    soundVolumeOptions[(size_t)LimonTypes::AudioChannel::MUSIC]  = options->getOption<double>(HASH("soundVolumeMusic"));
-    soundVolumeOptions[(size_t)LimonTypes::AudioChannel::SFX]    = options->getOption<double>(HASH("soundVolumeSFX"));
-    soundVolumeOptions[(size_t)LimonTypes::AudioChannel::SPEECH] = options->getOption<double>(HASH("soundVolumeSpeech"));
+    soundVolumeOptions[(size_t)LimonTypes::AudioChannel::MASTER]  = options->getOption<double>(HASH("soundVolumeMaster"));
+    soundVolumeOptions[(size_t)LimonTypes::AudioChannel::MUSIC]   = options->getOption<double>(HASH("soundVolumeMusic"));
+    soundVolumeOptions[(size_t)LimonTypes::AudioChannel::SFX]     = options->getOption<double>(HASH("soundVolumeSFX"));
+    soundVolumeOptions[(size_t)LimonTypes::AudioChannel::SPEECH]  = options->getOption<double>(HASH("soundVolumeSpeech"));
+    soundVolumeOptions[(size_t)LimonTypes::AudioChannel::AMBIENT] = options->getOption<double>(HASH("soundVolumeAmbient"));
 }
 
 void World::applyAudioVolumeOptionsIfChanged() {
