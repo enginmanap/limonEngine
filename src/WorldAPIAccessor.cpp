@@ -902,8 +902,10 @@ bool WorldAPIAccessor::setSoundTemporaryAPI(uint32_t soundID, bool temporary) {
 }
 
 uint32_t WorldAPIAccessor::playSound(const std::string &soundPath, const glm::vec3 &position, bool positionRelative, bool looped, float referenceDistance, float maxDistance, LimonTypes::AudioChannel channel) {
-    if (channel == LimonTypes::AudioChannel::MASTER || channel == LimonTypes::AudioChannel::MUSIC) {
-        std::cerr << "playSound: MASTER and MUSIC are not valid channels for playSound." << std::endl;
+    if (channel == LimonTypes::AudioChannel::MASTER ||
+        channel == LimonTypes::AudioChannel::MUSIC  ||
+        channel >= LimonTypes::AudioChannel::COUNT) {
+        std::cerr << "playSound: invalid channel, must be SFX, SPEECH, or AMBIENT." << std::endl;
         return 0;
     }
     std::unique_ptr<Sound> sound = std::make_unique<Sound>(world->getNextObjectID(), world->assetManager, soundPath);
