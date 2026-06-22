@@ -69,6 +69,8 @@ void main() {
         Frag_UV = UV;
         Frag_Color = Color;
         gl_Position = ProjMtx * vec4(PositionIMGUI.xy, 0, 1);
+        // Force editor to nearest depth so it always wins against GUI layer depths [0, 0.019]
+        gl_Position.z = -gl_Position.w;
     } else {
         gl_Position = renderModel();
     }
