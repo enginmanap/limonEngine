@@ -37,6 +37,10 @@ public:
     std::vector<std::string> GetZoneThreadNames(const std::string& zoneName) const;
     std::vector<std::string> GetGpuZoneNames() const;
 
+    std::vector<float> GetPlotHistory(const std::string& name) const;
+    float GetPlotCurrentValue(const std::string& name) const;
+    std::vector<std::string> GetUserPlotNames() const;
+
     std::vector<ProfileEvent> GetLastFrameEvents(FrameFilter filter = FrameFilter::All) const;
     std::vector<std::string>  GetGpuDebugInfo(FrameFilter filter = FrameFilter::All) const;
 
@@ -59,10 +63,16 @@ private:
     std::unordered_map<std::string, size_t> perThreadZoneLastProcessed;
     std::unordered_map<std::string, size_t> gpuZoneLastProcessed;
 
+    std::unordered_map<std::string, std::array<float, frameTimeHistorySize>> plotHistoryArray;
+    std::unordered_map<std::string, size_t> plotHead;
+    std::unordered_map<std::string, size_t> plotCount;
+    std::unordered_map<std::string, size_t> plotLastProcessed;
+
     OptionsUtil::Options::Option<bool> enableTracingServerOption;
 
     int16_t getSourceLocation(const char* name);
     void collectPerThreadZoneTime(const std::string& zoneName, bool enabled);
     void collectAllGpuZones(bool enabled);
+    void collectAllUserPlots(bool enabled);
 #endif
 };

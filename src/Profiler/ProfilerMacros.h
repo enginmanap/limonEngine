@@ -9,10 +9,12 @@
 #define PROFILE_VISIBILITY(name) ZoneNamedN(___tracy_scoped_zone, name, ProfilerState::traceVisibility || ProfilerState::showFlameGraph)
 #define PROFILE_RENDERING(name) ZoneNamedN(___tracy_scoped_zone, name, ProfilerState::traceRendering || ProfilerState::showFlameGraph)
 #define PROFILE_FRAME() FrameMark
+#define PLOT_VISIBILITY(name, value) do { if (ProfilerState::traceVisibility) TracyPlot(name, (int64_t)(value)); } while(0)
 #else
 #define PROFILE_OVERALL(name)
 #define PROFILE_SIMULATION(name)
 #define PROFILE_VISIBILITY(name)
 #define PROFILE_RENDERING(name)
 #define PROFILE_FRAME()
+#define PLOT_VISIBILITY(name, value)
 #endif

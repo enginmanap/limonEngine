@@ -278,12 +278,15 @@ void VisibilityManager::fillVisibleObjectPerCamera(const void* visibilityRequest
     // every frustum/LOD-passing object is added directly. runOcclusion gates only the occluder work.
     bool occlusionCullingEnabled = visibilityRequest->occlusionCullingEnabledOption.getOrDefault(true);
 
-    // Software occlusion culling runs for the player camera (perspective or orthographic). Shadow cameras
-    // are skipped. SDOC handles orthographic via auto-detection in the submodule (see snapdragon-oc
+    // Software occlusion culling runs for the player camera and directional light cameras.
+    // SDOC handles orthographic via auto-detection in the submodule (see snapdragon-oc
     // commit 42a9b69c): it detects ortho from the VP bottom row and carries clip-Z in the invW slot.
-    static const uint64_t playerCameraTag = HashUtil::hashString(HardCodedTags::CAMERA_PLAYER);
+    static const uint64_t playerCameraTag      = HashUtil::hashString(HardCodedTags::CAMERA_PLAYER);
+    static const uint64_t directionalLightTag  = HashUtil::hashString(HardCodedTags::CAMERA_LIGHT_DIRECTIONAL);
     bool skipOcclusionCulling = false;
-    if (!visibilityRequest->camera->hasTag(playerCameraTag)) {
+    const bool isDirectionalLightCamera = visibilityRequest->camera->hasTag(directionalLightTag);
+    if (!visibilityRequest->camera->hasTag(playerCameraTag) &&
+        !isDirectionalLightCamera) {
         skipOcclusionCulling = true;
     } else {
         glm::mat4 invertedView = glm::inverse(visibilityRequest->camera->getCameraMatrixConst());
@@ -292,7 +295,11 @@ void VisibilityManager::fillVisibleObjectPerCamera(const void* visibilityRequest
         cameraPos = glm::vec3(invertedView[3]); // 4th column
         softwareOcclusionRenderDump = visibilityRequest->SoftwareOcclusionRenderDumpOption.getOrDefault(false);
         softwareOcclusionRenderDumpFrequency = visibilityRequest->SoftwareOcclusionRenderDumpFrequencyOption.getOrDefault(500);
-        softwareOcclusionOccluderSize = visibilityRequest->SoftwareOcclusionOccluderSizeOption.getOrDefault(0.25f);
+        if (isDirectionalLightCamera) {
+            softwareOcclusionOccluderSize = visibilityRequest->SoftwareOcclusionOccluderSizeOrthographicOption.getOrDefault(0.01f);
+        } else {
+            softwareOcclusionOccluderSize = visibilityRequest->SoftwareOcclusionOccluderSizeOption.getOrDefault(0.1f);
+        }
 
         if (occlusionCullingEnabled) {
             visibilityRequest->occlusionCuller.newFrame(cameraPos, viewDirection, visibilityRequest->camera->getCameraMatrixConst(), visibilityRequest->camera->getProjectionMatrix());
@@ -300,13 +307,19 @@ void VisibilityManager::fillVisibleObjectPerCamera(const void* visibilityRequest
     }
     // Occluder rasterization + occludee resolution only runs for the player camera when culling is enabled.
     const bool runOcclusion = !skipOcclusionCulling && occlusionCullingEnabled;
+    // For orthographic (directional light) cameras the area metric objectScreenSize produces
+    // values much lower than for a perspective camera at the same relative object size, because
+    // perspective exaggerates near objects while orthographic does not. Use the max linear
+    // screen dimension (max(screenSizeX, screenSizeY)) for the occluder split instead,
+    // so the same threshold "25% of frustum width or height" works across all cascade sizes.
+
     uint32_t frustumCulledCount = 0;
     uint32_t totalCounter = 0;
     uint32_t lodSkipCounter = 0;
     uint32_t occluderCounter = 0;
     uint32_t occludedCounter = 0;
+    uint32_t nonOccludedCount = 0; // occludees that survived the depth test
     float maxScreenSize = 0.0;
-    std::string maxScreenSizeObjectName;
     for (auto objectIt = visibilityRequest->objects->begin(); objectIt != visibilityRequest->objects->end(); ++objectIt) {
         if(!visibilityRequest->cameraIsDirty && !objectIt->second->isDirtyForFrustum() && skipOcclusionCulling) {
             continue; //if neither object nor camera dirty, no need to recalculate
@@ -328,7 +341,6 @@ void VisibilityManager::fillVisibleObjectPerCamera(const void* visibilityRequest
                             if (objectScreenSize > softwareOcclusionOccluderSize || !runOcclusion) {
                                 if (objectScreenSize > maxScreenSize) {
                                     maxScreenSize = objectScreenSize;
-                                    maxScreenSizeObjectName = currentModel->getName();
                                 }
                                 occluderCounter += meshMetas.size();
                                 if (runOcclusion) {
@@ -360,7 +372,6 @@ void VisibilityManager::fillVisibleObjectPerCamera(const void* visibilityRequest
                                     if (objectScreenSize > softwareOcclusionOccluderSize || !runOcclusion) {
                                         if (objectScreenSize > maxScreenSize) {
                                             maxScreenSize = objectScreenSize;
-                                            maxScreenSizeObjectName = currentModel->getName();
                                         }
                                         occluderCounter++;
                                         if (runOcclusion) {
@@ -384,6 +395,7 @@ void VisibilityManager::fillVisibleObjectPerCamera(const void* visibilityRequest
                     }
                 } else { //if not visible
                     const std::vector<Model::MeshMeta *> &meshMetas =currentModel->getMeshMetaData();
+                    frustumCulledCount += static_cast<uint32_t>(meshMetas.size());
                     for (auto& meshMeta:meshMetas) {
                         visibilityEntry.second.removeMeshMaterial(meshMeta->material, meshMeta->mesh, currentModel->getWorldObjectID());
                     }
@@ -403,7 +415,8 @@ void VisibilityManager::fillVisibleObjectPerCamera(const void* visibilityRequest
         for (auto metaData:nonOccludedMeshes) {
             metaData->renderList->addMeshMaterial(metaData->meshMeta->material, metaData->meshMeta->mesh, metaData->model, metaData->lod, metaData->averageDepth);
         }
-        occludedCounter = totalCounter - occluderCounter - nonOccludedMeshes.size();
+        nonOccludedCount = static_cast<uint32_t>(nonOccludedMeshes.size());
+        occludedCounter = totalCounter - occluderCounter - nonOccludedCount;
         if (occluderCounter != 0 && occludedCounter != 0) {
             //std::cout << "Total occluder count is " << occluderCounter << " and it occluded " << occludedCounter << std::endl;
         }
@@ -415,6 +428,40 @@ void VisibilityManager::fillVisibleObjectPerCamera(const void* visibilityRequest
             frameCount = 0;
         }
     }
+#ifdef TRACY_ENABLE
+    // If we did not process, because camera is not changed, values are partial, don't update.
+    const bool fullProcessingPass = !skipOcclusionCulling || visibilityRequest->cameraIsDirty;
+    if (ProfilerState::traceVisibility && fullProcessingPass) {
+        // Tracy requires static names for plot. Multithreading requires thread_local
+        thread_local static std::unordered_map<std::string, std::string> plotNameCache;
+        // Directional light has single name, multiple cameras, because of CSM
+        // We will name it with cascade size
+        char cameraSuffixBuf[256];
+        if (isDirectionalLightCamera) {
+            const float frustumHalfWidth = 1.0f / visibilityRequest->camera->getProjectionMatrix()[0][0];
+            snprintf(cameraSuffixBuf, sizeof(cameraSuffixBuf), "::%s[%.1f]",
+                     visibilityRequest->camera->getName().c_str(),
+                     frustumHalfWidth);
+        } else {
+            snprintf(cameraSuffixBuf, sizeof(cameraSuffixBuf), "::%s",
+                     visibilityRequest->camera->getName().c_str());
+        }
+        const std::string cameraSuffix(cameraSuffixBuf);
+
+        auto stableName = [&](const char* stat) -> const char* {
+            std::string key = std::string(stat) + cameraSuffix;
+            return plotNameCache.emplace(key, key).first->second.c_str();
+        };
+
+        tracy::Profiler::PlotData(stableName("Frustum Culled"), (int64_t)frustumCulledCount);
+        tracy::Profiler::PlotData(stableName("LOD Skipped"),    (int64_t)lodSkipCounter);
+        tracy::Profiler::PlotData(stableName("Total Visible"),  (int64_t)(occluderCounter + nonOccludedCount));
+        if (runOcclusion) {
+            tracy::Profiler::PlotData(stableName("Occluders"), (int64_t)occluderCounter);
+            tracy::Profiler::PlotData(stableName("Occluded"),  (int64_t)occludedCounter);
+        }
+    }
+#endif
 }
 
 int VisibilityManager::staticOcclusionThread(void* visibilityRequestRaw) {

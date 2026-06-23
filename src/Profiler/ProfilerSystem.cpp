@@ -150,6 +150,7 @@ void ProfilerSystem::Update() {
     collectPerThreadZoneTime("fillVisibleObjectPerCamera", ProfilerState::traceVisibility);
     collectZoneTime("Render", ProfilerState::traceRendering);
     collectAllGpuZones(ProfilerState::traceGpuRendering);
+    collectAllUserPlots(ProfilerState::traceVisibility);
 #endif
 }
 
@@ -420,6 +421,45 @@ void ProfilerSystem::collectAllGpuZones(bool enabled) {
 std::vector<std::string> ProfilerSystem::GetGpuZoneNames() const {
     return GetZoneThreadNames("GPU");
 }
+
+#ifdef TRACY_ENABLE
+void ProfilerSystem::collectAllUserPlots(bool enabled) {
+    std::lock_guard<std::mutex> lock(frameTimeMutex);
+
+    if (!enabled) {
+        plotHistoryArray.clear();
+        plotHead.clear();
+        plotCount.clear();
+        plotLastProcessed.clear();
+        return;
+    }
+
+    const auto& plots = tracyWorker->GetPlots();
+    for (const tracy::PlotData* plot : plots) {
+        if (plot->type != tracy::PlotType::User) continue;
+        const char* rawName = tracyWorker->GetString(plot->name);
+        if (!rawName) continue;
+        std::string name(rawName);
+
+        const auto& data = plot->data;
+        size_t dataCount = data.size();
+        size_t lastProcessed = plotLastProcessed[name];
+
+        for (size_t i = lastProcessed; i < dataCount; ++i) {
+            auto& history = plotHistoryArray[name];
+            auto& head    = plotHead[name];
+            auto& count   = plotCount[name];
+
+            history[head] = static_cast<float>(data[i].val);
+            head  = (head + 1) % frameTimeHistorySize;
+            if (count < frameTimeHistorySize) count++;
+        }
+        if (dataCount > lastProcessed) {
+            plotLastProcessed[name] = dataCount;
+        }
+    }
+}
+#endif
 
 std::vector<ProfileEvent> ProfilerSystem::GetLastFrameEvents(FrameFilter filter) const {
     std::vector<ProfileEvent> result;
@@ -730,4 +770,43 @@ std::vector<std::string> ProfilerSystem::GetGpuDebugInfo(FrameFilter filter) con
     }
 #endif
     return lines;
+}
+std::vector<float> ProfilerSystem::GetPlotHistory(const std::string& name) const {
+    std::vector<float> history;
+#ifdef TRACY_ENABLE
+    std::lock_guard<std::mutex> lock(frameTimeMutex);
+    if (!plotHistoryArray.contains(name)) return history;
+    size_t count = std::min(plotCount.at(name), static_cast<size_t>(100));
+    size_t head  = plotCount.at(name) >= 100
+                       ? (plotHead.at(name) + frameTimeHistorySize - 100) % frameTimeHistorySize
+                       : 0;
+    history.reserve(count);
+    for (size_t i = 0; i < count; ++i) {
+        history.push_back(plotHistoryArray.at(name)[(head + i) % frameTimeHistorySize]);
+    }
+#endif
+    return history;
+}
+
+float ProfilerSystem::GetPlotCurrentValue(const std::string& name) const {
+#ifdef TRACY_ENABLE
+    std::lock_guard<std::mutex> lock(frameTimeMutex);
+    if (!plotHistoryArray.contains(name) || plotCount.at(name) == 0) return 0.0f;
+    size_t lastIdx = (plotHead.at(name) + frameTimeHistorySize - 1) % frameTimeHistorySize;
+    return plotHistoryArray.at(name)[lastIdx];
+#else
+    return 0.0f;
+#endif
+}
+
+std::vector<std::string> ProfilerSystem::GetUserPlotNames() const {
+    std::vector<std::string> names;
+#ifdef TRACY_ENABLE
+    std::lock_guard<std::mutex> lock(frameTimeMutex);
+    names.reserve(plotHistoryArray.size());
+    for (const auto& entry : plotHistoryArray) {
+        names.push_back(entry.first);
+    }
+#endif
+    return names;
 }

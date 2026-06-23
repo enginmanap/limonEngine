@@ -369,8 +369,17 @@
     <Parameter>
         <RequestType>FreeNumber</RequestType>
         <Description>SoftwareOcclusionOccluderSize</Description>
-        <!--This option sets the size limit for objects to be considered occluder. It is on screen size, 1 is full coverage, 0 is no coverage-->
-        <Value>0.5</Value>
+        <!--This option sets the size limit for objects to be considered occluder for perspective cameras. It is on screen area, 1 is full coverage, 0 is no coverage-->
+        <Value>0.1</Value>
+        <valueType>Double</valueType>
+        <IsSet>True</IsSet>
+        <Index>0</Index>
+    </Parameter>
+    <Parameter>
+        <RequestType>FreeNumber</RequestType>
+        <Description>SoftwareOcclusionOccluderSizeOrthographic</Description>
+        <!--Same threshold for orthographic (shadow) cameras. Shadow frusta are larger so the optimal value is much lower than for the perspective player camera-->
+        <Value>0.01</Value>
         <valueType>Double</valueType>
         <IsSet>True</IsSet>
         <Index>0</Index>

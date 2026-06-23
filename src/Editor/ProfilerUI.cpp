@@ -1,5 +1,8 @@
 #include "ProfilerUI.h"
 #include <imgui.h>
+#include <set>
+#include <cstdlib>
+#include "MultiLinePlot.h"
 #include "../Profiler/ProfilerState.h"
 #include "../Profiler/ProfilerSystem.h"
 #include "limonAPI/Options.h"
@@ -148,6 +151,62 @@ namespace ProfilerUI {
                     if (!render_times.empty()) {
                         const float renderMax = profilerSystem->GetZoneMaxFrameTime("Render") * 1.2f;
                         ImGui::PlotLines("Render Times (ms)", render_times.data(), static_cast<int>(render_times.size()), 0, nullptr, 0.0f, renderMax, ImVec2(0, 80));
+                    }
+                }
+                if (ProfilerState::traceVisibility) {
+                    static const char* visStatNames[] = {
+                        "Frustum Culled", "LOD Skipped", "Occluders", "Occluded", "Total Visible"
+                    };
+                    std::vector<std::string> allPlotNames = profilerSystem->GetUserPlotNames();
+                    std::set<std::string> cameraNameSet;
+                    for (const std::string& plotName : allPlotNames) {
+                        size_t sep = plotName.find("::");
+                        if (sep != std::string::npos) {
+                            cameraNameSet.insert(plotName.substr(sep + 2));
+                        }
+                    }
+                    // We know name has frustum size, we should order by it for UX
+                    auto parseFrustumWidth = [](const std::string& cameraId) -> float {
+                        size_t openBracket = cameraId.find('[');
+                        if (openBracket == std::string::npos) return 0.0f;
+                        const char* start = cameraId.c_str() + openBracket + 1;
+                        char* end = nullptr;
+                        float value = std::strtof(start, &end);
+                        return (end > start) ? value : 0.0f;
+                    };
+                    std::vector<std::string> cameraNames(cameraNameSet.begin(), cameraNameSet.end());
+                    std::sort(cameraNames.begin(), cameraNames.end(),
+                        [&parseFrustumWidth](const std::string& a, const std::string& b) {
+                            return parseFrustumWidth(a) < parseFrustumWidth(b);
+                        });
+                    for (const std::string& cameraName : cameraNames) {
+                        std::string displayName = cameraName;
+                        size_t bracketPos = displayName.find('[');
+                        if (bracketPos != std::string::npos) {
+                            displayName = displayName.substr(0, bracketPos);
+                        }
+                        std::string treeLabel = displayName + "##" + cameraName;
+                        if (ImGui::TreeNodeEx(treeLabel.c_str())) {
+                            static const ImU32 seriesColors[] = {
+                                IM_COL32(255, 100, 100, 255), // Frustum Culled - red
+                                IM_COL32(255, 220,  50, 255), // LOD Skipped    - yellow
+                                IM_COL32(100, 149, 237, 255), // Occluders      - cornflower blue
+                                IM_COL32(180, 100, 220, 255), // Occluded       - purple
+                                IM_COL32(100, 220, 100, 255), // Total Visible  - green
+                            };
+                            std::vector<MultiLineSeries> seriesList;
+                            for (int s = 0; s < 5; ++s) {
+                                std::string key = std::string(visStatNames[s]) + "::" + cameraName;
+                                seriesList.push_back({
+                                    visStatNames[s],
+                                    profilerSystem->GetPlotHistory(key),
+                                    profilerSystem->GetPlotCurrentValue(key),
+                                    seriesColors[s]
+                                });
+                            }
+                            DrawMultiLinePlot(seriesList);
+                            ImGui::TreePop();
+                        }
                     }
                 }
 
