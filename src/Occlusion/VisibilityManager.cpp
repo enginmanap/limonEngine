@@ -141,7 +141,7 @@ void VisibilityManager::fillVisibleObjectsUsingTags() {
     static const uint64_t playerCameraTag = HashUtil::hashString(HardCodedTags::CAMERA_PLAYER);
     for (auto &it: cullingResults) {
         if (it.first->isDirty() || it.first->hasTag(playerCameraTag)) {
-            for(auto renderEntries:*it.second) {
+            for(auto& renderEntries:*it.second) {
                 renderEntries.second.clear();
             }
         }
@@ -343,6 +343,9 @@ void VisibilityManager::fillVisibleObjectPerCamera(const void* visibilityRequest
                             }
                         } else {
                             lodSkipCounter++;
+                            for (auto& meshMeta : meshMetas) {
+                                visibilityEntry.second.removeMeshMaterial(meshMeta->material, meshMeta->mesh, currentModel->getWorldObjectID());
+                            }
                         }
                     } else {
                         //for models with more than 10 meshes, we don't wanna add all of them to renderlist, need to re check visibility
@@ -369,6 +372,7 @@ void VisibilityManager::fillVisibleObjectPerCamera(const void* visibilityRequest
                                     }
                                 } else {
                                     lodSkipCounter++;
+                                    visibilityEntry.second.removeMeshMaterial(meshMeta->material, meshMeta->mesh, currentModel->getWorldObjectID());
                                 }
                             } else {
                                 frustumCulledCount++;
