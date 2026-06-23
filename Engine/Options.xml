@@ -211,7 +211,7 @@
     </Parameter>
     <Parameter>
         <RequestType>FreeText</RequestType>
-        <Description>occlusionCulling</Description>
+        <Description>occlusion.enabled</Description>
         <!--Enables software occlusion culling for the player camera. Can be toggled at runtime from the editor.-->
         <Value>True</Value>
         <valueType>Boolean</valueType>
@@ -332,7 +332,7 @@
     </Parameter>
     <Parameter>
         <RequestType>FreeNumber</RequestType>
-        <Description>SoftwareOcclusionRenderWidth</Description>
+        <Description>occlusion.renderWidth</Description>
         <!--This option sets the software rasterized depth buffers width, needs to be a factor of 8-->
         <Value>512</Value>
         <valueType>Long</valueType>
@@ -341,7 +341,7 @@
     </Parameter>
     <Parameter>
         <RequestType>FreeNumber</RequestType>
-        <Description>SoftwareOcclusionRenderHeight</Description>
+        <Description>occlusion.renderHeight</Description>
         <!--This option sets the software rasterized depth buffers height, needs to be a factor of 8-->
         <Value>256</Value>
         <valueType>Long</valueType>
@@ -350,7 +350,7 @@
     </Parameter>
     <Parameter>
         <RequestType>FreeText</RequestType>
-        <Description>SoftwareOcclusionRenderDump</Description>
+        <Description>occlusion.renderDump</Description>
         <!--This option enables dumping the software rasterized depth buffer to a ppm file. For debug purposes only.-->
         <Value>False</Value>
         <valueType>Boolean</valueType>
@@ -359,7 +359,7 @@
     </Parameter>
     <Parameter>
         <RequestType>FreeNumber</RequestType>
-        <Description>SoftwareOcclusionRenderDumpFrequency</Description>
+        <Description>occlusion.renderDumpFrequency</Description>
         <!--This option sets frequency of dumping the software rasterized depth buffer to a ppm file. For debug purposes only.-->
         <Value>300</Value>
         <valueType>Long</valueType>
@@ -368,7 +368,7 @@
     </Parameter>
     <Parameter>
         <RequestType>FreeNumber</RequestType>
-        <Description>SoftwareOcclusionOccluderSize</Description>
+        <Description>occlusion.occluderSizePerspective</Description>
         <!--This option sets the size limit for objects to be considered occluder for perspective cameras. It is on screen area, 1 is full coverage, 0 is no coverage-->
         <Value>0.1</Value>
         <valueType>Double</valueType>
@@ -377,7 +377,7 @@
     </Parameter>
     <Parameter>
         <RequestType>FreeNumber</RequestType>
-        <Description>SoftwareOcclusionOccluderSizeOrthographic</Description>
+        <Description>occlusion.occluderSizeOrthographic</Description>
         <!--Same threshold for orthographic (shadow) cameras. Shadow frusta are larger so the optimal value is much lower than for the perspective player camera-->
         <Value>0.01</Value>
         <valueType>Double</valueType>

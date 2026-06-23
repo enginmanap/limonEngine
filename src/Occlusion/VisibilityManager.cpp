@@ -264,7 +264,7 @@ void VisibilityManager::fillVisibleObjectPerCamera(const void* visibilityRequest
     glm::mat4 viewMatrix;
     glm::vec3 viewDirection;
     glm::vec3 cameraPos;
-    splitModelToMeshCount = visibilityRequest->SplitModelToMeshCountOption.get();
+    splitModelToMeshCount = visibilityRequest->splitModelToMeshCountOption.get();
     if(visibilityRequest->camera->getType() == Camera::CameraTypes::PERSPECTIVE ||
        visibilityRequest->camera->getType() == Camera::CameraTypes::ORTHOGRAPHIC) {
         skipRenderDistance = visibilityRequest->skipRenderDistanceOption.get();
@@ -276,7 +276,7 @@ void VisibilityManager::fillVisibleObjectPerCamera(const void* visibilityRequest
     // Read live (realtime toggle, editor exposed). When disabled, the player camera still rebuilds its render
     // lists every frame (skipOcclusionCulling stays false for it), but the software occluder is bypassed and
     // every frustum/LOD-passing object is added directly. runOcclusion gates only the occluder work.
-    bool occlusionCullingEnabled = visibilityRequest->occlusionCullingEnabledOption.getOrDefault(true);
+    bool occlusionCullingEnabled = visibilityRequest->occlusionEnabledOption.getOrDefault(true);
 
     // Software occlusion culling runs for the player camera and directional light cameras.
     // SDOC handles orthographic via auto-detection in the submodule (see snapdragon-oc
@@ -293,12 +293,12 @@ void VisibilityManager::fillVisibleObjectPerCamera(const void* visibilityRequest
         viewDirection = -glm::vec3(invertedView[2]);
         viewDirection = glm::normalize(viewDirection);
         cameraPos = glm::vec3(invertedView[3]); // 4th column
-        softwareOcclusionRenderDump = visibilityRequest->SoftwareOcclusionRenderDumpOption.getOrDefault(false);
-        softwareOcclusionRenderDumpFrequency = visibilityRequest->SoftwareOcclusionRenderDumpFrequencyOption.getOrDefault(500);
+        softwareOcclusionRenderDump = visibilityRequest->occlusionRenderDumpOption.getOrDefault(false);
+        softwareOcclusionRenderDumpFrequency = visibilityRequest->occlusionRenderDumpFrequencyOption.getOrDefault(500);
         if (isDirectionalLightCamera) {
-            softwareOcclusionOccluderSize = visibilityRequest->SoftwareOcclusionOccluderSizeOrthographicOption.getOrDefault(0.01f);
+            softwareOcclusionOccluderSize = visibilityRequest->occlusionOccluderSizeOrthographicOption.getOrDefault(0.01f);
         } else {
-            softwareOcclusionOccluderSize = visibilityRequest->SoftwareOcclusionOccluderSizeOption.getOrDefault(0.1f);
+            softwareOcclusionOccluderSize = visibilityRequest->occlusionOccluderSizePerspectiveOption.getOrDefault(0.1f);
         }
 
         if (occlusionCullingEnabled) {

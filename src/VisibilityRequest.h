@@ -69,13 +69,13 @@ public:
         const OptionsUtil::Options::Option<double> skipRenderDistanceOption;
         const OptionsUtil::Options::Option<double> skipRenderSizeOption;
         const OptionsUtil::Options::Option<double> maxSkipRenderSizeOption;
-        const OptionsUtil::Options::Option<long> SplitModelToMeshCountOption;
+        const OptionsUtil::Options::Option<long> splitModelToMeshCountOption;
 
-        const OptionsUtil::Options::Option<bool> SoftwareOcclusionRenderDumpOption;
-        const OptionsUtil::Options::Option<long> SoftwareOcclusionRenderDumpFrequencyOption;
-        const OptionsUtil::Options::Option<double> SoftwareOcclusionOccluderSizeOption;
-        const OptionsUtil::Options::Option<double> SoftwareOcclusionOccluderSizeOrthographicOption;
-        const OptionsUtil::Options::Option<bool> occlusionCullingEnabledOption;
+        const OptionsUtil::Options::Option<bool> occlusionRenderDumpOption;
+        const OptionsUtil::Options::Option<long> occlusionRenderDumpFrequencyOption;
+        const OptionsUtil::Options::Option<double> occlusionOccluderSizePerspectiveOption;
+        const OptionsUtil::Options::Option<double> occlusionOccluderSizeOrthographicOption;
+        const OptionsUtil::Options::Option<bool> occlusionEnabledOption;
 
         const std::unordered_map<uint32_t, PhysicalRenderable *>* const objects;
         std::unordered_map<std::vector<uint64_t>, RenderList, uint64_vector_hasher>* visibility;
@@ -93,15 +93,15 @@ public:
                 skipRenderDistanceOption(options->getOption<double>(HASH("SkipRenderDistance"))),
                 skipRenderSizeOption(options->getOption<double>(HASH("SkipRenderSize"))),
                 maxSkipRenderSizeOption(options->getOption<double>(HASH("MaxSkipRenderSize"))),
-                SplitModelToMeshCountOption(options->getOption<long>(HASH("SplitModelToMeshCount"))),
-                SoftwareOcclusionRenderDumpOption(options->getOption<bool>(HASH("SoftwareOcclusionRenderDump"))),
-                SoftwareOcclusionRenderDumpFrequencyOption(options->getOption<long>(HASH("SoftwareOcclusionRenderDumpFrequency"))),
-                SoftwareOcclusionOccluderSizeOption(options->getOption<double>(HASH("SoftwareOcclusionOccluderSize"))),
-                SoftwareOcclusionOccluderSizeOrthographicOption(options->getOption<double>(HASH("SoftwareOcclusionOccluderSizeOrthographic"))),
-                occlusionCullingEnabledOption(options->getOption<bool>(HASH("occlusionCulling"))),
+                splitModelToMeshCountOption(options->getOption<long>(HASH("SplitModelToMeshCount"))),
+                occlusionRenderDumpOption(options->getOption<bool>(HASH("occlusion.renderDump"))),
+                occlusionRenderDumpFrequencyOption(options->getOption<long>(HASH("occlusion.renderDumpFrequency"))),
+                occlusionOccluderSizePerspectiveOption(options->getOption<double>(HASH("occlusion.occluderSizePerspective"))),
+                occlusionOccluderSizeOrthographicOption(options->getOption<double>(HASH("occlusion.occluderSizeOrthographic"))),
+                occlusionEnabledOption(options->getOption<bool>(HASH("occlusion.enabled"))),
                 objects(objects), visibility(visibility),
-                occlusionCuller(options->getOption<long>(HASH("SoftwareOcclusionRenderWidth")),
-                options->getOption<long>(HASH("SoftwareOcclusionRenderHeight"))) {
+                occlusionCuller(options->getOption<long>(HASH("occlusion.renderWidth")),
+                options->getOption<long>(HASH("occlusion.renderHeight"))) {
         }
 
         std::vector<RenderList> getRenderListsForHashList(const std::vector<HashUtil::HashedString>& hashList) const {
