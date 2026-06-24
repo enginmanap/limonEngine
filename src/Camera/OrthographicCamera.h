@@ -25,7 +25,7 @@ class OrthographicCamera : public Camera {
     uint32_t playerDrawLineBufferId = 0;
     long frameCounter = 0;
     mutable bool dirty = true;
-    OptionsUtil::Options::Option<bool> debugDrawLinesOption = options->getOption<bool>(HASH("DebugDrawLines"));
+    OptionsUtil::Options::Option<bool> debugDrawLinesOption = options->getOption<bool>(HASH("debug_drawLines"));
 
     // Behaviour changes based on whether it is a player camera or a shadow camera, so we have a flag
     bool playerMode = false;
@@ -61,7 +61,7 @@ public:
             right(glm::vec3(-1, 0, 0)),
             cascadeIndex(cascadeIndex),
             options(options),
-            lightOrthogonalProjectionZBottom(options->getOption<double>(HASH("lightOrthogonalProjectionBackOff"))){
+            lightOrthogonalProjectionZBottom(options->getOption<double>(HASH("shadow_directionalProjectionBackOff"))){
         this->name = name;
 
         frustumPlanes.resize(6);
@@ -77,7 +77,7 @@ public:
             right(glm::vec3(-1, 0, 0)),
             cascadeIndex(0),
             options(options),
-            lightOrthogonalProjectionZBottom(options->getOption<double>(HASH("lightOrthogonalProjectionBackOff"))){
+            lightOrthogonalProjectionZBottom(options->getOption<double>(HASH("shadow_directionalProjectionBackOff"))){
         this->name = name;
         this->playerMode = true;
         frustumPlanes.resize(6);
@@ -283,7 +283,7 @@ public:
 
         // We are switching to square shadow map, because I could not figure out a way to rotate light rendering and not cause shadow crawling.
         // If I find a way, we can switch back to rectangle shadow map.
-        long shadowMapSize = options->getOption<long>(HASH("shadowMapDirectionalSize")).getOrDefault(2048);
+        long shadowMapSize = options->getOption<long>(HASH("shadow_mapDirectionalSize")).getOrDefault(2048);
         float texelSize = (2.0f * radius) / (float)shadowMapSize;
 
         glm::vec3 viewTranslation = glm::vec3(lightViewMatrix[3]);

@@ -43,7 +43,7 @@ void SDL2Helper::initWindow(const char* title, const GraphicsInterface::ContextI
         //we don't quit if failed, because there is a fallback possibility
     }
 
-    OptionsUtil::Options::Option<bool> fullScreenOption = options->getOption<bool>(HASH("fullScreen"));
+    OptionsUtil::Options::Option<bool> fullScreenOption = options->getOption<bool>(HASH("display_fullScreen"));
     bool fullScreen = fullScreenOption.getOrDefault(false);
     setFullScreen(fullScreen);
 }

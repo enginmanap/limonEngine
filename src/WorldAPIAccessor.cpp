@@ -682,7 +682,7 @@ std::vector<LimonTypes::GenericParameter> WorldAPIAccessor::rayCastAPI(const Lim
     glm::vec3 color2 = glm::vec3(0.0f, 0.0f, 0.0f);
     static uint32_t drawLineBufferId = 0;
 
-    OptionsUtil::Options::Option<bool> debugDrawLinesOption = world->options->getOption<bool>(HASH("DebugDrawLines"));
+    OptionsUtil::Options::Option<bool> debugDrawLinesOption = world->options->getOption<bool>(HASH("debug_drawLines"));
     bool debugDrawLines = debugDrawLinesOption.getOrDefault(false);
 
     if(debugDrawLines) {

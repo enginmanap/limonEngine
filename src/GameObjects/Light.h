@@ -90,11 +90,11 @@ public:
 
         if(lightType == LightTypes::DIRECTIONAL) {
             this->position = glm::normalize(position);
-            const OptionsUtil::Options::Option<long> cascadeCountOption = graphicsWrapper->getOptions()->getOption<long>(HASH("CascadeCount"));
+            const OptionsUtil::Options::Option<long> cascadeCountOption = graphicsWrapper->getOptions()->getOption<long>(HASH("shadow_cascadeCount"));
             long cascadeCount = cascadeCountOption.getOrDefault(4L);
-            cascadeStaggerIntervalListOption = graphicsWrapper->getOptions()->getOption<std::vector<long>>(HASH("CascadeStaggerIntervals"));
+            cascadeStaggerIntervalListOption = graphicsWrapper->getOptions()->getOption<std::vector<long>>(HASH("shadow_cascadeStaggerIntervals"));
             assert(cascadeStaggerIntervalListOption.isUsable());
-            cascadeStaggerOffsetListOption = graphicsWrapper->getOptions()->getOption<std::vector<long>>(HASH("CascadeStaggerOffsets"));
+            cascadeStaggerOffsetListOption = graphicsWrapper->getOptions()->getOption<std::vector<long>>(HASH("shadow_cascadeStaggerOffsets"));
             assert(cascadeStaggerOffsetListOption.isUsable());
 
             for(int i = 0; i < cascadeCount; i++) {

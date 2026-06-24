@@ -119,7 +119,7 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
                                            worldAABBMax);
     switchPlayer(currentPlayer, *inputHandler); //switching to itself, to set the states properly. It uses camera so done after camera creation
 
-    OptionsUtil::Options::Option<std::string> renderPipelineOption = options->getOption<std::string>(HASH("StartingRenderPipeline"));
+    OptionsUtil::Options::Option<std::string> renderPipelineOption = options->getOption<std::string>(HASH("render_pipeline"));
     renderPipeline = GraphicsPipeline::deserialize(renderPipelineOption.get(), graphicsWrapper, assetManager, options, buildRenderMethods());
 
     if(renderPipeline == nullptr) {
@@ -142,15 +142,15 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
     modelIndicesBuffer.reserve(NR_MAX_MODELS);
     tempRenderedObjectsSet.reserve(NR_MAX_MODELS);
 
-    renderInformationsOption = options->getOption<bool>(HASH("renderInformations"));
-    maxLightsOption = options->getOption<long>(HASH("maximumLights"));
+    renderInformationsOption = options->getOption<bool>(HASH("debug_renderInformations"));
+    maxLightsOption = options->getOption<long>(HASH("performance_maximumLights"));
     activeLights.reserve(maxLightsOption.getOrDefault(4));
 
-    soundVolumeOptions[(size_t)LimonTypes::AudioChannel::MASTER]  = options->getOption<double>(HASH("soundVolumeMaster"));
-    soundVolumeOptions[(size_t)LimonTypes::AudioChannel::MUSIC]   = options->getOption<double>(HASH("soundVolumeMusic"));
-    soundVolumeOptions[(size_t)LimonTypes::AudioChannel::SFX]     = options->getOption<double>(HASH("soundVolumeSFX"));
-    soundVolumeOptions[(size_t)LimonTypes::AudioChannel::SPEECH]  = options->getOption<double>(HASH("soundVolumeSpeech"));
-    soundVolumeOptions[(size_t)LimonTypes::AudioChannel::AMBIENT] = options->getOption<double>(HASH("soundVolumeAmbient"));
+    soundVolumeOptions[(size_t)LimonTypes::AudioChannel::MASTER]  = options->getOption<double>(HASH("audio_volumeMaster"));
+    soundVolumeOptions[(size_t)LimonTypes::AudioChannel::MUSIC]   = options->getOption<double>(HASH("audio_volumeMusic"));
+    soundVolumeOptions[(size_t)LimonTypes::AudioChannel::SFX]     = options->getOption<double>(HASH("audio_volumeSFX"));
+    soundVolumeOptions[(size_t)LimonTypes::AudioChannel::SPEECH]  = options->getOption<double>(HASH("audio_volumeSpeech"));
+    soundVolumeOptions[(size_t)LimonTypes::AudioChannel::AMBIENT] = options->getOption<double>(HASH("audio_volumeAmbient"));
 }
 
 void World::applyAudioVolumeOptionsIfChanged() {
@@ -580,7 +580,7 @@ World::fillRouteInformation(std::vector<LimonTypes::GenericParameter> parameters
     }
 
     if(inputHandler.getInputStates().getInputEvents(InputStates::Inputs::F4)) {
-        OptionsUtil::Options::Option<bool> debugDrawLinesOption = options->getOption<bool>(HASH("DebugDrawLines"));
+        OptionsUtil::Options::Option<bool> debugDrawLinesOption = options->getOption<bool>(HASH("debug_drawLines"));
         bool debugDrawLines = debugDrawLinesOption.getOrDefault(false);
         if(inputHandler.getInputStates().getInputStatus(InputStates::Inputs::F4)) {
             debugDrawLines = !debugDrawLines;
@@ -588,7 +588,7 @@ World::fillRouteInformation(std::vector<LimonTypes::GenericParameter> parameters
         debugDrawLinesOption.set(debugDrawLines);
         /*
         long cascadeCount;
-        OptionsUtil::Options::Option<long> cascadeCountOption = options->getOption<long>(HASH("CascadeCount"));
+        OptionsUtil::Options::Option<long> cascadeCountOption = options->getOption<long>(HASH("shadow_cascadeCount"));
         cascadeCount = cascadeCountOption.getOrDefault(4);
         if(inputHandler.getInputStates().getInputStatus(InputStates::Inputs::F4)) {
             cascadeCount--;

@@ -1284,7 +1284,7 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
             this->showNodeGraph = true;
         }
         if (ImGui::CollapsingHeader("Render Debugging")) {
-            OptionsUtil::Options::Option<bool> occlusionCullingOption = world->options->getOption<bool>(world->options->getHash("occlusion.enabled"));
+            OptionsUtil::Options::Option<bool> occlusionCullingOption = world->options->getOption<bool>(world->options->getHash("occlusion_enabled"));
             bool occlusionCullingEnabled = occlusionCullingOption.getOrDefault(true);
             if (ImGui::Checkbox("Occlusion Culling", &occlusionCullingEnabled)) {
                 if (occlusionCullingOption.isUsable()) {

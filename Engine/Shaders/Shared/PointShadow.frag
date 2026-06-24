@@ -1,6 +1,6 @@
 #ifndef LIGHT_DEFINITIONS
 #define LIGHT_DEFINITIONS
-#define_option maximumLights
+#define_option performance_maximumLights
 struct LightSource {
     mat4 shadowMatrices[6];
     vec3 position;
@@ -13,16 +13,16 @@ struct LightSource {
 
 layout (std140) uniform LightSourceBlock
 {
-    LightSource lights[maximumLights];
+    LightSource lights[performance_maximumLights];
 } LightSources;
 #endif
 
-#define_option PointShadowSampleCount
+#define_option shadow_pointSampleCount
 
 uniform samplerCubeArrayShadow pre_shadowPoint;
 
 // 3D Fibonacci Spiral (Progressive): any prefix N is well-distributed on a sphere.
-// Prevents shadow crawling when changing PointShadowSampleCount.
+// Prevents shadow crawling when changing shadow_pointSampleCount.
 const vec3 _pointSampleOffsetDirections[20] = vec3[](
     vec3(0.000000, 0.000000, 1.000000),
     vec3(0.254181, 0.231940, 0.938883),
@@ -72,7 +72,7 @@ float ShadowCalculationPoint(vec3 world_space_frag_pos, float viewDistance, int 
     }
 
     float shadow = 0.0;
-    int samples  = PointShadowSampleCount;
+    int samples  = shadow_pointSampleCount;
     float diskRadius = (1.0 + (viewDistance / LightSources.lights[lightIndex].farPlanePoint)) / 50.0;
 
     for(int i = 0; i < samples; ++i) {

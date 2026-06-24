@@ -218,8 +218,8 @@ bool OptionsUtil::Options::loadOptionsNew(const std::string &optionsFileName) {
         }
         optionNode = optionNode->NextSiblingElement("Parameter");
     }
-    heightOption = getOption<long>(HASH("screenHeight"));
-    widthOption = getOption<long>(HASH("screenWidth"));
+    heightOption = getOption<long>(HASH("display_height"));
+    widthOption = getOption<long>(HASH("display_width"));
     return true;
 }
 

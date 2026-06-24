@@ -36,7 +36,7 @@ int16_t ProfilerSystem::getSourceLocation(const char* name) {
 
 ProfilerSystem::ProfilerSystem(const OptionsUtil::Options* options) {
 #ifdef TRACY_ENABLE
-    enableTracingServerOption = options->getOption<bool>(HASH("Profiler.EnableServer"));
+    enableTracingServerOption = options->getOption<bool>(HASH("profiler_enableServer"));
 #endif
 }
 

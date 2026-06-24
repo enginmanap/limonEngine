@@ -1,8 +1,8 @@
 #import <./Engine/Shaders/Shared/PlayerInformation.glsl>
 #import <./Engine/Shaders/Shared/Material.frag>
 
-#define_option CascadeCount
-#define_option CascadeLimitList
+#define_option shadow_cascadeCount
+#define_option shadow_cascadeLimitList
 
 layout (location = 0) out vec2 gNormal;       // World-space normal (xyz)
 layout (location = 1) out vec4 gAlbedoSpec;   // Albedo (rgb), MaterialIndex (a)

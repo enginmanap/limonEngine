@@ -167,7 +167,7 @@ GameEngine::GameEngine() {
 
     sdlHelper = new SDL2Helper(options);
 
-    std::string backendName = options->getOption<std::string>(options->getHash("GraphicsBackend")).getOrDefault("libOpenGLGraphicsBackend");
+    std::string backendName = options->getOption<std::string>(options->getHash("render_backend")).getOrDefault("libOpenGLGraphicsBackend");
     std::cout << "Selected Graphics Backend: " << backendName << std::endl;
 
     std::string graphicsBackendFileName = "./";

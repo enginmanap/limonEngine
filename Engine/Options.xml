@@ -9,7 +9,7 @@
     </Parameter>
     <Parameter>
         <RequestType>FreeNumber</RequestType>
-        <Description>screenHeight</Description>
+        <Description>display_height</Description>
         <Value>1440</Value>
         <valueType>Long</valueType>
         <IsSet>True</IsSet>
@@ -17,7 +17,7 @@
     </Parameter>
     <Parameter>
         <RequestType>FreeNumber</RequestType>
-        <Description>screenWidth</Description>
+        <Description>display_width</Description>
         <Value>2560</Value>
         <valueType>Long</valueType>
         <IsSet>True</IsSet>
@@ -25,7 +25,7 @@
     </Parameter>
     <Parameter>
         <RequestType>FreeNumber</RequestType>
-        <Description>SSAOHeight</Description>
+        <Description>ssao_height</Description>
         <Value>1440</Value>
         <valueType>Long</valueType>
         <IsSet>True</IsSet>
@@ -33,7 +33,7 @@
     </Parameter>
     <Parameter>
         <RequestType>FreeNumber</RequestType>
-        <Description>SSAOWidth</Description>
+        <Description>ssao_width</Description>
         <Value>2560</Value>
         <valueType>Long</valueType>
         <IsSet>True</IsSet>
@@ -41,7 +41,7 @@
     </Parameter>
     <Parameter>
         <RequestType>FreeText</RequestType>
-        <Description>fullScreen</Description>
+        <Description>display_fullScreen</Description>
         <Value>False</Value>
         <valueType>Boolean</valueType>
         <IsSet>True</IsSet>
@@ -49,7 +49,7 @@
     </Parameter>
     <Parameter>
         <RequestType>FreeNumber</RequestType>
-        <Description>shadowMapDirectionalSize</Description>
+        <Description>shadow_mapDirectionalSize</Description>
         <Value>2048</Value>
         <valueType>Long</valueType>
         <IsSet>True</IsSet>
@@ -57,7 +57,7 @@
     </Parameter>
     <Parameter>
         <RequestType>FreeNumber</RequestType>
-        <Description>shadowMapPointWidth</Description>
+        <Description>shadow_mapPointWidth</Description>
         <Value>512</Value>
         <valueType>Long</valueType>
         <IsSet>True</IsSet>
@@ -65,7 +65,7 @@
     </Parameter>
     <Parameter>
         <RequestType>FreeNumber</RequestType>
-        <Description>shadowMapPointHeight</Description>
+        <Description>shadow_mapPointHeight</Description>
         <Value>512</Value>
         <valueType>Long</valueType>
         <IsSet>True</IsSet>
@@ -73,7 +73,7 @@
     </Parameter>
     <Parameter>
         <RequestType>FreeNumber</RequestType>
-        <Description>maximumLights</Description>
+        <Description>performance_maximumLights</Description>
         <Value>4</Value>
         <valueType>Long</valueType>
         <IsSet>True</IsSet>
@@ -81,7 +81,7 @@
     </Parameter>
     <Parameter>
         <RequestType>FreeNumber</RequestType>
-        <Description>PointShadowSampleCount</Description>
+        <Description>shadow_pointSampleCount</Description>
         <Value>20</Value>
         <valueType>Long</valueType>
         <IsSet>True</IsSet>
@@ -89,7 +89,7 @@
     </Parameter>
     <Parameter>
         <RequestType>FreeNumber</RequestType>
-        <Description>DirectionalShadowSampleCount</Description>
+        <Description>shadow_directionalSampleCount</Description>
         <Value>8</Value>
         <valueType>Long</valueType>
         <IsSet>True</IsSet>
@@ -97,7 +97,7 @@
     </Parameter>
     <Parameter>
         <RequestType>FreeNumber</RequestType>
-        <Description>debugDrawBufferSize</Description>
+        <Description>debug_drawBufferSize</Description>
         <Value>1000</Value>
         <valueType>Long</valueType>
         <IsSet>True</IsSet>
@@ -105,7 +105,7 @@
     </Parameter>
     <Parameter>
         <RequestType>FreeNumber</RequestType>
-        <Description>lightOrthogonalProjectionBackOff</Description>
+        <Description>shadow_directionalProjectionBackOff</Description>
         <Value>-5000</Value>
         <valueType>Double</valueType>
         <IsSet>True</IsSet>
@@ -113,7 +113,7 @@
     </Parameter>
     <Parameter>
         <RequestType>FreeNumber</RequestType>
-        <Description>lightPointNearPlane</Description>
+        <Description>shadow_pointNearPlane</Description>
         <Value>0.1</Value>
         <valueType>Double</valueType>
         <IsSet>True</IsSet>
@@ -121,7 +121,7 @@
     </Parameter>
     <Parameter>
         <RequestType>FreeNumber</RequestType>
-        <Description>lightPointFarPlane</Description>
+        <Description>shadow_pointFarPlane</Description>
         <Value>100</Value>
         <valueType>Double</valueType>
         <IsSet>True</IsSet>
@@ -129,7 +129,7 @@
     </Parameter>
     <Parameter>
         <RequestType>FreeText</RequestType>
-        <Description>TextureFiltering</Description>
+        <Description>render_textureFiltering</Description>
         <Value>Trilinear</Value>
         <!--<Value>"Nearest"</Value>-->
         <!--<Value>"Bilinear"</Value>-->
@@ -139,7 +139,7 @@
     </Parameter>
     <Parameter>
         <RequestType>Coordinate</RequestType>
-        <Description>walkSpeed</Description>
+        <Description>player_walkSpeed</Description>
         <Value>
             <X>8</X>
             <Y>0</Y>
@@ -151,7 +151,7 @@
     </Parameter>
     <Parameter>
         <RequestType>Coordinate</RequestType>
-        <Description>runSpeed</Description>
+        <Description>player_runSpeed</Description>
         <Value>
             <X>12</X>
             <Y>0</Y>
@@ -163,7 +163,7 @@
     </Parameter>
     <Parameter>
         <RequestType>Coordinate</RequestType>
-        <Description>moveSpeed</Description>
+        <Description>player_moveSpeed</Description>
         <Value>
             <X>8</X>
             <Y>0</Y>
@@ -175,7 +175,7 @@
     </Parameter>
     <Parameter>
         <RequestType>Coordinate</RequestType>
-        <Description>freeMovementSpeed</Description>
+        <Description>player_freeMovementSpeed</Description>
         <Value>
             <X>0.5</X>
             <Y>0.5</Y>
@@ -187,7 +187,7 @@
     </Parameter>
     <Parameter>
         <RequestType>FreeText</RequestType>
-        <Description>renderInformations</Description>
+        <Description>debug_renderInformations</Description>
         <Value>True</Value>
         <valueType>Boolean</valueType>
         <IsSet>True</IsSet>
@@ -195,7 +195,7 @@
     </Parameter>
     <Parameter>
         <RequestType>FreeNumber</RequestType>
-        <Description>SSAOSampleCount</Description>
+        <Description>ssao_sampleCount</Description>
         <Value>9</Value>
         <valueType>Long</valueType>
         <IsSet>True</IsSet>
@@ -203,7 +203,7 @@
     </Parameter>
     <Parameter>
         <RequestType>FreeNumber</RequestType>
-        <Description>multiThreadedCulling</Description>
+        <Description>performance_multiThreadedCulling</Description>
         <Value>True</Value>
         <valueType>Boolean</valueType>
         <IsSet>True</IsSet>
@@ -211,7 +211,7 @@
     </Parameter>
     <Parameter>
         <RequestType>FreeText</RequestType>
-        <Description>occlusion.enabled</Description>
+        <Description>occlusion_enabled</Description>
         <!--Enables software occlusion culling for the player camera. Can be toggled at runtime from the editor.-->
         <Value>True</Value>
         <valueType>Boolean</valueType>
@@ -220,7 +220,7 @@
     </Parameter>
     <Parameter>
         <RequestType>FreeNumber</RequestType>
-        <Description>lookAroundSpeed</Description>
+        <Description>player_lookAroundSpeed</Description>
         <Value>-6.5</Value>
         <valueType>Double</valueType>
         <IsSet>True</IsSet>
@@ -228,7 +228,7 @@
     </Parameter>
     <Parameter>
         <RequestType>FreeNumber</RequestType>
-        <Description>jumpFactor</Description>
+        <Description>player_jumpFactor</Description>
         <Value>7.0</Value>
         <valueType>Double</valueType>
         <IsSet>True</IsSet>
@@ -236,7 +236,7 @@
     </Parameter>
     <Parameter>
         <RequestType>FreeNumber</RequestType>
-        <Description>DebugDrawLines</Description>
+        <Description>debug_drawLines</Description>
         <Value>False</Value>
         <valueType>Boolean</valueType>
         <IsSet>True</IsSet>
@@ -244,7 +244,7 @@
     </Parameter>
     <Parameter>
         <RequestType>FreeNumber</RequestType>
-        <Description>CascadeCount</Description>
+        <Description>shadow_cascadeCount</Description>
         <Value>4</Value>
         <valueType>Long</valueType>
         <IsSet>True</IsSet>
@@ -252,7 +252,7 @@
     </Parameter>
     <Parameter>
         <RequestType>FreeNumber</RequestType>
-        <Description>CascadeLimitList</Description>
+        <Description>shadow_cascadeLimitList</Description>
         <Value>5.0, 20.0, 50.0, 150.0, 250.0</Value>
         <valueType>FloatArray</valueType>
         <IsSet>True</IsSet>
@@ -267,7 +267,7 @@
      increasing these values would improve framerate, but will delay shadows-->
     <Parameter>
         <RequestType>FreeNumber</RequestType>
-        <Description>CascadeStaggerOffsets</Description>
+        <Description>shadow_cascadeStaggerOffsets</Description>
         <!-- This variable sets the which frame will render which cascade. Cascade 0 updates every frame, so skipped.-->
         <Value>4, 1, 2, 4</Value>
 <!--        <Value>4, 0, 0, 0</Value> no offset, for rendering each frame-->
@@ -277,7 +277,7 @@
     </Parameter>
     <Parameter>
         <RequestType>FreeNumber</RequestType>
-        <Description>CascadeStaggerIntervals</Description>
+        <Description>shadow_cascadeStaggerIntervals</Description>
         <!-- This variable sets the how often we render the cascade. Cascade 0 updates every frame, so skipped. -->
         <Value>4, 2, 4, 8</Value>
 <!--        <Value>4, 1, 1, 1</Value> interval 1 is each frame, enable with offset for all cascades each frame-->
@@ -287,7 +287,7 @@
     </Parameter>
     <Parameter>
         <RequestType>FreeNumber</RequestType>
-        <Description>LodDistanceList</Description>
+        <Description>LOD_distanceList</Description>
         <!-- This variable sets the LOD distances, so 10 is the second lod, 25 is third, etc. we build 3 LODs for 1 model, so 4 levels -->
         <Value>5, 10, 25, 150, 250</Value>
         <valueType>LongArray</valueType>
@@ -296,7 +296,7 @@
     </Parameter>
     <Parameter>
         <RequestType>FreeNumber</RequestType>
-        <Description>SkipRenderDistance</Description>
+        <Description>LOD_skipRenderDistance</Description>
         <!--This variable sets what is the distance to start skipping render for an object. To skip Render size also needs to be set-->
         <Value>50.0</Value>
         <valueType>Double</valueType>
@@ -305,7 +305,7 @@
     </Parameter>
     <Parameter>
         <RequestType>FreeNumber</RequestType>
-        <Description>SkipRenderSize</Description>
+        <Description>LOD_skipRenderSize</Description>
         <!-- This variable sets what is the size on screen engine can start skipping. It is a percentage, and only applies to models that are more distant than Skip Render Distance -->
         <Value>0.075</Value>
         <valueType>Double</valueType>
@@ -314,7 +314,7 @@
     </Parameter>
     <Parameter>
         <RequestType>FreeNumber</RequestType>
-        <Description>MaxSkipRenderSize</Description>
+        <Description>LOD_maxSkipRenderSize</Description>
         <!-- This variable sets what is the size of objects can't be skipped. This is required because objects like ground/wall skipping can be visually jarring-->
         <Value>3</Value>
         <valueType>Double</valueType>
@@ -332,7 +332,7 @@
     </Parameter>
     <Parameter>
         <RequestType>FreeNumber</RequestType>
-        <Description>occlusion.renderWidth</Description>
+        <Description>occlusion_renderWidth</Description>
         <!--This option sets the software rasterized depth buffers width, needs to be a factor of 8-->
         <Value>512</Value>
         <valueType>Long</valueType>
@@ -341,7 +341,7 @@
     </Parameter>
     <Parameter>
         <RequestType>FreeNumber</RequestType>
-        <Description>occlusion.renderHeight</Description>
+        <Description>occlusion_renderHeight</Description>
         <!--This option sets the software rasterized depth buffers height, needs to be a factor of 8-->
         <Value>256</Value>
         <valueType>Long</valueType>
@@ -350,7 +350,7 @@
     </Parameter>
     <Parameter>
         <RequestType>FreeText</RequestType>
-        <Description>occlusion.renderDump</Description>
+        <Description>occlusion_renderDump</Description>
         <!--This option enables dumping the software rasterized depth buffer to a ppm file. For debug purposes only.-->
         <Value>False</Value>
         <valueType>Boolean</valueType>
@@ -359,7 +359,7 @@
     </Parameter>
     <Parameter>
         <RequestType>FreeNumber</RequestType>
-        <Description>occlusion.renderDumpFrequency</Description>
+        <Description>occlusion_renderDumpFrequency</Description>
         <!--This option sets frequency of dumping the software rasterized depth buffer to a ppm file. For debug purposes only.-->
         <Value>300</Value>
         <valueType>Long</valueType>
@@ -368,7 +368,7 @@
     </Parameter>
     <Parameter>
         <RequestType>FreeNumber</RequestType>
-        <Description>occlusion.occluderSizePerspective</Description>
+        <Description>occlusion_occluderSizePerspective</Description>
         <!--This option sets the size limit for objects to be considered occluder for perspective cameras. It is on screen area, 1 is full coverage, 0 is no coverage-->
         <Value>0.1</Value>
         <valueType>Double</valueType>
@@ -377,7 +377,7 @@
     </Parameter>
     <Parameter>
         <RequestType>FreeNumber</RequestType>
-        <Description>occlusion.occluderSizeOrthographic</Description>
+        <Description>occlusion_occluderSizeOrthographic</Description>
         <!--Same threshold for orthographic (shadow) cameras. Shadow frusta are larger so the optimal value is much lower than for the perspective player camera-->
         <Value>0.01</Value>
         <valueType>Double</valueType>
@@ -386,7 +386,7 @@
     </Parameter>
     <Parameter>
         <RequestType>FreeText</RequestType>
-        <Description>GraphicsBackend</Description>
+        <Description>render_backend</Description>
         <Value>libOpenGLGraphicsBackend</Value>
         <valueType>String</valueType>
         <IsSet>True</IsSet>
@@ -394,7 +394,7 @@
     </Parameter>
     <Parameter>
         <RequestType>FreeText</RequestType>
-        <Description>StartingRenderPipeline</Description>
+        <Description>render_pipeline</Description>
         <Value>./Engine/forward_renderPipeline.xml</Value>
         <valueType>String</valueType>
         <IsSet>True</IsSet>
@@ -402,7 +402,7 @@
     </Parameter>
     <Parameter>
         <RequestType>FreeNumber</RequestType>
-        <Description>SSAOBlurRadius</Description>
+        <Description>ssao_blurRadius</Description>
         <Value>1</Value>
         <valueType>Long</valueType>
         <IsSet>True</IsSet>
@@ -410,7 +410,7 @@
     </Parameter>
     <Parameter>
         <RequestType>FreeText</RequestType>
-        <Description>Profiler.EnableServer</Description>
+        <Description>profiler_enableServer</Description>
         <Value>True</Value>
         <valueType>Boolean</valueType>
         <IsSet>True</IsSet>
@@ -419,7 +419,7 @@
     <!-- Audio channel (bus) volumes, normalized 0..1 (1.0 = unchanged). Applied to ALHelper each frame. -->
     <Parameter>
         <RequestType>FreeNumber</RequestType>
-        <Description>soundVolumeMaster</Description>
+        <Description>audio_volumeMaster</Description>
         <Value>1.0</Value>
         <valueType>Double</valueType>
         <IsSet>True</IsSet>
@@ -427,7 +427,7 @@
     </Parameter>
     <Parameter>
         <RequestType>FreeNumber</RequestType>
-        <Description>soundVolumeMusic</Description>
+        <Description>audio_volumeMusic</Description>
         <Value>1.0</Value>
         <valueType>Double</valueType>
         <IsSet>True</IsSet>
@@ -435,7 +435,7 @@
     </Parameter>
     <Parameter>
         <RequestType>FreeNumber</RequestType>
-        <Description>soundVolumeSFX</Description>
+        <Description>audio_volumeSFX</Description>
         <Value>1.0</Value>
         <valueType>Double</valueType>
         <IsSet>True</IsSet>
@@ -443,7 +443,7 @@
     </Parameter>
     <Parameter>
         <RequestType>FreeNumber</RequestType>
-        <Description>soundVolumeSpeech</Description>
+        <Description>audio_volumeSpeech</Description>
         <Value>1.0</Value>
         <valueType>Double</valueType>
         <IsSet>True</IsSet>
@@ -451,7 +451,7 @@
     </Parameter>
     <Parameter>
         <RequestType>FreeNumber</RequestType>
-        <Description>soundVolumeAmbient</Description>
+        <Description>audio_volumeAmbient</Description>
         <Value>1.0</Value>
         <valueType>Double</valueType>
         <IsSet>True</IsSet>

@@ -43,7 +43,7 @@ bool SSAOKernelRenderMethod::initRender(std::shared_ptr<GraphicsProgram> program
         // a non-zero sampleOverride parameter takes precedence over the engine option
         sampleCount = sampleOverride;
     } else {
-        OptionsUtil::Options::Option<long> sampleCountOption = graphicsInterface->getOptions()->getOption<long>(graphicsInterface->getOptions()->getHash("SSAOSampleCount"));
+        OptionsUtil::Options::Option<long> sampleCountOption = graphicsInterface->getOptions()->getOption<long>(graphicsInterface->getOptions()->getHash("ssao_sampleCount"));
         sampleCount = sampleCountOption.getOrDefault(9);
     }
     std::vector<glm::vec3> kernels = generateSSAOKernels(sampleCount);

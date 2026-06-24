@@ -8,7 +8,7 @@
 #include "../Profiler/ProfilerMacros.h"
 
 VisibilityManager::VisibilityManager(World* world) : world(world) {
-    OptionsUtil::Options::Option<bool> multiThreadCullingOption = world->options->getOption<bool>(HASH("multiThreadedCulling"));
+    OptionsUtil::Options::Option<bool> multiThreadCullingOption = world->options->getOption<bool>(HASH("performance_multiThreadedCulling"));
     multiThreadedCulling = multiThreadCullingOption.getOrDefault(true);
 }
 

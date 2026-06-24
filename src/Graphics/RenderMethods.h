@@ -234,7 +234,7 @@ public:
                                                      const std::shared_ptr<GraphicsProgram> &glslProgram,
                                                      OptionsUtil::Options *options) const {
 
-        OptionsUtil::Options::Option<long> optionNewSet = options->getOption<long>(HASH("CascadeCount"));
+        OptionsUtil::Options::Option<long> optionNewSet = options->getOption<long>(HASH("shadow_cascadeCount"));
         return RenderMethod("All directional shadows",
                             2,
                             nullptr,

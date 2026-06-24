@@ -33,8 +33,8 @@ public:
             options(options){
         renderMatrices.resize(6);
         this->name = name;
-        shadowMapWidthOption = options->getOption<long>(HASH("shadowMapPointWidth"));
-        shadowMapHeightOption = options->getOption<long>(HASH("shadowMapPointHeight"));
+        shadowMapWidthOption = options->getOption<long>(HASH("shadow_mapPointWidth"));
+        shadowMapHeightOption = options->getOption<long>(HASH("shadow_mapPointHeight"));
     }
 
     CameraTypes getType() const override {
@@ -152,8 +152,8 @@ private:
         sWidth = shadowMapWidthOption.getOrDefault(512);
         sHeight = shadowMapHeightOption.getOrDefault(512);
 
-        OptionsUtil::Options::Option<double> near = options->getOption<double>(HASH("lightPointNearPlane"));
-        OptionsUtil::Options::Option<double> far = options->getOption<double>(HASH("lightPointFarPlane"));
+        OptionsUtil::Options::Option<double> near = options->getOption<double>(HASH("shadow_pointNearPlane"));
+        OptionsUtil::Options::Option<double> far = options->getOption<double>(HASH("shadow_pointFarPlane"));
 
         glm::mat4 lightProjectionMatrixPoint = glm::perspective(glm::radians(90.0f),
                                                       (float)sWidth/(float)sHeight,

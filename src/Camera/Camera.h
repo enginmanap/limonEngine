@@ -113,8 +113,8 @@ public:
     // moved here so both perpective and orthographic can use it
     static std::vector<float> readCascadeLimits(OptionsUtil::Options* options) {
         std::vector<float> cascadeLimits;
-        const long cascadeCount = options->getOption<long>(HASH("CascadeCount")).getOrDefault(4L);
-        const OptionsUtil::Options::Option<std::vector<float>> cascadeLimitListOption = options->getOption<std::vector<float>>(HASH("CascadeLimitList"));
+        const long cascadeCount = options->getOption<long>(HASH("shadow_cascadeCount")).getOrDefault(4L);
+        const OptionsUtil::Options::Option<std::vector<float>> cascadeLimitListOption = options->getOption<std::vector<float>>(HASH("shadow_cascadeLimitList"));
         if(cascadeLimitListOption.isUsable()) {
             const std::vector<float> cascadeListOption = cascadeLimitListOption.get();
             if(cascadeListOption.size() != static_cast<size_t>(cascadeCount)) {

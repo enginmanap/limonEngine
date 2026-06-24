@@ -370,7 +370,7 @@ bool OpenGLESGraphics::createGraphicsBackend() {
 
     this->screenHeight = options->getScreenHeight();
     this->screenWidth = options->getScreenWidth();
-    OptionsUtil::Options::Option<long> maxPointLightOption = options->getOption<long>(HASH("maximumLights"));
+    OptionsUtil::Options::Option<long> maxPointLightOption = options->getOption<long>(HASH("performance_maximumLights"));
     this->totalLightCount = maxPointLightOption.getOrDefault(4);
     GLenum rev;
     error = GL_NO_ERROR;
@@ -1399,7 +1399,7 @@ uint32_t OpenGLESGraphics::createTexture(int height, int width, TextureTypes typ
     glTexParameteri(glTextureType, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(glTextureType, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     std::string temp;
-    OptionsUtil::Options::Option<std::string> textureFilteringOption = options->getOption<std::string>(HASH("TextureFiltering"));
+    OptionsUtil::Options::Option<std::string> textureFilteringOption = options->getOption<std::string>(HASH("render_textureFiltering"));
     temp = textureFilteringOption.getOrDefault("Nearest");
     if (temp == "Nearest") {
         glTexParameteri(glTextureType, GL_TEXTURE_MIN_FILTER, GL_NEAREST);

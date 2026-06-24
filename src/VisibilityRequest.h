@@ -89,19 +89,19 @@ public:
 
         VisibilityRequest(Camera* camera, std::unordered_map<uint32_t, PhysicalRenderable *>* objects, std::unordered_map<std::vector<uint64_t>, RenderList, uint64_vector_hasher> * visibility, const glm::vec3& playerPosition, const OptionsUtil::Options* options, SDL2MultiThreading::Condition* wakeCondition) :
                 wakeCondition(wakeCondition), camera(camera), playerPosition(playerPosition), options(options),
-                lodDistancesOption(options->getOption<std::vector<long>>(HASH("LodDistanceList"))),
-                skipRenderDistanceOption(options->getOption<double>(HASH("SkipRenderDistance"))),
-                skipRenderSizeOption(options->getOption<double>(HASH("SkipRenderSize"))),
-                maxSkipRenderSizeOption(options->getOption<double>(HASH("MaxSkipRenderSize"))),
+                lodDistancesOption(options->getOption<std::vector<long>>(HASH("LOD_distanceList"))),
+                skipRenderDistanceOption(options->getOption<double>(HASH("LOD_skipRenderDistance"))),
+                skipRenderSizeOption(options->getOption<double>(HASH("LOD_skipRenderSize"))),
+                maxSkipRenderSizeOption(options->getOption<double>(HASH("LOD_maxSkipRenderSize"))),
                 splitModelToMeshCountOption(options->getOption<long>(HASH("SplitModelToMeshCount"))),
-                occlusionRenderDumpOption(options->getOption<bool>(HASH("occlusion.renderDump"))),
-                occlusionRenderDumpFrequencyOption(options->getOption<long>(HASH("occlusion.renderDumpFrequency"))),
-                occlusionOccluderSizePerspectiveOption(options->getOption<double>(HASH("occlusion.occluderSizePerspective"))),
-                occlusionOccluderSizeOrthographicOption(options->getOption<double>(HASH("occlusion.occluderSizeOrthographic"))),
-                occlusionEnabledOption(options->getOption<bool>(HASH("occlusion.enabled"))),
+                occlusionRenderDumpOption(options->getOption<bool>(HASH("occlusion_renderDump"))),
+                occlusionRenderDumpFrequencyOption(options->getOption<long>(HASH("occlusion_renderDumpFrequency"))),
+                occlusionOccluderSizePerspectiveOption(options->getOption<double>(HASH("occlusion_occluderSizePerspective"))),
+                occlusionOccluderSizeOrthographicOption(options->getOption<double>(HASH("occlusion_occluderSizeOrthographic"))),
+                occlusionEnabledOption(options->getOption<bool>(HASH("occlusion_enabled"))),
                 objects(objects), visibility(visibility),
-                occlusionCuller(options->getOption<long>(HASH("occlusion.renderWidth")),
-                options->getOption<long>(HASH("occlusion.renderHeight"))) {
+                occlusionCuller(options->getOption<long>(HASH("occlusion_renderWidth")),
+                options->getOption<long>(HASH("occlusion_renderHeight"))) {
         }
 
         std::vector<RenderList> getRenderListsForHashList(const std::vector<HashUtil::HashedString>& hashList) const {

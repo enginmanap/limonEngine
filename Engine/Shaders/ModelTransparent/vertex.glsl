@@ -1,5 +1,5 @@
 
-#define_option maximumLights
+#define_option performance_maximumLights
 #import <./Engine/Shaders/Shared/PlayerInformation.glsl>
 #import <./Engine/Shaders/Shared/ModelRendering.vert>
 
@@ -13,7 +13,7 @@ out VS_FS {
     vec2 textureCoord;
     vec3 normal;
     vec3 fragPos;
-    vec4 fragPosLightSpace[maximumLights];
+    vec4 fragPosLightSpace[performance_maximumLights];
     flat int materialIndex;
 } to_fs;
 
@@ -29,7 +29,7 @@ struct LightSource {
 
 layout (std140) uniform LightSourceBlock
 {
-    LightSource lights[maximumLights];
+    LightSource lights[performance_maximumLights];
 } LightSources;
 
 void main(void)
@@ -38,7 +38,7 @@ void main(void)
 
     calculateWorldPositionAndNormal(position, normal, boneIDs, boneWeights, to_fs.fragPos, to_fs.normal);
 
-    for(int i = 0; i < maximumLights; i++){
+    for(int i = 0; i < performance_maximumLights; i++){
         if(LightSources.lights[i].type == 1) {
             to_fs.fragPosLightSpace[i] = LightSources.lights[i].shadowMatrices[0] * vec4(to_fs.fragPos, 1.0);
         }

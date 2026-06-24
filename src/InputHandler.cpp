@@ -10,7 +10,7 @@ InputHandler::InputHandler(SDL_Window *window, OptionsUtil::Options *options) :
         window(window), options(options) {
     SDL_SetWindowGrab(window, SDL_TRUE);
     SDL_SetRelativeMouseMode(SDL_TRUE);
-    lookAroundSpeedOption = options->getOption<double>(HASH("lookAroundSpeed"));
+    lookAroundSpeedOption = options->getOption<double>(HASH("player_lookAroundSpeed"));
 }
 
 void InputHandler::mapInput() {

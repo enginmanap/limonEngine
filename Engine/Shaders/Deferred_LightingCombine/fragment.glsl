@@ -1,5 +1,5 @@
 
-#define_option maximumLights
+#define_option performance_maximumLights
 #import <./Engine/Shaders/Shared/PlayerInformation.glsl>
 #import <./Engine/Shaders/Shared/PointShadow.frag>
 #import <./Engine/Shaders/Shared/DirectionalShadow.frag>

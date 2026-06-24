@@ -11,7 +11,7 @@ void FreeMovingPlayer::move(moveDirections direction) {
     }
     dirty = true;
 
-    OptionsUtil::Options::Option<LimonTypes::Vec4>movementSpeedOption = options->getOption<LimonTypes::Vec4>(HASH("freeMovementSpeed"));
+    OptionsUtil::Options::Option<LimonTypes::Vec4>movementSpeedOption = options->getOption<LimonTypes::Vec4>(HASH("player_freeMovementSpeed"));
     LimonTypes::Vec4 movementSpeed = movementSpeedOption.get();
     float jumpFactor = jumpFactorOption.get();
 

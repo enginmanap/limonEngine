@@ -1,5 +1,5 @@
 
-#define_option SSAOBlurRadius
+#define_option ssao_blurRadius
 
 layout (location = 1) out float occlusion;
 
@@ -17,13 +17,13 @@ void main() {
     float result      = 0.0;
     float totalWeight = 0.0;
 
-    // sigma = SSAOBlurRadius so the Gaussian widens naturally with the kernel size.
-    // SSAOBlurRadius is a compile-time constant, so the compiler unrolls the loops
+    // sigma = ssao_blurRadius so the Gaussian widens naturally with the kernel size.
+    // ssao_blurRadius is a compile-time constant, so the compiler unrolls the loops
     // and constant-folds all exp() evaluations.
-    const float sigma2 = 2.0 * float(SSAOBlurRadius * SSAOBlurRadius);
+    const float sigma2 = 2.0 * float(ssao_blurRadius * ssao_blurRadius);
 
-    for (int x = -SSAOBlurRadius; x <= SSAOBlurRadius; ++x) {
-        for (int y = -SSAOBlurRadius; y <= SSAOBlurRadius; ++y) {
+    for (int x = -ssao_blurRadius; x <= ssao_blurRadius; ++x) {
+        for (int y = -ssao_blurRadius; y <= ssao_blurRadius; ++y) {
             vec2 coords = from_vs.textureCoordinates + vec2(float(x), float(y)) * texelSize;
 
             // Both reads issued before any arithmetic so the GPU can pipeline them together

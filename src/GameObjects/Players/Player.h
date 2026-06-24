@@ -52,11 +52,11 @@ public:
     Player(GUIRenderable *cursor, OptionsUtil::Options *options, const glm::vec3 &position [[gnu::unused]], const glm::vec3 &lookDirection [[gnu::unused]])
             : cursor(cursor), options(options){
 
-        moveSpeedOption = options->getOption<LimonTypes::Vec4>(HASH("moveSpeed"));
-        jumpFactorOption = options->getOption<double>(HASH("jumpFactor"));
-        walkSpeedOption = options->getOption<LimonTypes::Vec4>(HASH("walkSpeed"));
-        runSpeedOption = options->getOption<LimonTypes::Vec4>(HASH("runSpeed"));
-        lookAroundSpeedOption = options->getOption<double>(HASH("lookAroundSpeed"));
+        moveSpeedOption = options->getOption<LimonTypes::Vec4>(HASH("player_moveSpeed"));
+        jumpFactorOption = options->getOption<double>(HASH("player_jumpFactor"));
+        walkSpeedOption = options->getOption<LimonTypes::Vec4>(HASH("player_walkSpeed"));
+        runSpeedOption = options->getOption<LimonTypes::Vec4>(HASH("player_runSpeed"));
+        lookAroundSpeedOption = options->getOption<double>(HASH("player_lookAroundSpeed"));
     };
 
     ~Player() override = default;

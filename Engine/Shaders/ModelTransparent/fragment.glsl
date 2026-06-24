@@ -1,6 +1,6 @@
-#define_option maximumLights
-#define_option CascadeCount
-#define_option CascadeLimitList
+#define_option performance_maximumLights
+#define_option shadow_cascadeCount
+#define_option shadow_cascadeLimitList
 
 #import <./Engine/Shaders/Shared/PlayerInformation.glsl>
 #import <./Engine/Shaders/Shared/PointShadow.frag>
@@ -13,7 +13,7 @@ in VS_FS {
     vec2 textureCoord;
     vec3 normal;
     vec3 fragPos;
-    vec4 fragPosLightSpace[maximumLights];
+    vec4 fragPosLightSpace[performance_maximumLights];
     flat int materialIndex;
 } from_vs;
 

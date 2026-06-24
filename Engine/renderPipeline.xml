@@ -8,8 +8,8 @@
             <DataType>FLOAT</DataType>
             <Height>1080</Height>
             <Width>1920</Width>
-            <HeightOption>screenHeight</HeightOption>
-            <WidthOption>screenWidth</WidthOption>
+            <HeightOption>display_height</HeightOption>
+            <WidthOption>display_width</WidthOption>
             <Depth>0</Depth>
             <DepthOption></DepthOption>
             <borderColor>
@@ -35,8 +35,8 @@
             <DataType>UNSIGNED_INT</DataType>
             <Height>1080</Height>
             <Width>1920</Width>
-            <HeightOption>screenHeight</HeightOption>
-            <WidthOption>screenWidth</WidthOption>
+            <HeightOption>display_height</HeightOption>
+            <WidthOption>display_width</WidthOption>
             <Depth>0</Depth>
             <DepthOption></DepthOption>
             <borderColor>
@@ -62,10 +62,10 @@
             <DataType>FLOAT</DataType>
             <Height>4096</Height>
             <Width>4096</Width>
-            <HeightOption>shadowMapDirectionalSize</HeightOption>
-            <WidthOption>shadowMapDirectionalSize</WidthOption>
+            <HeightOption>shadow_mapDirectionalSize</HeightOption>
+            <WidthOption>shadow_mapDirectionalSize</WidthOption>
             <Depth>4</Depth>
-            <DepthOption>CascadeCount</DepthOption>
+            <DepthOption>shadow_cascadeCount</DepthOption>
             <borderColor>
                 <R>1</R>
                 <G>1</G>
@@ -89,8 +89,8 @@
             <DataType>FLOAT</DataType>
             <Height>512</Height>
             <Width>512</Width>
-            <HeightOption>shadowMapPointWidth</HeightOption>
-            <WidthOption>shadowMapPointWidth</WidthOption>
+            <HeightOption>shadow_mapPointWidth</HeightOption>
+            <WidthOption>shadow_mapPointWidth</WidthOption>
             <Depth>18</Depth>
             <DepthOption></DepthOption>
             <borderColor>
@@ -116,8 +116,8 @@
             <DataType>FLOAT</DataType>
             <Height>1080</Height>
             <Width>1920</Width>
-            <HeightOption>SSAOHeight</HeightOption>
-            <WidthOption>SSAOWidth</WidthOption>
+            <HeightOption>ssao_height</HeightOption>
+            <WidthOption>ssao_width</WidthOption>
             <Depth>0</Depth>
             <DepthOption></DepthOption>
             <borderColor>
@@ -143,8 +143,8 @@
             <DataType>FLOAT</DataType>
             <Height>1080</Height>
             <Width>1920</Width>
-            <HeightOption>SSAOHeight</HeightOption>
-            <WidthOption>SSAOWidth</WidthOption>
+            <HeightOption>ssao_height</HeightOption>
+            <WidthOption>ssao_width</WidthOption>
             <Depth>0</Depth>
             <DepthOption></DepthOption>
             <borderColor>
@@ -251,8 +251,8 @@
             <DataType>UNSIGNED_INT</DataType>
             <Height>1080</Height>
             <Width>1920</Width>
-            <HeightOption>screenHeight</HeightOption>
-            <WidthOption>screenWidth</WidthOption>
+            <HeightOption>display_height</HeightOption>
+            <WidthOption>display_width</WidthOption>
             <Depth>0</Depth>
             <DepthOption></DepthOption>
             <borderColor>
@@ -278,8 +278,8 @@
             <DataType>UNSIGNED_INT</DataType>
             <Height>1080</Height>
             <Width>1920</Width>
-            <HeightOption>screenHeight</HeightOption>
-            <WidthOption>screenWidth</WidthOption>
+            <HeightOption>display_height</HeightOption>
+            <WidthOption>display_width</WidthOption>
             <Depth>0</Depth>
             <DepthOption></DepthOption>
             <borderColor>
@@ -315,8 +315,8 @@
             <GraphicsPipelineStage>
                 <DefaultRenderHeight>512</DefaultRenderHeight>
                 <DefaultRenderWidth>512</DefaultRenderWidth>
-                <RenderHeightOption>shadowMapPointWidth</RenderHeightOption>
-                <RenderWidthOption>shadowMapPointWidth</RenderWidthOption>
+                <RenderHeightOption>shadow_mapPointWidth</RenderHeightOption>
+                <RenderWidthOption>shadow_mapPointWidth</RenderWidthOption>
                 <BlendEnabled>False</BlendEnabled>
                 <ColorAttachment>False</ColorAttachment>
                 <DepthAttachment>True</DepthAttachment>
@@ -349,8 +349,8 @@
             <GraphicsPipelineStage>
                 <DefaultRenderHeight>1024</DefaultRenderHeight>
                 <DefaultRenderWidth>1024</DefaultRenderWidth>
-                <RenderHeightOption>shadowMapDirectionalSize</RenderHeightOption>
-                <RenderWidthOption>shadowMapDirectionalSize</RenderWidthOption>
+                <RenderHeightOption>shadow_mapDirectionalSize</RenderHeightOption>
+                <RenderWidthOption>shadow_mapDirectionalSize</RenderWidthOption>
                 <BlendEnabled>False</BlendEnabled>
                 <ColorAttachment>False</ColorAttachment>
                 <DepthAttachment>True</DepthAttachment>
@@ -384,8 +384,8 @@
             <GraphicsPipelineStage>
                 <DefaultRenderHeight>1080</DefaultRenderHeight>
                 <DefaultRenderWidth>1920</DefaultRenderWidth>
-                <RenderHeightOption>screenHeight</RenderHeightOption>
-                <RenderWidthOption>screenWidth</RenderWidthOption>
+                <RenderHeightOption>display_height</RenderHeightOption>
+                <RenderWidthOption>display_width</RenderWidthOption>
                 <BlendEnabled>False</BlendEnabled>
                 <ColorAttachment>True</ColorAttachment>
                 <DepthAttachment>True</DepthAttachment>
@@ -421,8 +421,8 @@
             <GraphicsPipelineStage>
                 <DefaultRenderHeight>1080</DefaultRenderHeight>
                 <DefaultRenderWidth>1920</DefaultRenderWidth>
-                <RenderHeightOption>screenHeight</RenderHeightOption>
-                <RenderWidthOption>screenWidth</RenderWidthOption>
+                <RenderHeightOption>display_height</RenderHeightOption>
+                <RenderWidthOption>display_width</RenderWidthOption>
                 <BlendEnabled>False</BlendEnabled>
                 <ColorAttachment>True</ColorAttachment>
                 <DepthAttachment>True</DepthAttachment>
@@ -462,8 +462,8 @@
             <GraphicsPipelineStage>
                 <DefaultRenderHeight>1080</DefaultRenderHeight>
                 <DefaultRenderWidth>1920</DefaultRenderWidth>
-                <RenderHeightOption>SSAOHeight</RenderHeightOption>
-                <RenderWidthOption>SSAOWidth</RenderWidthOption>
+                <RenderHeightOption>ssao_height</RenderHeightOption>
+                <RenderWidthOption>ssao_width</RenderWidthOption>
                 <BlendEnabled>False</BlendEnabled>
                 <ColorAttachment>True</ColorAttachment>
                 <DepthAttachment>False</DepthAttachment>
@@ -503,8 +503,8 @@
             <GraphicsPipelineStage>
                 <DefaultRenderHeight>1080</DefaultRenderHeight>
                 <DefaultRenderWidth>1920</DefaultRenderWidth>
-                <RenderHeightOption>SSAOHeight</RenderHeightOption>
-                <RenderWidthOption>SSAOWidth</RenderWidthOption>
+                <RenderHeightOption>ssao_height</RenderHeightOption>
+                <RenderWidthOption>ssao_width</RenderWidthOption>
                 <BlendEnabled>False</BlendEnabled>
                 <ColorAttachment>True</ColorAttachment>
                 <DepthAttachment>False</DepthAttachment>
@@ -549,8 +549,8 @@
             <GraphicsPipelineStage>
                 <DefaultRenderHeight>1080</DefaultRenderHeight>
                 <DefaultRenderWidth>1920</DefaultRenderWidth>
-                <RenderHeightOption>screenHeight</RenderHeightOption>
-                <RenderWidthOption>screenWidth</RenderWidthOption>
+                <RenderHeightOption>display_height</RenderHeightOption>
+                <RenderWidthOption>display_width</RenderWidthOption>
                 <BlendEnabled>False</BlendEnabled>
                 <ColorAttachment>True</ColorAttachment>
                 <DepthAttachment>True</DepthAttachment>
@@ -592,8 +592,8 @@
             <GraphicsPipelineStage>
                 <DefaultRenderHeight>1080</DefaultRenderHeight>
                 <DefaultRenderWidth>1920</DefaultRenderWidth>
-                <RenderHeightOption>screenHeight</RenderHeightOption>
-                <RenderWidthOption>screenWidth</RenderWidthOption>
+                <RenderHeightOption>display_height</RenderHeightOption>
+                <RenderWidthOption>display_width</RenderWidthOption>
                 <BlendEnabled>False</BlendEnabled>
                 <ColorAttachment>True</ColorAttachment>
                 <DepthAttachment>True</DepthAttachment>
@@ -631,8 +631,8 @@
             <GraphicsPipelineStage>
                 <DefaultRenderHeight>1080</DefaultRenderHeight>
                 <DefaultRenderWidth>1920</DefaultRenderWidth>
-                <RenderHeightOption>screenHeight</RenderHeightOption>
-                <RenderWidthOption>screenWidth</RenderWidthOption>
+                <RenderHeightOption>display_height</RenderHeightOption>
+                <RenderWidthOption>display_width</RenderWidthOption>
                 <BlendEnabled>True</BlendEnabled>
                 <ColorAttachment>True</ColorAttachment>
                 <DepthAttachment>True</DepthAttachment>
@@ -678,8 +678,8 @@
             <GraphicsPipelineStage>
                 <DefaultRenderHeight>1080</DefaultRenderHeight>
                 <DefaultRenderWidth>1920</DefaultRenderWidth>
-                <RenderHeightOption>screenHeight</RenderHeightOption>
-                <RenderWidthOption>screenWidth</RenderWidthOption>
+                <RenderHeightOption>display_height</RenderHeightOption>
+                <RenderWidthOption>display_width</RenderWidthOption>
                 <BlendEnabled>True</BlendEnabled>
                 <ColorAttachment>True</ColorAttachment>
                 <DepthAttachment>True</DepthAttachment>
@@ -713,8 +713,8 @@
             <GraphicsPipelineStage>
                 <DefaultRenderHeight>1080</DefaultRenderHeight>
                 <DefaultRenderWidth>1920</DefaultRenderWidth>
-                <RenderHeightOption>screenHeight</RenderHeightOption>
-                <RenderWidthOption>screenWidth</RenderWidthOption>
+                <RenderHeightOption>display_height</RenderHeightOption>
+                <RenderWidthOption>display_width</RenderWidthOption>
                 <BlendEnabled>True</BlendEnabled>
                 <ColorAttachment>True</ColorAttachment>
                 <DepthAttachment>True</DepthAttachment>
@@ -766,8 +766,8 @@
             <GraphicsPipelineStage>
                 <DefaultRenderHeight>1080</DefaultRenderHeight>
                 <DefaultRenderWidth>1920</DefaultRenderWidth>
-                <RenderHeightOption>screenHeight</RenderHeightOption>
-                <RenderWidthOption>screenWidth</RenderWidthOption>
+                <RenderHeightOption>display_height</RenderHeightOption>
+                <RenderWidthOption>display_width</RenderWidthOption>
                 <BlendEnabled>True</BlendEnabled>
                 <ColorAttachment>True</ColorAttachment>
                 <DepthAttachment>True</DepthAttachment>

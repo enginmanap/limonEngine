@@ -10,8 +10,8 @@
                 <DataType>FLOAT</DataType>
                 <Height>1080</Height>
                 <Width>1920</Width>
-                <HeightOption>screenHeight</HeightOption>
-                <WidthOption>screenWidth</WidthOption>
+                <HeightOption>display_height</HeightOption>
+                <WidthOption>display_width</WidthOption>
                 <Depth>0</Depth>
                 <DepthOption></DepthOption>
                 <borderColor>
@@ -37,8 +37,8 @@
                 <DataType>UNSIGNED_INT</DataType>
                 <Height>1080</Height>
                 <Width>1920</Width>
-                <HeightOption>screenHeight</HeightOption>
-                <WidthOption>screenWidth</WidthOption>
+                <HeightOption>display_height</HeightOption>
+                <WidthOption>display_width</WidthOption>
                 <Depth>0</Depth>
                 <DepthOption></DepthOption>
                 <borderColor>
@@ -64,10 +64,10 @@
                 <DataType>FLOAT</DataType>
                 <Height>4096</Height>
                 <Width>4096</Width>
-                <HeightOption>shadowMapDirectionalSize</HeightOption>
-                <WidthOption>shadowMapDirectionalSize</WidthOption>
+                <HeightOption>shadow_mapDirectionalSize</HeightOption>
+                <WidthOption>shadow_mapDirectionalSize</WidthOption>
                 <Depth>4</Depth>
-                <DepthOption>CascadeCount</DepthOption>
+                <DepthOption>shadow_cascadeCount</DepthOption>
                 <borderColor>
                     <R>1</R>
                     <G>1</G>
@@ -91,8 +91,8 @@
                 <DataType>FLOAT</DataType>
                 <Height>512</Height>
                 <Width>512</Width>
-                <HeightOption>shadowMapPointWidth</HeightOption>
-                <WidthOption>shadowMapPointWidth</WidthOption>
+                <HeightOption>shadow_mapPointWidth</HeightOption>
+                <WidthOption>shadow_mapPointWidth</WidthOption>
                 <Depth>18</Depth>
                 <DepthOption></DepthOption>
                 <borderColor>
@@ -261,8 +261,8 @@
                     <X>1024</X>
                     <Y>1024</Y>
                 </DefaultRenderResolution>
-                <RenderHeightOption>shadowMapDirectionalSize</RenderHeightOption>
-                <RenderWidthOption>shadowMapDirectionalSize</RenderWidthOption>
+                <RenderHeightOption>shadow_mapDirectionalSize</RenderHeightOption>
+                <RenderWidthOption>shadow_mapDirectionalSize</RenderWidthOption>
                 <IterateLightType>1</IterateLightType>
                 <RenderMethodName>All directional shadows</RenderMethodName>
                 <OriginalOutputType>Texture</OriginalOutputType>
@@ -395,8 +395,8 @@
                     <X>512</X>
                     <Y>512</Y>
                 </DefaultRenderResolution>
-                <RenderHeightOption>shadowMapPointWidth</RenderHeightOption>
-                <RenderWidthOption>shadowMapPointWidth</RenderWidthOption>
+                <RenderHeightOption>shadow_mapPointWidth</RenderHeightOption>
+                <RenderWidthOption>shadow_mapPointWidth</RenderWidthOption>
                 <IterateLightType>2</IterateLightType>
                 <RenderMethodName>All point shadows</RenderMethodName>
                 <OriginalOutputType>Texture</OriginalOutputType>
@@ -479,8 +479,8 @@
                     <X>1920</X>
                     <Y>1080</Y>
                 </DefaultRenderResolution>
-                <RenderHeightOption>screenHeight</RenderHeightOption>
-                <RenderWidthOption>screenWidth</RenderWidthOption>
+                <RenderHeightOption>display_height</RenderHeightOption>
+                <RenderWidthOption>display_width</RenderWidthOption>
                 <IterateLightType>0</IterateLightType>
                 <RenderMethodName>Render Tagged Objects</RenderMethodName>
                 <OriginalOutputType></OriginalOutputType>
@@ -568,8 +568,8 @@
                     <X>1920</X>
                     <Y>1080</Y>
                 </DefaultRenderResolution>
-                <RenderHeightOption>screenHeight</RenderHeightOption>
-                <RenderWidthOption>screenWidth</RenderWidthOption>
+                <RenderHeightOption>display_height</RenderHeightOption>
+                <RenderWidthOption>display_width</RenderWidthOption>
                 <IterateLightType>0</IterateLightType>
                 <RenderMethodName>Render Tagged Objects</RenderMethodName>
                 <OriginalOutputType></OriginalOutputType>
@@ -670,8 +670,8 @@
                     <X>1920</X>
                     <Y>1080</Y>
                 </DefaultRenderResolution>
-                <RenderHeightOption>screenHeight</RenderHeightOption>
-                <RenderWidthOption>screenWidth</RenderWidthOption>
+                <RenderHeightOption>display_height</RenderHeightOption>
+                <RenderWidthOption>display_width</RenderWidthOption>
                 <IterateLightType>0</IterateLightType>
                 <RenderMethodName>Render Sky</RenderMethodName>
                 <OriginalOutputType></OriginalOutputType>
@@ -790,8 +790,8 @@
                     <X>1920</X>
                     <Y>1080</Y>
                 </DefaultRenderResolution>
-                <RenderHeightOption>screenHeight</RenderHeightOption>
-                <RenderWidthOption>screenWidth</RenderWidthOption>
+                <RenderHeightOption>display_height</RenderHeightOption>
+                <RenderWidthOption>display_width</RenderWidthOption>
                 <IterateLightType>0</IterateLightType>
                 <RenderMethodName>Render Tagged Objects</RenderMethodName>
                 <OriginalOutputType></OriginalOutputType>
@@ -879,8 +879,8 @@
                     <X>1920</X>
                     <Y>1080</Y>
                 </DefaultRenderResolution>
-                <RenderHeightOption>screenHeight</RenderHeightOption>
-                <RenderWidthOption>screenWidth</RenderWidthOption>
+                <RenderHeightOption>display_height</RenderHeightOption>
+                <RenderWidthOption>display_width</RenderWidthOption>
                 <IterateLightType>0</IterateLightType>
                 <RenderMethodName>Render Particle Emitters</RenderMethodName>
                 <OriginalOutputType></OriginalOutputType>
