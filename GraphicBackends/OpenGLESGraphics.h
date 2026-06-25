@@ -97,6 +97,12 @@ class OpenGLESGraphics : public GraphicsInterface {
         /* backup and restore part */
 
         void attachTexture(GLuint textureID, GLuint textureUnit, GLenum type) {
+            if (textureUnit >= textures.size()) {
+                std::cerr << "OpenGLESGraphics: texture unit " << textureUnit
+                          << " exceeds GL_MAX_TEXTURE_IMAGE_UNITS (" << textures.size()
+                          << "). Update the render pipeline XML to use a lower index." << std::endl;
+                return;
+            }
             if (textures[textureUnit] != textureID) {
                 textures[textureUnit] = textureID;
                 activateTextureUnit(textureUnit);
