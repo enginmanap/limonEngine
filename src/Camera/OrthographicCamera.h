@@ -14,8 +14,9 @@
 class OrthographicCamera : public Camera {
     CameraAttachment* cameraAttachment;
     glm::vec3 position, center, up, right;
-    glm::mat4 cameraTransformMatrix;
+    glm::mat4 cameraMatrix;
     glm::mat4 orthogonalProjectionMatrix;
+    glm::mat4 cameraProjectionMatrix;
     std::vector<glm::vec4> frustumPlanes;
     std::vector<glm::vec4>  frustumCorners;
     uint32_t cascadeIndex;
@@ -85,7 +86,7 @@ public:
         cascadeLimits = Camera::readCascadeLimits(options);
         projectionParameters = cameraAttachment->getProjection();
         rebuildPlayerProjection();
-        cameraTransformMatrix = glm::lookAt(position, position + center, up);
+        cameraMatrix = glm::lookAt(position, position + center, up);
     }
 
     CameraTypes getType() const override {
@@ -137,27 +138,22 @@ public:
     }
 
     const glm::mat4 &getCameraMatrix() override {
-        if (playerMode) {
-            // Player role: build the view from the attachment and regenerate cascade corners. Unlike the
-            // shadow role, cameraTransformMatrix here is the pure view matrix (projection stays separate).
-            if (cameraAttachment->isDirty()) {
-                this->dirty = true;
-                cameraAttachment->getCameraVariables(position, center, up, right);
-                cameraTransformMatrix = glm::lookAt(position, position + center, up);
-                calculateFrustumPlanes(cameraTransformMatrix, orthogonalProjectionMatrix, frustumPlanes);
-                for (size_t i = 0; i < cascadeProjectionMatrices.size(); ++i) {
-                    calculateFrustumCorners(cameraTransformMatrix, cascadeProjectionMatrices[i], playerFrustumCorners[i]);
-                }
-                cameraAttachment->clearDirty();
-            }
-            return cameraTransformMatrix;
-        }
         if (cameraAttachment->isDirty()) {
             this->dirty = true;
-            glm::vec3 tempCenter;
-            cameraAttachment->getCameraVariables(position, tempCenter, up, right);
+            if (playerMode) {
+                cameraAttachment->getCameraVariables(position, center, up, right);
+                cameraMatrix = glm::lookAt(position, position + center, up);
+                calculateFrustumPlanes(cameraMatrix, orthogonalProjectionMatrix, frustumPlanes);
+                for (size_t i = 0; i < cascadeProjectionMatrices.size(); ++i) {
+                    calculateFrustumCorners(cameraMatrix, cascadeProjectionMatrices[i], playerFrustumCorners[i]);
+                }
+                cameraAttachment->clearDirty();
+            } else {
+                glm::vec3 tempCenter;
+                cameraAttachment->getCameraVariables(position, tempCenter, up, right);
+            }
         }
-        return cameraTransformMatrix;
+        return cameraMatrix;
     }
 
     // Player-role cascade corners for CSM fitting (empty in the shadow role).
@@ -166,7 +162,7 @@ public:
     }
 
     const glm::mat4 &getCameraMatrixConst() const override {
-        return cameraTransformMatrix;
+        return cameraMatrix;
     }
 
     const glm::mat4& getProjectionMatrix() const override {
@@ -174,7 +170,7 @@ public:
     }
 
     const glm::mat4& getOrthogonalCameraMatrix()  {
-        return cameraTransformMatrix;
+        return cameraProjectionMatrix;
     }
 
     const glm::vec3& getPosition() const override {
@@ -210,9 +206,10 @@ public:
                                           center,
                                           glm::vec3(0.0f, 1.0f, 0.0f));
         this->orthogonalProjectionMatrix = calculateOrthogonalForCascade(playerFrustumCorners[cascadeIndex], lightView, center);
+        this->cameraMatrix = lightView;
+        this->cameraProjectionMatrix = orthogonalProjectionMatrix * lightView;
         calculateFrustumPlanes(lightView, this->orthogonalProjectionMatrix, this->frustumPlanes);
         calculateFrustumCorners(lightView,this->orthogonalProjectionMatrix,this->frustumCorners);
-        cameraTransformMatrix = orthogonalProjectionMatrix * lightView;
 
 
         bool debugDrawLines = debugDrawLinesOption.getOrDefault(false);

@@ -261,7 +261,7 @@ void VisibilityManager::fillVisibleObjectPerCamera(const void* visibilityRequest
     bool softwareOcclusionRenderDump = false;
     long softwareOcclusionRenderDumpFrequency = 500;
     float softwareOcclusionOccluderSize = 0.25f;
-    glm::mat4 viewMatrix;
+    glm::mat4 cameraProjectionMatrix;
     glm::vec3 viewDirection;
     glm::vec3 cameraPos;
     splitModelToMeshCount = visibilityRequest->splitModelToMeshCountOption.get();
@@ -270,9 +270,9 @@ void VisibilityManager::fillVisibleObjectPerCamera(const void* visibilityRequest
         skipRenderDistance = visibilityRequest->skipRenderDistanceOption.get();
         skipRenderSize = visibilityRequest->skipRenderSizeOption.get();
         maxSkipRenderSize = visibilityRequest->maxSkipRenderSizeOption.get();
-        viewMatrix = visibilityRequest->camera->getProjectionMatrix() * visibilityRequest->camera->getCameraMatrixConst();
+        cameraProjectionMatrix = visibilityRequest->camera->getProjectionMatrix() * visibilityRequest->camera->getCameraMatrixConst();
     }
-    static int frameCount = 0;
+    int& frameCount = visibilityRequest->occlusionCuller.dumpFrameCount;
     // Read live (realtime toggle, editor exposed). When disabled, the player camera still rebuilds its render
     // lists every frame (skipOcclusionCulling stays false for it), but the software occluder is bypassed and
     // every frustum/LOD-passing object is added directly. runOcclusion gates only the occluder work.
@@ -336,7 +336,7 @@ void VisibilityManager::fillVisibleObjectPerCamera(const void* visibilityRequest
                     const std::vector<Model::MeshMeta *> &meshMetas =currentModel->getMeshMetaData();
                     if (meshMetas.size() < static_cast<size_t>(splitModelToMeshCount)) {
                         totalCounter += meshMetas.size();
-                        uint32_t lod = getLodLevel(lodDistances, skipRenderDistance, skipRenderSize, maxSkipRenderSize, viewMatrix, visibilityRequest->playerPosition, objectIt->second->getAabbMin(), objectIt->second->getAabbMax(), objectAverageDepth, objectScreenSize);
+                        uint32_t lod = getLodLevel(lodDistances, skipRenderDistance, skipRenderSize, maxSkipRenderSize, cameraProjectionMatrix, visibilityRequest->playerPosition, objectIt->second->getAabbMin(), objectIt->second->getAabbMax(), objectAverageDepth, objectScreenSize);
                         if (lod != SKIP_LOD_LEVEL) {
                             if (objectScreenSize > softwareOcclusionOccluderSize || !runOcclusion) {
                                 if (objectScreenSize > maxScreenSize) {
@@ -367,7 +367,7 @@ void VisibilityManager::fillVisibleObjectPerCamera(const void* visibilityRequest
                                                                      currentModel->getTransformation()->getWorldTransform() * meshMeta->mesh->getAabbMax())) {
                                 glm::vec3 meshWorldMin, meshWorldMax;
                                 AABBConverter::getWorldSpaceAABB(currentModel->getTransformation()->getWorldTransform(), meshMeta->mesh->getAabbMin(), meshMeta->mesh->getAabbMax(), meshWorldMin, meshWorldMax);
-                                uint32_t lod = getLodLevel(lodDistances, skipRenderDistance, skipRenderSize, maxSkipRenderSize, viewMatrix, visibilityRequest->playerPosition, meshWorldMin, meshWorldMax, objectAverageDepth, objectScreenSize);
+                                uint32_t lod = getLodLevel(lodDistances, skipRenderDistance, skipRenderSize, maxSkipRenderSize, cameraProjectionMatrix, visibilityRequest->playerPosition, meshWorldMin, meshWorldMax, objectAverageDepth, objectScreenSize);
                                 if (lod != SKIP_LOD_LEVEL) {
                                     if (objectScreenSize > softwareOcclusionOccluderSize || !runOcclusion) {
                                         if (objectScreenSize > maxScreenSize) {
@@ -423,7 +423,17 @@ void VisibilityManager::fillVisibleObjectPerCamera(const void* visibilityRequest
         frameCount++;
         if (frameCount == softwareOcclusionRenderDumpFrequency) {
             if (softwareOcclusionRenderDump) {
-                visibilityRequest->occlusionCuller.dumpDepth();
+                std::string dumpFileName;
+                if (isDirectionalLightCamera) {
+                    const float frustumHalfWidth = 1.0f / visibilityRequest->camera->getProjectionMatrix()[0][0];
+                    char buf[256];
+                    snprintf(buf, sizeof(buf), "SDOCdepthMap_%s_%.1f",
+                             visibilityRequest->camera->getName().c_str(), frustumHalfWidth);
+                    dumpFileName = buf;
+                } else {
+                    dumpFileName = "SDOCdepthMap_player";
+                }
+                visibilityRequest->occlusionCuller.dumpDepth(dumpFileName);
             }
             frameCount = 0;
         }
@@ -483,10 +493,10 @@ int VisibilityManager::staticOcclusionThread(void* visibilityRequestRaw) {
     return 0;
 }
 
-uint32_t VisibilityManager::getLodLevel(const std::vector<long>& lodDistances, float skipRenderDistance, float skipRenderSize, float maxSkipRenderSize, const glm::mat4 &viewMatrix, const glm::vec3& playerPosition, glm::vec3 minAABB, glm::vec3 maxAABB, float &objectAverageDepth, float &objectScreenSize) {
+uint32_t VisibilityManager::getLodLevel(const std::vector<long>& lodDistances, float skipRenderDistance, float skipRenderSize, float maxSkipRenderSize, const glm::mat4 &cameraProjectionMatrix, const glm::vec3& playerPosition, glm::vec3 minAABB, glm::vec3 maxAABB, float &objectAverageDepth, float &objectScreenSize) {
     //now we get to calculate the size in screen
     glm::vec3 ndcMin, ndcMax;
-    AABBConverter::getNCDAABB(minAABB, maxAABB, viewMatrix, ndcMin, ndcMax);
+    AABBConverter::getNCDAABB(minAABB, maxAABB, cameraProjectionMatrix, ndcMin, ndcMax);
     const float screenSizeX = (ndcMax.x - ndcMin.x) / 2.0f; // since OpenGL NDC is -1, 1 each side can be max 2, but we want 0,1
     const float screenSizeY = (ndcMax.y - ndcMin.y) / 2.0f;
     objectScreenSize = (screenSizeX * screenSizeY);

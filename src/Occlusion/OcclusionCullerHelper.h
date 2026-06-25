@@ -4,6 +4,7 @@
 
 #ifndef LIMONENGINE_OCCLUSIONCULLINGMETA_H
 #define LIMONENGINE_OCCLUSIONCULLINGMETA_H
+#include<string>
 #include<vector>
 
 #include "GameObjects/Model.h"
@@ -36,6 +37,9 @@ class OcclusionCullerHelper {
     glm::vec3 playerPos;
     glm::vec3 viewDir;
     glm::mat4 cameraProjectionMatrix;
+public:
+    int dumpFrameCount = 0;
+private:
 public:
     OcclusionCullerHelper(const OptionsUtil::Options::Option<long>& widthOption,
         const OptionsUtil::Options::Option<long>& heightOption) :
@@ -183,10 +187,11 @@ public:
         return returnList;
     }
 
-    void dumpDepth() {
+    void dumpDepth(const std::string& fileName) {
         if (!sdocInstance) return;
 
-        const char* path = "SDOCdepthMap.ppm";
+        std::string pathStr = fileName + ".ppm";
+        const char* path = pathStr.c_str();
         sdocSync(sdocInstance, SDOC_Save_DepthMapPath, (void*)path);
 
         unsigned int dimensions[2];
