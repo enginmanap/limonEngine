@@ -35,6 +35,8 @@
 #include "GameObjects/ModelGroup.h"
 #include "Graphics/PostProcess/QuadRender.h"
 #include "Editor/Editor.h"
+#include "Editor/ProfilerUI.h"
+#include "ImGui/imgui.h"
 #include "Occlusion/RenderList.h"
 #include "Occlusion/VisibilityManager.h"
 #include "Profiler/ProfilerMacros.h"
@@ -599,6 +601,13 @@ World::fillRouteInformation(std::vector<LimonTypes::GenericParameter> parameters
         */
     }
 
+    if (inputHandler.getInputStates().getInputEvents(InputStates::Inputs::F5) &&
+        inputHandler.getInputStates().getInputStatus(InputStates::Inputs::F5)) {
+        if (profilerSystem) {
+            profilerSystem->togglePause();
+        }
+    }
+
     if (inputHandler.getInputStates().getInputEvents(InputStates::Inputs::EDITOR) && inputHandler.getInputStates().getInputStatus(InputStates::Inputs::EDITOR)) {
         if(editorPlayer == nullptr) {
             editorPlayer = new EditorPlayer(options, cursor, startingPlayer.position, startingPlayer.orientation, &inputHandler);
@@ -822,6 +831,16 @@ void World::renderLight(unsigned int lightIndex, unsigned int renderLayer, const
  */
 void World::ImGuiFrameSetup(std::shared_ptr<GraphicsProgram> graphicsProgram, const std::string &cameraName [[gnu::unused]], const std::vector<HashUtil::HashedString> &tags [[gnu::unused]]) {//TODO not const because it removes the object. Should be separated
    PROFILE_RENDERING("World::ImGuiFrameSetup");
+
+   if (showProfilerOverlay && !currentPlayersSettings->editorShown) {
+       editor->imgGuiHelper->NewFrame(graphicsProgram);
+       ImGui::Begin("Profiler", nullptr, ImGuiWindowFlags_NoMouseInputs | ImGuiWindowFlags_NoNav);
+       ProfilerUI::DrawProfilerUI(profilerSystem);
+       ImGui::End();
+       editor->imgGuiHelper->RenderDrawLists(graphicsProgram);
+       return;
+   }
+
    if(!currentPlayersSettings->editorShown) {
        return;
    }

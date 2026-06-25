@@ -1,4 +1,5 @@
-#pragma once
+#ifndef LIMONENGINE_PROFILERSYSTEM_H
+#define LIMONENGINE_PROFILERSYSTEM_H
 
 #include <vector>
 #include <string>
@@ -21,6 +22,9 @@ public:
     OptionsUtil::Options::Option<bool>* getTracingServerOption();
 
     void Update();
+
+    void togglePause();
+    bool isPaused() const;
 
     std::vector<float> GetFrameTimeHistory() const;
     float GetAverageFrameTime() const;
@@ -45,6 +49,8 @@ public:
     std::vector<std::string>  GetGpuDebugInfo(FrameFilter filter = FrameFilter::All) const;
 
 private:
+    bool paused = false;
+
 #ifdef TRACY_ENABLE
     tracy::Worker* tracyWorker = nullptr;
     static constexpr size_t frameTimeHistorySize = 10000;
@@ -76,3 +82,5 @@ private:
     void collectAllUserPlots(bool enabled);
 #endif
 };
+
+#endif //LIMONENGINE_PROFILERSYSTEM_H

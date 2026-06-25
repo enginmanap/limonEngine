@@ -34,6 +34,7 @@ InputStates::InputStates() {
     inputEvents[Inputs::NUMBER_1] = false;
     inputEvents[Inputs::NUMBER_2] = false;
     inputEvents[Inputs::F4] = false;
+    inputEvents[Inputs::F5] = false;
 
     for (const auto &item: inputEvents) {
         inputStatus[item.first] = item.second;

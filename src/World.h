@@ -326,6 +326,7 @@ private:
     std::map<uint32_t, SDL2MultiThreading::Thread*> routeThreads;
 
     bool guiPickMode = false;
+    bool showProfilerOverlay = false;
     enum class QuitResponse
     {
         QUIT_GAME,

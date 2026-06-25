@@ -561,6 +561,7 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
                 world->guiPickMode = false;
             }
         }
+        ImGui::Checkbox("Show Profiler Window", &world->showProfilerOverlay);
 
         if (world->assetManager->isReloadingAssetList()) {
             ImGui::Text("Refreshing assets...");
@@ -1320,7 +1321,6 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
 
 
         }
-        ProfilerUI::DrawProfilerUI(world->profilerSystem);
         if(ImGui::CollapsingHeader("List materials")) {
             //listing
             static size_t selectedHash = 0;
@@ -1627,6 +1627,14 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
             }
         }
 
+        ImGui::End();
+    }
+
+    if (world->showProfilerOverlay) {
+        ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowSize(ImVec2(600, 400), ImGuiCond_FirstUseEver);
+        ImGui::Begin("Profiler", &world->showProfilerOverlay);
+        ProfilerUI::DrawProfilerUI(world->profilerSystem);
         ImGui::End();
     }
 

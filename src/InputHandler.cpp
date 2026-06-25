@@ -121,6 +121,9 @@ void InputHandler::mapInput() {
                     case SDLK_F4:
                         inputState.setInputStatus(InputStates::Inputs::F4, true);
                         break;
+                    case SDLK_F5:
+                        inputState.setInputStatus(InputStates::Inputs::F5, true);
+                        break;
                     case SDLK_KP_PLUS: {
                         float lookAroundSpeed;
                         lookAroundSpeed = lookAroundSpeedOption.get();
@@ -186,6 +189,9 @@ void InputHandler::mapInput() {
                         break;
                     case SDLK_F4:
                         inputState.setInputStatus(InputStates::Inputs::F4, false);
+                        break;
+                    case SDLK_F5:
+                        inputState.setInputStatus(InputStates::Inputs::F5, false);
                         break;
                 }
                 break;

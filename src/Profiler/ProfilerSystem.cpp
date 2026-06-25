@@ -65,7 +65,17 @@ OptionsUtil::Options::Option<bool>* ProfilerSystem::getTracingServerOption() {
 #endif
 }
 
+void ProfilerSystem::togglePause() {
+    paused = !paused;
+}
+
+bool ProfilerSystem::isPaused() const {
+    return paused;
+}
+
 void ProfilerSystem::Update() {
+    if (paused) return;
+
 #ifdef TRACY_ENABLE
 
     if (enableTracingServerOption.getOrDefault(true)) {
