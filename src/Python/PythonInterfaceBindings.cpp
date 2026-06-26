@@ -15,33 +15,93 @@
 #include "PythonStdOut.h"
 #include "GenericParameterConverter.h"
 
+// Plain struct so pybind11 can bind InputActions constants as static readonly attributes.
+struct InputActionsExport {
+    static const uint64_t QUIT;
+    static const uint64_t MOUSE_MOVE;
+    static const uint64_t MOUSE_BUTTON_LEFT;
+    static const uint64_t MOUSE_BUTTON_MIDDLE;
+    static const uint64_t MOUSE_BUTTON_RIGHT;
+    static const uint64_t MOUSE_WHEEL_UP;
+    static const uint64_t MOUSE_WHEEL_DOWN;
+    static const uint64_t MOVE_FORWARD;
+    static const uint64_t MOVE_BACKWARD;
+    static const uint64_t MOVE_LEFT;
+    static const uint64_t MOVE_RIGHT;
+    static const uint64_t JUMP;
+    static const uint64_t RUN;
+    static const uint64_t DEBUG_MODE;
+    static const uint64_t EDITOR;
+    static const uint64_t KEY_SHIFT;
+    static const uint64_t KEY_CTRL;
+    static const uint64_t KEY_ALT;
+    static const uint64_t KEY_SUPER;
+    static const uint64_t TEXT_INPUT;
+    static const uint64_t NUMBER_1;
+    static const uint64_t NUMBER_2;
+    static const uint64_t F4;
+    static const uint64_t F5;
+    static const uint64_t LOOK_X;
+    static const uint64_t LOOK_Y;
+};
+
+const uint64_t InputActionsExport::QUIT               = InputActions::QUIT;
+const uint64_t InputActionsExport::MOUSE_MOVE         = InputActions::MOUSE_MOVE;
+const uint64_t InputActionsExport::MOUSE_BUTTON_LEFT  = InputActions::MOUSE_BUTTON_LEFT;
+const uint64_t InputActionsExport::MOUSE_BUTTON_MIDDLE= InputActions::MOUSE_BUTTON_MIDDLE;
+const uint64_t InputActionsExport::MOUSE_BUTTON_RIGHT = InputActions::MOUSE_BUTTON_RIGHT;
+const uint64_t InputActionsExport::MOUSE_WHEEL_UP     = InputActions::MOUSE_WHEEL_UP;
+const uint64_t InputActionsExport::MOUSE_WHEEL_DOWN   = InputActions::MOUSE_WHEEL_DOWN;
+const uint64_t InputActionsExport::MOVE_FORWARD       = InputActions::MOVE_FORWARD;
+const uint64_t InputActionsExport::MOVE_BACKWARD      = InputActions::MOVE_BACKWARD;
+const uint64_t InputActionsExport::MOVE_LEFT          = InputActions::MOVE_LEFT;
+const uint64_t InputActionsExport::MOVE_RIGHT         = InputActions::MOVE_RIGHT;
+const uint64_t InputActionsExport::JUMP               = InputActions::JUMP;
+const uint64_t InputActionsExport::RUN                = InputActions::RUN;
+const uint64_t InputActionsExport::DEBUG_MODE         = InputActions::DEBUG_MODE;
+const uint64_t InputActionsExport::EDITOR             = InputActions::EDITOR;
+const uint64_t InputActionsExport::KEY_SHIFT          = InputActions::KEY_SHIFT;
+const uint64_t InputActionsExport::KEY_CTRL           = InputActions::KEY_CTRL;
+const uint64_t InputActionsExport::KEY_ALT            = InputActions::KEY_ALT;
+const uint64_t InputActionsExport::KEY_SUPER          = InputActions::KEY_SUPER;
+const uint64_t InputActionsExport::TEXT_INPUT         = InputActions::TEXT_INPUT;
+const uint64_t InputActionsExport::NUMBER_1           = InputActions::NUMBER_1;
+const uint64_t InputActionsExport::NUMBER_2           = InputActions::NUMBER_2;
+const uint64_t InputActionsExport::F4                 = InputActions::F4;
+const uint64_t InputActionsExport::F5                 = InputActions::F5;
+const uint64_t InputActionsExport::LOOK_X             = InputActions::LOOK_X;
+const uint64_t InputActionsExport::LOOK_Y             = InputActions::LOOK_Y;
+
 void bindInterfaces(pybind11::module_& m) {
-    // Bind InputStates::Inputs enum
-    pybind11::enum_<InputStates::Inputs>(m, "Inputs")
-            .value("QUIT", InputStates::Inputs::QUIT)
-            .value("MOUSE_MOVE", InputStates::Inputs::MOUSE_MOVE)
-            .value("MOUSE_BUTTON_LEFT", InputStates::Inputs::MOUSE_BUTTON_LEFT)
-            .value("MOUSE_BUTTON_MIDDLE", InputStates::Inputs::MOUSE_BUTTON_MIDDLE)
-            .value("MOUSE_BUTTON_RIGHT", InputStates::Inputs::MOUSE_BUTTON_RIGHT)
-            .value("MOUSE_WHEEL_UP", InputStates::Inputs::MOUSE_WHEEL_UP)
-            .value("MOUSE_WHEEL_DOWN", InputStates::Inputs::MOUSE_WHEEL_DOWN)
-            .value("MOVE_FORWARD", InputStates::Inputs::MOVE_FORWARD)
-            .value("MOVE_BACKWARD", InputStates::Inputs::MOVE_BACKWARD)
-            .value("MOVE_LEFT", InputStates::Inputs::MOVE_LEFT)
-            .value("MOVE_RIGHT", InputStates::Inputs::MOVE_RIGHT)
-            .value("JUMP", InputStates::Inputs::JUMP)
-            .value("RUN", InputStates::Inputs::RUN)
-            .value("DEBUG", InputStates::Inputs::DEBUG)
-            .value("EDITOR", InputStates::Inputs::EDITOR)
-            .value("KEY_SHIFT", InputStates::Inputs::KEY_SHIFT)
-            .value("KEY_CTRL", InputStates::Inputs::KEY_CTRL)
-            .value("KEY_ALT", InputStates::Inputs::KEY_ALT)
-            .value("KEY_SUPER", InputStates::Inputs::KEY_SUPER)
-            .value("TEXT_INPUT", InputStates::Inputs::TEXT_INPUT)
-            .value("NUMBER_1", InputStates::Inputs::NUMBER_1)
-            .value("NUMBER_2", InputStates::Inputs::NUMBER_2)
-            .value("F4", InputStates::Inputs::F4)
-            .export_values();
+    // Expose InputActions hash constants to Python as a plain class with integer attributes.
+    // Python scripts use limon.InputActions.MOVE_FORWARD etc. (uint64_t values).
+    pybind11::class_<InputActionsExport>(m, "InputActions")
+            .def_readonly_static("QUIT",                &InputActionsExport::QUIT)
+            .def_readonly_static("MOUSE_MOVE",          &InputActionsExport::MOUSE_MOVE)
+            .def_readonly_static("MOUSE_BUTTON_LEFT",   &InputActionsExport::MOUSE_BUTTON_LEFT)
+            .def_readonly_static("MOUSE_BUTTON_MIDDLE", &InputActionsExport::MOUSE_BUTTON_MIDDLE)
+            .def_readonly_static("MOUSE_BUTTON_RIGHT",  &InputActionsExport::MOUSE_BUTTON_RIGHT)
+            .def_readonly_static("MOUSE_WHEEL_UP",      &InputActionsExport::MOUSE_WHEEL_UP)
+            .def_readonly_static("MOUSE_WHEEL_DOWN",    &InputActionsExport::MOUSE_WHEEL_DOWN)
+            .def_readonly_static("MOVE_FORWARD",        &InputActionsExport::MOVE_FORWARD)
+            .def_readonly_static("MOVE_BACKWARD",       &InputActionsExport::MOVE_BACKWARD)
+            .def_readonly_static("MOVE_LEFT",           &InputActionsExport::MOVE_LEFT)
+            .def_readonly_static("MOVE_RIGHT",          &InputActionsExport::MOVE_RIGHT)
+            .def_readonly_static("JUMP",                &InputActionsExport::JUMP)
+            .def_readonly_static("RUN",                 &InputActionsExport::RUN)
+            .def_readonly_static("DEBUG_MODE",          &InputActionsExport::DEBUG_MODE)
+            .def_readonly_static("EDITOR",              &InputActionsExport::EDITOR)
+            .def_readonly_static("KEY_SHIFT",           &InputActionsExport::KEY_SHIFT)
+            .def_readonly_static("KEY_CTRL",            &InputActionsExport::KEY_CTRL)
+            .def_readonly_static("KEY_ALT",             &InputActionsExport::KEY_ALT)
+            .def_readonly_static("KEY_SUPER",           &InputActionsExport::KEY_SUPER)
+            .def_readonly_static("TEXT_INPUT",          &InputActionsExport::TEXT_INPUT)
+            .def_readonly_static("NUMBER_1",            &InputActionsExport::NUMBER_1)
+            .def_readonly_static("NUMBER_2",            &InputActionsExport::NUMBER_2)
+            .def_readonly_static("F4",                  &InputActionsExport::F4)
+            .def_readonly_static("F5",                  &InputActionsExport::F5)
+            .def_readonly_static("LOOK_X",              &InputActionsExport::LOOK_X)
+            .def_readonly_static("LOOK_Y",              &InputActionsExport::LOOK_Y);
 
     // Bind InputStates class
     pybind11::class_<InputStates>(m, "InputStates")
@@ -58,7 +118,8 @@ void bindInterfaces(pybind11::module_& m) {
                 return std::make_tuple(changed, xPos, yPos, xChange, yChange);
             })
             .def("set_mouse_change", &InputStates::setMouseChange)
-            .def_readonly_static("KEY_BUFFER_ELEMENTS", &InputStates::keyBufferElements);
+            .def("get_analog_value", &InputStates::getAnalogValue)
+            .def("set_analog_value", &InputStates::setAnalogValue);
 
     // Bind PlayerExtensionInterface::PlayerInformation
     pybind11::class_<PlayerExtensionInterface::PlayerInformation>(m, "PlayerInformation")

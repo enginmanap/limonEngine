@@ -39,17 +39,17 @@ void CowboyShooterExtension::processInput(const InputStates &inputState, const P
         processHitReaction();
     }
 
-    if(inputState.getInputEvents(InputStates::Inputs::MOUSE_BUTTON_LEFT) && inputState.getInputStatus(InputStates::Inputs::MOUSE_BUTTON_LEFT)) {
+    if(inputState.getInputEvents(InputActions::MOUSE_BUTTON_LEFT) && inputState.getInputStatus(InputActions::MOUSE_BUTTON_LEFT)) {
         transitionState = State::SHOOTING;
     } else {
-        if(!inputState.getInputStatus(InputStates::Inputs::MOVE_FORWARD) &&
-           !inputState.getInputStatus(InputStates::Inputs::MOVE_BACKWARD) &&
-           !inputState.getInputStatus(InputStates::Inputs::MOVE_LEFT) &&
-           !inputState.getInputStatus(InputStates::Inputs::MOVE_RIGHT)) {
+        if(!inputState.getInputStatus(InputActions::MOVE_FORWARD) &&
+           !inputState.getInputStatus(InputActions::MOVE_BACKWARD) &&
+           !inputState.getInputStatus(InputActions::MOVE_LEFT) &&
+           !inputState.getInputStatus(InputActions::MOVE_RIGHT)) {
             //standing still
             transitionState = State::IDLE;
         } else {
-            if (inputState.getInputStatus(InputStates::Inputs::RUN)) {
+            if (inputState.getInputStatus(InputActions::RUN)) {
                 transitionState = State::RUNNING;
             } else {
                 transitionState = State::WALKING;
@@ -58,10 +58,10 @@ void CowboyShooterExtension::processInput(const InputStates &inputState, const P
         }
     }
 
-    if(inputState.getInputEvents(InputStates::Inputs::NUMBER_2)) {
+    if(inputState.getInputEvents(InputActions::NUMBER_2)) {
         transitionGun = Gun::RIFLE;
     }
-    if(inputState.getInputEvents(InputStates::Inputs::NUMBER_1)) {
+    if(inputState.getInputEvents(InputActions::NUMBER_1)) {
         transitionGun = Gun::PISTOL;
     }
 
@@ -495,7 +495,7 @@ void CowboyShooterExtension::processHitReaction() {
     float xMove = cos(animationTime) * 0.001;
     float yMove = sin(animationTime) * -0.005;
     inputState.setMouseChange(0.0f,0.0f, xMove, yMove);
-    inputState.setInputStatus(InputStates::Inputs::MOUSE_MOVE, true);
+    inputState.setInputStatus(InputActions::MOUSE_MOVE, true);
     limonAPI->simulateInput(inputState);
 
     if(animationTime >= (2.0f * 3.14)) {

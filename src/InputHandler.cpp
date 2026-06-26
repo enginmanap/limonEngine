@@ -17,116 +17,111 @@ void InputHandler::mapInput() {
     inputState.resetAllEvents();
 
     while (SDL_PollEvent(&event)) {
-        if (event.type == SDL_KEYDOWN || event.type == SDL_KEYUP) {
-            uint32_t downKey = event.key.keysym.sym & ~SDLK_SCANCODE_MASK;
-            if(downKey < InputStates::keyBufferElements) {
-                inputState.setRawInputState(downKey, event.type == SDL_KEYDOWN);
-            }
-        }
         switch (event.type) {
             case SDL_QUIT:
-                inputState.setInputStatus(InputStates::Inputs::QUIT, true);
+                inputState.setInputStatus(InputActions::QUIT, true);
                 break;
             case SDL_MOUSEBUTTONDOWN:
                 switch (event.button.button) {
                     case SDL_BUTTON_LEFT:
-                        inputState.setInputStatus(InputStates::Inputs::MOUSE_BUTTON_LEFT, true);
+                        inputState.setInputStatus(InputActions::MOUSE_BUTTON_LEFT, true);
                         break;
                     case SDL_BUTTON_MIDDLE:
-                        inputState.setInputStatus(InputStates::Inputs::MOUSE_BUTTON_MIDDLE, true);
+                        inputState.setInputStatus(InputActions::MOUSE_BUTTON_MIDDLE, true);
                         break;
                     case SDL_BUTTON_RIGHT:
-                        inputState.setInputStatus(InputStates::Inputs::MOUSE_BUTTON_RIGHT, true);
+                        inputState.setInputStatus(InputActions::MOUSE_BUTTON_RIGHT, true);
                         break;
                 }
                 break;
             case SDL_MOUSEBUTTONUP:
                 switch (event.button.button) {
                     case SDL_BUTTON_LEFT:
-                        inputState.setInputStatus(InputStates::Inputs::MOUSE_BUTTON_LEFT, false);
+                        inputState.setInputStatus(InputActions::MOUSE_BUTTON_LEFT, false);
                         break;
                     case SDL_BUTTON_MIDDLE:
-                        inputState.setInputStatus(InputStates::Inputs::MOUSE_BUTTON_MIDDLE, false);
+                        inputState.setInputStatus(InputActions::MOUSE_BUTTON_MIDDLE, false);
                         break;
                     case SDL_BUTTON_RIGHT:
-                        inputState.setInputStatus(InputStates::Inputs::MOUSE_BUTTON_RIGHT, false);
+                        inputState.setInputStatus(InputActions::MOUSE_BUTTON_RIGHT, false);
                         break;
                 }
                 break;
             case SDL_MOUSEMOTION:
                 {
-                    inputState.setInputStatus(InputStates::Inputs::MOUSE_MOVE, true);
+                    inputState.setInputStatus(InputActions::MOUSE_MOVE, true);
                     float xPos = (event.motion.x - (options->getScreenWidth() / 2.0f)) / (options->getScreenWidth() / 2);
                     float xChange = (event.motion.xrel) / (options->getScreenWidth() / 2.0f);
                     float yPos = (event.motion.y - (options->getScreenHeight() / 2.0f)) / (options->getScreenHeight() / 2);
                     float yChange = (event.motion.yrel) / (options->getScreenHeight() / 2.0f);
                     inputState.setMouseChange(xPos, yPos, xChange, yChange);
+                    inputState.addAnalogValue(InputActions::LOOK_X, xChange);
+                    inputState.addAnalogValue(InputActions::LOOK_Y, yChange);
                 }
                 break;
             case SDL_MOUSEWHEEL:
-                if(event.wheel.y > 0) {
-                    inputState.setInputStatus(InputStates::Inputs::MOUSE_WHEEL_UP, true);
-                } else if(event.wheel.y < 0) {
-                    inputState.setInputStatus(InputStates::Inputs::MOUSE_WHEEL_DOWN, true);
+                if (event.wheel.y > 0) {
+                    inputState.setInputStatus(InputActions::MOUSE_WHEEL_UP, true);
+                } else if (event.wheel.y < 0) {
+                    inputState.setInputStatus(InputActions::MOUSE_WHEEL_DOWN, true);
                 }
                 break;
             case SDL_KEYDOWN:
                 switch (event.key.keysym.sym) {
                     case SDLK_ESCAPE:
-                        inputState.setInputStatus(InputStates::Inputs::QUIT, true);
+                        inputState.setInputStatus(InputActions::QUIT, true);
                         break;
                     case SDLK_w:
-                        inputState.setInputStatus(InputStates::Inputs::MOVE_FORWARD, true);
+                        inputState.setInputStatus(InputActions::MOVE_FORWARD, true);
                         break;
                     case SDLK_a:
-                        inputState.setInputStatus(InputStates::Inputs::MOVE_LEFT, true);
+                        inputState.setInputStatus(InputActions::MOVE_LEFT, true);
                         break;
                     case SDLK_s:
-                        inputState.setInputStatus(InputStates::Inputs::MOVE_BACKWARD, true);
+                        inputState.setInputStatus(InputActions::MOVE_BACKWARD, true);
                         break;
                     case SDLK_d:
-                        inputState.setInputStatus(InputStates::Inputs::MOVE_RIGHT, true);
+                        inputState.setInputStatus(InputActions::MOVE_RIGHT, true);
                         break;
                     case SDLK_SPACE:
-                        inputState.setInputStatus(InputStates::Inputs::JUMP, true);
+                        inputState.setInputStatus(InputActions::JUMP, true);
                         break;
                     case SDLK_RSHIFT:
                     case SDLK_LSHIFT:
-                        inputState.setInputStatus(InputStates::Inputs::RUN, true);
-                        inputState.setInputStatus(InputStates::Inputs::KEY_SHIFT, true);
+                        inputState.setInputStatus(InputActions::RUN, true);
+                        inputState.setInputStatus(InputActions::KEY_SHIFT, true);
                         break;
                     case SDLK_LALT:
-                        inputState.setInputStatus(InputStates::Inputs::KEY_ALT, true);
+                        inputState.setInputStatus(InputActions::KEY_ALT, true);
                         break;
                     case SDLK_LGUI:
                     case SDLK_RGUI:
-                        inputState.setInputStatus(InputStates::Inputs::KEY_SUPER, true);
+                        inputState.setInputStatus(InputActions::KEY_SUPER, true);
                         break;
                     case SDLK_LCTRL:
                     case SDLK_RCTRL:
-                        inputState.setInputStatus(InputStates::Inputs::KEY_CTRL, true);
+                        inputState.setInputStatus(InputActions::KEY_CTRL, true);
                         break;
                     case SDLK_0:
-                        inputState.setInputStatus(InputStates::Inputs::DEBUG, true);
+                        inputState.setInputStatus(InputActions::DEBUG_MODE, true);
                         break;
                     case SDLK_F2:
-                        inputState.setInputStatus(InputStates::Inputs::EDITOR, true);
+                        inputState.setInputStatus(InputActions::EDITOR, true);
                         break;
                     case SDLK_1:
-                        inputState.setInputStatus(InputStates::Inputs::NUMBER_1, true);
+                        inputState.setInputStatus(InputActions::NUMBER_1, true);
                         break;
                     case SDLK_2:
-                        inputState.setInputStatus(InputStates::Inputs::NUMBER_2, true);
+                        inputState.setInputStatus(InputActions::NUMBER_2, true);
                         break;
                     case SDLK_F4:
-                        inputState.setInputStatus(InputStates::Inputs::F4, true);
+                        inputState.setInputStatus(InputActions::F4, true);
                         break;
                     case SDLK_F5:
-                        inputState.setInputStatus(InputStates::Inputs::F5, true);
+                        inputState.setInputStatus(InputActions::F5, true);
                         break;
                     case SDLK_KP_PLUS: {
-                        float lookAroundSpeed;
-                        lookAroundSpeed = lookAroundSpeedOption.get();
+                        float lookAroundSpeed = lookAroundSpeedOption.get();
                         lookAroundSpeed += 1.0f;
                         lookAroundSpeedOption.set(lookAroundSpeed);
                     }
@@ -142,62 +137,62 @@ void InputHandler::mapInput() {
             case SDL_KEYUP:
                 switch (event.key.keysym.sym) {
                     case SDLK_ESCAPE:
-                        inputState.setInputStatus(InputStates::Inputs::QUIT, false);
+                        inputState.setInputStatus(InputActions::QUIT, false);
                         break;
                     case SDLK_w:
-                        inputState.setInputStatus(InputStates::Inputs::MOVE_FORWARD, false);
+                        inputState.setInputStatus(InputActions::MOVE_FORWARD, false);
                         break;
                     case SDLK_a:
-                        inputState.setInputStatus(InputStates::Inputs::MOVE_LEFT, false);
+                        inputState.setInputStatus(InputActions::MOVE_LEFT, false);
                         break;
                     case SDLK_s:
-                        inputState.setInputStatus(InputStates::Inputs::MOVE_BACKWARD, false);
+                        inputState.setInputStatus(InputActions::MOVE_BACKWARD, false);
                         break;
                     case SDLK_d:
-                        inputState.setInputStatus(InputStates::Inputs::MOVE_RIGHT, false);
+                        inputState.setInputStatus(InputActions::MOVE_RIGHT, false);
                         break;
                     case SDLK_SPACE:
-                        inputState.setInputStatus(InputStates::Inputs::JUMP, false);
+                        inputState.setInputStatus(InputActions::JUMP, false);
                         break;
                     case SDLK_RSHIFT:
                     case SDLK_LSHIFT:
-                        inputState.setInputStatus(InputStates::Inputs::RUN, false);
-                        inputState.setInputStatus(InputStates::Inputs::KEY_SHIFT, false);
+                        inputState.setInputStatus(InputActions::RUN, false);
+                        inputState.setInputStatus(InputActions::KEY_SHIFT, false);
                         break;
                     case SDLK_LALT:
-                        inputState.setInputStatus(InputStates::Inputs::KEY_ALT, false);
+                        inputState.setInputStatus(InputActions::KEY_ALT, false);
                         break;
                     case SDLK_LGUI:
                     case SDLK_RGUI:
-                        inputState.setInputStatus(InputStates::Inputs::KEY_SUPER, false);
+                        inputState.setInputStatus(InputActions::KEY_SUPER, false);
                         break;
                     case SDLK_LCTRL:
                     case SDLK_RCTRL:
-                        inputState.setInputStatus(InputStates::Inputs::KEY_CTRL, false);
+                        inputState.setInputStatus(InputActions::KEY_CTRL, false);
                         break;
                     case SDLK_0:
-                        inputState.setInputStatus(InputStates::Inputs::DEBUG, false);
+                        inputState.setInputStatus(InputActions::DEBUG_MODE, false);
                         break;
                     case SDLK_F2:
-                        inputState.setInputStatus(InputStates::Inputs::EDITOR, false);
+                        inputState.setInputStatus(InputActions::EDITOR, false);
                         break;
                     case SDLK_1:
-                        inputState.setInputStatus(InputStates::Inputs::NUMBER_1, false);
+                        inputState.setInputStatus(InputActions::NUMBER_1, false);
                         break;
                     case SDLK_2:
-                        inputState.setInputStatus(InputStates::Inputs::NUMBER_2, false);
+                        inputState.setInputStatus(InputActions::NUMBER_2, false);
                         break;
                     case SDLK_F4:
-                        inputState.setInputStatus(InputStates::Inputs::F4, false);
+                        inputState.setInputStatus(InputActions::F4, false);
                         break;
                     case SDLK_F5:
-                        inputState.setInputStatus(InputStates::Inputs::F5, false);
+                        inputState.setInputStatus(InputActions::F5, false);
                         break;
                 }
                 break;
             case SDL_TEXTINPUT:
                 inputState.setText(event.text.text);
-                inputState.setInputStatus(InputStates::Inputs::TEXT_INPUT, true);
+                inputState.setInputStatus(InputActions::TEXT_INPUT, true);
                 break;
         }
     }

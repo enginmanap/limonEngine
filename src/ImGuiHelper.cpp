@@ -148,50 +148,51 @@ bool ImGuiHelper::ProcessEvent(const InputHandler& inputHandler) {
     // This is kept independent of mouse capture so that keyboard-only focus does not block
     // mouse clicks from reaching the world.
     if(io.WantCaptureKeyboard) {
-        if(inputStates.getInputEvents(InputStates::Inputs::TEXT_INPUT)) {
+        if(inputStates.getInputEvents(InputActions::TEXT_INPUT)) {
             io.AddInputCharactersUTF8(inputStates.getText());
         }
-        if(inputStates.getInputEvents(InputStates::Inputs::KEY_SHIFT)) {
+        if(inputStates.getInputEvents(InputActions::KEY_SHIFT)) {
             io.KeyShift = ((SDL_GetModState() & KMOD_SHIFT) != 0);
         }
-        if(inputStates.getInputEvents(InputStates::Inputs::KEY_SUPER)) {
+        if(inputStates.getInputEvents(InputActions::KEY_SUPER)) {
             io.KeySuper = ((SDL_GetModState() & KMOD_GUI) != 0);
         }
-        if(inputStates.getInputEvents(InputStates::Inputs::KEY_CTRL)) {
+        if(inputStates.getInputEvents(InputActions::KEY_CTRL)) {
             io.KeyCtrl = ((SDL_GetModState() & KMOD_CTRL) != 0);
         }
-        if(inputStates.getInputEvents(InputStates::Inputs::KEY_ALT)) {
+        if(inputStates.getInputEvents(InputActions::KEY_ALT)) {
             io.KeyAlt = ((SDL_GetModState() & KMOD_ALT) != 0);
         }
-        for (size_t i = 0; i < InputStates::keyBufferSize; i++) {
-            ImGuiKey key = SDL2KeyEventToImGuiKey(i);
-            if (key == ImGuiKey_None) {
-                 key = SDL2KeyEventToImGuiKey(SDL_SCANCODE_TO_KEYCODE(i));
+        int numKeys;
+        const Uint8* sdlKeyStates = SDL_GetKeyboardState(&numKeys);
+        for (int i = 0; i < numKeys; i++) {
+            ImGuiKey key = SDL2KeyEventToImGuiKey(SDL_SCANCODE_TO_KEYCODE(i));
+            if (key != ImGuiKey_None) {
+                io.AddKeyEvent(key, sdlKeyStates[i] != 0);
             }
-            io.AddKeyEvent(key, inputStates.getRawKeyStates()[i]);
         }
     }
 
     // Mouse events are only owned by ImGui when the mouse is actually over an ImGui window.
     // WantCaptureKeyboard alone (focused text field, etc.) must not swallow mouse clicks.
     if(io.WantCaptureMouse) {
-        if(inputStates.getInputEvents(InputStates::Inputs::MOUSE_WHEEL_UP)) {
+        if(inputStates.getInputEvents(InputActions::MOUSE_WHEEL_UP)) {
             g_MouseWheel = 1;
         }
-        if(inputStates.getInputEvents(InputStates::Inputs::MOUSE_WHEEL_DOWN)) {
+        if(inputStates.getInputEvents(InputActions::MOUSE_WHEEL_DOWN)) {
             g_MouseWheel = -1;
         }
-        if(inputStates.getInputStatus(InputStates::Inputs::MOUSE_BUTTON_LEFT)) {
+        if(inputStates.getInputStatus(InputActions::MOUSE_BUTTON_LEFT)) {
             g_MousePressed[0] = true;
         } else {
             g_MousePressed[0] = false;
         }
-        if(inputStates.getInputStatus(InputStates::Inputs::MOUSE_BUTTON_RIGHT)) {
+        if(inputStates.getInputStatus(InputActions::MOUSE_BUTTON_RIGHT)) {
             g_MousePressed[1] = true;
         } else {
             g_MousePressed[1] = false;
         }
-        if(inputStates.getInputStatus(InputStates::Inputs::MOUSE_BUTTON_MIDDLE)) {
+        if(inputStates.getInputStatus(InputActions::MOUSE_BUTTON_MIDDLE)) {
             g_MousePressed[2] = true;
         } else {
             g_MousePressed[2] = false;

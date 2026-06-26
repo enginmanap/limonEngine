@@ -2883,7 +2883,7 @@ void Editor::createNodeGraph() {
 }
 
 void Editor::update(InputHandler &inputHandler) {
-    if(!world->currentPlayersSettings->editorShown || inputHandler.getInputStates().getInputEvents(InputStates::Inputs::EDITOR) || !imgGuiHelper->ProcessEvent(inputHandler)) {
+    if(!world->currentPlayersSettings->editorShown || inputHandler.getInputStates().getInputEvents(InputActions::EDITOR) || !imgGuiHelper->ProcessEvent(inputHandler)) {
         if(world->handlePlayerInput(inputHandler)) {
             world->handleQuitRequest();
             return;

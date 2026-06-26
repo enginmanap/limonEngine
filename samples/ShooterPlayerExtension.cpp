@@ -36,7 +36,7 @@ void ShooterPlayerExtension::processInput(const InputStates &inputState, const P
         removeCounter--;
     }
 
-    if(inputState.getInputEvents(InputStates::Inputs::MOUSE_BUTTON_LEFT) && inputState.getInputStatus(InputStates::Inputs::MOUSE_BUTTON_LEFT)) {
+    if(inputState.getInputEvents(InputActions::MOUSE_BUTTON_LEFT) && inputState.getInputStatus(InputActions::MOUSE_BUTTON_LEFT)) {
         if((limonAPI->getModelAnimationName(playerAttachedModelID) != "Shoot" ||  limonAPI->getModelAnimationFinished(playerAttachedModelID))) {
             limonAPI->setModelAnimation(playerAttachedModelID, "Shoot", false);
             limonAPI->playSound("./Data/Sounds/EasyFPS/shot.wav", glm::vec3(0, 0, 0), false, false);
@@ -165,10 +165,10 @@ void ShooterPlayerExtension::processInput(const InputStates &inputState, const P
             }
         }
     } else {
-        if (inputState.getInputEvents(InputStates::Inputs::MOUSE_BUTTON_RIGHT)) {
+        if (inputState.getInputEvents(InputActions::MOUSE_BUTTON_RIGHT)) {
             LimonTypes::Vec4 newOffset = LimonTypes::Vec4(0.075f, 0.03f,-0.045f);
             LimonTypes::Vec4 attachedModelOffset = limonAPI->getPlayerAttachedModelOffset();
-            if(inputState.getInputStatus(InputStates::Inputs::MOUSE_BUTTON_RIGHT)) {
+            if(inputState.getInputStatus(InputActions::MOUSE_BUTTON_RIGHT)) {
                 limonAPI->setModelAnimationWithBlend(playerAttachedModelID, "AimPose", true);
 
                 attachedModelOffset = attachedModelOffset + newOffset;
@@ -182,10 +182,10 @@ void ShooterPlayerExtension::processInput(const InputStates &inputState, const P
         bool isAnimationFinished = limonAPI->getModelAnimationFinished(playerAttachedModelID);
         std::string currentAnimationName = limonAPI->getModelAnimationName(playerAttachedModelID);
 
-        if(!inputState.getInputStatus(InputStates::Inputs::MOVE_FORWARD) &&
-           !inputState.getInputStatus(InputStates::Inputs::MOVE_BACKWARD) &&
-           !inputState.getInputStatus(InputStates::Inputs::MOVE_LEFT) &&
-           !inputState.getInputStatus(InputStates::Inputs::MOVE_RIGHT)) {
+        if(!inputState.getInputStatus(InputActions::MOVE_FORWARD) &&
+           !inputState.getInputStatus(InputActions::MOVE_BACKWARD) &&
+           !inputState.getInputStatus(InputActions::MOVE_LEFT) &&
+           !inputState.getInputStatus(InputActions::MOVE_RIGHT)) {
             //standing still
             std::string finishedStr = " not finished";
 
@@ -204,8 +204,8 @@ void ShooterPlayerExtension::processInput(const InputStates &inputState, const P
             if(currentAnimationName == "Run" ||
                currentAnimationName == "Walk") {
                 //we were already moving, handle if player run state changed
-                if (inputState.getInputEvents(InputStates::Inputs::RUN)) {
-                    if (inputState.getInputStatus(InputStates::Inputs::RUN)) {
+                if (inputState.getInputEvents(InputActions::RUN)) {
+                    if (inputState.getInputStatus(InputActions::RUN)) {
                         limonAPI->setModelAnimationWithBlend(playerAttachedModelID, "Run", true);
                     } else {
                         limonAPI->setModelAnimationWithBlend(playerAttachedModelID, "Walk", true);
@@ -215,7 +215,7 @@ void ShooterPlayerExtension::processInput(const InputStates &inputState, const P
                 if(currentAnimationName == "Idle" ||
                    isAnimationFinished) {
                     //we were standing or some other animation. handle accordingly
-                    if (inputState.getInputStatus(InputStates::Inputs::RUN)) {
+                    if (inputState.getInputStatus(InputActions::RUN)) {
                         limonAPI->setModelAnimationWithBlend(playerAttachedModelID, "Run", true);
                     } else {
                         limonAPI->setModelAnimationWithBlend(playerAttachedModelID, "Walk", true);

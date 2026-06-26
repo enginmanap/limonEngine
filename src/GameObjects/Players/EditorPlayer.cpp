@@ -59,15 +59,15 @@ void EditorPlayer::processInput(const InputStates &inputState, long time [[gnu::
     bool hasMouseChange = inputState.getMouseChange(xPosition, yPosition, xChange, yChange);
 
     // Handle right-click for free look
-    if (inputState.getInputEvents(InputStates::Inputs::MOUSE_BUTTON_RIGHT)) {
-        if (inputState.getInputStatus(InputStates::Inputs::MOUSE_BUTTON_RIGHT)) {
+    if (inputState.getInputEvents(InputActions::MOUSE_BUTTON_RIGHT)) {
+        if (inputState.getInputStatus(InputActions::MOUSE_BUTTON_RIGHT)) {
             inputHandler->setMouseModeRelative();
         } else {
             inputHandler->setMouseModeFree();
         }
     }
 
-    if (inputState.getInputStatus(InputStates::Inputs::MOUSE_BUTTON_RIGHT)) {
+    if (inputState.getInputStatus(InputActions::MOUSE_BUTTON_RIGHT)) {
         if (hasMouseChange) {
             rotateFree(xChange, yChange);
         }
@@ -77,9 +77,9 @@ void EditorPlayer::processInput(const InputStates &inputState, long time [[gnu::
         }
     }
 
-    if (inputState.getInputEvents(InputStates::Inputs::RUN)) {
+    if (inputState.getInputEvents(InputActions::RUN)) {
         LimonTypes::Vec4 movementSpeed;
-        if(inputState.getInputStatus(InputStates::Inputs::RUN)) {
+        if(inputState.getInputStatus(InputActions::RUN)) {
             movementSpeed = runSpeedOption.get();
             moveSpeedOption.set(movementSpeed);
         } else {
@@ -90,16 +90,16 @@ void EditorPlayer::processInput(const InputStates &inputState, long time [[gnu::
 
     EditorPlayer::moveDirections direction = EditorPlayer::NONE;
     //ignore if both are pressed.
-    if (inputState.getInputStatus(InputStates::Inputs::MOVE_FORWARD) !=
-        inputState.getInputStatus(InputStates::Inputs::MOVE_BACKWARD)) {
-        if (inputState.getInputStatus(InputStates::Inputs::MOVE_FORWARD)) {
+    if (inputState.getInputStatus(InputActions::MOVE_FORWARD) !=
+        inputState.getInputStatus(InputActions::MOVE_BACKWARD)) {
+        if (inputState.getInputStatus(InputActions::MOVE_FORWARD)) {
             direction = EditorPlayer::FORWARD;
         } else {
             direction = EditorPlayer::BACKWARD;
         }
     }
-    if (inputState.getInputStatus(InputStates::Inputs::MOVE_LEFT) != inputState.getInputStatus(InputStates::Inputs::MOVE_RIGHT)) {
-        if (inputState.getInputStatus(InputStates::Inputs::MOVE_LEFT)) {
+    if (inputState.getInputStatus(InputActions::MOVE_LEFT) != inputState.getInputStatus(InputActions::MOVE_RIGHT)) {
+        if (inputState.getInputStatus(InputActions::MOVE_LEFT)) {
             if (direction == EditorPlayer::FORWARD) {
                 direction = EditorPlayer::LEFT_FORWARD;
             } else if (direction == EditorPlayer::BACKWARD) {
@@ -116,7 +116,7 @@ void EditorPlayer::processInput(const InputStates &inputState, long time [[gnu::
         }
     }
 
-    if (inputState.getInputStatus(InputStates::Inputs::JUMP) && inputState.getInputEvents(InputStates::Inputs::JUMP)) {
+    if (inputState.getInputStatus(InputActions::JUMP) && inputState.getInputEvents(InputActions::JUMP)) {
         direction = EditorPlayer::UP;
     }
 

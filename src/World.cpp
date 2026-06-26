@@ -335,8 +335,8 @@ void World::applyAudioVolumeOptionsIfChanged() {
             }
             this->hoveringButton = button;
             button->setOnHover(true);
-            if(inputHandler.getInputStates().getInputStatus(InputStates::Inputs::MOUSE_BUTTON_LEFT)) {
-                if(inputHandler.getInputStates().getInputEvents(InputStates::Inputs::MOUSE_BUTTON_LEFT)) {
+            if(inputHandler.getInputStates().getInputStatus(InputActions::MOUSE_BUTTON_LEFT)) {
+                if(inputHandler.getInputStates().getInputEvents(InputActions::MOUSE_BUTTON_LEFT)) {
                     button->setOnClick(true);
                 }
             } else {
@@ -566,8 +566,8 @@ World::fillRouteInformation(std::vector<LimonTypes::GenericParameter> parameters
 }
 
    bool World::handlePlayerInput(InputHandler &inputHandler) {
-    if(inputHandler.getInputStates().getInputEvents(InputStates::Inputs::MOUSE_BUTTON_LEFT)) {
-        if(inputHandler.getInputStates().getInputStatus(InputStates::Inputs::MOUSE_BUTTON_LEFT)) {
+    if(inputHandler.getInputStates().getInputEvents(InputActions::MOUSE_BUTTON_LEFT)) {
+        if(inputHandler.getInputStates().getInputStatus(InputActions::MOUSE_BUTTON_LEFT)) {
             GameObject *gameObject = getPointedObject(COLLIDE_EVERYTHING, ~(COLLIDE_NOTHING));
             if (gameObject != nullptr) {//FIXME this looks like a left over
                 if(editor->pickedObject != nullptr ) {
@@ -581,10 +581,10 @@ World::fillRouteInformation(std::vector<LimonTypes::GenericParameter> parameters
         }
     }
 
-    if(inputHandler.getInputStates().getInputEvents(InputStates::Inputs::F4)) {
+    if(inputHandler.getInputStates().getInputEvents(InputActions::F4)) {
         OptionsUtil::Options::Option<bool> debugDrawLinesOption = options->getOption<bool>(HASH("debug_drawLines"));
         bool debugDrawLines = debugDrawLinesOption.getOrDefault(false);
-        if(inputHandler.getInputStates().getInputStatus(InputStates::Inputs::F4)) {
+        if(inputHandler.getInputStates().getInputStatus(InputActions::F4)) {
             debugDrawLines = !debugDrawLines;
         }
         debugDrawLinesOption.set(debugDrawLines);
@@ -592,7 +592,7 @@ World::fillRouteInformation(std::vector<LimonTypes::GenericParameter> parameters
         long cascadeCount;
         OptionsUtil::Options::Option<long> cascadeCountOption = options->getOption<long>(HASH("shadow_cascadeCount"));
         cascadeCount = cascadeCountOption.getOrDefault(4);
-        if(inputHandler.getInputStates().getInputStatus(InputStates::Inputs::F4)) {
+        if(inputHandler.getInputStates().getInputStatus(InputActions::F4)) {
             cascadeCount--;
             if(cascadeCount < 0) {
                 cascadeCount = cascadeCountOption.getOrDefault(4);
@@ -601,14 +601,14 @@ World::fillRouteInformation(std::vector<LimonTypes::GenericParameter> parameters
         */
     }
 
-    if (inputHandler.getInputStates().getInputEvents(InputStates::Inputs::F5) &&
-        inputHandler.getInputStates().getInputStatus(InputStates::Inputs::F5)) {
+    if (inputHandler.getInputStates().getInputEvents(InputActions::F5) &&
+        inputHandler.getInputStates().getInputStatus(InputActions::F5)) {
         if (profilerSystem) {
             profilerSystem->togglePause();
         }
     }
 
-    if (inputHandler.getInputStates().getInputEvents(InputStates::Inputs::EDITOR) && inputHandler.getInputStates().getInputStatus(InputStates::Inputs::EDITOR)) {
+    if (inputHandler.getInputStates().getInputEvents(InputActions::EDITOR) && inputHandler.getInputStates().getInputStatus(InputActions::EDITOR)) {
         if(editorPlayer == nullptr) {
             editorPlayer = new EditorPlayer(options, cursor, startingPlayer.position, startingPlayer.orientation, &inputHandler);
             editorPlayer->registerToPhysicalWorld(dynamicsWorld, COLLIDE_PLAYER,
@@ -624,7 +624,7 @@ World::fillRouteInformation(std::vector<LimonTypes::GenericParameter> parameters
         }
     }
     //if not in editor mode and press debug
-    if (!currentPlayersSettings->editorShown && inputHandler.getInputStates().getInputEvents(InputStates::Inputs::DEBUG) && inputHandler.getInputStates().getInputStatus(InputStates::Inputs::DEBUG)) {
+    if (!currentPlayersSettings->editorShown && inputHandler.getInputStates().getInputEvents(InputActions::DEBUG_MODE) && inputHandler.getInputStates().getInputStatus(InputActions::DEBUG_MODE)) {
         if(currentPlayersSettings->debugMode != Player::DEBUG_ENABLED) {
             if(debugPlayer == nullptr) {
                 debugPlayer = new FreeMovingPlayer(options, cursor, startingPlayer.position, startingPlayer.orientation);
@@ -650,7 +650,7 @@ World::fillRouteInformation(std::vector<LimonTypes::GenericParameter> parameters
 
        currentPlayer->processInput(inputHandler.getInputStates(), gameTime);
 
-    if(inputHandler.getInputStates().getInputEvents(InputStates::Inputs::QUIT) &&  inputHandler.getInputStates().getInputStatus(InputStates::Inputs::QUIT)) {
+    if(inputHandler.getInputStates().getInputEvents(InputActions::QUIT) &&  inputHandler.getInputStates().getInputStatus(InputActions::QUIT)) {
         return true;
     } else {
         return false;

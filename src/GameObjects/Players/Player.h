@@ -146,9 +146,9 @@ public:
             rotate(xPosition, yPosition, xChange, yChange);
         }
 
-        if (inputState.getInputEvents(InputStates::Inputs::RUN)) {
+        if (inputState.getInputEvents(InputActions::RUN)) {
             LimonTypes::Vec4 movementSpeed;
-            if(inputState.getInputStatus(InputStates::Inputs::RUN)) {
+            if(inputState.getInputStatus(InputActions::RUN)) {
                 movementSpeed = runSpeedOption.get();
                 moveSpeedOption.set(movementSpeed);
             } else {
@@ -159,16 +159,16 @@ public:
 
         Player::moveDirections direction = Player::NONE;
         //ignore if both are pressed.
-        if (inputState.getInputStatus(InputStates::Inputs::MOVE_FORWARD) !=
-            inputState.getInputStatus(InputStates::Inputs::MOVE_BACKWARD)) {
-            if (inputState.getInputStatus(InputStates::Inputs::MOVE_FORWARD)) {
+        if (inputState.getInputStatus(InputActions::MOVE_FORWARD) !=
+            inputState.getInputStatus(InputActions::MOVE_BACKWARD)) {
+            if (inputState.getInputStatus(InputActions::MOVE_FORWARD)) {
                 direction = Player::FORWARD;
             } else {
                 direction = Player::BACKWARD;
             }
         }
-        if (inputState.getInputStatus(InputStates::Inputs::MOVE_LEFT) != inputState.getInputStatus(InputStates::Inputs::MOVE_RIGHT)) {
-            if (inputState.getInputStatus(InputStates::Inputs::MOVE_LEFT)) {
+        if (inputState.getInputStatus(InputActions::MOVE_LEFT) != inputState.getInputStatus(InputActions::MOVE_RIGHT)) {
+            if (inputState.getInputStatus(InputActions::MOVE_LEFT)) {
                 if (direction == Player::FORWARD) {
                     direction = Player::LEFT_FORWARD;
                 } else if (direction == Player::BACKWARD) {
@@ -185,7 +185,7 @@ public:
             }
         }
 
-        if (inputState.getInputStatus(InputStates::Inputs::JUMP) && inputState.getInputEvents(InputStates::Inputs::JUMP)) {
+        if (inputState.getInputStatus(InputActions::JUMP) && inputState.getInputEvents(InputActions::JUMP)) {
             direction = Player::UP;
         }
 
