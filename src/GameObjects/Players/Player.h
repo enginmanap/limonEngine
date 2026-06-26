@@ -141,9 +141,12 @@ public:
 
     /************Game Object methods **************/
     virtual void processInput(const InputStates &inputState, long time [[gnu::unused]]) {
-        float xPosition, yPosition, xChange, yChange;
-        if (inputState.getMouseChange(xPosition, yPosition, xChange, yChange)) {
-            rotate(xPosition, yPosition, xChange, yChange);
+        float xPosition = 0.0f, yPosition = 0.0f, xChangeUnused = 0.0f, yChangeUnused = 0.0f;
+        inputState.getMouseChange(xPosition, yPosition, xChangeUnused, yChangeUnused);
+        float lookX = inputState.getAnalogValue(InputActions::LOOK_X);
+        float lookY = inputState.getAnalogValue(InputActions::LOOK_Y);
+        if (lookX != 0.0f || lookY != 0.0f) {
+            rotate(xPosition, yPosition, lookX, lookY);
         }
 
         if (inputState.getInputEvents(InputActions::RUN)) {

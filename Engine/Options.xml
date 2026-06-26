@@ -457,4 +457,12 @@
         <IsSet>True</IsSet>
         <Index>51</Index>
     </Parameter>
+    <Parameter>
+        <RequestType>FreeNumber</RequestType>
+        <Description>gamepad_deadZone</Description>
+        <Value>0.1</Value>
+        <valueType>Double</valueType>
+        <IsSet>True</IsSet>
+        <Index>52</Index>
+    </Parameter>
 </Options>

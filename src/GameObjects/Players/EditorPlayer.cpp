@@ -67,13 +67,20 @@ void EditorPlayer::processInput(const InputStates &inputState, long time [[gnu::
         }
     }
 
+    float lookX = inputState.getAnalogValue(InputActions::LOOK_X);
+    float lookY = inputState.getAnalogValue(InputActions::LOOK_Y);
+
     if (inputState.getInputStatus(InputActions::MOUSE_BUTTON_RIGHT)) {
         if (hasMouseChange) {
             rotateFree(xChange, yChange);
+        } else if (lookX != 0.0f || lookY != 0.0f) {
+            rotateFree(lookX, lookY);
         }
     } else {
         if (hasMouseChange) {
             rotate(xPosition, yPosition, xChange, yChange);
+        } else if (lookX != 0.0f || lookY != 0.0f) {
+            rotateFree(lookX, lookY);
         }
     }
 

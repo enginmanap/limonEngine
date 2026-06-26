@@ -45,6 +45,8 @@ class InputStates {
 public:
     InputStates() = default;
 
+    enum class ActiveDevice { KEYBOARD_MOUSE, GAMEPAD };
+
 private:
     std::unordered_map<uint64_t, bool>  inputStatus;
     std::unordered_map<uint64_t, bool>  inputEvents;
@@ -53,6 +55,7 @@ private:
     mutable char sdlText[128] = {0};
     mutable char temporaryTextBuffer[128] = {0};
     bool simulated = false;
+    ActiveDevice activeDevice = ActiveDevice::KEYBOARD_MOUSE;
 
 public:
 
@@ -136,6 +139,14 @@ public:
 
     void setSimulated(bool isSimulated) {
         InputStates::simulated = isSimulated;
+    }
+
+    ActiveDevice getActiveDevice() const {
+        return activeDevice;
+    }
+
+    void setActiveDevice(ActiveDevice device) {
+        activeDevice = device;
     }
 };
 

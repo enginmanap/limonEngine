@@ -103,6 +103,10 @@ void bindInterfaces(pybind11::module_& m) {
             .def_readonly_static("LOOK_X",              &InputActionsExport::LOOK_X)
             .def_readonly_static("LOOK_Y",              &InputActionsExport::LOOK_Y);
 
+    pybind11::enum_<InputStates::ActiveDevice>(m, "ActiveDevice")
+            .value("KEYBOARD_MOUSE", InputStates::ActiveDevice::KEYBOARD_MOUSE)
+            .value("GAMEPAD",        InputStates::ActiveDevice::GAMEPAD);
+
     // Bind InputStates class
     pybind11::class_<InputStates>(m, "InputStates")
             .def(pybind11::init<>())
@@ -118,8 +122,9 @@ void bindInterfaces(pybind11::module_& m) {
                 return std::make_tuple(changed, xPos, yPos, xChange, yChange);
             })
             .def("set_mouse_change", &InputStates::setMouseChange)
-            .def("get_analog_value", &InputStates::getAnalogValue)
-            .def("set_analog_value", &InputStates::setAnalogValue);
+            .def("get_analog_value",  &InputStates::getAnalogValue)
+            .def("set_analog_value",  &InputStates::setAnalogValue)
+            .def("get_active_device", &InputStates::getActiveDevice);
 
     // Bind PlayerExtensionInterface::PlayerInformation
     pybind11::class_<PlayerExtensionInterface::PlayerInformation>(m, "PlayerInformation")
