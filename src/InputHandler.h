@@ -27,8 +27,14 @@ public:
         uint64_t action;
     };
 
+    struct KeyboardAnalogBinding {
+        SDL_Keycode key;
+        float value;
+        uint64_t action;
+    };
+
 private:
-    // Gamepad look scale expressed as "mouse pixel equivalents per frame" at full stick.
+    // Default gamepad look scale: full-stick speed in "mouse pixel equivalents per frame".
     // Matches mouse normalization (xrel / screenWidth*0.5) so lookAroundSpeed tunes both equally.
     static constexpr float GAMEPAD_LOOK_PIXELS_PER_FRAME = 10.0f;
 
@@ -39,16 +45,28 @@ private:
     OptionsUtil::Options::Option<double> lookAroundSpeedOption;
     OptionsUtil::Options::Option<double> gamepadDeadZoneOption;
 
-    std::unordered_map<SDL_Keycode, std::vector<uint64_t>>          keyboardBindings;
-    std::unordered_map<uint8_t, uint64_t>                           mouseButtonBindings;
+    std::unordered_map<SDL_Keycode, std::vector<uint64_t>>              keyboardBindings;
+    std::vector<KeyboardAnalogBinding>                                   keyboardAnalogBindings;
+    std::unordered_map<uint8_t, std::vector<uint64_t>>                  mouseButtonBindings;
+    uint64_t mouseAnalogXAction    = 0;
+    uint64_t mouseAnalogYAction    = 0;
+    uint64_t mouseWheelUpAction    = 0;
+    uint64_t mouseWheelDownAction  = 0;
+    uint64_t mouseWheelLeftAction  = 0;
+    uint64_t mouseWheelRightAction = 0;
     std::unordered_map<SDL_GameControllerButton, std::vector<uint64_t>> gamepadButtonBindings;
-    std::vector<DigitalAxisBinding>                                  gamepadDigitalAxisBindings;
-    std::vector<AnalogAxisBinding>                                   gamepadAnalogAxisBindings;
+    std::vector<DigitalAxisBinding>                                      gamepadDigitalAxisBindings;
+    std::vector<AnalogAxisBinding>                                       gamepadAnalogAxisBindings;
+    std::unordered_map<int, std::vector<uint64_t>>                      joystickButtonBindings;
 
-    SDL_GameController *gameController = nullptr;
+    SDL_GameController *gameController  = nullptr;
+    SDL_JoystickID      joystickInstanceID = -1;
     float currentAxisValues[SDL_CONTROLLER_AXIS_MAX] = {0.0f};
 
+    bool loadBindingsFromXML(const std::string &filePath);
+    void loadDefaultBindings();
     void applyGamepadAnalogAxes();
+    void applyKeyboardAnalogBindings();
 
 public:
     InputHandler(SDL_Window *, OptionsUtil::Options *options);

@@ -1,0 +1,217 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    LimonEngine Input Bindings
+    ==========================
+    Edit this file to rebind actions without recompiling.
+
+    Action names are hashed at load time. Custom game actions added here
+    can be queried in C++ plugins with HASH("MY_ACTION") (compile-time)
+    or hash("MY_ACTION") (runtime).
+
+    ── Keyboard key names (case-insensitive, SDL naming) ──────────────────────
+      Letters:   A .. Z
+      Digits:    0 .. 9
+      Special:   Space, Escape, Return, Tab, Backspace, Delete
+      Modifiers: Left Shift, Right Shift, Left Ctrl, Right Ctrl, Left Alt
+      Function:  F1 .. F12
+      Numpad:    KP 0 .. KP 9, KP Plus, KP Minus, KP Enter
+
+    ── Mouse button names (source="mouse_button") ────────────────────────────
+      LEFT, MIDDLE, RIGHT, X1 (side button 4), X2 (side button 5)
+      Numeric fallback: button="6", button="7", ... for extra buttons
+
+    ── Mouse axis names (source="mouse_axis") ────────────────────────────────
+      X  (horizontal delta, normalized by screenWidth/2)
+      Y  (vertical delta,   normalized by screenHeight/2)
+
+    ── Mouse wheel axes (source="mouse_wheel") ───────────────────────────────
+      UP, DOWN, LEFT, RIGHT
+
+    ── Gamepad button names (source="gamepad_button") ────────────────────────
+      A, B, X, Y
+      LEFTSHOULDER (LB), RIGHTSHOULDER (RB)
+      LEFTSTICK (L3), RIGHTSTICK (R3)   — also accepted as L3 / R3
+      BACK, START, GUIDE
+      DPAD_UP, DPAD_DOWN, DPAD_LEFT, DPAD_RIGHT
+      MISC1      — Xbox Series X share, PS5 mic, Switch capture
+      PADDLE1..4 — Xbox Elite paddles
+      TOUCHPAD   — PS4/PS5 touchpad click
+
+    ── Gamepad axis names (source="gamepad_axis") ────────────────────────────
+      LEFT_X, LEFT_Y, RIGHT_X, RIGHT_Y, LEFT_TRIGGER, RIGHT_TRIGGER
+
+    ── Gamepad axis binding attributes ──────────────────────────────────────
+      threshold="±N"  — digital: fires when axis value >= N (pos) or <= N (neg)
+      scale="N"       — analog:  value × scale added to action each frame while held
+
+    ── Raw joystick buttons (source="joystick_button") ──────────────────────
+      index="N"  — raw SDL joystick button index (0-based). Use for buttons
+      outside SDL's GameController mapping (proprietary/extra buttons).
+      May also fire alongside gamepad_button for the same physical button.
+
+    ── Analog look scale note ────────────────────────────────────────────────
+      The default scale for LOOK_X/Y is:  scale = 10.0 / (screenWidth / 2)
+      For 1920px: scale ≈ 0.0104. Adjust for other resolutions.
+      This makes lookAroundSpeed in Options.xml tune both mouse and gamepad equally.
+-->
+<InputBindings version="1">
+
+    <!-- ── Core ──────────────────────────────────────────────────────────── -->
+    <Action name="QUIT">
+        <Binding source="keyboard" key="Escape"/>
+    </Action>
+
+    <!-- ── Movement ──────────────────────────────────────────────────────── -->
+    <Action name="MOVE_FORWARD">
+        <Binding source="keyboard"     key="W"/>
+        <Binding source="gamepad_axis" axis="LEFT_Y" threshold="-0.3"/>
+    </Action>
+    <Action name="MOVE_BACKWARD">
+        <Binding source="keyboard"     key="S"/>
+        <Binding source="gamepad_axis" axis="LEFT_Y" threshold="0.3"/>
+    </Action>
+    <Action name="MOVE_LEFT">
+        <Binding source="keyboard"     key="A"/>
+        <Binding source="gamepad_axis" axis="LEFT_X" threshold="-0.3"/>
+    </Action>
+    <Action name="MOVE_RIGHT">
+        <Binding source="keyboard"     key="D"/>
+        <Binding source="gamepad_axis" axis="LEFT_X" threshold="0.3"/>
+    </Action>
+    <Action name="JUMP">
+        <Binding source="keyboard"       key="Space"/>
+        <Binding source="gamepad_button" button="A"/>
+    </Action>
+    <Action name="RUN">
+        <Binding source="keyboard"       key="Left Shift"/>
+        <Binding source="keyboard"       key="Right Shift"/>
+        <Binding source="gamepad_button" button="LEFTSHOULDER"/>
+    </Action>
+
+    <!-- ── Mouse / fire buttons ──────────────────────────────────────────── -->
+    <Action name="MOUSE_BUTTON_LEFT">
+        <Binding source="mouse_button"   button="LEFT"/>
+        <Binding source="gamepad_axis"   axis="RIGHT_TRIGGER" threshold="0.3"/>
+    </Action>
+    <Action name="MOUSE_BUTTON_MIDDLE">
+        <Binding source="mouse_button"   button="MIDDLE"/>
+    </Action>
+    <Action name="MOUSE_BUTTON_RIGHT">
+        <Binding source="mouse_button"   button="RIGHT"/>
+        <Binding source="gamepad_button" button="RIGHTSHOULDER"/>
+    </Action>
+
+    <!-- ── Scroll wheel ──────────────────────────────────────────────────── -->
+    <Action name="MOUSE_WHEEL_UP">
+        <Binding source="mouse_wheel" axis="UP"/>
+    </Action>
+    <Action name="MOUSE_WHEEL_DOWN">
+        <Binding source="mouse_wheel" axis="DOWN"/>
+    </Action>
+
+    <!-- ── Modifier keys ─────────────────────────────────────────────────── -->
+    <Action name="KEY_SHIFT">
+        <Binding source="keyboard"       key="Left Shift"/>
+        <Binding source="keyboard"       key="Right Shift"/>
+        <Binding source="gamepad_button" button="LEFTSHOULDER"/>
+    </Action>
+    <Action name="KEY_CTRL">
+        <Binding source="keyboard" key="Left Ctrl"/>
+        <Binding source="keyboard" key="Right Ctrl"/>
+    </Action>
+    <Action name="KEY_ALT">
+        <Binding source="keyboard" key="Left Alt"/>
+    </Action>
+    <Action name="KEY_SUPER">
+        <Binding source="keyboard" key="Left GUI"/>
+        <Binding source="keyboard" key="Right GUI"/>
+    </Action>
+
+    <!-- ── Number keys ───────────────────────────────────────────────────── -->
+    <Action name="NUMBER_1">
+        <Binding source="keyboard" key="1"/>
+    </Action>
+    <Action name="NUMBER_2">
+        <Binding source="keyboard" key="2"/>
+    </Action>
+
+    <!-- ── Function keys ─────────────────────────────────────────────────── -->
+    <Action name="F4">
+        <Binding source="keyboard" key="F4"/>
+    </Action>
+    <Action name="F5">
+        <Binding source="keyboard" key="F5"/>
+    </Action>
+
+    <!-- ── Engine actions ────────────────────────────────────────────────── -->
+    <Action name="DEBUG_MODE">
+        <Binding source="keyboard" key="0"/>
+    </Action>
+    <Action name="EDITOR">
+        <Binding source="keyboard" key="F2"/>
+    </Action>
+
+    <!-- ── Analog camera look ────────────────────────────────────────────── -->
+    <Action name="LOOK_X" type="analog">
+        <Binding source="mouse_axis"   axis="X"/>
+        <Binding source="gamepad_axis" axis="RIGHT_X" scale="0.0104"/>
+    </Action>
+    <Action name="LOOK_Y" type="analog">
+        <Binding source="mouse_axis"   axis="Y"/>
+        <Binding source="gamepad_axis" axis="RIGHT_Y" scale="0.0104"/>
+    </Action>
+
+    <!--
+    ── Example custom game bindings (uncomment and adapt) ────────────────────
+
+    Game-specific reload action — no engine recompile needed:
+    <Action name="RELOAD">
+        <Binding source="keyboard"       key="R"/>
+        <Binding source="gamepad_button" button="X"/>
+    </Action>
+
+    Side mouse buttons:
+    <Action name="ABILITY_1">
+        <Binding source="mouse_button" button="X1"/>
+    </Action>
+    <Action name="ABILITY_2">
+        <Binding source="mouse_button" button="X2"/>
+    </Action>
+
+    Gamepad stick clicks (L3 / R3):
+    <Action name="SPRINT_TOGGLE">
+        <Binding source="gamepad_button" button="L3"/>
+    </Action>
+    <Action name="MELEE">
+        <Binding source="gamepad_button" button="R3"/>
+    </Action>
+
+    Xbox Elite paddle / PS5 extras:
+    <Action name="JUMP_ALT">
+        <Binding source="gamepad_button" button="PADDLE1"/>
+    </Action>
+    <Action name="CROUCH">
+        <Binding source="gamepad_button" button="TOUCHPAD"/>
+    </Action>
+
+    Raw joystick button (flight stick extra trigger, proprietary button, etc.):
+    <Action name="SPECIAL">
+        <Binding source="joystick_button" index="8"/>
+    </Action>
+
+    Horizontal scroll (e.g. weapon category cycle):
+    <Action name="NEXT_WEAPON">
+        <Binding source="mouse_wheel" axis="RIGHT"/>
+    </Action>
+    <Action name="PREV_WEAPON">
+        <Binding source="mouse_wheel" axis="LEFT"/>
+    </Action>
+
+    Keyboard contributing fixed analog values (e.g. for a custom axis action):
+    <Action name="THROTTLE" type="analog">
+        <Binding source="keyboard" key="E" analog_value="1.0"/>
+        <Binding source="keyboard" key="Q" analog_value="-1.0"/>
+    </Action>
+    -->
+
+</InputBindings>
