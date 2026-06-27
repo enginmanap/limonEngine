@@ -29,17 +29,17 @@ class VisibilityManager {
     bool multiThreadedCulling = true;
 
     void fillVisibleObjectsUsingTags();
-    std::map<VisibilityRequest*, SDL_Thread *> occlusionThreadManager();
+    std::map<VisibilityRequest*, SDL2MultiThreading::InternalThread*> occlusionThreadManager();
     void resetVisibilityBufferForRenderPipelineChange();
     void resetCameraTagsFromPipeline(const std::map<std::string, std::vector<std::set<std::string>>> &cameraRenderTagListMap);
     void resetTagsAndRefillCulling();
 
-    static void fillVisibleObjectPerCamera(const void* visibilityRequestRaw);
-    static int staticOcclusionThread(void* visibilityRequestRaw);
+    static void fillVisibleObjectPerCamera(const VisibilityRequest* request);
+    static void staticOcclusionThread(VisibilityRequest* request);
     static uint32_t getLodLevel(const std::vector<long>& lodDistances, float skipRenderDistance, float skipRenderSize, float maxSkipRenderSize, const glm::mat4 &cameraProjectionMatrix, const glm::vec3& playerPosition, glm::vec3 minAABB, glm::vec3 maxAABB, float &objectAverageDepth, float &objectScreenSize);
 
 public:
-    std::map<VisibilityRequest*, SDL_Thread *> visibilityThreadPool;
+    std::map<VisibilityRequest*, SDL2MultiThreading::InternalThread*> visibilityThreadPool;
     SDL2MultiThreading::Condition wakeThreadsCondition;
 
     explicit VisibilityManager(World* world);

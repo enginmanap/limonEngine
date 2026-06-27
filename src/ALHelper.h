@@ -65,8 +65,8 @@ private:
         ~PlayingSound();
     };
 
-    SDL_SpinLock playRequestLock;
-    SDL_Thread *thread = nullptr;
+    SDL2MultiThreading::SpinLock playRequestLock;
+    SDL2MultiThreading::InternalThread* soundThread = nullptr;
     SDL2MultiThreading::SpinLock removeSoundLock;
 
     ALCdevice *dev;
@@ -99,10 +99,6 @@ private:
             default:
                 return -1;
         }
-    }
-
-    static int staticSoundManager(void *objectPointer) {
-        return static_cast<ALHelper *>(objectPointer)->soundManager();
     }
 
     int soundManager();
@@ -160,14 +156,14 @@ public:
         }
         //it is possible that play is requested, but not yet started, they should be considered playing too, check it
         bool result = false;
-        SDL_LockSpinlock(&playRequestLock);
+        playRequestLock.lock();
         for (auto request = playRequests.begin(); request != playRequests.end(); ++request) {
             if((*request)->soundID == soundID) {
                 result = true;
                 break;
             }
         }
-        SDL_UnlockSpinlock(&playRequestLock);
+        playRequestLock.unlock();
         return result;
     }
 
@@ -181,7 +177,7 @@ public:
         }
         //it is possible that play is requested, but not yet started, they should be considered playing too, check it
         bool result = false;
-        SDL_LockSpinlock(&playRequestLock);
+        playRequestLock.lock();
         for (auto request = playRequests.begin(); request != playRequests.end(); ++request) {
             if((*request)->soundID == soundID) {
                 (*request)->gain = gain;
@@ -190,7 +186,7 @@ public:
                 break;
             }
         }
-        SDL_UnlockSpinlock(&playRequestLock);
+        playRequestLock.unlock();
         return result;
     }
 
@@ -282,7 +278,7 @@ public:
         } else {
             //sound is not found in playing sounds, try to find it in requests
             //it is possible that play is requested, but not yet started, they should be considered playing too, check it
-            SDL_LockSpinlock(&playRequestLock);
+            playRequestLock.lock();
             for (auto request = playRequests.begin(); request != playRequests.end(); ++request) {
                 if((*request)->soundID == soundID) {
                     (*request)->isPositionRelative = isCameraRelative;
@@ -290,7 +286,7 @@ public:
                     break;
                 }
             }
-            SDL_UnlockSpinlock(&playRequestLock);
+            playRequestLock.unlock();
 
             return;
         }

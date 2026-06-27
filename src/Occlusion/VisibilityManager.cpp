@@ -23,9 +23,7 @@ void VisibilityManager::stop() {
     for (auto &item: visibilityThreadPool) {
 
         wakeThreadsCondition.signalWaiting();
-        if (item.second) {
-            SDL_WaitThread(item.second, NULL);
-        }
+        delete item.second;
         delete item.first;
     }
     visibilityThreadPool.clear();
@@ -100,7 +98,11 @@ void VisibilityManager::addCamera(Camera* camera) {
                                                            world->currentPlayer->getPosition(),
                                                            world->options, &wakeThreadsCondition);
         if (multiThreadedCulling) {
-            SDL_Thread* thread = SDL_CreateThread(staticOcclusionThread, camera->getName().c_str(), request);
+            SDL2MultiThreading::InternalThread* thread = new SDL2MultiThreading::InternalThread(
+                camera->getName(),
+                [request]() { VisibilityManager::staticOcclusionThread(request); }
+            );
+            thread->run();
             while (!request->started) {} // wait for thread to signal ready
             visibilityThreadPool[request] = thread;
         } else {
@@ -114,7 +116,7 @@ void VisibilityManager::removeCamera(Camera* camera) {
         if (it->first->camera == camera) {
             it->first->running = false;
             wakeThreadsCondition.signalWaiting();
-            SDL_WaitThread(it->second, nullptr);
+            delete it->second;
             VisibilityRequest* request = it->first;
             visibilityThreadPool.erase(it);
             delete request;
@@ -206,11 +208,15 @@ void VisibilityManager::fillVisibleObjectsUsingTags() {
     }
 }
 
-std::map<VisibilityRequest*, SDL_Thread *> VisibilityManager::occlusionThreadManager() {
-    std::map<VisibilityRequest*, SDL_Thread*> visibilityProcessing;
+std::map<VisibilityRequest*, SDL2MultiThreading::InternalThread*> VisibilityManager::occlusionThreadManager() {
+    std::map<VisibilityRequest*, SDL2MultiThreading::InternalThread*> visibilityProcessing;
     for (auto &cameraVisibility: cullingResults) {
         VisibilityRequest* request = new VisibilityRequest(cameraVisibility.first, &world->objects, cameraVisibility.second, world->currentPlayer->getPosition(), world->options, &wakeThreadsCondition);
-        SDL_Thread* thread = SDL_CreateThread(staticOcclusionThread, request->camera->getName().c_str(), request);
+        SDL2MultiThreading::InternalThread* thread = new SDL2MultiThreading::InternalThread(
+            request->camera->getName(),
+            [request]() { VisibilityManager::staticOcclusionThread(request); }
+        );
+        thread->run();
         visibilityProcessing[request] = thread;
     }
     return visibilityProcessing;
@@ -249,9 +255,8 @@ void VisibilityManager::resetTagsAndRefillCulling() {
     fillVisibleObjectsUsingTags();
 }
 
-void VisibilityManager::fillVisibleObjectPerCamera(const void* visibilityRequestRaw) {
+void VisibilityManager::fillVisibleObjectPerCamera(const VisibilityRequest* visibilityRequest) {
     PROFILE_VISIBILITY("fillVisibleObjectPerCamera");
-    const VisibilityRequest* visibilityRequest = static_cast<const VisibilityRequest *>(visibilityRequestRaw);
     ZoneNameV(___tracy_scoped_zone, visibilityRequest->camera->getName().c_str(), visibilityRequest->camera->getName().size());
     std::vector<long> lodDistances = visibilityRequest->lodDistancesOption.get();
     float skipRenderDistance = 0, skipRenderSize = 0, maxSkipRenderSize = 0;
@@ -474,8 +479,7 @@ void VisibilityManager::fillVisibleObjectPerCamera(const void* visibilityRequest
 #endif
 }
 
-int VisibilityManager::staticOcclusionThread(void* visibilityRequestRaw) {
-    VisibilityRequest* visibilityRequest = static_cast<VisibilityRequest *>(visibilityRequestRaw);
+void VisibilityManager::staticOcclusionThread(VisibilityRequest* visibilityRequest) {
     // We are re ordering the logic so these threads are started and can be used,
     // but they are blocked until gameplay logic actually starts to request updates.
     visibilityRequest->started = true;
@@ -486,11 +490,10 @@ int VisibilityManager::staticOcclusionThread(void* visibilityRequestRaw) {
             break;
         }
         visibilityRequest->inProgressLock.lock();
-        fillVisibleObjectPerCamera(visibilityRequestRaw);
+        fillVisibleObjectPerCamera(visibilityRequest);
         visibilityRequest->processingDone = true;
         visibilityRequest->inProgressLock.unlock();
     }
-    return 0;
 }
 
 uint32_t VisibilityManager::getLodLevel(const std::vector<long>& lodDistances, float skipRenderDistance, float skipRenderSize, float maxSkipRenderSize, const glm::mat4 &cameraProjectionMatrix, const glm::vec3& playerPosition, glm::vec3 minAABB, glm::vec3 maxAABB, float &objectAverageDepth, float &objectScreenSize) {

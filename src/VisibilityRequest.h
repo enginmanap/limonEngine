@@ -61,7 +61,7 @@ public:
         };
 
         SDL2MultiThreading::Condition* wakeCondition = nullptr;
-        SDL_Mutex* blockMutex = SDL_CreateMutex();
+        SDL2MultiThreading::Mutex blockMutex;
         const Camera* const camera;
         glm::vec3 playerPosition;
         const OptionsUtil::Options* options;
