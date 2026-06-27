@@ -8,7 +8,7 @@
 #include <unordered_map>
 #include <vector>
 #include <cmath>
-#include <SDL2/SDL.h>
+#include <SDL3/SDL.h>
 
 #include "limonAPI/Options.h"
 #include "limonAPI/InputStates.h"
@@ -16,13 +16,13 @@
 class InputHandler {
 public:
     struct DigitalAxisBinding {
-        SDL_GameControllerAxis axis;
+        SDL_GamepadAxis axis;
         float threshold; // positive = trigger when value >= threshold, negative = trigger when value <= threshold
         uint64_t action;
     };
 
     struct AnalogAxisBinding {
-        SDL_GameControllerAxis axis;
+        SDL_GamepadAxis axis;
         float scale;
         uint64_t action;
     };
@@ -45,23 +45,23 @@ private:
     OptionsUtil::Options::Option<double> lookAroundSpeedOption;
     OptionsUtil::Options::Option<double> gamepadDeadZoneOption;
 
-    std::unordered_map<SDL_Keycode, std::vector<uint64_t>>              keyboardBindings;
-    std::vector<KeyboardAnalogBinding>                                   keyboardAnalogBindings;
-    std::unordered_map<uint8_t, std::vector<uint64_t>>                  mouseButtonBindings;
+    std::unordered_map<SDL_Keycode, std::vector<uint64_t>>         keyboardBindings;
+    std::vector<KeyboardAnalogBinding>                              keyboardAnalogBindings;
+    std::unordered_map<uint8_t, std::vector<uint64_t>>             mouseButtonBindings;
     uint64_t mouseAnalogXAction    = 0;
     uint64_t mouseAnalogYAction    = 0;
     uint64_t mouseWheelUpAction    = 0;
     uint64_t mouseWheelDownAction  = 0;
     uint64_t mouseWheelLeftAction  = 0;
     uint64_t mouseWheelRightAction = 0;
-    std::unordered_map<SDL_GameControllerButton, std::vector<uint64_t>> gamepadButtonBindings;
-    std::vector<DigitalAxisBinding>                                      gamepadDigitalAxisBindings;
-    std::vector<AnalogAxisBinding>                                       gamepadAnalogAxisBindings;
-    std::unordered_map<int, std::vector<uint64_t>>                      joystickButtonBindings;
+    std::unordered_map<SDL_GamepadButton, std::vector<uint64_t>>   gamepadButtonBindings;
+    std::vector<DigitalAxisBinding>                                 gamepadDigitalAxisBindings;
+    std::vector<AnalogAxisBinding>                                  gamepadAnalogAxisBindings;
+    std::unordered_map<int, std::vector<uint64_t>>                 joystickButtonBindings;
 
-    SDL_GameController *gameController  = nullptr;
-    SDL_JoystickID      joystickInstanceID = -1;
-    float currentAxisValues[SDL_CONTROLLER_AXIS_MAX] = {0.0f};
+    SDL_Gamepad    *gameController     = nullptr;
+    SDL_JoystickID  joystickInstanceID = 0;
+    float currentAxisValues[SDL_GAMEPAD_AXIS_COUNT] = {0.0f};
 
     bool loadBindingsFromXML(const std::string &filePath);
     void loadDefaultBindings();
@@ -73,22 +73,22 @@ public:
 
     ~InputHandler() {
         if (gameController != nullptr) {
-            SDL_GameControllerClose(gameController);
+            SDL_CloseGamepad(gameController);
         }
-        SDL_SetWindowGrab(window, SDL_FALSE);
-        SDL_SetRelativeMouseMode(SDL_FALSE);
+        SDL_SetWindowMouseGrab(window, false);
+        SDL_SetWindowRelativeMouseMode(window, false);
     }
 
     void setMouseModeRelative() {
-        SDL_SetRelativeMouseMode(SDL_TRUE);
-        SDL_SetWindowGrab(window, SDL_FALSE);
-        SDL_ShowCursor(SDL_FALSE);
+        SDL_SetWindowRelativeMouseMode(window, true);
+        SDL_SetWindowMouseGrab(window, false);
+        SDL_HideCursor();
     }
 
     void setMouseModeFree() {
-        SDL_SetRelativeMouseMode(SDL_FALSE);
-        SDL_SetWindowGrab(window, SDL_TRUE);
-        SDL_ShowCursor(SDL_TRUE);
+        SDL_SetWindowRelativeMouseMode(window, false);
+        SDL_SetWindowMouseGrab(window, true);
+        SDL_ShowCursor();
     }
 
     void mapInput();

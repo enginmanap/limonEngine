@@ -6,15 +6,15 @@
 #define LIMONENGINE_GUIFPSCOUNTER_H
 
 #include "GUITextBase.h"
-#include <SDL2/SDL.h>
+#include <cstdint>
 
 class GUIFPSCounter : public GUITextBase {
     static const size_t PREVIOUS_FRAME_COUNT = 300;
-    Uint32 currentTime;
-    Uint32 lastUpdateTime = 0;
-    Uint32 previousFrameTimes[PREVIOUS_FRAME_COUNT];
-    Uint32 lastRenderTime;
-    Uint32 lastFrameTime;
+    uint64_t currentTime;
+    uint64_t lastUpdateTime = 0;
+    uint64_t previousFrameTimes[PREVIOUS_FRAME_COUNT];
+    uint64_t lastRenderTime;
+    uint64_t lastFrameTime;
     short framePointer;
 public:
     GUIFPSCounter(GraphicsInterface* graphicsWrapper, Face *font, const std::string &text, const glm::lowp_uvec3 color) :

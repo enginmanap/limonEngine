@@ -118,15 +118,15 @@ add_executable(LimonEngine ${SOURCE_FILES})
 
 INCLUDE(FindPkgConfig)
 
-find_package(SDL2 REQUIRED)
-find_package(SDL2_image REQUIRED SDL2_image>=2.0.0)
+find_package(SDL3 REQUIRED)
+find_package(SDL3_image REQUIRED)
 
-include_directories(${SDL2_INCLUDE_DIR}
-                    ${SDL2_IMAGE_INCLUDE_DIR})
+include_directories(${SDL3_INCLUDE_DIR}
+                    ${SDL3_IMAGE_INCLUDE_DIR})
 
-if (NOT SDL2_IMAGE_FOUND)
-    message(ERROR " SDL2_Image not found!")
-endif (NOT SDL2_IMAGE_FOUND)
+if (NOT SDL3_image_FOUND)
+    message(ERROR " SDL3_Image not found!")
+endif (NOT SDL3_image_FOUND)
 
 if(WINDOWS)
     find_package(FREETYPE REQUIRED)
@@ -215,7 +215,7 @@ add_custom_target(copyData
         ${CMAKE_SOURCE_DIR}/Engine ${CMAKE_BINARY_DIR}/Engine)
 add_dependencies(LimonEngine copyData)
 
-TARGET_LINK_LIBRARIES(LimonEngine ProfilerSystemLib ImGui ImGuizmo OpenAL meshoptimizer nodeGraph assimp pybind11::embed SDOC.quic TracyClient TracyServer ${WINDOWS_SPECIFIC_LINK_LIBRARIES} ${TinyXML2_LIBRARIES} ${BULLET_LIBRARIES} ${SDL2_LIBRARY} ${FREETYPE_LIBRARIES} ${SDL2_IMAGE_LIBRARIES})
+TARGET_LINK_LIBRARIES(LimonEngine ProfilerSystemLib ImGui ImGuizmo OpenAL meshoptimizer nodeGraph assimp pybind11::embed SDOC.quic TracyClient TracyServer ${WINDOWS_SPECIFIC_LINK_LIBRARIES} ${TinyXML2_LIBRARIES} ${BULLET_LIBRARIES} SDL3::SDL3 ${FREETYPE_LIBRARIES} SDL3_image::SDL3_image)
 target_precompile_headers(LimonEngine PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src/stdafx.h)
 
 IF (WIN32)

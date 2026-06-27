@@ -3,11 +3,12 @@
 //
 
 #include "GUIFPSCounter.h"
+#include "SDL2Helper.h"
 
 
 void GUIFPSCounter::updateFPS() {
-    currentTime = SDL_GetTicks();//this uses real time, because this needs real data, not game time
-    Uint32 newFrameTime = currentTime - lastRenderTime;
+    currentTime = SDL2Helper::getTicks();//this uses real time, because this needs real data, not game time
+    uint64_t newFrameTime = currentTime - lastRenderTime;
     lastFrameTime += newFrameTime - previousFrameTimes[framePointer];
     previousFrameTimes[framePointer] = newFrameTime;
     framePointer = (framePointer + 1) % PREVIOUS_FRAME_COUNT;

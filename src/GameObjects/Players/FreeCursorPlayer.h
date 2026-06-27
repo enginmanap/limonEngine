@@ -10,7 +10,7 @@
 #include "../../Utils/GLMUtils.h"
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
-#include <SDL2/SDL.h>
+#include <SDL3/SDL.h>
 
 
 class Options;

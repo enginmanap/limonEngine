@@ -5,8 +5,7 @@
 #ifndef LIMONENGINE_SDL2MULTITHREADING_H
 #define LIMONENGINE_SDL2MULTITHREADING_H
 
-#include <SDL_atomic.h>
-#include <SDL_thread.h>
+#include <SDL3/SDL.h>
 #include <functional>
 #include <string>
 #include <vector>
@@ -20,17 +19,17 @@ public:
         SDL_SpinLock sdlLock;
     public:
         SpinLock() {
-            SDL_AtomicUnlock(&sdlLock);
+            SDL_UnlockSpinlock(&sdlLock);
         }
         void lock() {
-            SDL_AtomicLock(&sdlLock);
+            SDL_LockSpinlock(&sdlLock);
         }
         void unlock() {
-            SDL_AtomicUnlock(&sdlLock);
+            SDL_UnlockSpinlock(&sdlLock);
         };
 
         bool tryLock() {
-            return SDL_AtomicTryLock(&sdlLock);
+            return SDL_TryLockSpinlock(&sdlLock);
         }
 
         ~SpinLock() {
@@ -39,16 +38,16 @@ public:
     };
 
     class Condition {
-        SDL_cond* condition = SDL_CreateCond();
+        SDL_Condition* condition = SDL_CreateCondition();
     public:
-        void waitCondition(SDL_mutex* blockMutex) {
+        void waitCondition(SDL_Mutex* blockMutex) {
             SDL_LockMutex(blockMutex);
-            SDL_CondWait(condition, blockMutex);
+            SDL_WaitCondition(condition, blockMutex);
             SDL_UnlockMutex(blockMutex);
         }
 
         void signalWaiting() {
-            SDL_CondBroadcast(condition);
+            SDL_BroadcastCondition(condition);
         }
 
     };

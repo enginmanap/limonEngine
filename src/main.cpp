@@ -55,7 +55,7 @@ bool GameEngine::loadAndChangeWorld(const std::string &worldFile) {
     loadedWorlds[worldFile].second = apiInstance;
 
     returnWorldStack.push_back(currentWorld);
-    previousGameTime = SDL_GetTicks64();
+    previousGameTime = SDL2Helper::getTicks();
     return true;
 }
 
@@ -105,7 +105,7 @@ bool GameEngine::returnOrLoadMap(const std::string &worldFile) {
     }
     currentWorld->setupForPlay(*inputHandler);
     returnWorldStack.push_back(currentWorld);
-    previousGameTime = SDL_GetTicks64();
+    previousGameTime = SDL2Helper::getTicks();
     return true;
 }
 
@@ -132,7 +132,7 @@ bool GameEngine::LoadNewAndRemoveCurrent(const std::string &worldFile) {
         loadedWorlds[oldWorldName].first = temp;
         loadedWorlds[oldWorldName].second = tempAPI;
     }
-    previousGameTime = SDL_GetTicks64();
+    previousGameTime = SDL2Helper::getTicks();
     return true;
 }
 
@@ -147,13 +147,13 @@ void GameEngine::returnPreviousMap() {
         currentWorld->setupForUnpause();
         currentWorld->setupForPlay(*inputHandler);
     }
-    previousGameTime = SDL_GetTicks64();
+    previousGameTime = SDL2Helper::getTicks();
 }
 
 GameEngine::GameEngine() {
     scriptManager = new ScriptManager("./Engine/Scripts", "./Data/Scripts");
 
-    options = new OptionsUtil::Options([](){return SDL_GetTicks();});
+    options = new OptionsUtil::Options([](){return static_cast<uint32_t>(SDL2Helper::getTicks());});
 
     if (!options->loadOptionsNew(ENGINE_OPTIONS_FILE)) {
         std::cerr << "Failed to load engine options from " << ENGINE_OPTIONS_FILE << std::endl;
@@ -269,11 +269,11 @@ void GameEngine::run() {
     float worldUpdateTime = 1000 / TICK_PER_SECOND;//This value is used to update world on a locked Timestep
 
     graphicsWrapper->clearFrame();
-    previousGameTime = SDL_GetTicks64();
+    previousGameTime = SDL2Helper::getTicks();
     uint64_t currentGameTime, frameTime, accumulatedTime = 0;
     while (!worldQuit) {
         PROFILE_OVERALL("Frame");
-        currentGameTime = SDL_GetTicks64();
+        currentGameTime = SDL2Helper::getTicks();
         frameTime = currentGameTime - previousGameTime;
         previousGameTime = currentGameTime;
         accumulatedTime += frameTime;
@@ -282,7 +282,7 @@ void GameEngine::run() {
             inputHandler->mapInput();
 
             //FIXME this does not account for long operations/low framerate
-            currentWorld->play(worldUpdateTime, *inputHandler, SDL_GetTicks64());
+            currentWorld->play(worldUpdateTime, *inputHandler, SDL2Helper::getTicks());
             accumulatedTime -= worldUpdateTime;
 
             if (pendingSwitch.type != PendingSwitchType::NONE && !worldQuit) {

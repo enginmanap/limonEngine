@@ -4,7 +4,7 @@
 
 #include "TextureAsset.h"
 
-#include <SDL_image.h>
+#include <SDL3_image/SDL_image.h>
 #include <GameObjects/Players/FreeCursorPlayer.h>
 
 TextureAsset::TextureAsset(AssetManager *assetManager, uint32_t assetID, const std::vector<std::string> &files) :
@@ -39,20 +39,20 @@ void TextureAsset::loadCPUPart() {
         int textureID = std::atoi(&name[0][1]);
         std::shared_ptr<const AssetManager::EmbeddedTexture> embeddedTexture = assetManager->getEmbeddedTextures(name[1], textureID);
         if(embeddedTexture != nullptr) {
-            SDL_RWops* rwop = nullptr;
+            SDL_IOStream* rwop = nullptr;
             if(embeddedTexture->height == 0) {
-                rwop = SDL_RWFromMem( (void*)embeddedTexture->texelData.data(), embeddedTexture->width);
+                rwop = SDL_IOFromMem( (void*)embeddedTexture->texelData.data(), embeddedTexture->width);
             } else {
-                rwop = SDL_RWFromMem((void*)embeddedTexture->texelData.data(), embeddedTexture->width * embeddedTexture->height);
+                rwop = SDL_IOFromMem((void*)embeddedTexture->texelData.data(), embeddedTexture->width * embeddedTexture->height);
             }
-            cpuSurface = IMG_Load_RW(rwop, 0);
+            cpuSurface = IMG_Load_IO(rwop, 0);
         } else {
             std::cerr << "Embedded texture can't be found with following information: " << name[1] << ":" << textureID << std::endl;
         }
     } else {
         cpuSurface = IMG_Load(name[0].data());
         if(!cpuSurface) {
-            originalErrorMessage = IMG_GetError();
+            originalErrorMessage = SDL_GetError();
             const std::string textureFullFileName = name[0].substr(name[0].find_last_of("\\/") + 1);
             const AssetManager::AvailableAssetsNode *fullMatchAssets = assetManager->getAvailableAssetsTreeFiltered(AssetManager::Asset_type_TEXTURE, textureFullFileName);
             if (fullMatchAssets != nullptr) {
@@ -99,13 +99,12 @@ void TextureAsset::loadCPUPart() {
     } else {
         //std::cout << "TextureAsset " << name[0] << " loaded from disk successfully." << std::endl;
     }
-    if (cpuSurface->format->BytesPerPixel == 4) {
-        if(cpuSurface->format->format != SDL_PIXELFORMAT_ABGR8888) {
+    if (SDL_BYTESPERPIXEL(cpuSurface->format) == 4) {
+        if(cpuSurface->format != SDL_PIXELFORMAT_ABGR8888) {
             //if the internal format is not rgba32, convert to it.
-            SDL_Surface* surfaceTemp = SDL_ConvertSurfaceFormat(cpuSurface,
-                                                                SDL_PIXELFORMAT_ABGR8888,
-                                                                0);
-            SDL_FreeSurface(cpuSurface);
+            SDL_Surface* surfaceTemp = SDL_ConvertSurface(cpuSurface,
+                                                                SDL_PIXELFORMAT_ABGR8888);
+            SDL_DestroySurface(cpuSurface);
             cpuSurface = surfaceTemp;
         }
         textureMetaData.textureType = GraphicsInterface::TextureTypes::T2D;
@@ -115,13 +114,12 @@ void TextureAsset::loadCPUPart() {
         textureMetaData.width = cpuSurface->w;
         textureMetaData.height = cpuSurface->h;
 
-    } else if (cpuSurface->format->BytesPerPixel == 3) {
-        if(cpuSurface->format->format != SDL_PIXELFORMAT_RGB24) {
+    } else if (SDL_BYTESPERPIXEL(cpuSurface->format) == 3) {
+        if(cpuSurface->format != SDL_PIXELFORMAT_RGB24) {
             //if the internal format is not rgb24, convert to it.
-            SDL_Surface* surfaceTemp = SDL_ConvertSurfaceFormat(cpuSurface,
-                                                                SDL_PIXELFORMAT_RGB24,
-                                                                0);
-            SDL_FreeSurface(cpuSurface);
+            SDL_Surface* surfaceTemp = SDL_ConvertSurface(cpuSurface,
+                                                                SDL_PIXELFORMAT_RGB24);
+            SDL_DestroySurface(cpuSurface);
             cpuSurface = surfaceTemp;
         }
         textureMetaData.textureType = GraphicsInterface::TextureTypes::T2D;
@@ -130,11 +128,10 @@ void TextureAsset::loadCPUPart() {
         textureMetaData.dataType = GraphicsInterface::DataTypes::UNSIGNED_BYTE;
         textureMetaData.width = cpuSurface->w;
         textureMetaData.height = cpuSurface->h;
-    } else if (cpuSurface->format->BytesPerPixel == 1) {
-        SDL_Surface* surfaceTemp = SDL_ConvertSurfaceFormat(cpuSurface,
-                                                            SDL_PIXELFORMAT_ABGR8888,
-                                                            0);
-        SDL_FreeSurface(cpuSurface);
+    } else if (SDL_BYTESPERPIXEL(cpuSurface->format) == 1) {
+        SDL_Surface* surfaceTemp = SDL_ConvertSurface(cpuSurface,
+                                                            SDL_PIXELFORMAT_ABGR8888);
+        SDL_DestroySurface(cpuSurface);
         cpuSurface = surfaceTemp;
 
         textureMetaData.textureType = GraphicsInterface::TextureTypes::T2D;
@@ -144,7 +141,7 @@ void TextureAsset::loadCPUPart() {
         textureMetaData.width = cpuSurface->w;
         textureMetaData.height = cpuSurface->h;
     } else {
-        std::cerr << "Format has undefined number of pixels:" << std::to_string(cpuSurface->format->BytesPerPixel) << std::endl;
+        std::cerr << "Format has undefined number of pixels:" << std::to_string(SDL_BYTESPERPIXEL(cpuSurface->format)) << std::endl;
         exit(1);
     }
 }
@@ -159,7 +156,7 @@ void TextureAsset::loadGPUPart() {
     } else {
         texture->setName(name[0]);
     }
-    SDL_FreeSurface(cpuSurface);
+    SDL_DestroySurface(cpuSurface);
     cpuSurface = nullptr;
 }
 
@@ -175,6 +172,6 @@ void TextureAsset::getPossibleTexturesList(const AssetManager::AvailableAssetsNo
 
 TextureAsset::~TextureAsset() {
     if (cpuSurface)
-        SDL_FreeSurface(cpuSurface);
+        SDL_DestroySurface(cpuSurface);
     std::cout << "Texture asset deleted: " << name[0] << std::endl;
 }

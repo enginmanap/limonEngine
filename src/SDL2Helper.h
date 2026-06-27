@@ -5,7 +5,7 @@
 #ifndef LIMONENGINE_SDL2HELPER_CPP_H
 #define LIMONENGINE_SDL2HELPER_CPP_H
 
-#include <SDL2/SDL.h>
+#include <SDL3/SDL.h>
 #include <memory>
 #include "limonAPI/Graphics/GraphicsInterface.h"
 #include "limonAPI/Options.h"
@@ -32,7 +32,7 @@ public:
 
     void swap() {
         SDL_GL_SwapWindow(window);
-        options->setIsWindowInFocus(SDL_GetWindowFlags(window) & SDL_WINDOW_MOUSE_FOCUS);
+        options->setIsWindowInFocus((SDL_GetWindowFlags(window) & SDL_WINDOW_MOUSE_FOCUS) != 0);
     };
 
     bool loadCustomTriggers(const std::string& fileName);
@@ -40,15 +40,19 @@ public:
 
     SDL_Window *getWindow();
 
-    static uint32_t getLogicalCPUCount() {
-        return SDL_GetCPUCount();
+    static inline Uint64 getTicks() {
+        return SDL_GetTicks();
     }
 
-    bool loadTriggers(void *objectHandle) const;
-    bool loadPlayerExtensions(void *objectHandle) const;
-    bool loadCameraExtensions(void *objectHandle) const;
-    bool loadActors(void *objectHandle) const;
-    bool loadRenderMethods(void* objectHandle) const;
+    static uint32_t getLogicalCPUCount() {
+        return SDL_GetNumLogicalCPUCores();
+    }
+
+    bool loadTriggers(SDL_SharedObject *objectHandle) const;
+    bool loadPlayerExtensions(SDL_SharedObject *objectHandle) const;
+    bool loadCameraExtensions(SDL_SharedObject *objectHandle) const;
+    bool loadActors(SDL_SharedObject *objectHandle) const;
+    bool loadRenderMethods(SDL_SharedObject *objectHandle) const;
 
 };
 

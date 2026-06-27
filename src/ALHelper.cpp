@@ -10,10 +10,7 @@
 
 #include <stdio.h>
 #include <sys/types.h>
-#include <SDL_atomic.h>
-#include <SDL_thread.h>
 #include <iostream>
-#include <SDL_timer.h>
 
 ALHelper::ALHelper() {
     dev = alcOpenDevice(NULL);
@@ -29,7 +26,7 @@ ALHelper::ALHelper() {
     if(!ctx) {
         throw("Audio context setup failed!");
     }
-    SDL_AtomicUnlock(&playRequestLock);
+    SDL_UnlockSpinlock(&playRequestLock);
 
     thread = SDL_CreateThread(&staticSoundManager, "soundManager", this);
 
@@ -53,7 +50,7 @@ int ALHelper::soundManager() {
             resumed = false;
         } else if(running) {
             if (playRequests.size() > 0) { //this might miss a request because not locking, but I am ok with 10ms delay at most
-                SDL_AtomicLock(&playRequestLock);
+                SDL_LockSpinlock(&playRequestLock);
                 for (size_t i = 0; i < playRequests.size(); ++i) {
                     std::unique_ptr<PlayingSound> &sound = playRequests.at(i);
                     if (startPlay(sound)) {
@@ -61,7 +58,7 @@ int ALHelper::soundManager() {
                     }
                 }
                 playRequests.clear();//moving should invalidate, so I don't remove one by one
-                SDL_AtomicUnlock(&playRequestLock);
+                SDL_UnlockSpinlock(&playRequestLock);
             }
             removeSoundLock.lock();
             for (auto iterator = playingSounds.begin(); iterator != playingSounds.end();) {
@@ -150,7 +147,7 @@ bool ALHelper::stop(uint32_t soundID) {
         return true;
     } else {
         bool result = false;
-        SDL_AtomicLock(&playRequestLock);
+        SDL_LockSpinlock(&playRequestLock);
         for (auto request = playRequests.begin(); request != playRequests.end(); ++request) {
             if((*request)->soundID == soundID) {
                 this->playRequests.erase(request);
@@ -158,7 +155,7 @@ bool ALHelper::stop(uint32_t soundID) {
                 break;
             }
         }
-        SDL_AtomicUnlock(&playRequestLock);
+        SDL_UnlockSpinlock(&playRequestLock);
         return result;
     }
 }
@@ -178,7 +175,7 @@ bool ALHelper::pause(uint32_t soundID) {
         return true;
     } else {
         bool result = false;
-        SDL_AtomicLock(&playRequestLock);
+        SDL_LockSpinlock(&playRequestLock);
         for (auto request = playRequests.begin(); request != playRequests.end(); ++request) {
             if((*request)->soundID == soundID) {
                 (*request)->paused = true;
@@ -186,7 +183,7 @@ bool ALHelper::pause(uint32_t soundID) {
                 break;
             }
         }
-        SDL_AtomicUnlock(&playRequestLock);
+        SDL_UnlockSpinlock(&playRequestLock);
         return result;
     }
 }
@@ -206,7 +203,7 @@ bool ALHelper::resume(uint32_t soundID) {
         return true;
     } else {
         bool result = false;
-        SDL_AtomicLock(&playRequestLock);
+        SDL_LockSpinlock(&playRequestLock);
         for (auto request = playRequests.begin(); request != playRequests.end(); ++request) {
             if((*request)->soundID == soundID) {
                 (*request)->paused = false;
@@ -214,7 +211,7 @@ bool ALHelper::resume(uint32_t soundID) {
                 break;
             }
         }
-        SDL_AtomicUnlock(&playRequestLock);
+        SDL_UnlockSpinlock(&playRequestLock);
         return result;
     }
 }
@@ -239,9 +236,9 @@ uint32_t ALHelper::play(std::shared_ptr<SoundAsset> soundAsset, bool looped, flo
         sound->gain = gain;
     }
 
-    SDL_AtomicLock(&playRequestLock);
+    SDL_LockSpinlock(&playRequestLock);
     this->playRequests.push_back(std::move(sound));
-    SDL_AtomicUnlock(&playRequestLock);
+    SDL_UnlockSpinlock(&playRequestLock);
     return id;
 }
 
@@ -422,7 +419,7 @@ void ALHelper::fadeGain(uint32_t soundID, float targetGain, float seconds, bool 
     removeSoundLock.unlock();
 
     //the sound may still be a pending request (not yet started); set up the fade there too
-    SDL_AtomicLock(&playRequestLock);
+    SDL_LockSpinlock(&playRequestLock);
     for (auto request = playRequests.begin(); request != playRequests.end(); ++request) {
         if((*request)->soundID == soundID) {
             if(seconds <= 0.0f) {
@@ -438,7 +435,7 @@ void ALHelper::fadeGain(uint32_t soundID, float targetGain, float seconds, bool 
             break;
         }
     }
-    SDL_AtomicUnlock(&playRequestLock);
+    SDL_UnlockSpinlock(&playRequestLock);
 }
 
 void ALHelper::setChannelGain(LimonTypes::AudioChannel channel, float gain) {
@@ -458,7 +455,7 @@ bool ALHelper::setLooped(uint32_t soundID, bool looped) {
         return true;
     } else {
         bool result = false;
-        SDL_AtomicLock(&playRequestLock);
+        SDL_LockSpinlock(&playRequestLock);
         for (auto request = playRequests.begin(); request != playRequests.end(); ++request) {
             if((*request)->soundID == soundID) {
                 (*request)->looped = looped;
@@ -466,7 +463,7 @@ bool ALHelper::setLooped(uint32_t soundID, bool looped) {
                 break;
             }
         }
-        SDL_AtomicUnlock(&playRequestLock);
+        SDL_UnlockSpinlock(&playRequestLock);
         return result;
     }
 }

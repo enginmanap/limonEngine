@@ -2,7 +2,6 @@
 // Created by engin on 14.11.2017.
 //
 
-#include <SDL_timer.h>
 #include "GUITextDynamic.h"
 
 

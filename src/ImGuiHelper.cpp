@@ -152,19 +152,19 @@ bool ImGuiHelper::ProcessEvent(const InputHandler& inputHandler) {
             io.AddInputCharactersUTF8(inputStates.getText());
         }
         if(inputStates.getInputEvents(InputActions::KEY_SHIFT)) {
-            io.KeyShift = ((SDL_GetModState() & KMOD_SHIFT) != 0);
+            io.KeyShift = ((SDL_GetModState() & SDL_KMOD_SHIFT) != 0);
         }
         if(inputStates.getInputEvents(InputActions::KEY_SUPER)) {
-            io.KeySuper = ((SDL_GetModState() & KMOD_GUI) != 0);
+            io.KeySuper = ((SDL_GetModState() & SDL_KMOD_GUI) != 0);
         }
         if(inputStates.getInputEvents(InputActions::KEY_CTRL)) {
-            io.KeyCtrl = ((SDL_GetModState() & KMOD_CTRL) != 0);
+            io.KeyCtrl = ((SDL_GetModState() & SDL_KMOD_CTRL) != 0);
         }
         if(inputStates.getInputEvents(InputActions::KEY_ALT)) {
-            io.KeyAlt = ((SDL_GetModState() & KMOD_ALT) != 0);
+            io.KeyAlt = ((SDL_GetModState() & SDL_KMOD_ALT) != 0);
         }
         int numKeys;
-        const Uint8* sdlKeyStates = SDL_GetKeyboardState(&numKeys);
+        const bool* sdlKeyStates = SDL_GetKeyboardState(&numKeys);
         for (int i = 0; i < numKeys; i++) {
             ImGuiKey key = SDL2KeyEventToImGuiKey(SDL_SCANCODE_TO_KEYCODE(i));
             if (key != ImGuiKey_None) {
@@ -222,7 +222,7 @@ ImGuiKey ImGuiHelper::SDL2KeyEventToImGuiKey(const uint32_t keycodeInt){
         case SDLK_SPACE: return ImGuiKey_Space;
         case SDLK_RETURN: return ImGuiKey_Enter;
         case SDLK_ESCAPE: return ImGuiKey_Escape;
-        case SDLK_QUOTE: return ImGuiKey_Apostrophe;
+        case SDLK_APOSTROPHE: return ImGuiKey_Apostrophe;
         case SDLK_COMMA: return ImGuiKey_Comma;
         case SDLK_MINUS: return ImGuiKey_Minus;
         case SDLK_PERIOD: return ImGuiKey_Period;
@@ -232,7 +232,7 @@ ImGuiKey ImGuiHelper::SDL2KeyEventToImGuiKey(const uint32_t keycodeInt){
         case SDLK_LEFTBRACKET: return ImGuiKey_LeftBracket;
         case SDLK_BACKSLASH: return ImGuiKey_Backslash;
         case SDLK_RIGHTBRACKET: return ImGuiKey_RightBracket;
-        case SDLK_BACKQUOTE: return ImGuiKey_GraveAccent;
+        case SDLK_GRAVE: return ImGuiKey_GraveAccent;
         case SDLK_CAPSLOCK: return ImGuiKey_CapsLock;
         case SDLK_SCROLLLOCK: return ImGuiKey_ScrollLock;
         case SDLK_NUMLOCKCLEAR: return ImGuiKey_NumLock;
@@ -274,32 +274,32 @@ ImGuiKey ImGuiHelper::SDL2KeyEventToImGuiKey(const uint32_t keycodeInt){
         case SDLK_7: return ImGuiKey_7;
         case SDLK_8: return ImGuiKey_8;
         case SDLK_9: return ImGuiKey_9;
-        case SDLK_a: return ImGuiKey_A;
-        case SDLK_b: return ImGuiKey_B;
-        case SDLK_c: return ImGuiKey_C;
-        case SDLK_d: return ImGuiKey_D;
-        case SDLK_e: return ImGuiKey_E;
-        case SDLK_f: return ImGuiKey_F;
-        case SDLK_g: return ImGuiKey_G;
-        case SDLK_h: return ImGuiKey_H;
-        case SDLK_i: return ImGuiKey_I;
-        case SDLK_j: return ImGuiKey_J;
-        case SDLK_k: return ImGuiKey_K;
-        case SDLK_l: return ImGuiKey_L;
-        case SDLK_m: return ImGuiKey_M;
-        case SDLK_n: return ImGuiKey_N;
-        case SDLK_o: return ImGuiKey_O;
-        case SDLK_p: return ImGuiKey_P;
-        case SDLK_q: return ImGuiKey_Q;
-        case SDLK_r: return ImGuiKey_R;
-        case SDLK_s: return ImGuiKey_S;
-        case SDLK_t: return ImGuiKey_T;
-        case SDLK_u: return ImGuiKey_U;
-        case SDLK_v: return ImGuiKey_V;
-        case SDLK_w: return ImGuiKey_W;
-        case SDLK_x: return ImGuiKey_X;
-        case SDLK_y: return ImGuiKey_Y;
-        case SDLK_z: return ImGuiKey_Z;
+        case SDLK_A: return ImGuiKey_A;
+        case SDLK_B: return ImGuiKey_B;
+        case SDLK_C: return ImGuiKey_C;
+        case SDLK_D: return ImGuiKey_D;
+        case SDLK_E: return ImGuiKey_E;
+        case SDLK_F: return ImGuiKey_F;
+        case SDLK_G: return ImGuiKey_G;
+        case SDLK_H: return ImGuiKey_H;
+        case SDLK_I: return ImGuiKey_I;
+        case SDLK_J: return ImGuiKey_J;
+        case SDLK_K: return ImGuiKey_K;
+        case SDLK_L: return ImGuiKey_L;
+        case SDLK_M: return ImGuiKey_M;
+        case SDLK_N: return ImGuiKey_N;
+        case SDLK_O: return ImGuiKey_O;
+        case SDLK_P: return ImGuiKey_P;
+        case SDLK_Q: return ImGuiKey_Q;
+        case SDLK_R: return ImGuiKey_R;
+        case SDLK_S: return ImGuiKey_S;
+        case SDLK_T: return ImGuiKey_T;
+        case SDLK_U: return ImGuiKey_U;
+        case SDLK_V: return ImGuiKey_V;
+        case SDLK_W: return ImGuiKey_W;
+        case SDLK_X: return ImGuiKey_X;
+        case SDLK_Y: return ImGuiKey_Y;
+        case SDLK_Z: return ImGuiKey_Z;
         case SDLK_F1: return ImGuiKey_F1;
         case SDLK_F2: return ImGuiKey_F2;
         case SDLK_F3: return ImGuiKey_F3;
@@ -461,30 +461,30 @@ void ImGuiHelper::NewFrame(std::shared_ptr<GraphicsProgram> graphicsProgram) {
 
     // Setup time step
     static Uint64 frequency = SDL_GetPerformanceFrequency();
-    Uint64 current_time = SDL_GetPerformanceCounter();
+    Uint64 current_time =  SDL_GetPerformanceCounter();
     io.DeltaTime = (float)g_Time > 0.0 ? (float)(current_time - g_Time) / (float)frequency: (float)(1.0f / TICK_PER_SECOND);
     assert(io.DeltaTime > 0.0);
     g_Time = current_time;
 
     // Setup inputs
     // (we already got mouse wheel, keyboard keys & characters from SDL_PollEvent())
-    int mx, my;
-    Uint32 mouseMask = SDL_GetMouseState(&mx, &my);
+    float mx, my;
+    SDL_MouseButtonFlags mouseMask = SDL_GetMouseState(&mx, &my);
     if (options->isIsWindowInFocus())
-        io.MousePos = ImVec2((float)mx, (float)my);   // Mouse position, in pixels (set to -1,-1 if no mouse / on another screen, etc.)
+        io.MousePos = ImVec2(mx, my);   // Mouse position, in pixels (set to -1,-1 if no mouse / on another screen, etc.)
     else
         io.MousePos = ImVec2(-FLT_MAX, -FLT_MAX);
 
-    io.MouseDown[0] = g_MousePressed[0] || (mouseMask & SDL_BUTTON(SDL_BUTTON_LEFT)) != 0;		// If a mouse press event came, always pass it as "mouse held this frame", so we don't miss click-release events that are shorter than 1 frame.
-    io.MouseDown[1] = g_MousePressed[1] || (mouseMask & SDL_BUTTON(SDL_BUTTON_RIGHT)) != 0;
-    io.MouseDown[2] = g_MousePressed[2] || (mouseMask & SDL_BUTTON(SDL_BUTTON_MIDDLE)) != 0;
+    io.MouseDown[0] = g_MousePressed[0] || (mouseMask & SDL_BUTTON_MASK(SDL_BUTTON_LEFT)) != 0;   // If a mouse press event came, always pass it as "mouse held this frame", so we don't miss click-release events that are shorter than 1 frame.
+    io.MouseDown[1] = g_MousePressed[1] || (mouseMask & SDL_BUTTON_MASK(SDL_BUTTON_RIGHT)) != 0;
+    io.MouseDown[2] = g_MousePressed[2] || (mouseMask & SDL_BUTTON_MASK(SDL_BUTTON_MIDDLE)) != 0;
     g_MousePressed[0] = g_MousePressed[1] = g_MousePressed[2] = false;
 
     io.MouseWheel = g_MouseWheel;
     g_MouseWheel = 0.0f;
 
     // Hide OS mouse cursor if ImGui is drawing it
-    SDL_ShowCursor(io.MouseDrawCursor ? 0 : 1);
+    if (io.MouseDrawCursor) { SDL_HideCursor(); } else { SDL_ShowCursor(); }
 
     // Start the frame. This call will update the io.WantCaptureMouse, io.WantCaptureKeyboard flag that you can use to dispatch inputs (or not) to your application.
     ImGui::NewFrame();

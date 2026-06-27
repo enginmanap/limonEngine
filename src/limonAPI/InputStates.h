@@ -99,7 +99,7 @@ public:
         return temporaryTextBuffer;
     }
 
-    void setText(char* text) {
+    void setText(const char* text) {
         size_t currentLength = std::strlen(this->sdlText);
         std::strncpy(this->sdlText + currentLength, text, sizeof(this->sdlText) - currentLength);
     }

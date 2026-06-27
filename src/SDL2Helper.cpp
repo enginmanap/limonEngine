@@ -2,8 +2,11 @@
 // Created by Engin Manap on 10.02.2016.
 //
 
-#include <SDL_syswm.h>
+#include <SDL3/SDL.h>
 #include <memory>
+#ifdef _WIN32
+#include <windows.h>
+#endif
 #include "SDL2Helper.h"
 #include "limonAPI/Options.h"
 #include "limonAPI/LimonAPI.h"
@@ -17,9 +20,9 @@
 SDL2Helper::SDL2Helper(OptionsUtil::Options* options) : window(nullptr), context(nullptr), options(options) {}
 
 void SDL2Helper::initWindow(const char* title, const GraphicsInterface::ContextInformation& contextInformation) {
-    if (SDL_WasInit(SDL_INIT_VIDEO) == 0) {
-        if (SDL_Init(SDL_INIT_VIDEO) < 0) { /* Initialize SDL's Video subsystem */
-            std::cout << "Unable to initialize SDL";
+    if (!SDL_WasInit(SDL_INIT_VIDEO)) {
+        if (!SDL_Init(SDL_INIT_VIDEO)) {
+            std::cout << "Unable to initialize SDL: " << SDL_GetError();
             exit(1);
         }
     }
@@ -35,9 +38,9 @@ void SDL2Helper::initWindow(const char* title, const GraphicsInterface::ContextI
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
 
-    /* Create our window centered at 512x512 resolution */
-    window = SDL_CreateWindow(title, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-                              options->getScreenWidth(), options->getScreenHeight(), SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN);
+    /* Create our window centered */
+    window = SDL_CreateWindow(title,
+                              options->getScreenWidth(), options->getScreenHeight(), SDL_WINDOW_OPENGL);
     if (!window) {
         std::cout << "SDL Error: " << SDL_GetError() << std::endl;
         //we don't quit if failed, because there is a fallback possibility
@@ -56,17 +59,15 @@ bool SDL2Helper::createContext() {
         return false;
     }
 
-    SDL_SysWMinfo wmInfo;
-    SDL_VERSION(&wmInfo.version);
-    SDL_GetWindowWMInfo(window, &wmInfo);
 #ifdef _WIN32
-    options->setImeWindowHandle(wmInfo.info.win.window);
+    HWND hwnd = (HWND)SDL_GetPointerProperty(SDL_GetWindowProperties(window), SDL_PROP_WINDOW_WIN32_HWND_POINTER, NULL);
+    options->setImeWindowHandle(hwnd);
 #endif
     //if window has a scaling, we are setting the values to find out;
     int w, h;
     int display_w, display_h;
     SDL_GetWindowSize(window, &w, &h);
-    SDL_GL_GetDrawableSize(window, &display_w, &display_h);
+    SDL_GetWindowSizeInPixels(window, &display_w, &display_h);
     options->setDrawableHeight(display_h);
     options->setDrawableWidth(display_w);
     options->setWindowWidth(w);
@@ -76,14 +77,14 @@ bool SDL2Helper::createContext() {
 #ifndef NDEBUG
     SDL_GL_SetSwapInterval(1);
 #endif
-    SDL_ShowCursor(SDL_DISABLE);
+    SDL_HideCursor();
     std::cout << "SDL window and context started." << std::endl;
     return true;
 }
 
 void SDL2Helper::destroyWindow() {
     if (context) {
-        SDL_GL_DeleteContext(context);
+        SDL_GL_DestroyContext(context);
         context = nullptr;
     }
     if (window) {
@@ -94,7 +95,7 @@ void SDL2Helper::destroyWindow() {
 
 SDL2Helper::~SDL2Helper() {
     /* Delete our opengl context, destroy our window, and shutdown SDL */
-    SDL_ShowCursor(SDL_ENABLE);
+    SDL_ShowCursor();
     destroyWindow();
     SDL_Quit();
 }
@@ -105,7 +106,7 @@ SDL_Window *SDL2Helper::getWindow() {
 
 std::shared_ptr<GraphicsInterface> SDL2Helper::loadGraphicsBackend(const std::string &fileName, OptionsUtil::Options *options) {
     std::cout << "trying to load shared library " << fileName << std::endl;
-    void* objectHandle = nullptr;
+    SDL_SharedObject* objectHandle = nullptr;
     objectHandle = SDL_LoadObject(fileName.c_str());
 
     const std::string registerFunctionName = "createGraphicsBackend";
@@ -127,7 +128,7 @@ std::shared_ptr<GraphicsInterface> SDL2Helper::loadGraphicsBackend(const std::st
 
 bool SDL2Helper::loadCustomTriggers(const std::string &fileName) {
     std::cout << "trying to load shared library " << fileName << std::endl;
-    void* objectHandle = SDL_LoadObject(fileName.c_str());
+    SDL_SharedObject* objectHandle = SDL_LoadObject(fileName.c_str());
     if(objectHandle == nullptr) {
         std::cerr << "Failed to load " << fileName << ": " << SDL_GetError() << std::endl;
         return false;
@@ -139,7 +140,7 @@ bool SDL2Helper::loadCustomTriggers(const std::string &fileName) {
     return loadRenderMethods(objectHandle) && result;
 }
 
-bool SDL2Helper::loadPlayerExtensions(void *objectHandle) const {
+bool SDL2Helper::loadPlayerExtensions(SDL_SharedObject *objectHandle) const {
     const std::string registerFunctionName = "registerPlayerExtensions";
     void(*registerFunction)(std::map<std::string, PlayerExtensionInterface*(*)(LimonAPI*)>*);
     registerFunction = (void(*)(
@@ -161,7 +162,7 @@ bool SDL2Helper::loadPlayerExtensions(void *objectHandle) const {
     }
 }
 
-bool SDL2Helper::loadCameraExtensions(void *objectHandle) const {
+bool SDL2Helper::loadCameraExtensions(SDL_SharedObject *objectHandle) const {
     const std::string registerFunctionName = "registerCameraExtensions";
     void(*registerFunction)(std::map<std::string, CameraExtensionInterface*(*)(LimonAPI*)>*);
     registerFunction = (void(*)(
@@ -179,7 +180,7 @@ bool SDL2Helper::loadCameraExtensions(void *objectHandle) const {
     return true;
 }
 
-bool SDL2Helper::loadTriggers(void *objectHandle) const {
+bool SDL2Helper::loadTriggers(SDL_SharedObject *objectHandle) const {
     const std::string registerFunctionName = "registerAsTrigger";
     void(*registerFunction)(std::map<std::string, TriggerInterface*(*)(LimonAPI*)>*);
     registerFunction = (void(*)(
@@ -201,7 +202,7 @@ bool SDL2Helper::loadTriggers(void *objectHandle) const {
     }
 }
 
-bool SDL2Helper::loadActors(void *objectHandle) const {
+bool SDL2Helper::loadActors(SDL_SharedObject *objectHandle) const {
     const std::string registerFunctionName = "registerActors";
     void(*registerFunction)(std::map<std::string, ActorInterface*(*)(uint32_t, LimonAPI*)>*);
     registerFunction = (void(*)(
@@ -223,7 +224,7 @@ bool SDL2Helper::loadActors(void *objectHandle) const {
     }
 }
 
-bool SDL2Helper::loadRenderMethods(void *objectHandle) const {
+bool SDL2Helper::loadRenderMethods(SDL_SharedObject *objectHandle) const {
     const std::string registerFunctionName = "registerRenderMethods";
     void(*registerFunction)(std::map<std::string, RenderMethodInterface*(*)(GraphicsInterface*)>*);
     registerFunction = (void(*)(
@@ -246,12 +247,10 @@ bool SDL2Helper::loadRenderMethods(void *objectHandle) const {
 }
 
 void SDL2Helper::setFullScreen(bool isFullScreen) {
-    if(isFullScreen == true) {
-        SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN);
-    } else {
-        SDL_SetWindowFullscreen(window, SDL_FALSE);
+    if (isFullScreen) {
+        SDL_SetWindowFullscreenMode(window, NULL); // NULL = desktop fullscreen (Wayland scaling fix)
     }
-
+    SDL_SetWindowFullscreen(window, isFullScreen);
 }
 
 std::string SDL2Helper::getCurrentPath() {

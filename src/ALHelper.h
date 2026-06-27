@@ -16,8 +16,6 @@
 #include <glm/glm.hpp>
 #include <glm/ext.hpp>
 #include <glm/gtc/type_ptr.hpp>
-#include <SDL_atomic.h>
-#include <SDL_thread.h>
 #include "SDL2Helper.h"
 #include "SDL2MultiThreading.h"
 #include "limonAPI/LimonTypes.h"
@@ -162,14 +160,14 @@ public:
         }
         //it is possible that play is requested, but not yet started, they should be considered playing too, check it
         bool result = false;
-        SDL_AtomicLock(&playRequestLock);
+        SDL_LockSpinlock(&playRequestLock);
         for (auto request = playRequests.begin(); request != playRequests.end(); ++request) {
             if((*request)->soundID == soundID) {
                 result = true;
                 break;
             }
         }
-        SDL_AtomicUnlock(&playRequestLock);
+        SDL_UnlockSpinlock(&playRequestLock);
         return result;
     }
 
@@ -183,7 +181,7 @@ public:
         }
         //it is possible that play is requested, but not yet started, they should be considered playing too, check it
         bool result = false;
-        SDL_AtomicLock(&playRequestLock);
+        SDL_LockSpinlock(&playRequestLock);
         for (auto request = playRequests.begin(); request != playRequests.end(); ++request) {
             if((*request)->soundID == soundID) {
                 (*request)->gain = gain;
@@ -192,7 +190,7 @@ public:
                 break;
             }
         }
-        SDL_AtomicUnlock(&playRequestLock);
+        SDL_UnlockSpinlock(&playRequestLock);
         return result;
     }
 
@@ -284,7 +282,7 @@ public:
         } else {
             //sound is not found in playing sounds, try to find it in requests
             //it is possible that play is requested, but not yet started, they should be considered playing too, check it
-            SDL_AtomicLock(&playRequestLock);
+            SDL_LockSpinlock(&playRequestLock);
             for (auto request = playRequests.begin(); request != playRequests.end(); ++request) {
                 if((*request)->soundID == soundID) {
                     (*request)->isPositionRelative = isCameraRelative;
@@ -292,7 +290,7 @@ public:
                     break;
                 }
             }
-            SDL_AtomicUnlock(&playRequestLock);
+            SDL_UnlockSpinlock(&playRequestLock);
 
             return;
         }
