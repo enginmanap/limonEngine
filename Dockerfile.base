@@ -12,7 +12,7 @@
 # If you need to force a rebuild without changing deps (e.g. after an Ubuntu
 # security update), go to Actions → "Build base image" → Run workflow.
 
-FROM ubuntu:24.04
+FROM ubuntu:26.04
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
