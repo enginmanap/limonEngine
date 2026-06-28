@@ -13,6 +13,8 @@
 #include "Asset.h"
 #include "AssetManager.h"
 
+struct SDL_Surface;
+
 class TextureAsset : public Asset {
     const std::string FALLBACK_TEXTURE_NAME = "./Engine/Textures/notFoundFallback.jpg"; //This can be a configuration, either as option, or for build time?
     struct TextureMetaData {

@@ -8,6 +8,7 @@
 
 #include <vector>
 #include <set>
+#include <glm/gtc/type_ptr.hpp>
 
 #include "../PhysicalRenderable.h"
 #include "../Assets/TextureAsset.h"

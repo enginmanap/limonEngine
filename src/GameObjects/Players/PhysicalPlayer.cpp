@@ -97,7 +97,7 @@ void PhysicalPlayer::move(moveDirections direction) {
 
     LimonTypes::Vec4 movementSpeedTemp = moveSpeedOption.get();
     glm::vec3 movementSpeed = glm::vec3(movementSpeedTemp.x, movementSpeedTemp.y, movementSpeedTemp.z);
-    movementSpeed = movementSpeed * (60.0 / TICK_PER_SECOND);
+    movementSpeed = movementSpeed * (60.0f / TICK_PER_SECOND);
     float jumpFactor = jumpFactorOption.get();
 
     switch (direction) {
@@ -110,7 +110,7 @@ void PhysicalPlayer::move(moveDirections direction) {
                     currentSpeed.setY(0);
                     this->getRigidBody()->setLinearVelocity(currentSpeed);//so jump will not be swallowed by downward speed
                 }
-                inputMovementSpeed = inputMovementSpeed + GLMConverter::GLMToBlt(up * jumpFactor * 20);
+                inputMovementSpeed = inputMovementSpeed + GLMConverter::GLMToBlt(up * jumpFactor * 20.0f);
                 spring->setEnabled(false);
                 if (currentSound != nullptr) {
                     currentSound->stopAfterFinish();

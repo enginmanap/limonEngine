@@ -38,6 +38,9 @@ void SDL2Helper::initWindow(const char* title, const GraphicsInterface::ContextI
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
 
+
+    SDL_SetHint(SDL_HINT_VIDEO_WAYLAND_MODE_SCALING, "aspect");
+
     /* Create our window centered */
     window = SDL_CreateWindow(title,
                               options->getScreenWidth(), options->getScreenHeight(), SDL_WINDOW_OPENGL);
@@ -72,6 +75,11 @@ bool SDL2Helper::createContext() {
     options->setDrawableWidth(display_w);
     options->setWindowWidth(w);
     options->setWindowHeight(h);
+
+    std::cout << "[FS] after context: windowSize(logical)=" << w << "x" << h
+              << " drawableSize(pixels)=" << display_w << "x" << display_h
+              << " engineRenders=" << options->getScreenWidth() << "x" << options->getScreenHeight()
+              << std::endl;
 
     /* This makes our buffer swap syncronized with the monitor's vertical refresh */
 #ifndef NDEBUG
@@ -247,10 +255,54 @@ bool SDL2Helper::loadRenderMethods(SDL_SharedObject *objectHandle) const {
 }
 
 void SDL2Helper::setFullScreen(bool isFullScreen) {
-    if (isFullScreen) {
-        SDL_SetWindowFullscreenMode(window, NULL); // NULL = desktop fullscreen (Wayland scaling fix)
+    if (!isFullScreen) {
+        SDL_SetWindowFullscreen(window, false);
+        SDL_SyncWindow(window);
+        return;
     }
-    SDL_SetWindowFullscreen(window, isFullScreen);
+
+    SDL_DisplayID displayID = SDL_GetDisplayForWindow(window);
+    if (displayID == 0) {
+        displayID = SDL_GetPrimaryDisplay();
+    }
+
+    int modeCount = 0;
+    SDL_DisplayMode** allModes = SDL_GetFullscreenDisplayModes(displayID, &modeCount);
+    std::cout << "[FS] display " << displayID << " requested "
+              << options->getScreenWidth() << "x" << options->getScreenHeight()
+              << ", " << modeCount << " fullscreen modes available:" << std::endl;
+    if (allModes != nullptr) {
+        for (int i = 0; i < modeCount; ++i) {
+            std::cout << "[FS]   " << allModes[i]->w << "x" << allModes[i]->h
+                      << " density=" << allModes[i]->pixel_density
+                      << " rr=" << allModes[i]->refresh_rate << std::endl;
+        }
+        SDL_free(allModes);
+    }
+    // --- END DIAGNOSTIC ---
+
+    SDL_DisplayMode mode;
+    bool haveMode = displayID != 0 &&
+                    SDL_GetClosestFullscreenDisplayMode(displayID, (int)options->getScreenWidth(),
+                                                        (int)options->getScreenHeight(), 0.0f, false, &mode);
+
+
+    if (!SDL_SetWindowFullscreen(window, true)) {
+        std::cerr << "[FS] SDL_SetWindowFullscreen failed: " << SDL_GetError() << std::endl;
+    }
+    SDL_SyncWindow(window);
+
+    if (haveMode) {
+        std::cout << "[FS] closest mode chosen: " << mode.w << "x" << mode.h
+                  << " density=" << mode.pixel_density << " rr=" << mode.refresh_rate << std::endl;
+        if (!SDL_SetWindowFullscreenMode(window, &mode)) {
+            std::cerr << "[FS] SDL_SetWindowFullscreenMode failed: " << SDL_GetError() << std::endl;
+        }
+        SDL_SyncWindow(window); // block until the (async on Wayland) mode change is applied
+    } else {
+        std::cerr << "[FS] no closest fullscreen mode for " << options->getScreenWidth() << "x"
+                  << options->getScreenHeight() << "; using desktop fullscreen: " << SDL_GetError() << std::endl;
+    }
 }
 
 std::string SDL2Helper::getCurrentPath() {

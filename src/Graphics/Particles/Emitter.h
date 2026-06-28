@@ -107,7 +107,7 @@ public:
             float colorShift = calculateTimedColorShift(time, creationTime[i]);
             positions[i].w = colorShift;
             positions[i] = positions[i] + glm::vec4(speeds[i], 0);
-            speeds[i] +=(gravity/60.0);
+            speeds[i] +=(gravity/60.0f);
             if(!removalSet && ((time - this->creationTime[i]) > lifeTime )) {
                 removalStart = i;
                 removalSet = true;

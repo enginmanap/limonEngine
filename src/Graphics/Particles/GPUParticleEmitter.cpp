@@ -7,6 +7,9 @@
 #include <utility>
 #include "ImGui/imgui.h"
 #include "GPUParticleEmitter.h"
+
+#include <glm/gtc/type_ptr.hpp>
+
 #include "Utils/GLMUtils.h"
 
 GPUParticleEmitter::GPUParticleEmitter(long worldObjectId, std::string name, std::shared_ptr<AssetManager> assetManager,

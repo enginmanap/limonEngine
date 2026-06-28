@@ -8,6 +8,8 @@
 #include "ImGui/imgui.h"
 #include "Emitter.h"
 
+#include <glm/gtc/type_ptr.hpp>
+
 Emitter::Emitter(long worldObjectId, std::string name, std::shared_ptr<AssetManager> assetManager,
                  const std::string &textureFile, glm::vec3 startPosition, glm::vec3 maxStartDistances, glm::vec2 size, long count,
                  long lifeTime, float particlePerMs) :

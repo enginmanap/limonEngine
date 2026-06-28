@@ -8,7 +8,6 @@
 #include <iostream>
 #include <string>
 #include <cassert>
-#include <SDL3_image/SDL_image.h>
 
 #include "limonAPI/Graphics/GraphicsInterface.h"
 #include "Graphics/Texture.h"

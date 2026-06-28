@@ -55,7 +55,7 @@ void ImGuiHelper::RenderDrawLists(std::shared_ptr<GraphicsProgram> graphicsProgr
         for (int i = 0; i < cmd_list->VtxBuffer.Size; ++i) {
             ImU32 colorValue = cmd_list->VtxBuffer[i].col;
             glm::vec4 colorVec = glm::vec4((uint8_t)colorValue, (uint8_t)(colorValue>>8), (uint8_t)(colorValue>>16), (uint8_t)(colorValue>>24));
-            colorVec = colorVec / 256;
+            colorVec = colorVec / 256.0f;
             colors.emplace_back(colorVec);
 
             glm::vec2 coordinate = glm::vec2(cmd_list->VtxBuffer[i].uv.x, cmd_list->VtxBuffer[i].uv.y);

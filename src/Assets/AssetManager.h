@@ -17,15 +17,15 @@
 #endif
 
 #include "Asset.h"
-#include "../ALHelper.h"
 #include <thread>
 #include <mutex>
 #include <condition_variable>
 #include <atomic>
-
+#include <cstdint>
 
 class GraphicsInterface;
 class ALHelper;
+class Material;
 
 class AssetManager {
     std::mutex cpuLoadConditionMutex;

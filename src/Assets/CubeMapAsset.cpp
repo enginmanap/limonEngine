@@ -3,6 +3,7 @@
 //
 
 #include "CubeMapAsset.h"
+#include <SDL3_image/SDL_image.h>
 
 
 CubeMapAsset::CubeMapAsset(AssetManager *assetManager, uint32_t assetID, const std::vector<std::string> &fileList) :

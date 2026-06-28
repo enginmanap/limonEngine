@@ -190,6 +190,7 @@ namespace OptionsUtil {
                 this->isSet = true;
                 return true;
             }
+
         };
 
         template<class T, std::enable_if_t<std::is_same<T, std::string>::value>* = nullptr>

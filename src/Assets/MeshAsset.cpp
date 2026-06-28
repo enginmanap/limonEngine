@@ -4,6 +4,7 @@
 
 #include "MeshAsset.h"
 
+#include <glm/gtc/type_ptr.hpp>
 #include <Utils/GLMConverter.h>
 
 #include "limonAPI/Graphics/GraphicsInterface.h"
