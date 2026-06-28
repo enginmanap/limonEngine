@@ -20,8 +20,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     cmake \
     build-essential \
     libassimp-dev \
-    libsdl2-dev \
-    libsdl2-image-dev \
+    libsdl3-dev \
+    libsdl3-image-dev \
     libfreetype6-dev \
     libtinyxml2-dev \
     libglew-dev \
