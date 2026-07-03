@@ -367,8 +367,46 @@ void PipelineExtension::ruleBasedOrderCorrection(std::vector<std::pair<std::set<
     SkyShouldRenderBeforeBlendRule::apply(orderedStages);
 }
 
+bool PipelineExtension::depthFirstSearchForCycle(const Node *currentNode, std::set<const Node*> &visitedNodes, std::set<const Node*> &recursionStack) {
+    if (recursionStack.find(currentNode) != recursionStack.end()) {
+        return true;//found same node, cycle
+    }
+    if (visitedNodes.find(currentNode) != visitedNodes.end()) {
+        return false;//we put in visited if it is verified not cyclic. No need to do again.
+    }
+    visitedNodes.insert(currentNode);
+    recursionStack.insert(currentNode);
+    for (const Connection *connection:currentNode->getOutputConnections()) {
+        for (Node *connectedNode:connection->getConnectedNodes()) {
+            if (depthFirstSearchForCycle(connectedNode, visitedNodes, recursionStack)) {
+                return true;
+            }
+        }
+    }
+    recursionStack.erase(currentNode);
+    return false;
+}
+
+bool PipelineExtension::isGraphCyclic(const std::vector<const Node *> &nodes) {
+    std::set<const Node*> visitedNodes;
+    std::set<const Node*> recursionStack;
+    for (const Node *node:nodes) {
+        if (visitedNodes.find(node) == visitedNodes.end() && depthFirstSearchForCycle(node, visitedNodes, recursionStack)) {
+            return true;
+        }
+    }
+    return false;
+}
+
 bool PipelineExtension::buildRenderPipelineStages(const std::vector<const Node *> &nodes, std::vector<
         std::pair<std::set<const Node *>, std::shared_ptr<GraphicsPipeline::StageInfo>>> & orderedStages) {
+    // Node editor already checks cycles and refuses to create pipeline. This check is for someone (me) manually editing the
+    // pipeline, causing a cycle, and then getting mad.
+    if (isGraphCyclic(nodes)) {
+        addError("Node graph contains a cycle, cannot build pipeline. Please fix the connections before building.");
+        std::cerr << "buildRenderPipelineStages failed because of cycles in render pipeline" << std::endl;
+        return false;
+    }
     const Node* rootNode = nullptr;
     for(const Node* node: nodes) {
         /**

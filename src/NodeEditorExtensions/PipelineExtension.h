@@ -43,6 +43,9 @@ class PipelineExtension : public EditorExtension {
 
     static bool getNameOfTexture(void* data, int index, const char** outText);
 
+    static bool isGraphCyclic(const std::vector<const Node*> &nodes);
+    static bool depthFirstSearchForCycle(const Node *currentNode, std::set<const Node*> &visitedNodes, std::set<const Node*> &recursionStack);
+
     bool buildRenderPipelineRecursive(const Node *node, RenderMethods &renderMethods, std::map<const Node*, std::shared_ptr<GraphicsPipeline::StageInfo>>& nodeStages,
                                       const std::vector<std::pair<std::set<const Node*>, std::set<const Node*>>>& groupsByDependency,
                                       std::map<std::shared_ptr<GraphicsPipeline::StageInfo>, std::set<const Node *>> &builtStages);//A stage can contain more than one node, so the nodes used to build it is also here.
