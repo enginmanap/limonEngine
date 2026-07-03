@@ -946,21 +946,21 @@ bool PipelineExtension::buildRenderPipelineRecursive(const Node *node,
             for (Connection *inputConnection:connection->getInputConnections()) {
 
                 Node *inputNode = inputConnection->getParent();
-                if (inputNode->getExtension() != nullptr) {
-                    //TODO: Extension should force all connections to use the same texture.
-                    PipelineStageExtension *inputNodeExtension = dynamic_cast<PipelineStageExtension *>(inputNode->getExtension());
-                    if (inputTexture == nullptr) {
-                        inputTexture = inputNodeExtension->getOutputTexture(inputConnection);
-                    } else {
-                        if (inputTexture->getTextureID() !=
-                            inputNodeExtension->getOutputTexture(inputConnection)->getTextureID()) {
-                            std::cerr << "Different textures are set for same connection. This is illegal."
-                                      << std::endl;
-                        }
-                    }
-                } else {
-                    std::cerr << "Input node extension is not PipelineStageExtension, this is not handled!"
-                              << std::endl;
+                //TODO: Extension should force all connections to use the same texture.
+                PipelineStageExtension *inputNodeExtension = inputNode->getExtension() != nullptr ?
+                        dynamic_cast<PipelineStageExtension *>(inputNode->getExtension()) : nullptr;
+                if (inputNodeExtension == nullptr) {
+                    addError("Input node [" + inputNode->getDisplayName() + "] feeding node " + node->getDisplayName() +
+                              " is not a PipelineStageExtension, this is not handled!");
+                    return false;
+                }
+                std::shared_ptr<Texture> connectedTexture = inputNodeExtension->getOutputTexture(inputConnection);
+                if (inputTexture == nullptr) {
+                    inputTexture = connectedTexture;
+                } else if (connectedTexture == nullptr || inputTexture->getTextureID() != connectedTexture->getTextureID()) {
+                    addError("Different textures are set for the same connection [" + connection->getName() +
+                              "] on node " + node->getDisplayName() + ". This is illegal.");
+                    return false;
                 }
             }
             if (inputTexture != nullptr) {
