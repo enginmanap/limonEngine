@@ -691,7 +691,7 @@ const PipelineStageExtension::OutputTextureInfo* PipelineStageExtension::getOutp
 
 PipelineStageExtension::PipelineStageExtension(const NodeType *nodeType, PipelineExtension *pipelineExtension) : NodeExtension(nodeType), pipelineExtension(pipelineExtension) {
     if(nodeType == nullptr) {
-        std::cerr << "nodeType is not set, program info can't be used." << nodeType->name << std::endl;
+        std::cerr << "nodeType is not set, program info can't be used." << std::endl;
         return;
     }
     auto& extraVariables = nodeType->extraVariables;
