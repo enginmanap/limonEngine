@@ -33,7 +33,8 @@ public:
     bool initRender(std::shared_ptr<GraphicsProgram> program, std::vector<LimonTypes::GenericParameter> parameters [[gnu::unused]]) override;
 
     virtual void renderFrame(std::shared_ptr<GraphicsProgram> program[[gnu::unused]]) {
-        graphicsInterface->attachTexture(ssaoNoiseTexture, graphicsInterface->getMaxTextureImageUnits()-5);
+        //FIXME requires weird texture unit selection, because we don't have anything else
+        graphicsInterface->attachTexture(ssaoNoiseTexture, graphicsInterface->getMaxTextureImageUnits()-6);
 
         graphicsInterface->render(program->getID(), vao, ebo, 3 * 2);//2 triangles
     };

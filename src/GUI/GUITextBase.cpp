@@ -48,6 +48,9 @@ void GUITextBase::renderWithProgram(std::shared_ptr<GraphicsProgram> renderProgr
 
     float totalAdvance = 0.0f;
 
+    //FIXME requires weird texture unit selection, because we don't have anything else
+    glyphAttachPoint = graphicsWrapper->getMaxTextureImageUnits() - 7;
+
     renderProgram->setUniform("inColor", color);
 
     renderProgram->setUniform("orthogonalProjectionMatrix", graphicsWrapper->getGUIOrthogonalProjectionMatrix());

@@ -21,6 +21,13 @@ public:
         std::string vertexShaderName;
         std::string geometryShaderName;
         std::string fragmentShaderName;
+        //mirrors GraphicsProgram::isMaterialRequired()/isModelBoneTransformUsed()/isShadowDirectionalUsed()/
+        //isShadowPointUsed(), computed once when the program is built (see Editor::createNodeGraph) so
+        //canBeJoined can check them without needing a GraphicsProgram instance.
+        bool materialRequired = false;
+        bool modelBoneTransformUsed = false;
+        bool shadowDirectionalUsed = false;
+        bool shadowPointUsed = false;
     };
     struct OutputTextureInfo {
         std::string name;

@@ -278,15 +278,15 @@ Uniform::VariableTypes OpenGLESGraphics::getSamplerVariableType(const GLint *que
 
 void OpenGLESGraphics::attachModelTexture(const uint32_t program) {
     GLint allModelsAttachPoint = glGetUniformLocation(program, "allModelTransformsTexture");
-    this->setUniform(program, allModelsAttachPoint, maxTextureImageUnits-3);
-    state->attachTexture(allModelTransformsTexture, maxTextureImageUnits-3);
+    this->setUniform(program, allModelsAttachPoint, GraphicsInterface::MODEL_BONE_TRANSFORM_TEXTURE_UNIT_START);
+    state->attachTexture(allModelTransformsTexture, GraphicsInterface::MODEL_BONE_TRANSFORM_TEXTURE_UNIT_START);
     checkErrors("attachModelTexture");
 }
 
 void OpenGLESGraphics::attachRigTexture(const uint32_t program) {
     GLint allBonesAttachPoint = glGetUniformLocation(program, "allBoneTransformsTexture");
-    this->setUniform(program, allBonesAttachPoint, maxTextureImageUnits-4);
-    state->attachTexture(allBoneTransformsTexture, maxTextureImageUnits-4);
+    this->setUniform(program, allBonesAttachPoint, GraphicsInterface::MODEL_BONE_TRANSFORM_TEXTURE_UNIT_START + 1);
+    state->attachTexture(allBoneTransformsTexture, GraphicsInterface::MODEL_BONE_TRANSFORM_TEXTURE_UNIT_START + 1);
     checkErrors("attachRigTexture");
 }
 
@@ -521,7 +521,7 @@ bool OpenGLESGraphics::createGraphicsBackend() {
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
     glGenTextures(1, &allBoneTransformsTexture);
-    state->activateTextureUnit(maxTextureImageUnits-4);
+    state->activateTextureUnit(GraphicsInterface::MODEL_BONE_TRANSFORM_TEXTURE_UNIT_START + 1);
     glBindTexture(GL_TEXTURE_2D, allBoneTransformsTexture);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, 4 * NR_BONE, NR_MAX_MODELS, 0, GL_RGBA, GL_FLOAT, nullptr);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -529,7 +529,7 @@ bool OpenGLESGraphics::createGraphicsBackend() {
     state->activateTextureUnit(0);
 
     glGenTextures(1, &allModelTransformsTexture);
-    state->activateTextureUnit(maxTextureImageUnits-3);
+    state->activateTextureUnit(GraphicsInterface::MODEL_BONE_TRANSFORM_TEXTURE_UNIT_START);
     glBindTexture(GL_TEXTURE_2D, allModelTransformsTexture);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, 4 * NR_MAX_MODELS, 2, 0, GL_RGBA, GL_FLOAT, nullptr);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -1709,15 +1709,15 @@ void OpenGLESGraphics::setBoneTransforms(uint32_t index, const std::vector<glm::
     if (boneTransforms.size() < NR_BONE) {
         std::cerr << "too little bones, possible garbage upload " << std::endl;
     }
-    state->activateTextureUnit(maxTextureImageUnits-4);
-    state->attachTexture(allBoneTransformsTexture, maxTextureImageUnits-4);
+    state->activateTextureUnit(GraphicsInterface::MODEL_BONE_TRANSFORM_TEXTURE_UNIT_START + 1);
+    state->attachTexture(allBoneTransformsTexture, GraphicsInterface::MODEL_BONE_TRANSFORM_TEXTURE_UNIT_START + 1);
     glTexSubImage2D(GL_TEXTURE_2D,0,0, index, 4*NR_BONE, 1, GL_RGBA, GL_FLOAT, boneTransforms.data());
     checkErrors("setBoneTransform");
 }
 
 void OpenGLESGraphics::setModel(const uint32_t modelID, const glm::mat4& worldTransform) {
-    state->activateTextureUnit(maxTextureImageUnits-3);
-    state->attachTexture(allModelTransformsTexture, maxTextureImageUnits-3);
+    state->activateTextureUnit(GraphicsInterface::MODEL_BONE_TRANSFORM_TEXTURE_UNIT_START);
+    state->attachTexture(allModelTransformsTexture, GraphicsInterface::MODEL_BONE_TRANSFORM_TEXTURE_UNIT_START);
     glm::mat4 transposeInverse = glm::transpose(glm::inverse(worldTransform));
     float data[32];
     memcpy(data, glm::value_ptr(worldTransform), sizeof(float)*16);

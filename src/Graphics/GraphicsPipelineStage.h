@@ -21,7 +21,12 @@ class GraphicsPipelineStage {
     uint32_t renderWidth;
     uint32_t renderHeight;
     uint32_t frameBufferID;
-    uint32_t nextPresetIndex = 1;//used by pipeline builder. If multiple programs are set per stage, we might want to attach n to first program, then when building second, we should start from n+1.
+    //Used by the pipeline builder to auto-assign ordinary "pre_" input texture units. If multiple
+    //programs are set per stage, we might want to attach n to first program, then when building the
+    //second, we should start from n+1. Starts just past the always-reserved model/bone band (i.e. at
+    //SHADOW_MAP_TEXTURE_UNIT_START) since PipelineExtension re-derives the true per-stage floor itself
+    //and only ever raises this value, never lowers it.
+    uint32_t nextPresetIndex = GraphicsInterface::SHADOW_MAP_TEXTURE_UNIT_START;
     std::vector<std::string> cameraTags;//These tags are used to select which cameras are suppose to render in this stage.
     //TODO how multiple cameras will render to same input/output is not clear to me. For lights they can select different layers, but what else? Atlases etc. not clear yet.
     std::vector<std::string> objectTags;//These tags are used to select which cameras are suppose to render in this stage.

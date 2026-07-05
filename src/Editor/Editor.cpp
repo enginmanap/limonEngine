@@ -2814,6 +2814,10 @@ void Editor::createNodeGraph() {
         programNameInfo.vertexShaderName = program->getVertexShaderFile();
         programNameInfo.geometryShaderName = program->getGeometryShaderFile();
         programNameInfo.fragmentShaderName = program->getFragmentShaderFile();
+        programNameInfo.materialRequired = program->isMaterialRequired();
+        programNameInfo.modelBoneTransformUsed = program->isModelBoneTransformUsed();
+        programNameInfo.shadowDirectionalUsed = program->isShadowDirectionalUsed();
+        programNameInfo.shadowPointUsed = program->isShadowPointUsed();
 
         type->nodeExtensionConstructor = [=](const NodeType* nodeType[[gnu::unused]]) ->NodeExtension* {return new PipelineStageExtension(this->pipelineExtension, programNameInfo);};
         type->extraVariables["vertexShaderName"] = program->getVertexShaderFile();

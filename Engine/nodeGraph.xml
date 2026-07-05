@@ -303,33 +303,7 @@
     </EditorExtension>
     <NodeTypes>
         <NodeType>
-            <Name>Blend</Name>
-            <CombineInputs>False</CombineInputs>
-            <Editable>True</Editable>
-            <Inputs>
-                <ConnectionDesc>
-                    <Name>Input1</Name>
-                    <Type>Texture</Type>
-                </ConnectionDesc>
-                <ConnectionDesc>
-                    <Name>Input2</Name>
-                    <Type>Texture</Type>
-                </ConnectionDesc>
-                <ConnectionDesc>
-                    <Name>Input3</Name>
-                    <Type>Texture</Type>
-                </ConnectionDesc>
-            </Inputs>
-            <Outputs>
-                <ConnectionDesc>
-                    <Name>output</Name>
-                    <Type>Texture</Type>
-                </ConnectionDesc>
-            </Outputs>
-            <NodeExtension>PlaceHolderExtension</NodeExtension>
-        </NodeType>
-        <NodeType>
-            <Name>CombineColorsWithSSAO</Name>
+            <Name>Deferred_LightingCombine</Name>
             <CombineInputs>True</CombineInputs>
             <Editable>False</Editable>
             <Inputs>
@@ -374,9 +348,9 @@
             </Outputs>
             <NodeExtension>PipelineStageExtension</NodeExtension>
             <ExtraVariables>
-                <Variable Value="./Engine/Shaders/CombineColorsWithSSAO/fragment.glsl">fragmentShaderName</Variable>
+                <Variable Value="./Engine/Shaders/Deferred_LightingCombine/fragment.glsl">fragmentShaderName</Variable>
                 <Variable Value="">geometryShaderName</Variable>
-                <Variable Value="./Engine/Shaders/CombineColorsWithSSAO/vertex.glsl">vertexShaderName</Variable>
+                <Variable Value="./Engine/Shaders/Deferred_LightingCombine/vertex.glsl">vertexShaderName</Variable>
             </ExtraVariables>
         </NodeType>
         <NodeType>
@@ -405,7 +379,12 @@
             <Name>GPUParticles</Name>
             <CombineInputs>True</CombineInputs>
             <Editable>False</Editable>
-            <Inputs/>
+            <Inputs>
+                <ConnectionDesc>
+                    <Name>pre_depthMap</Name>
+                    <Type>Texture</Type>
+                </ConnectionDesc>
+            </Inputs>
             <Outputs>
                 <ConnectionDesc>
                     <Name>Depth</Name>
@@ -599,7 +578,12 @@
             <Name>Particles</Name>
             <CombineInputs>True</CombineInputs>
             <Editable>False</Editable>
-            <Inputs/>
+            <Inputs>
+                <ConnectionDesc>
+                    <Name>pre_depthMap</Name>
+                    <Type>Texture</Type>
+                </ConnectionDesc>
+            </Inputs>
             <Outputs>
                 <ConnectionDesc>
                     <Name>Depth</Name>
@@ -1281,8 +1265,8 @@
         </Node>
         <Node>
             <ID>13</ID>
-            <Name>CombineColorsWithSSAO</Name>
-            <DisplayName>CombineColorsWithSSAO</DisplayName>
+            <Name>Deferred_LightingCombine</Name>
+            <DisplayName>Deferred_LightingCombine</DisplayName>
             <Editable>False</Editable>
             <CombineInputs>True</CombineInputs>
             <Position>
@@ -1471,9 +1455,9 @@
                     </OutputInfo>
                 </OutputTextures>
                 <ProgramInfo>
-                    <VertexShaderName>./Engine/Shaders/CombineColorsWithSSAO/vertex.glsl</VertexShaderName>
+                    <VertexShaderName>./Engine/Shaders/Deferred_LightingCombine/vertex.glsl</VertexShaderName>
                     <GeometryShaderName></GeometryShaderName>
-                    <FragmentShaderName>./Engine/Shaders/CombineColorsWithSSAO/fragment.glsl</FragmentShaderName>
+                    <FragmentShaderName>./Engine/Shaders/Deferred_LightingCombine/fragment.glsl</FragmentShaderName>
                 </ProgramInfo>
             </NodeExtension>
         </Node>

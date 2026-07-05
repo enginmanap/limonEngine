@@ -336,6 +336,22 @@ void PipelineStageExtension::serialize(tinyxml2::XMLDocument &document, tinyxml2
     tinyxml2::XMLElement *fragmentNameElement = document.NewElement("FragmentShaderName");
     fragmentNameElement->SetText(programNameInfo.fragmentShaderName.c_str());
     programInfoNameElement->InsertEndChild(fragmentNameElement);
+
+    tinyxml2::XMLElement *materialRequiredElement = document.NewElement("MaterialRequired");
+    materialRequiredElement->SetText(programNameInfo.materialRequired ? "True" : "False");
+    programInfoNameElement->InsertEndChild(materialRequiredElement);
+
+    tinyxml2::XMLElement *modelBoneTransformUsedElement = document.NewElement("ModelBoneTransformUsed");
+    modelBoneTransformUsedElement->SetText(programNameInfo.modelBoneTransformUsed ? "True" : "False");
+    programInfoNameElement->InsertEndChild(modelBoneTransformUsedElement);
+
+    tinyxml2::XMLElement *shadowDirectionalUsedElement = document.NewElement("ShadowDirectionalUsed");
+    shadowDirectionalUsedElement->SetText(programNameInfo.shadowDirectionalUsed ? "True" : "False");
+    programInfoNameElement->InsertEndChild(shadowDirectionalUsedElement);
+
+    tinyxml2::XMLElement *shadowPointUsedElement = document.NewElement("ShadowPointUsed");
+    shadowPointUsedElement->SetText(programNameInfo.shadowPointUsed ? "True" : "False");
+    programInfoNameElement->InsertEndChild(shadowPointUsedElement);
 }
 
 void PipelineStageExtension::deserialize(const std::string &nodeName, tinyxml2::XMLElement *nodeExtensionElement) {
@@ -657,6 +673,30 @@ void PipelineStageExtension::deserialize(const std::string &nodeName, tinyxml2::
         } else {
             tempProgramNameInfo.fragmentShaderName = fragmentShaderNameElement->GetText();
         }
+
+        //these 4 flags were added after the initial ProgramInfo format; default missing/unreadable ones to
+        //true (i.e. "reserved unit needed") rather than false, so a save from before this existed keeps the
+        //old, conservative texture-unit reservation behaviour instead of silently under-reserving.
+        auto readReservedUnitFlag = [&](const char* elementName) -> bool {
+            tinyxml2::XMLElement *flagElement = programInfoElement->FirstChildElement(elementName);
+            if(flagElement == nullptr || flagElement->GetText() == nullptr) {
+                return true;
+            }
+            std::string flagString = flagElement->GetText();
+            if(flagString == "True") {
+                return true;
+            } else if(flagString == "False") {
+                return false;
+            } else {
+                std::cerr << "Program Info " << elementName << " value is unknown, defaulting to true" << std::endl;
+                return true;
+            }
+        };
+        tempProgramNameInfo.materialRequired = readReservedUnitFlag("MaterialRequired");
+        tempProgramNameInfo.modelBoneTransformUsed = readReservedUnitFlag("ModelBoneTransformUsed");
+        tempProgramNameInfo.shadowDirectionalUsed = readReservedUnitFlag("ShadowDirectionalUsed");
+        tempProgramNameInfo.shadowPointUsed = readReservedUnitFlag("ShadowPointUsed");
+
         if(!tempProgramNameInfo.vertexShaderName.empty() && !tempProgramNameInfo.fragmentShaderName.empty()) {
             this->programNameInfo = tempProgramNameInfo;
         }

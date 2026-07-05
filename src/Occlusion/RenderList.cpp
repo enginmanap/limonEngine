@@ -59,11 +59,14 @@ void RenderList::removeModelFromAll(uint32_t modelId) {
 }
 
 void RenderList::render(GraphicsInterface *graphicsWrapper, const std::shared_ptr<GraphicsProgram> &renderProgram, bool forceNotAnimated) const {
-   int diffuseMapAttachPoint = 1;
-   int ambientMapAttachPoint = 2;
-   int specularMapAttachPoint = 3;
-   int opacityMapAttachPoint = 4;
-   int normalMapAttachPoint = 5;
+   //must match GraphicsProgram::setSamplersAndUBOs's diffuseSampler/ambientSampler/specularSampler/
+   //opacitySampler/normalSampler uniform assignments, since that is what tells the shader which unit
+   //to sample each map from - this call binds the actual texture object to that same unit.
+   int diffuseMapAttachPoint = GraphicsInterface::MATERIAL_SAMPLER_TEXTURE_UNIT_START;
+   int ambientMapAttachPoint = GraphicsInterface::MATERIAL_SAMPLER_TEXTURE_UNIT_START + 1;
+   int specularMapAttachPoint = GraphicsInterface::MATERIAL_SAMPLER_TEXTURE_UNIT_START + 2;
+   int opacityMapAttachPoint = GraphicsInterface::MATERIAL_SAMPLER_TEXTURE_UNIT_START + 3;
+   int normalMapAttachPoint = GraphicsInterface::MATERIAL_SAMPLER_TEXTURE_UNIT_START + 4;
    bool lastAnimationState = false;
    auto renderListIterator = this->getIterator();
     if (renderListIterator.isEnd()) {

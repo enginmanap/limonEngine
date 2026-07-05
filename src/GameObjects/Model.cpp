@@ -159,11 +159,14 @@ void Model::setupForTime(long time) {
 }
 
 void Model::activateTexturesOnly(std::shared_ptr<const Material>material) const {
-    const int diffuseMapAttachPoint = 1;
-    const int ambientMapAttachPoint = 2;
-    const int specularMapAttachPoint = 3;
-    const int opacityMapAttachPoint = 4;
-    const int normalMapAttachPoint = 5;
+    //must match GraphicsProgram::setSamplersAndUBOs's diffuseSampler/ambientSampler/specularSampler/
+    //opacitySampler/normalSampler uniform assignments, since that is what tells the shader which unit
+    //to sample each map from - this call binds the actual texture object to that same unit.
+    const int diffuseMapAttachPoint = GraphicsInterface::MATERIAL_SAMPLER_TEXTURE_UNIT_START;
+    const int ambientMapAttachPoint = GraphicsInterface::MATERIAL_SAMPLER_TEXTURE_UNIT_START + 1;
+    const int specularMapAttachPoint = GraphicsInterface::MATERIAL_SAMPLER_TEXTURE_UNIT_START + 2;
+    const int opacityMapAttachPoint = GraphicsInterface::MATERIAL_SAMPLER_TEXTURE_UNIT_START + 3;
+    const int normalMapAttachPoint = GraphicsInterface::MATERIAL_SAMPLER_TEXTURE_UNIT_START + 4;
 
     if(material->hasDiffuseMap()) {
         graphicsWrapper->attachTexture(material->getDiffuseTexture()->getID(), diffuseMapAttachPoint);

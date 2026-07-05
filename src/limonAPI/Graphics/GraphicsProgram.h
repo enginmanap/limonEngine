@@ -22,12 +22,19 @@ class GraphicsProgram {
     std::shared_ptr<GraphicsProgramAsset> graphicsProgramAsset;
     std::unordered_map<std::shared_ptr<Uniform>, std::string> presetUniformValues;
     bool materialRequired;
+    bool modelBoneTransformUsed;
+    bool shadowDirectionalUsed;
+    bool shadowPointUsed;
     uint32_t programID;
     std::string vertexShaderContent, geometryShaderContent, fragmentShaderContent;
 
     //TODO remove with material editor
     void setSamplersAndUBOs();
     void setMaterialRequired();
+    //detects, from the reflected uniform map, whether this program declares the uniforms that make it
+    //depend on the reserved texture-unit bands (model/bone transform and shadow maps; see the layout in
+    //GraphicsInterface.h)
+    void detectReservedTextureUnitUsage();
 
 public:
     GraphicsProgram(AssetManager* assetManager, const std::string& vertexShader, const std::string& fragmentShader);
@@ -84,6 +91,19 @@ public:
 
     bool isMaterialRequired() const {
         return materialRequired;
+    }
+
+    //Since model transform matrix and bone transform matrix are used together, this flag means both
+    bool isModelBoneTransformUsed() const {
+        return modelBoneTransformUsed;
+    }
+
+    bool isShadowDirectionalUsed() const {
+        return shadowDirectionalUsed;
+    }
+
+    bool isShadowPointUsed() const {
+        return shadowPointUsed;
     }
 
     const std::string &getVertexShaderFile() const {

@@ -137,10 +137,11 @@ public:
     }
 
     void renderWithProgram(std::shared_ptr<GraphicsProgram> renderProgram, uint32_t lodLevel[[gnu::unused]]) override {
-        renderProgram->setUniform("sprite", 6);
-        graphicsWrapper->attachTexture((int) texture->getTextureID(), 6);
-        renderProgram->setUniform("positions", 7);
-        graphicsWrapper->attachTexture((int) particleDataTexture->getTextureID(), 7);
+        //FIXME requires weird texture unit selection, because we don't have anything else
+        renderProgram->setUniform("sprite", graphicsWrapper->getMaxTextureImageUnits() - 4);
+        graphicsWrapper->attachTexture((int) texture->getTextureID(), graphicsWrapper->getMaxTextureImageUnits() - 4);
+        renderProgram->setUniform("positions", graphicsWrapper->getMaxTextureImageUnits() - 5);
+        graphicsWrapper->attachTexture((int) particleDataTexture->getTextureID(), graphicsWrapper->getMaxTextureImageUnits() - 5);
         renderProgram->setUniform("size", size.x);
         graphicsWrapper->renderInstanced(renderProgram->getID(), vao, ebo, 3 * 2, currentCount);
     }

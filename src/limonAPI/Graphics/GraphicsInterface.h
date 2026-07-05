@@ -44,6 +44,49 @@ public:
     enum class FilterModes {NEAREST, LINEAR, TRILINEAR};
     enum class CullModes {FRONT, BACK, NONE, NO_CHANGE};
 
+    // Fixed engine-reserved texture-unit layout, shared so GraphicsProgram (which binds these engine-wide)
+    // and the render pipeline builder (PipelineExtension, which assigns the remaining "pre_" inputs above
+    // them) agree on what is already spoken for. The layout is contiguous, so it is fully described by its
+    // boundaries: each constant is the FIRST unit of a band, and a band occupies [its start, the next
+    // start). GraphicsInterface legitimately owns these because they map 1:1 to responsibilities it already
+    // implements: setModel/setBoneTransforms (model/bone transform textures), setLight + the shadow passes
+    // (shadow maps), and setMaterial (material samplers).
+    //
+    //   [1, 3)  model/bone transform : allModelTransformsTexture (unit 1), allBoneTransformsTexture (unit 2)
+    //   [3, 5)  shadow maps          : pre_shadowDirectional (unit 3), pre_shadowPoint (unit 4)
+    //   [5,10)  material samplers    : diffuse, ambient, specular, opacity, normal (units 5-9)
+    //   10 ..   FIRST_ASSIGNABLE_TEXTURE_UNIT: first unit above the whole fixed region, free for the
+    //           pipeline builder to hand out to a stage's ordinary "pre_" inputs.
+    //
+    // Every value is a small, FIXED, absolute unit counted up from unit 1 (unit 0 is a transient/default
+    // working unit, see activateTextureUnit(0) in OpenGLGraphics.cpp) - never computed relative to
+    // getMaxTextureImageUnits(). This is deliberate: these numbers get baked into the serialized pipeline
+    // (GraphicsPipelineStage "Input Index" / GraphicsProgram "PresetValues" written by
+    // PipelineExtension::buildRenderPipelineRecursive), and the machine that builds a pipeline is not
+    // guaranteed to be the one that runs it, so a value anchored to any particular hardware maximum is only
+    // as portable as that assumption; a small fixed number needs no such assumption at all.
+    //
+    // Model/bone transforms are reserved for EVERY program regardless of whether a shader declares the
+    // uniforms, because they are bound once, outside any GraphicsPipelineStage's own "inputs" map, and
+    // nothing re-establishes that binding per stage/frame - so nothing else may EVER touch units 1/2.
+    // (The two are always declared together in the shared ModelRendering.vert header, so a single flag
+    // tracks both - see GraphicsProgram::isModelBoneTransformUsed().) The shadow and material bands are
+    // only actually reserved for programs that use them - see PipelineExtension's per-stage floor logic.
+    static constexpr int32_t MODEL_BONE_TRANSFORM_TEXTURE_UNIT_START = 1;
+    static constexpr int32_t SHADOW_MAP_TEXTURE_UNIT_START      = MODEL_BONE_TRANSFORM_TEXTURE_UNIT_START + 2; // +2: model, bone
+    static constexpr int32_t MATERIAL_SAMPLER_TEXTURE_UNIT_START = SHADOW_MAP_TEXTURE_UNIT_START + 2;           // +2: directional, point
+    static constexpr int32_t FIRST_ASSIGNABLE_TEXTURE_UNIT      = MATERIAL_SAMPLER_TEXTURE_UNIT_START + 5;      // +5: diffuse, ambient, specular, opacity, normal
+
+    // NOTE (intentionally not enumerated here): a few units at the TOP of the range
+    // (getMaxTextureImageUnits() - k) are used for transient, per-frame texture binds that are NOT
+    // render-pipeline stage inputs - e.g. UI/overlay image samplers and particle sprites. Which specific
+    // subsystem owns which top unit is NOT GraphicsInterface's concern and is deliberately kept out of
+    // this low-level interface. Two rules the rest of the engine must follow, though: (1) such a transient
+    // binder MUST use a high unit, never a small fixed one - a low fixed band (esp. model/bone at 1/2) is
+    // bound once and would be silently clobbered, making objects flicker every other frame; (2) those top
+    // units are set fresh right before each draw and are never baked into a pipeline file. A proper
+    // allocator to formalize and enforce this coordination is planned (see the texture-unit design notes).
+
 protected:
     friend class Texture;
     friend class RenderMethodInterface;

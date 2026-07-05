@@ -27,6 +27,8 @@ void GUIImageBase::renderWithProgram(std::shared_ptr<GraphicsProgram> renderProg
         std::cerr << "failed to set uniform \"worldTransformMatrix\"" << std::endl;
     }
 
+    //FIXME requires weird texture unit selection, because we don't have anything else
+    imageAttachPoint = graphicsWrapper->getMaxTextureImageUnits() - 7;
     if (!renderProgram->setUniform("GUISampler", imageAttachPoint)) {
         std::cerr << "failed to set uniform \"GUISampler\"" << std::endl;
     }

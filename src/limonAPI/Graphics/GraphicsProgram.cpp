@@ -7,12 +7,14 @@
 #include "GraphicsProgramPreprocessor.h"
 
 GraphicsProgram::GraphicsProgram(AssetManager* assetManager, const std::string& vertexShader, const std::string& fragmentShader) :
-        assetManager(assetManager), graphicsWrapper(assetManager->getGraphicsWrapper()), materialRequired(false) {
+        assetManager(assetManager), graphicsWrapper(assetManager->getGraphicsWrapper()), materialRequired(false),
+        modelBoneTransformUsed(false), shadowDirectionalUsed(false), shadowPointUsed(false) {
     graphicsProgramAsset = assetManager->loadAsset<GraphicsProgramAsset>({vertexShader, fragmentShader});
     GraphicsProgramPreprocessor::preprocess(this, assetManager->getGraphicsWrapper()->getContextInformation().shaderHeader, assetManager->getGraphicsWrapper()->getOptions()->getAllOptions());
     programID = graphicsWrapper->createGraphicsProgram(vertexShaderContent, graphicsProgramAsset->getVertexShaderFile(), "", "", fragmentShaderContent, graphicsProgramAsset->getFragmentShaderFile());
     graphicsProgramAsset->lateInitialize(programID);
     this->setMaterialRequired();
+    this->detectReservedTextureUnitUsage();
     if(materialRequired) {
         setSamplersAndUBOs();
     }
@@ -22,7 +24,8 @@ GraphicsProgram::GraphicsProgram(AssetManager* assetManager, const std::string& 
 }
 
 GraphicsProgram::GraphicsProgram(AssetManager* assetManager, const std::string& vertexShader, const std::string& geometryShader, const std::string& fragmentShader) :
-        assetManager(assetManager), graphicsWrapper(assetManager->getGraphicsWrapper()), materialRequired(false) {
+        assetManager(assetManager), graphicsWrapper(assetManager->getGraphicsWrapper()), materialRequired(false),
+        modelBoneTransformUsed(false), shadowDirectionalUsed(false), shadowPointUsed(false) {
     graphicsProgramAsset = assetManager->loadAsset<GraphicsProgramAsset>({vertexShader, geometryShader, fragmentShader});
 
     GraphicsProgramPreprocessor::preprocess(this, assetManager->getGraphicsWrapper()->getContextInformation().shaderHeader, assetManager->getGraphicsWrapper()->getOptions()->getAllOptions());
@@ -30,6 +33,7 @@ GraphicsProgram::GraphicsProgram(AssetManager* assetManager, const std::string& 
     programID = graphicsWrapper->createGraphicsProgram(vertexShaderContent, graphicsProgramAsset->getVertexShaderFile(), geometryShaderContent, graphicsProgramAsset->getGeometryShaderFile(), fragmentShaderContent, graphicsProgramAsset->getFragmentShaderFile());
     graphicsProgramAsset->lateInitialize(programID);
     this->setMaterialRequired();
+    this->detectReservedTextureUnitUsage();
     if(materialRequired) {
         setSamplersAndUBOs();
     }
@@ -54,11 +58,13 @@ void GraphicsProgram::setSamplersAndUBOs() {
     graphicsWrapper->attachMaterialUBO(getID());
 
     //TODO these will be configurable with material editor
-    int diffuseMapAttachPoint = 1;
-    int ambientMapAttachPoint = 2;
-    int specularMapAttachPoint = 3;
-    int opacityMapAttachPoint = 4;
-    int normalMapAttachPoint = 5;
+    //units [MATERIAL_SAMPLER_TEXTURE_UNIT_START, FIRST_ASSIGNABLE_TEXTURE_UNIT) are reserved for
+    //these 5 samplers, see the layout in GraphicsInterface.h
+    int diffuseMapAttachPoint = GraphicsInterface::MATERIAL_SAMPLER_TEXTURE_UNIT_START;
+    int ambientMapAttachPoint = GraphicsInterface::MATERIAL_SAMPLER_TEXTURE_UNIT_START + 1;
+    int specularMapAttachPoint = GraphicsInterface::MATERIAL_SAMPLER_TEXTURE_UNIT_START + 2;
+    int opacityMapAttachPoint = GraphicsInterface::MATERIAL_SAMPLER_TEXTURE_UNIT_START + 3;
+    int normalMapAttachPoint = GraphicsInterface::MATERIAL_SAMPLER_TEXTURE_UNIT_START + 4;
 
     if (!setUniform("diffuseSampler", diffuseMapAttachPoint)) {
         std::cerr << "Uniform \"diffuseSampler\" could not be set for " << this->getProgramName() << std::endl;
@@ -79,10 +85,10 @@ void GraphicsProgram::setSamplersAndUBOs() {
     }
     //TODO we should support multi texture on one pass
 
-    if (!setUniform("pre_shadowDirectional", graphicsWrapper->getMaxTextureImageUnits() - 1)) {
+    if (!setUniform("pre_shadowDirectional", GraphicsInterface::SHADOW_MAP_TEXTURE_UNIT_START)) {
         std::cerr << "Uniform \"pre_shadowDirectional\" could not be set for " << this->getProgramName() << std::endl;
     }
-    if (!setUniform("pre_shadowPoint", graphicsWrapper->getMaxTextureImageUnits() - 2)) {
+    if (!setUniform("pre_shadowPoint", GraphicsInterface::SHADOW_MAP_TEXTURE_UNIT_START + 1)) {
         std::cerr << "Uniform \"pre_shadowPoint\" could not be set for " << this->getProgramName() << std::endl;
     }
 }
@@ -95,6 +101,16 @@ void GraphicsProgram::setMaterialRequired() {
             break;
         }
     }
+}
+
+void GraphicsProgram::detectReservedTextureUnitUsage() {
+    const auto& uniformMap = graphicsProgramAsset->getUniformMap();
+    //allModelTransformsTexture and allBoneTransformsTexture are declared together only (both live
+    //solely in the shared ModelRendering.vert header), so either one found implies both are present.
+    modelBoneTransformUsed = uniformMap.find("allModelTransformsTexture") != uniformMap.end()
+                              || uniformMap.find("allBoneTransformsTexture") != uniformMap.end();
+    shadowDirectionalUsed = uniformMap.find("pre_shadowDirectional") != uniformMap.end();
+    shadowPointUsed = uniformMap.find("pre_shadowPoint") != uniformMap.end();
 }
 
 bool GraphicsProgram::addPresetValue(const std::string& uniformName, const std::string& value) {

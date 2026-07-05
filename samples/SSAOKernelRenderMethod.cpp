@@ -54,7 +54,8 @@ bool SSAOKernelRenderMethod::initRender(std::shared_ptr<GraphicsProgram> program
         std::cerr << "uniform variable \"ssaoSampleCount\" couldn't be set" << std::endl;
     }
     generateSSAONoiseTexture();
-    if(!program->setUniform("ssaoNoiseSampler", graphicsInterface->getMaxTextureImageUnits()-5)) {
+    //FIXME requires weird texture unit selection, because we don't have anything else
+    if(!program->setUniform("ssaoNoiseSampler", graphicsInterface->getMaxTextureImageUnits()-6)) {
         std::cerr << "uniform variable \"ssaoNoiseSampler\" couldn't be set" << std::endl;
     }
     return false;

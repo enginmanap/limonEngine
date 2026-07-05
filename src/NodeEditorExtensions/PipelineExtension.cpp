@@ -716,6 +716,10 @@ bool PipelineExtension::canBeJoined(const std::set<const Node*>& existingNodes, 
     bool existingDepthReadState = false;
     bool existingDepthWriteState = false;
     bool existingBlendingState = false;
+    bool existingMaterialRequired = false;
+    bool existingModelBoneTransformUsed = false;
+    bool existingShadowDirectionalUsed = false;
+    bool existingShadowPointUsed = false;
     std::vector<std::string> existingCameraTags;
     std::vector<std::string> existingObjectTags;
     for(auto existingNode:existingNodes) {
@@ -734,6 +738,10 @@ bool PipelineExtension::canBeJoined(const std::set<const Node*>& existingNodes, 
         existingDepthReadState = stageExtension->isDepthTestEnabled();
         existingDepthWriteState = stageExtension->isDepthWriteEnabled();
         existingBlendingState = stageExtension->isBlendEnabled();
+        existingMaterialRequired = stageExtension->getProgramNameInfo().materialRequired;
+        existingModelBoneTransformUsed = stageExtension->getProgramNameInfo().modelBoneTransformUsed;
+        existingShadowDirectionalUsed = stageExtension->getProgramNameInfo().shadowDirectionalUsed;
+        existingShadowPointUsed = stageExtension->getProgramNameInfo().shadowPointUsed;
         existingCameraTags = stageExtension->getCameraTags();
         existingObjectTags = stageExtension->getObjectTags();
         for (auto outputConnection:existingNode->getOutputConnections()) {
@@ -826,6 +834,25 @@ bool PipelineExtension::canBeJoined(const std::set<const Node*>& existingNodes, 
         return false;
     }
 
+    //these determine which of the reserved texture-unit bands this joined stage actually needs
+    //(see the layout in GraphicsInterface.h); nodes that disagree must not share a stage or that
+    //determination would be wrong for one of them.
+    if(existingMaterialRequired != currentStageExtension->getProgramNameInfo().materialRequired) {
+        std::cerr << "Failed because Material Required is different" << std::endl;
+        return false;
+    }
+    if(existingModelBoneTransformUsed != currentStageExtension->getProgramNameInfo().modelBoneTransformUsed) {
+        std::cerr << "Failed because Model/Bone Transform usage is different" << std::endl;
+        return false;
+    }
+    if(existingShadowDirectionalUsed != currentStageExtension->getProgramNameInfo().shadowDirectionalUsed) {
+        std::cerr << "Failed because Shadow Directional usage is different" << std::endl;
+        return false;
+    }
+    if(existingShadowPointUsed != currentStageExtension->getProgramNameInfo().shadowPointUsed) {
+        std::cerr << "Failed because Shadow Point usage is different" << std::endl;
+        return false;
+    }
 
     return true;
 }
@@ -979,6 +1006,25 @@ bool PipelineExtension::buildRenderPipelineRecursive(const Node *node,
         }
 
         uint32_t location = stageInfo->stage->getLastPresetIndex();
+        {
+            //Ordinary "pre_" inputs must never be auto-assigned into a fixed reservation band (see
+            //GraphicsInterface.h for the full layout). Model/bone transforms are always reserved for
+            //every program; GraphicsProgram::setSamplersAndUBOs additionally, and unconditionally,
+            //attempts both the shadow presets and the material samplers together whenever the program
+            //requires a material (regardless of whether this specific shader declares any of them), so
+            //a materialRequired program reserves that whole combined block, not just its own half of it.
+            //Each band is [its start, the next band's start), so the "floor above band X" is simply the
+            //next band's start constant (no separate size needed).
+            uint32_t requiredFloor = GraphicsInterface::SHADOW_MAP_TEXTURE_UNIT_START; // just above model/bone
+            if (stageProgram->isMaterialRequired()) {
+                requiredFloor = GraphicsInterface::FIRST_ASSIGNABLE_TEXTURE_UNIT;      // above the whole reserved region
+            } else if (stageExtension->getProgramNameInfo().shadowDirectionalUsed || stageExtension->getProgramNameInfo().shadowPointUsed) {
+                requiredFloor = GraphicsInterface::MATERIAL_SAMPLER_TEXTURE_UNIT_START; // above model/bone + shadow
+            }
+            if (location < requiredFloor) {
+                location = requiredFloor;
+            }
+        }
         for (const Connection *connection:node->getInputConnections()) { //connect the inputs to current stage, since all of them now have a Stage build.
             std::shared_ptr<Texture> inputTexture = nullptr;
             for (Connection *inputConnection:connection->getInputConnections()) {
@@ -1005,15 +1051,34 @@ bool PipelineExtension::buildRenderPipelineRecursive(const Node *node,
                 auto stageProgramUniforms = stageProgram->getUniformMap();
                 if (stageProgramUniforms.find(connection->getName()) != stageProgramUniforms.end()) {
                     //FIXME these should not be hard coded, but they are because of missing material editor.
+                    //Unit numbers computed here get baked directly into the serialized pipeline (this
+                    //stage's "Input Index" and this program's "PresetValues"), and the machine that builds
+                    //a pipeline in the editor is not guaranteed to be the machine that later loads and runs
+                    //it. They are therefore small, fixed, absolute unit numbers (see GraphicsInterface.h)
+                    //rather than anything computed relative to a hardware maximum (queried or assumed) -
+                    //a fixed low number needs no assumption about the target hardware's real maximum at all,
+                    //unlike a number computed relative to one, which is only as portable as that assumption.
                     if (connection->getName() == "pre_shadowDirectional") {
-                        stageInfo->stage->setInput(graphicsWrapper->getMaxTextureImageUnits() - 1, inputTexture);
+                        stageInfo->stage->setInput(GraphicsInterface::SHADOW_MAP_TEXTURE_UNIT_START, inputTexture);
                         stageProgram->addPresetValue(connection->getName(),
-                                                     std::to_string(graphicsWrapper->getMaxTextureImageUnits() - 1));
+                                                     std::to_string(GraphicsInterface::SHADOW_MAP_TEXTURE_UNIT_START));
                     } else if (connection->getName() == "pre_shadowPoint") {
-                        stageInfo->stage->setInput(graphicsWrapper->getMaxTextureImageUnits() - 2, inputTexture);
+                        stageInfo->stage->setInput(GraphicsInterface::SHADOW_MAP_TEXTURE_UNIT_START + 1, inputTexture);
                         stageProgram->addPresetValue(connection->getName(),
-                                                     std::to_string(graphicsWrapper->getMaxTextureImageUnits() - 2));
+                                                     std::to_string(GraphicsInterface::SHADOW_MAP_TEXTURE_UNIT_START + 1));
                     } else {
+                        //This is a live, build-machine-only sanity check (not a baked number), so it is
+                        //fine for it to use the actual reported maximum: it can only catch "this stage
+                        //needs more texture units than even this machine has", not guarantee portability
+                        //to weaker target hardware - a shader that genuinely needs more ordinary texture
+                        //inputs than some target GPU provides is a real hardware requirement mismatch that
+                        //no reservation scheme can paper over.
+                        if (static_cast<int32_t>(location) >= graphicsWrapper->getMaxTextureImageUnits()) {
+                            addError("Node " + node->getDisplayName() + " needs more texture units than this machine reports; connection [" +
+                                      connection->getName() + "] would be assigned unit " + std::to_string(location) +
+                                      " but only " + std::to_string(graphicsWrapper->getMaxTextureImageUnits()) + " are available here.");
+                            return false;
+                        }
                         stageInfo->stage->setInput(location, inputTexture);
                         stageProgram->addPresetValue(connection->getName(), std::to_string(location));
                         location++;
