@@ -14,6 +14,7 @@
 #include "Graphics/Texture.h"
 #include "PipelineStageExtension.h"
 #include "limonAPI/Graphics/GraphicsProgram.h"
+#include "Material.h"
 #include "OrderCorrectionRules/SkyShouldRenderBeforeBlendRule.h"
 #include "Utils/StringUtils.hpp"
 
@@ -970,6 +971,7 @@ bool PipelineExtension::buildRenderPipelineRecursive(const Node *node,
                                                              stageExtension->getProgramNameInfo().geometryShaderName,
                                                              stageExtension->getProgramNameInfo().fragmentShaderName);
         }
+        Material::configureProgram(stageProgram);
 
         std::shared_ptr<GraphicsPipeline::StageInfo> stageInfo;
         stageInfo = findSharedStage(node, nodeStages, groupsByDependency);
@@ -1007,19 +1009,19 @@ bool PipelineExtension::buildRenderPipelineRecursive(const Node *node,
 
         uint32_t location = stageInfo->stage->getLastPresetIndex();
         {
-            //Ordinary "pre_" inputs must never be auto-assigned into a fixed reservation band (see
-            //GraphicsInterface.h for the full layout). Model/bone transforms are always reserved for
-            //every program; GraphicsProgram::setSamplersAndUBOs additionally, and unconditionally,
-            //attempts both the shadow presets and the material samplers together whenever the program
-            //requires a material (regardless of whether this specific shader declares any of them), so
-            //a materialRequired program reserves that whole combined block, not just its own half of it.
-            //Each band is [its start, the next band's start), so the "floor above band X" is simply the
-            //next band's start constant (no separate size needed).
+            //Ordinary "pre_" inputs must never be auto-assigned into a fixed reservation band (see the
+            //layout comment on GraphicsInterface::MODEL_BONE_TRANSFORM_TEXTURE_UNIT_START in
+            //GraphicsInterface.h). Model/bone transforms are always reserved for every program; a
+            //materialRequired program additionally reserves the shadow + material bands together (the
+            //engine binds the material samplers via Material::configureProgram, and shadow presets sit
+            //just below them), so it starts its ordinary inputs above the whole combined block. Each band
+            //is [its start, the next band's start), so the "floor above band X" is simply the next band's
+            //start constant (no separate size needed).
             uint32_t requiredFloor = GraphicsInterface::SHADOW_MAP_TEXTURE_UNIT_START; // just above model/bone
             if (stageProgram->isMaterialRequired()) {
-                requiredFloor = GraphicsInterface::FIRST_ASSIGNABLE_TEXTURE_UNIT;      // above the whole reserved region
+                requiredFloor = Material::FIRST_ASSIGNABLE_TEXTURE_UNIT;      // above the whole reserved region
             } else if (stageExtension->getProgramNameInfo().shadowDirectionalUsed || stageExtension->getProgramNameInfo().shadowPointUsed) {
-                requiredFloor = GraphicsInterface::MATERIAL_SAMPLER_TEXTURE_UNIT_START; // above model/bone + shadow
+                requiredFloor = Material::MATERIAL_SAMPLER_TEXTURE_UNIT_START; // above model/bone + shadow
             }
             if (location < requiredFloor) {
                 location = requiredFloor;

@@ -16,7 +16,9 @@
 #include "Editor/ImGuiRequest.h"
 #include "Editor/ImGuiResult.h"
 #include "Editor/EditorRenderable.h"
+#include "limonAPI/Graphics/GraphicsInterface.h"
 
+class GraphicsProgram;
 
 class Material : public EditorRenderable {
 private:
@@ -122,6 +124,19 @@ public:
     }
 
     void loadGPUSide(AssetManager *assetManager);
+
+    // 5,6,7,8,9 would be used by material, so first assignable would be 10
+    static constexpr int32_t MATERIAL_SAMPLER_TEXTURE_UNIT_START = GraphicsInterface::SHADOW_MAP_TEXTURE_UNIT_START + 2; // +2: directional, point
+    static constexpr int32_t FIRST_ASSIGNABLE_TEXTURE_UNIT      = MATERIAL_SAMPLER_TEXTURE_UNIT_START + 5;              // +5: diffuse, ambient, specular, opacity, normal
+
+    enum class Sampler : int32_t { DIFFUSE = 0, AMBIENT = 1, SPECULAR = 2, OPACITY = 3, NORMAL = 4 };
+    static constexpr int32_t samplerUnit(Sampler sampler) {
+        return MATERIAL_SAMPLER_TEXTURE_UNIT_START + static_cast<int32_t>(sampler);
+    }
+
+    static void configureProgram(const std::shared_ptr<GraphicsProgram>& program);
+
+    void activateTextures(GraphicsInterface* graphicsWrapper) const;
 
     const std::string &getName() const {
         return name;

@@ -3,6 +3,7 @@
 //
 
 #include "GraphicsProgramLoader.h"
+#include "Material.h"
 
 std::shared_ptr<GraphicsProgram> GraphicsProgramLoader::deserialize(tinyxml2::XMLElement *programNode, std::shared_ptr<AssetManager> assetManager) {
     std::string vertexShader;
@@ -44,6 +45,7 @@ std::shared_ptr<GraphicsProgram> GraphicsProgramLoader::deserialize(tinyxml2::XM
     } else {
         newProgram = std::make_shared<GraphicsProgram>(assetManager.get(), vertexShader, fragmentShader);
     }
+    Material::configureProgram(newProgram);
 
     tinyxml2::XMLElement *presetValuesNode = programNode->FirstChildElement("PresetValues");
     if(presetValuesNode != nullptr) {

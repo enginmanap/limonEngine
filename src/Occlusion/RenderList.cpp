@@ -59,14 +59,6 @@ void RenderList::removeModelFromAll(uint32_t modelId) {
 }
 
 void RenderList::render(GraphicsInterface *graphicsWrapper, const std::shared_ptr<GraphicsProgram> &renderProgram, bool forceNotAnimated) const {
-   //must match GraphicsProgram::setSamplersAndUBOs's diffuseSampler/ambientSampler/specularSampler/
-   //opacitySampler/normalSampler uniform assignments, since that is what tells the shader which unit
-   //to sample each map from - this call binds the actual texture object to that same unit.
-   int diffuseMapAttachPoint = GraphicsInterface::MATERIAL_SAMPLER_TEXTURE_UNIT_START;
-   int ambientMapAttachPoint = GraphicsInterface::MATERIAL_SAMPLER_TEXTURE_UNIT_START + 1;
-   int specularMapAttachPoint = GraphicsInterface::MATERIAL_SAMPLER_TEXTURE_UNIT_START + 2;
-   int opacityMapAttachPoint = GraphicsInterface::MATERIAL_SAMPLER_TEXTURE_UNIT_START + 3;
-   int normalMapAttachPoint = GraphicsInterface::MATERIAL_SAMPLER_TEXTURE_UNIT_START + 4;
    bool lastAnimationState = false;
    auto renderListIterator = this->getIterator();
     if (renderListIterator.isEnd()) {
@@ -90,26 +82,7 @@ void RenderList::render(GraphicsInterface *graphicsWrapper, const std::shared_pt
            lastAnimationState = renderListIterator.get().isAnimated;
        }
        if (renderProgram->isMaterialRequired() && renderListIterator.isMaterialChanged()) {
-           const auto& material = renderListIterator.getMaterial();
-           //activate textures
-           if(material->hasDiffuseMap()) {
-               graphicsWrapper->attachTexture(material->getDiffuseTexture()->getID(), diffuseMapAttachPoint);
-           }
-           if(material->hasAmbientMap()) {
-               graphicsWrapper->attachTexture(material->getAmbientTexture()->getID(), ambientMapAttachPoint);
-           }
-
-           if(material->hasSpecularMap()) {
-               graphicsWrapper->attachTexture(material->getSpecularTexture()->getID(), specularMapAttachPoint);
-           }
-
-           if(material->hasOpacityMap()) {
-               graphicsWrapper->attachTexture(material->getOpacityTexture()->getID(), opacityMapAttachPoint);
-           }
-
-           if(material->hasNormalMap()) {
-               graphicsWrapper->attachTexture(material->getNormalTexture()->getID(), normalMapAttachPoint);
-           }
+           renderListIterator.getMaterial()->activateTextures(graphicsWrapper);
        }
 
        graphicsWrapper->setModelIndexesUBO(renderListIterator.get().indices);

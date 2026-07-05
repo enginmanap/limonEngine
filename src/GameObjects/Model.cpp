@@ -158,36 +158,6 @@ void Model::setupForTime(long time) {
     lastSetupTime = time;
 }
 
-void Model::activateTexturesOnly(std::shared_ptr<const Material>material) const {
-    //must match GraphicsProgram::setSamplersAndUBOs's diffuseSampler/ambientSampler/specularSampler/
-    //opacitySampler/normalSampler uniform assignments, since that is what tells the shader which unit
-    //to sample each map from - this call binds the actual texture object to that same unit.
-    const int diffuseMapAttachPoint = GraphicsInterface::MATERIAL_SAMPLER_TEXTURE_UNIT_START;
-    const int ambientMapAttachPoint = GraphicsInterface::MATERIAL_SAMPLER_TEXTURE_UNIT_START + 1;
-    const int specularMapAttachPoint = GraphicsInterface::MATERIAL_SAMPLER_TEXTURE_UNIT_START + 2;
-    const int opacityMapAttachPoint = GraphicsInterface::MATERIAL_SAMPLER_TEXTURE_UNIT_START + 3;
-    const int normalMapAttachPoint = GraphicsInterface::MATERIAL_SAMPLER_TEXTURE_UNIT_START + 4;
-
-    if(material->hasDiffuseMap()) {
-        graphicsWrapper->attachTexture(material->getDiffuseTexture()->getID(), diffuseMapAttachPoint);
-    }
-    if(material->hasAmbientMap()) {
-        graphicsWrapper->attachTexture(material->getAmbientTexture()->getID(), ambientMapAttachPoint);
-    }
-
-    if(material->hasSpecularMap()) {
-        graphicsWrapper->attachTexture(material->getSpecularTexture()->getID(), specularMapAttachPoint);
-    }
-
-    if(material->hasOpacityMap()) {
-        graphicsWrapper->attachTexture(material->getOpacityTexture()->getID(), opacityMapAttachPoint);
-    }
-
-    if(material->hasNormalMap()) {
-        graphicsWrapper->attachTexture(material->getNormalTexture()->getID(), normalMapAttachPoint);
-    }
-}
-
 void Model::renderWithProgram(std::shared_ptr<GraphicsProgram> program, uint32_t lodLevel) {
     for (auto iter = meshMetaData.begin(); iter != meshMetaData.end(); ++iter) {
 
@@ -199,7 +169,7 @@ void Model::renderWithProgram(std::shared_ptr<GraphicsProgram> program, uint32_t
             program->setUniform("isAnimated", false);
         }
         if(program->isMaterialRequired()) {
-            this->activateTexturesOnly((*iter)->material);
+            (*iter)->material->activateTextures(graphicsWrapper);
         }
         graphicsWrapper->render(program->getID(), (*iter)->mesh->getVao(), (*iter)->mesh->getEbo(), (*iter)->mesh->getTriangleCount()[lodLevel] * 3);
     }

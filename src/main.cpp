@@ -12,6 +12,7 @@
 #include "Profiler/ProfilerSystem.h"
 #include <pthread.h>
 #include "Profiler/ProfilerMacros.h"
+#include "Material.h"
 
 const std::string PROGRAM_NAME = "LimonEngine";
 const std::string RELEASE_FILE = "./Data/Release.xml";
@@ -65,6 +66,7 @@ void GameEngine::renderLoadingImage() const {
         //FIXME: this definition here seems wrong. I can't think of another way, we should explore
         std::shared_ptr<GraphicsProgram> imageRenderProgram = std::make_shared<GraphicsProgram>(assetManager.get(),"./Engine/Shaders/GUIImage/vertex.glsl",
                                                                                                      "./Engine/Shaders/GUIImage/fragment.glsl");
+        Material::configureProgram(imageRenderProgram);
         sdlHelper->swap();
         loadingImage->renderWithProgram(imageRenderProgram, 0);
         sdlHelper->swap();

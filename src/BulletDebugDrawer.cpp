@@ -4,10 +4,12 @@
 
 #include "BulletDebugDrawer.h"
 #include "Assets/AssetManager.h"
+#include "Material.h"
 
 BulletDebugDrawer::BulletDebugDrawer(std::shared_ptr<AssetManager> assetManager, OptionsUtil::Options* options) : assetManager(assetManager), graphicsWrapper(assetManager->getGraphicsWrapper()), vao(0), vbo(0), ebo(0), options(options) {
         renderProgram = std::make_shared<GraphicsProgram>(assetManager.get(), "./Engine/Shaders/Lines/vertex.glsl",
                                                           "./Engine/Shaders/Lines/fragment.glsl");
+        Material::configureProgram(renderProgram);
         std::cout << "Render program is ready with id " << renderProgram->getID() << std::endl;
         OptionsUtil::Options::Option<long> bufferSizeOption = options->getOption<long>(HASH("debug_drawBufferSize"));
         debugDrawBufferSize = bufferSizeOption.getOrDefault(1000);

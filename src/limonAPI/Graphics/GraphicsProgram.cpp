@@ -15,9 +15,6 @@ GraphicsProgram::GraphicsProgram(AssetManager* assetManager, const std::string& 
     graphicsProgramAsset->lateInitialize(programID);
     this->setMaterialRequired();
     this->detectReservedTextureUnitUsage();
-    if(materialRequired) {
-        setSamplersAndUBOs();
-    }
     graphicsWrapper->attachModelTexture(getID());
     graphicsWrapper->attachRigTexture(getID());
     graphicsWrapper->attachModelIndicesUBO(getID());
@@ -34,9 +31,6 @@ GraphicsProgram::GraphicsProgram(AssetManager* assetManager, const std::string& 
     graphicsProgramAsset->lateInitialize(programID);
     this->setMaterialRequired();
     this->detectReservedTextureUnitUsage();
-    if(materialRequired) {
-        setSamplersAndUBOs();
-    }
     graphicsWrapper->attachModelTexture(getID());
     graphicsWrapper->attachRigTexture(getID());
     graphicsWrapper->attachModelIndicesUBO(getID());
@@ -53,46 +47,6 @@ GraphicsProgram::~GraphicsProgram() {
 }
 
 
-//TODO remove with material editor
-void GraphicsProgram::setSamplersAndUBOs() {
-    graphicsWrapper->attachMaterialUBO(getID());
-
-    //TODO these will be configurable with material editor
-    //units [MATERIAL_SAMPLER_TEXTURE_UNIT_START, FIRST_ASSIGNABLE_TEXTURE_UNIT) are reserved for
-    //these 5 samplers, see the layout in GraphicsInterface.h
-    int diffuseMapAttachPoint = GraphicsInterface::MATERIAL_SAMPLER_TEXTURE_UNIT_START;
-    int ambientMapAttachPoint = GraphicsInterface::MATERIAL_SAMPLER_TEXTURE_UNIT_START + 1;
-    int specularMapAttachPoint = GraphicsInterface::MATERIAL_SAMPLER_TEXTURE_UNIT_START + 2;
-    int opacityMapAttachPoint = GraphicsInterface::MATERIAL_SAMPLER_TEXTURE_UNIT_START + 3;
-    int normalMapAttachPoint = GraphicsInterface::MATERIAL_SAMPLER_TEXTURE_UNIT_START + 4;
-
-    if (!setUniform("diffuseSampler", diffuseMapAttachPoint)) {
-        std::cerr << "Uniform \"diffuseSampler\" could not be set for " << this->getProgramName() << std::endl;
-    }
-    if (!setUniform("ambientSampler", ambientMapAttachPoint)) {
-        std::cerr << "Uniform \"ambientSampler\" could not be set for " << this->getProgramName() << std::endl;
-    }
-    if (!setUniform("specularSampler", specularMapAttachPoint)) {
-        std::cerr << "Uniform \"specularSampler\" could not be set for " << this->getProgramName() << std::endl;
-    }
-    auto uniformMap = graphicsProgramAsset->getUniformMap();
-    if(uniformMap.find("opacitySampler") != uniformMap.end()) {
-        if (!setUniform("opacitySampler", opacityMapAttachPoint)) {
-            std::cerr << "Uniform \"opacitySampler\" could not be set for " << this->getProgramName() << std::endl;
-        }    }
-    if (!setUniform("normalSampler", normalMapAttachPoint)) {
-        std::cerr << "Uniform \"normalSampler\" could not be set for " << this->getProgramName() << std::endl;
-    }
-    //TODO we should support multi texture on one pass
-
-    if (!setUniform("pre_shadowDirectional", GraphicsInterface::SHADOW_MAP_TEXTURE_UNIT_START)) {
-        std::cerr << "Uniform \"pre_shadowDirectional\" could not be set for " << this->getProgramName() << std::endl;
-    }
-    if (!setUniform("pre_shadowPoint", GraphicsInterface::SHADOW_MAP_TEXTURE_UNIT_START + 1)) {
-        std::cerr << "Uniform \"pre_shadowPoint\" could not be set for " << this->getProgramName() << std::endl;
-    }
-}
-
 void GraphicsProgram::setMaterialRequired() {
     const auto& uniformMap = graphicsProgramAsset->getUniformMap();
     for (const auto& pair : uniformMap) {
@@ -100,6 +54,9 @@ void GraphicsProgram::setMaterialRequired() {
             materialRequired = true;
             break;
         }
+    }
+    if (materialRequired) {
+        graphicsWrapper->attachMaterialUBO(getID());
     }
 }
 

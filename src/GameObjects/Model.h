@@ -161,8 +161,6 @@ public:
         graphicsWrapper->setModel(this->getWorldObjectID(), this->transformation.getWorldTransform());
     }
 
-    void activateTexturesOnly(std::shared_ptr<const Material> material) const;
-
     bool setupRenderVariables(MeshMeta *meshMetaData);
 
     const std::vector<MeshMeta *> &getMeshMetaData() const { return meshMetaData; }

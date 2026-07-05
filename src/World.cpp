@@ -7,6 +7,7 @@
 #include "WorldAPIAccessor.h"
 #include <Graphics/GraphicsPipeline.h>
 #include "NodeEditorExtensions/PipelineStageExtension.h"
+#include "Material.h"
 
 #include "Camera/PerspectiveCamera.h"
 #include "Camera/OrthographicCamera.h"
@@ -1966,6 +1967,7 @@ bool World::verifyIDs() {
                                                                     vertexShaderNode->fullPath,
                                                                     fragmentShaderNode->fullPath);
                }
+               Material::configureProgram(foundProgram);
                programs.emplace_back(foundProgram);
            }
        }

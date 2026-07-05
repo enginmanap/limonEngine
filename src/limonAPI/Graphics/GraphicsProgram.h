@@ -28,12 +28,10 @@ class GraphicsProgram {
     uint32_t programID;
     std::string vertexShaderContent, geometryShaderContent, fragmentShaderContent;
 
-    //TODO remove with material editor
-    void setSamplersAndUBOs();
     void setMaterialRequired();
     //detects, from the reflected uniform map, whether this program declares the uniforms that make it
     //depend on the reserved texture-unit bands (model/bone transform and shadow maps; see the layout in
-    //GraphicsInterface.h)
+    //GraphicsInterface.h, GraphicsInterface::MODEL_BONE_TRANSFORM_TEXTURE_UNIT_START)
     void detectReservedTextureUnitUsage();
 
 public:

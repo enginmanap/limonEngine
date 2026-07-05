@@ -10,6 +10,7 @@
 #include <WorldSaver.h>
 
 #include "limonAPI/Graphics/GraphicsInterface.h"
+#include "limonAPI/Graphics/GraphicsProgram.h"
 
 void Material::loadGPUSide(AssetManager *assetManager) {
     if(deserialized) {
@@ -135,6 +136,40 @@ ImGuiResult Material::addImGuiEditorElements(const ImGuiRequest &request) {
         assetManager->getGraphicsWrapper()->setMaterial(*this);
     }
     return result;
+}
+
+void Material::configureProgram(const std::shared_ptr<GraphicsProgram>& program) {
+    if (!program->isMaterialRequired()) {
+        return;
+    }
+    //A sampler the shader doesn't declare simply fails to set (harmless) - e.g. a program that pulls in
+    //the material UBO but samples the G-buffer directly, not diffuseSampler.
+    program->setUniform("diffuseSampler",  samplerUnit(Sampler::DIFFUSE));
+    program->setUniform("ambientSampler",  samplerUnit(Sampler::AMBIENT));
+    program->setUniform("specularSampler", samplerUnit(Sampler::SPECULAR));
+    program->setUniform("opacitySampler",  samplerUnit(Sampler::OPACITY));
+    program->setUniform("normalSampler",   samplerUnit(Sampler::NORMAL));
+}
+
+void Material::activateTextures(GraphicsInterface* graphicsWrapper) const {
+    //Binds each present map to its material-sampler unit. configureProgram (above) sets the matching
+    //sampler uniforms to the same units, both via Material::samplerUnit, so the bound texture and the
+    //shader's sampler always agree.
+    if (hasDiffuseMap()) {
+        graphicsWrapper->attachTexture(getDiffuseTexture()->getID(), samplerUnit(Sampler::DIFFUSE));
+    }
+    if (hasAmbientMap()) {
+        graphicsWrapper->attachTexture(getAmbientTexture()->getID(), samplerUnit(Sampler::AMBIENT));
+    }
+    if (hasSpecularMap()) {
+        graphicsWrapper->attachTexture(getSpecularTexture()->getID(), samplerUnit(Sampler::SPECULAR));
+    }
+    if (hasOpacityMap()) {
+        graphicsWrapper->attachTexture(getOpacityTexture()->getID(), samplerUnit(Sampler::OPACITY));
+    }
+    if (hasNormalMap()) {
+        graphicsWrapper->attachTexture(getNormalTexture()->getID(), samplerUnit(Sampler::NORMAL));
+    }
 }
 
 bool Material::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *materialsNode) const {
