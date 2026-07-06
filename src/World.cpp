@@ -123,7 +123,7 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
     switchPlayer(currentPlayer, *inputHandler); //switching to itself, to set the states properly. It uses camera so done after camera creation
 
     OptionsUtil::Options::Option<std::string> renderPipelineOption = options->getOption<std::string>(HASH("render_pipeline"));
-    renderPipeline = GraphicsPipeline::deserialize(renderPipelineOption.get(), graphicsWrapper, assetManager, options, buildRenderMethods());
+    renderPipeline = GraphicsPipeline::deserialize(renderPipelineOption.getOrDefault(""), graphicsWrapper, assetManager, options, buildRenderMethods());
 
     if(renderPipeline == nullptr) {
         //use default if no custom is found
