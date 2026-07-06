@@ -85,6 +85,9 @@ public:
 
     virtual std::vector<LimonTypes::GenericParameter> getParameters() const = 0;
 
+    // Used for render ordering within a stage, lower value runs earlier. Override to interleave with other methods in the same stage.
+    virtual uint32_t getPriority() const { return 999; }
+
     virtual bool initRender(std::shared_ptr<GraphicsProgram> program[[gnu::unused]],
                             std::vector<LimonTypes::GenericParameter> parameters[[gnu::unused]]) { return true;};
 

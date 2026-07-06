@@ -28,7 +28,6 @@ public:
         std::shared_ptr<GraphicsPipelineStage> stage;
         bool clear = false;
         std::vector<RenderMethods::RenderMethod> renderMethods;
-        std::unordered_map<std::string, RenderMethodInterface*> externalRenderMethods;
         std::vector<std::string> cameraTags;
         std::vector<std::string> renderTags;
 
@@ -41,10 +40,6 @@ public:
             }
             highestPriority = method.getPriority();
             renderMethods.emplace_back(method);
-        }
-
-        void addExternalRenderMethod(const std::string& methodName, RenderMethodInterface* externalMethod) {
-            externalRenderMethods[methodName] = externalMethod;
         }
 
         uint32_t getHighestPriority() const {

@@ -125,11 +125,6 @@ bool GraphicsPipeline::StageInfo::serialize(tinyxml2::XMLDocument &document, tin
         }
         methodElement->InsertEndChild(parametersElement);
 
-        //now we need to parse the external methods
-        for (auto erIterator = externalRenderMethods.begin(); erIterator != externalRenderMethods.end(); ++erIterator) {
-            tinyxml2::XMLElement* externalMethodElement =  document.NewElement("ExternalMethod");
-            externalMethodElement->SetText(erIterator->first.c_str());
-        }
         methodList->InsertEndChild(methodElement);
     }
     stageInformationElement->InsertEndChild(methodList);
@@ -355,21 +350,6 @@ GraphicsPipeline::StageInfo::deserialize(tinyxml2::XMLElement *stageInfoElement,
                 std::cerr << "Render method '" << methodName << "' not found. If this is a dynamic method, ensure the plugin DLL is loaded before the pipeline deserializes." << std::endl;
                 return false;
             }
-        }
-
-
-
-        //now we need to parse the external methods
-        tinyxml2::XMLElement* externalMethodElement =  methodElement->FirstChildElement("ExternalMethod");
-        while(externalMethodElement !=nullptr) {
-            if(externalMethodElement->GetText() != nullptr ) {
-             std::string externalMethodNameString = externalMethodElement->GetText();
-                RenderMethodInterface* externalRenderMethod = RenderMethodInterface::createRenderMethodInterfaceInstance(
-                        externalMethodNameString, assetManager->getGraphicsWrapper());
-                externalRenderMethod->initRender(graphicsProgram, std::vector<LimonTypes::GenericParameter>());
-                newStageInfo.addExternalRenderMethod(externalMethodNameString, externalRenderMethod);
-            }
-            externalMethodElement =  externalMethodElement->NextSiblingElement("ExternalMethod");
         }
 
         if(graphicsProgram != nullptr) {//debug render program is not loaded by the internal systems

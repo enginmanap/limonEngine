@@ -194,7 +194,6 @@ private:
 
 public:
     RenderMethod getRenderMethod(GraphicsInterface* graphicsInterface, const std::string& methodName, const std::shared_ptr<GraphicsProgram>& glslProgram, bool& isFound) const {
-        uint32_t priority = 999;
         //First check if we already created an instance
         if(dynamicRenderMethodInstances.find(methodName) == dynamicRenderMethodInstances.end()) {
             //create an instance for usage
@@ -212,7 +211,7 @@ public:
             RenderMethodInterface * methodInterface = dynamicRenderMethodInstances[methodName];
             if(methodInterface != nullptr) {
                 return RenderMethod(methodName,
-                                    priority,
+                                    methodInterface->getPriority(),
                                     [methodInterface](const std::shared_ptr<GraphicsProgram>& program, const std::vector<LimonTypes::GenericParameter> & params)
                                     {return methodInterface->initRender(program, params);},
                                     [methodInterface](const std::shared_ptr<GraphicsProgram>& program, const std::string &cameraName [[gnu::unused]], const std::vector<HashUtil::HashedString> &tags [[gnu::unused]])
