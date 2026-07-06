@@ -383,7 +383,8 @@ std::shared_ptr<GraphicsPipelineStage> GraphicsPipelineStage::deserialize(tinyxm
             std::cerr << "Input index for Pipeline Stage can't be read, skipping" << std::endl;
         } else {
             int index = std::stoi(indexRaw);
-            std::string textureID = inputElement->Attribute("textureID");
+            const char* textureIDRaw = inputElement->Attribute("textureID");
+            std::string textureID = textureIDRaw == nullptr ? "" : textureIDRaw;
             if(textureID.empty()) {
                 std::cerr << "Texture ID for index " << index << " can't be read, skipping" << std::endl;
             } else {
@@ -427,7 +428,8 @@ std::shared_ptr<GraphicsPipelineStage> GraphicsPipelineStage::deserialize(tinyxm
                 fail = true;
             }
             if(!fail) {
-                std::string textureID = outputElement->Attribute("textureID");
+                const char* textureIDRaw = outputElement->Attribute("textureID");
+                std::string textureID = textureIDRaw == nullptr ? "" : textureIDRaw;
                 std::shared_ptr<Texture> outputTexture;
                 if(textureID.empty()) {
                     std::cerr << "Texture ID for output attachment " << attachmentString << " can't be read, skipping" << std::endl;
