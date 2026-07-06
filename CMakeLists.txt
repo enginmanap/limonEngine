@@ -216,6 +216,19 @@ add_custom_target(copyData
 add_dependencies(LimonEngine copyData)
 
 TARGET_LINK_LIBRARIES(LimonEngine ProfilerSystemLib ImGui ImGuizmo OpenAL meshoptimizer nodeGraph assimp pybind11::embed SDOC.quic TracyClient TracyServer ${WINDOWS_SPECIFIC_LINK_LIBRARIES} ${TinyXML2_LIBRARIES} ${BULLET_LIBRARIES} SDL3::SDL3 ${FREETYPE_LIBRARIES} SDL3_image::SDL3_image)
+
+# Optional: Wayland fullscreen viewport scaling fix (Linux/Pi only)
+if(UNIX AND NOT APPLE)
+    pkg_check_modules(WAYLAND_CLIENT QUIET wayland-client)
+    if(WAYLAND_CLIENT_FOUND)
+        message(STATUS "wayland-client found -- Wayland fullscreen viewport fix enabled")
+        target_compile_definitions(LimonEngine PRIVATE HAS_WAYLAND)
+        target_include_directories(LimonEngine PRIVATE ${WAYLAND_CLIENT_INCLUDE_DIRS})
+        target_link_libraries(LimonEngine ${WAYLAND_CLIENT_LIBRARIES})
+    else()
+        message(STATUS "wayland-client not found -- Wayland fullscreen viewport fix disabled")
+    endif()
+endif()
 target_precompile_headers(LimonEngine PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src/stdafx.h)
 
 IF (WIN32)

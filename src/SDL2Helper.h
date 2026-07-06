@@ -18,6 +18,10 @@ private:
     SDL_GLContext context;
     OptionsUtil::Options* options;
 
+#ifdef HAS_WAYLAND
+    void applyWaylandViewportFix();
+#endif
+
 public:
 
     void setFullScreen(bool isFullScreen);
@@ -31,6 +35,9 @@ public:
     ~SDL2Helper();
 
     void swap() {
+#ifdef HAS_WAYLAND
+        applyWaylandViewportFix();
+#endif
         SDL_GL_SwapWindow(window);
         options->setIsWindowInFocus((SDL_GetWindowFlags(window) & SDL_WINDOW_MOUSE_FOCUS) != 0);
     };

@@ -7,6 +7,9 @@
 #ifdef _WIN32
 #include <windows.h>
 #endif
+#ifdef HAS_WAYLAND
+#include "Wayland/viewporter-client-protocol.h"
+#endif
 #include "SDL2Helper.h"
 #include "limonAPI/Options.h"
 #include "limonAPI/LimonAPI.h"
@@ -76,10 +79,6 @@ bool SDL2Helper::createContext() {
     options->setWindowWidth(w);
     options->setWindowHeight(h);
 
-    std::cout << "[FS] after context: windowSize(logical)=" << w << "x" << h
-              << " drawableSize(pixels)=" << display_w << "x" << display_h
-              << " engineRenders=" << options->getScreenWidth() << "x" << options->getScreenHeight()
-              << std::endl;
 
     /* This makes our buffer swap syncronized with the monitor's vertical refresh */
 #ifndef NDEBUG
@@ -266,44 +265,67 @@ void SDL2Helper::setFullScreen(bool isFullScreen) {
         displayID = SDL_GetPrimaryDisplay();
     }
 
-    int modeCount = 0;
-    SDL_DisplayMode** allModes = SDL_GetFullscreenDisplayModes(displayID, &modeCount);
-    std::cout << "[FS] display " << displayID << " requested "
-              << options->getScreenWidth() << "x" << options->getScreenHeight()
-              << ", " << modeCount << " fullscreen modes available:" << std::endl;
-    if (allModes != nullptr) {
-        for (int i = 0; i < modeCount; ++i) {
-            std::cout << "[FS]   " << allModes[i]->w << "x" << allModes[i]->h
-                      << " density=" << allModes[i]->pixel_density
-                      << " rr=" << allModes[i]->refresh_rate << std::endl;
-        }
-        SDL_free(allModes);
+    // Request exact render resolution instead of supported mode. We will
+    // use wp_viewporter to scale, and this makes EGL buffer exact size we wanted
+    SDL_DisplayMode renderMode = {};
+    renderMode.displayID = displayID;
+    renderMode.w = (int)options->getScreenWidth();
+    renderMode.h = (int)options->getScreenHeight();
+    renderMode.refresh_rate = 0.0f;
+    renderMode.pixel_density = 1.0f;
+
+    if (!SDL_SetWindowFullscreenMode(window, &renderMode)) {
+        std::cerr << "[FS] SDL_SetWindowFullscreenMode failed: " << SDL_GetError() << std::endl;
     }
-    // --- END DIAGNOSTIC ---
-
-    SDL_DisplayMode mode;
-    bool haveMode = displayID != 0 &&
-                    SDL_GetClosestFullscreenDisplayMode(displayID, (int)options->getScreenWidth(),
-                                                        (int)options->getScreenHeight(), 0.0f, false, &mode);
-
-
     if (!SDL_SetWindowFullscreen(window, true)) {
         std::cerr << "[FS] SDL_SetWindowFullscreen failed: " << SDL_GetError() << std::endl;
     }
     SDL_SyncWindow(window);
-
-    if (haveMode) {
-        std::cout << "[FS] closest mode chosen: " << mode.w << "x" << mode.h
-                  << " density=" << mode.pixel_density << " rr=" << mode.refresh_rate << std::endl;
-        if (!SDL_SetWindowFullscreenMode(window, &mode)) {
-            std::cerr << "[FS] SDL_SetWindowFullscreenMode failed: " << SDL_GetError() << std::endl;
-        }
-        SDL_SyncWindow(window); // block until the (async on Wayland) mode change is applied
-    } else {
-        std::cerr << "[FS] no closest fullscreen mode for " << options->getScreenWidth() << "x"
-                  << options->getScreenHeight() << "; using desktop fullscreen: " << SDL_GetError() << std::endl;
-    }
 }
+
+#ifdef HAS_WAYLAND
+void SDL2Helper::applyWaylandViewportFix() {
+    if (strcmp(SDL_GetCurrentVideoDriver(), "wayland") != 0) {
+        return;
+    }
+    wp_viewport* viewport = (wp_viewport*)SDL_GetPointerProperty(
+        SDL_GetWindowProperties(window),
+        SDL_PROP_WINDOW_WAYLAND_VIEWPORT_POINTER, nullptr);
+    if (viewport == nullptr) {
+        return;
+    }
+
+    // Get the EGL buffer size. SDL_GetWindowSizeInPixels is returning wl_egl_window
+    // dimensions, which might be different because SDL also does ConfigureWindowGeometry
+    // which recalculates it.
+    int bufferW = 0, bufferH = 0;
+    SDL_GetWindowSizeInPixels(window, &bufferW, &bufferH);
+    if (bufferW == 0 || bufferH == 0) {
+        return;
+    }
+
+    int renderW = (int)options->getScreenWidth();
+    int renderH = (int)options->getScreenHeight();
+
+    if (renderW == bufferW && renderH == bufferH) {
+        // Exact match, no op
+        return;
+    }
+
+    // EGL assumes left top. We need to calculate from source Y, but it needs to fit in
+    // the buffer too.
+    int srcY = bufferH - renderH;
+    if (srcY < 0 || renderW > bufferW || srcY + renderH > bufferH) {
+        // Buffer is smaller than the render resolution; can't safely set source.
+        return;
+    }
+
+    // Set at every frame so SDL won't mess with it
+    wp_viewport_set_source(viewport,
+        wl_fixed_from_int(0), wl_fixed_from_int(srcY),
+        wl_fixed_from_int(renderW), wl_fixed_from_int(renderH));
+}
+#endif
 
 std::string SDL2Helper::getCurrentPath() {
     std::string currentPath = SDL_GetBasePath();
