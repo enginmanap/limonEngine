@@ -79,6 +79,11 @@ bool SDL2Helper::createContext() {
     options->setWindowWidth(w);
     options->setWindowHeight(h);
 
+#ifdef HAS_WAYLAND
+    waylandViewport = (wp_viewport*)SDL_GetPointerProperty(
+        SDL_GetWindowProperties(window),
+        SDL_PROP_WINDOW_WAYLAND_VIEWPORT_POINTER, nullptr);
+#endif
 
     /* This makes our buffer swap syncronized with the monitor's vertical refresh */
 #ifndef NDEBUG
@@ -285,43 +290,31 @@ void SDL2Helper::setFullScreen(bool isFullScreen) {
 
 #ifdef HAS_WAYLAND
 void SDL2Helper::applyWaylandViewportFix() {
-    if (strcmp(SDL_GetCurrentVideoDriver(), "wayland") != 0) {
-        return;
-    }
-    wp_viewport* viewport = (wp_viewport*)SDL_GetPointerProperty(
-        SDL_GetWindowProperties(window),
-        SDL_PROP_WINDOW_WAYLAND_VIEWPORT_POINTER, nullptr);
-    if (viewport == nullptr) {
+    if (waylandViewport == nullptr) {
         return;
     }
 
-    // Get the EGL buffer size. SDL_GetWindowSizeInPixels is returning wl_egl_window
-    // dimensions, which might be different because SDL also does ConfigureWindowGeometry
-    // which recalculates it.
+    // SDL_GetWindowSizeInPixels on Wayland reads two integers from the window's
+    // internal struct directly — no lock, no syscall.
     int bufferW = 0, bufferH = 0;
     SDL_GetWindowSizeInPixels(window, &bufferW, &bufferH);
-    if (bufferW == 0 || bufferH == 0) {
-        return;
-    }
 
     int renderW = (int)options->getScreenWidth();
     int renderH = (int)options->getScreenHeight();
 
     if (renderW == bufferW && renderH == bufferH) {
-        // Exact match, no op
         return;
     }
 
-    // EGL assumes left top. We need to calculate from source Y, but it needs to fit in
-    // the buffer too.
+    // glViewport(0,0,renderW,renderH) places rendered pixels at the bottom of the
+    // OpenGL framebuffer. EGL presents with y=0 at the top of the Wayland buffer,
+    // so the rendered region occupies rows (bufferH-renderH) to (bufferH-1).
     int srcY = bufferH - renderH;
     if (srcY < 0 || renderW > bufferW || srcY + renderH > bufferH) {
-        // Buffer is smaller than the render resolution; can't safely set source.
         return;
     }
 
-    // Set at every frame so SDL won't mess with it
-    wp_viewport_set_source(viewport,
+    wp_viewport_set_source(waylandViewport,
         wl_fixed_from_int(0), wl_fixed_from_int(srcY),
         wl_fixed_from_int(renderW), wl_fixed_from_int(renderH));
 }

@@ -12,6 +12,10 @@
 #include "limonAPI/LimonAPI.h"
 
 
+#ifdef HAS_WAYLAND
+    struct wp_viewport;  // forward declare Wayland/viewporter-client-protocol.h
+#endif
+
 class SDL2Helper {
 private:
     SDL_Window *window;
@@ -19,6 +23,7 @@ private:
     OptionsUtil::Options* options;
 
 #ifdef HAS_WAYLAND
+    wp_viewport* waylandViewport = nullptr;
     void applyWaylandViewportFix();
 #endif
 
