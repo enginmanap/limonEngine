@@ -826,10 +826,6 @@ bool PipelineExtension::canBeJoined(const std::set<const Node*>& existingNodes, 
         std::cerr << "Failed because DepthWriteState is different" << std::endl;
         return false;
     }
-    if(existingDepthWriteState != currentStageExtension->isDepthWriteEnabled()) {
-        std::cerr << "Failed because DepthWriteState is different" << std::endl;
-        return false;
-    }
     if(existingBlendingState != currentStageExtension->isBlendEnabled()) {
         std::cerr << "Failed because BlendState is different" << std::endl;
         return false;
@@ -1086,7 +1082,8 @@ bool PipelineExtension::buildRenderPipelineRecursive(const Node *node,
                         location++;
                     }
                 } else {
-                    std::cerr << "Pipeline Stage " << node->getDisplayName() << " tried to set a preset " << connection->getName() << " that is not a uniform in program, skipping" << std::endl;
+                    addError("Pipeline Stage " + node->getDisplayName() + " tried to set a preset " + connection->getName() + " that is not a uniform in program.");
+                    return false;
                 }
             } else {
                 std::cerr << "Pipeline Stage " << node->getDisplayName() << " skipping connection, because of null texture. at connection "<< connection->getName()  << std::endl;
@@ -1130,7 +1127,8 @@ bool PipelineExtension::buildRenderPipelineRecursive(const Node *node,
 
                 }
             } else {
-                std::cerr << "Pipeline Stage " << node->getDisplayName() << " tried to set an output " << connection->getName() << " that is not mapped in the program, skipping" << std::endl;
+                addError("Pipeline Stage " + node->getDisplayName() + " tried to set an output " + connection->getName() + " that is not mapped in the program.");
+                return false;
             }
         }
         stageInfo->cameraTags = stageExtension->getCameraTags();
