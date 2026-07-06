@@ -255,6 +255,22 @@ GraphicsPipeline::StageInfo::deserialize(tinyxml2::XMLElement *stageInfoElement,
         return false;
     }
 
+    // Stage is shared by every Method under the stage. We should de-serialize once, instead of with each method
+    tinyxml2::XMLElement* graphicsStageElement =  stageInfoElement->FirstChildElement("GraphicsPipelineStage");
+    if (graphicsStageElement == nullptr) {
+        std::cerr << "StageInfo has no stage, this is definitely a mistake, cancelling!" << std::endl;
+        return false;
+    }
+
+    newStageInfo.stage = GraphicsPipelineStage::deserialize(graphicsStageElement, assetManager->getGraphicsWrapper(), textures);
+
+    newStageInfo.renderTags = newStageInfo.stage->getObjectTags();
+    std::vector<HashUtil::HashedString> hashedRenderTags;
+    for (const auto &item: newStageInfo.renderTags) {
+        hashedRenderTags.emplace_back(item);
+    }
+    newStageInfo.cameraTags = newStageInfo.stage->getCameraTags();
+
     while(methodElement !=nullptr) {
         tinyxml2::XMLElement* methodNameElement =  methodElement->FirstChildElement("Name");
         if (methodNameElement == nullptr) {
@@ -277,23 +293,7 @@ GraphicsPipeline::StageInfo::deserialize(tinyxml2::XMLElement *stageInfoElement,
             return false;
         }
 
-        //This is not the last part because lights require the stage
-
-        tinyxml2::XMLElement* graphicsStageElement =  stageInfoElement->FirstChildElement("GraphicsPipelineStage");
-        if (graphicsStageElement == nullptr) {
-            std::cerr << "StageInfo has no stage, this is definitely a mistake, cancelling!" << std::endl;
-            return false;
-        }
-
-        newStageInfo.stage = GraphicsPipelineStage::deserialize(graphicsStageElement, assetManager->getGraphicsWrapper(), textures);
-
         //uint32_t methodIndex = std::stoi(methodIndexElement->GetText()); //this variable is not used
-        newStageInfo.renderTags = newStageInfo.stage->getObjectTags();
-        std::vector<HashUtil::HashedString> hashedRenderTags;
-        for (const auto &item: newStageInfo.renderTags) {
-            hashedRenderTags.emplace_back(item);
-        }
-        newStageInfo.cameraTags = newStageInfo.stage->getCameraTags();
 
         std::shared_ptr<GraphicsProgram> graphicsProgram;
 
