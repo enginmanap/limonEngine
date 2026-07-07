@@ -146,7 +146,7 @@ public:
     ImGuiHelper(std::shared_ptr<AssetManager> assetManager, OptionsUtil::Options* options);
     ~ImGuiHelper();
     void        NewFrame(std::shared_ptr<GraphicsProgram> graphicsProgram);
-    bool        ProcessEvent(const InputHandler& inputHandler);
+    bool        ProcessEvent(InputHandler& inputHandler);
     void RenderDrawLists(std::shared_ptr<GraphicsProgram> graphicsProgram);
 
     /**

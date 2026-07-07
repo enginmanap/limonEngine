@@ -62,6 +62,7 @@ private:
     SDL_Gamepad    *gameController     = nullptr;
     SDL_JoystickID  joystickInstanceID = 0;
     float currentAxisValues[SDL_GAMEPAD_AXIS_COUNT] = {0.0f};
+    bool textInputActive = false;
 
     bool loadBindingsFromXML(const std::string &filePath);
     void loadDefaultBindings();
@@ -95,6 +96,18 @@ public:
 
     const InputStates &getInputStates() const {
         return this->inputState;
+    }
+
+    void setTextInputMode(bool active) {
+        if (active == textInputActive) {
+            return;
+        }
+        if (active) {
+            SDL_StartTextInput(window);
+        } else {
+            SDL_StopTextInput(window);
+        }
+        textInputActive = active;
     }
 };
 

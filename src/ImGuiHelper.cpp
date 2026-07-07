@@ -140,10 +140,15 @@ void ImGuiHelper::SetClipboardText(void*, const char* text)
  * @param inputHandler
  * @return
  */
-bool ImGuiHelper::ProcessEvent(const InputHandler& inputHandler) {
-    const InputStates& inputStates =inputHandler.getInputStates();
+bool ImGuiHelper::ProcessEvent(InputHandler& inputHandler) {
+    const InputStates& inputStates = inputHandler.getInputStates();
 
     ImGuiIO& io = ImGui::GetIO();
+
+    // SDL3 disables text input by default. Toggle it based on whether ImGui
+    // has an active text widget (WantTextInput reflects the previous frame's state,
+    // which is exactly when we need to arm the SDL text input pipeline for this frame).
+    inputHandler.setTextInputMode(io.WantTextInput);
 
     // Always route keyboard events to ImGui when it has a focused widget (e.g. active InputText).
     // This is kept independent of mouse capture so that keyboard-only focus does not block
