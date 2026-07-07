@@ -24,6 +24,12 @@ SDL2Helper::SDL2Helper(OptionsUtil::Options* options) : window(nullptr), context
 
 void SDL2Helper::initWindow(const char* title, const GraphicsInterface::ContextInformation& contextInformation) {
     if (!SDL_WasInit(SDL_INIT_VIDEO)) {
+        // raspberry pi OS doesn't have the fifo_v1 in its compositor, making it fallback to X11, which then
+        // handled by Xwayland, and in that path, all scaling is lost. If user has wayland and not forcing another,
+        // use wayland.
+        if (SDL_getenv("WAYLAND_DISPLAY") != nullptr && SDL_getenv("SDL_VIDEODRIVER") == nullptr) {
+            SDL_SetHint(SDL_HINT_VIDEO_DRIVER, "wayland");
+        }
         if (!SDL_Init(SDL_INIT_VIDEO)) {
             std::cout << "Unable to initialize SDL: " << SDL_GetError();
             exit(1);
