@@ -2660,6 +2660,9 @@ void Editor::drawNodeEditor() {
     }
 
     this->nodeGraph->display();
+    if (ImGui::IsKeyPressed(ImGuiKey_Delete) && !ImGui::GetIO().WantTextInput) {
+        this->nodeGraph->deleteSelectedNode();
+    }
     static long handleId = 0;
     if (handleId != 0) {
         ImGui::OpenPopup("Keep pipeline active");
