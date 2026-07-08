@@ -157,22 +157,23 @@ bool ImGuiHelper::ProcessEvent(InputHandler& inputHandler) {
         if(inputStates.getInputEvents(InputActions::TEXT_INPUT)) {
             io.AddInputCharactersUTF8(inputStates.getText());
         }
-        if(inputStates.getInputEvents(InputActions::KEY_SHIFT)) {
-            io.KeyShift = ((SDL_GetModState() & SDL_KMOD_SHIFT) != 0);
-        }
-        if(inputStates.getInputEvents(InputActions::KEY_SUPER)) {
-            io.KeySuper = ((SDL_GetModState() & SDL_KMOD_GUI) != 0);
-        }
-        if(inputStates.getInputEvents(InputActions::KEY_CTRL)) {
-            io.KeyCtrl = ((SDL_GetModState() & SDL_KMOD_CTRL) != 0);
-        }
-        if(inputStates.getInputEvents(InputActions::KEY_ALT)) {
-            io.KeyAlt = ((SDL_GetModState() & SDL_KMOD_ALT) != 0);
-        }
+        // ImGui 1.91.5+ removed the legacy io.KeyCtrl propagation path. io.KeyMods is now
+        // derived from ImGuiKey_ModCtrl etc. (ImGuiKey_ReservedForModCtrl), NOT from
+        // ImGuiKey_LeftCtrl, so we must deliver the virtual modifier keys explicitly.
+        SDL_Keymod sdlMods = SDL_GetModState();
+        io.AddKeyEvent(ImGuiMod_Ctrl,  (sdlMods & SDL_KMOD_CTRL)  != 0);
+        io.AddKeyEvent(ImGuiMod_Shift, (sdlMods & SDL_KMOD_SHIFT) != 0);
+        io.AddKeyEvent(ImGuiMod_Alt,   (sdlMods & SDL_KMOD_ALT)   != 0);
+        io.AddKeyEvent(ImGuiMod_Super, (sdlMods & SDL_KMOD_GUI)   != 0);
         int numKeys;
         const bool* sdlKeyStates = SDL_GetKeyboardState(&numKeys);
         for (int i = 0; i < numKeys; i++) {
-            ImGuiKey key = SDL2KeyEventToImGuiKey(SDL_SCANCODE_TO_KEYCODE(i));
+            // SDL3 keycodes for "legacy" keys (Backspace=0x08, Delete=0x7F, letters='a'-'z', etc.)
+            // are plain ASCII values — NOT scancode-masked. SDL_SCANCODE_TO_KEYCODE() always sets
+            // bit 30, so it produces wrong values for those keys. SDL_GetKeyFromScancode() returns
+            // the correct keycode in both cases.
+            SDL_Keycode sdlKeycode = SDL_GetKeyFromScancode(static_cast<SDL_Scancode>(i), SDL_KMOD_NONE, false);
+            ImGuiKey key = SDL2KeyEventToImGuiKey(static_cast<uint32_t>(sdlKeycode));
             if (key != ImGuiKey_None) {
                 io.AddKeyEvent(key, sdlKeyStates[i] != 0);
             }

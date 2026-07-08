@@ -540,6 +540,22 @@ std::unique_ptr<ClosestNotMeConvexResultCallback> Editor::convexSweepTestDown(Mo
     return resultCallback;
 }
 
+void Editor::applyPendingPick() {
+    // hasPendingPick distinguishes "no pick happened this frame" from "user clicked empty space"
+    if (!hasPendingPick) {
+        return;
+    }
+    hasPendingPick = false;
+    if (pickedObject != nullptr) {
+        pickedObject->removeTag(HardCodedTags::PICKED_OBJECT);
+    }
+    pickedObject = pendingPickedObject;
+    pendingPickedObject = nullptr;
+    if (pickedObject != nullptr) {
+        pickedObject->addTag(HardCodedTags::PICKED_OBJECT);
+    }
+}
+
 void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
 
     imgGuiHelper->NewFrame(graphicsProgram);

@@ -570,15 +570,8 @@ World::fillRouteInformation(std::vector<LimonTypes::GenericParameter> parameters
     if(inputHandler.getInputStates().getInputEvents(InputActions::MOUSE_BUTTON_LEFT)) {
         if(inputHandler.getInputStates().getInputStatus(InputActions::MOUSE_BUTTON_LEFT)) {
             GameObject *gameObject = getPointedObject(COLLIDE_EVERYTHING, ~(COLLIDE_NOTHING));
-            if (gameObject != nullptr) {//FIXME this looks like a left over
-                if(editor->pickedObject != nullptr ) {
-                    editor->pickedObject->removeTag(HardCodedTags::PICKED_OBJECT);
-                }
-                editor->pickedObject = gameObject;
-                editor->pickedObject->addTag(HardCodedTags::PICKED_OBJECT);
-            } else {
-                editor->pickedObject = nullptr;
-            }
+            editor->pendingPickedObject = gameObject; // nullptr if nothing was hit
+            editor->hasPendingPick = true;
         }
     }
 
@@ -877,6 +870,7 @@ void World::ImGuiFrameSetup(std::shared_ptr<GraphicsProgram> graphicsProgram, co
        graphicsProgram->setUniform("renderModelIMGUI", 0);
    }
    editor->renderEditor(graphicsProgram);
+   editor->applyPendingPick();
 }
 
 void World::removeActiveCustomAnimation(const AnimationCustom &animationToRemove,
