@@ -32,6 +32,7 @@ class ImGuiImageWrapper;
 class Material;
 class ClosestNotMeConvexResultCallback;
 class NodeGraph;
+class NodeType;
 class PipelineExtension;
 class IterationExtension;
 class ImGuiHelper;
@@ -67,6 +68,8 @@ public:
     ImGuiRequest* request = nullptr;
 
     GameObject* pickedObject = nullptr;
+    GameObject* pendingPickedObject = nullptr;
+    bool hasPendingPick = false;
     uint32_t pickedObjectID = 0xFFFFFFFF;
     Attachable* objectToAttach = nullptr;
 
@@ -78,10 +81,13 @@ public:
 
     char cameraExtensionNameBuffer[32] = {0};//selected csm type in the "Add Camera Rig" creation combo
 
+    char nodeGraphFileNameBuffer[512] = {0};//prefilled with currently loaded node graph file, editable to load a different one
+
     Editor(World* world);
     ~Editor();
     bool generateEditorElementsForParameters(std::vector<LimonTypes::GenericParameter> &runParameters, uint32_t index);
     void renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram);
+    void applyPendingPick();
 
     void addGUITextControls();
     void addGUIImageControls();
@@ -111,6 +117,9 @@ private:
     void renderSelectedObject(Model* model, std::shared_ptr<GraphicsProgram> graphicsProgram) const;
 
     void setTransformToModel(Model *model, const glm::vec3 &newObjectPosition);
+
+    void loadNodeGraphFile(const std::string &fileName);
+    std::vector<NodeType*> buildAvailableNodeTypes();
 };
 
 

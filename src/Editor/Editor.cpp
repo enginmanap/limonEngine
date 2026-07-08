@@ -2723,10 +2723,22 @@ void Editor::drawNodeEditor() {
     if(ImGui::Button("Cancel")){
         this->showNodeGraph = false;
     }
+
+    ImGui::InputText("##NodeGraphFileName", nodeGraphFileNameBuffer, sizeof(nodeGraphFileNameBuffer));
+    ImGui::SameLine();
+    if(ImGui::Button("Load another")) {
+        this->loadNodeGraphFile(std::string(nodeGraphFileNameBuffer));
+    }
     ImGui::End();
 }
 
-void Editor::createNodeGraph() {
+static void copyToBuffer(char* buffer, size_t bufferSize, const std::string& value) {
+    size_t copyLength = std::min(value.size(), bufferSize - 1);
+    value.copy(buffer, copyLength);
+    buffer[copyLength] = '\0';
+}
+
+std::vector<NodeType*> Editor::buildAvailableNodeTypes() {
     std::vector<NodeType*> nodeTypeVector;
 
     //start with predefined types
@@ -2736,21 +2748,12 @@ void Editor::createNodeGraph() {
     screen->inputConnections.push_back(ConnectionDesc{"Depth", "Texture"});
     nodeTypeVector.push_back(screen);
 
-    this->iterationExtension = new IterationExtension();
-
     NodeType* iterate = new NodeType{"Iterate", false, "IterationExtension", [](const NodeType* nodeType[[gnu::unused]]) -> NodeExtension* {return new IterationExtension();},
                       {{"Input", "Texture"},},
                        {{"Output", "Texture"},},false, {}};
     nodeTypeVector.push_back(iterate);
 
     std::vector<std::shared_ptr<GraphicsProgram>> programs = world->getAllAvailablePrograms();
-
-    RenderMethods renderMethods = world->buildRenderMethods();
-
-    GenerateEditorElementsCallback generateEditorElementsForParameters = [this](std::vector<LimonTypes::GenericParameter> &parameters, uint32_t index) {
-        return this->generateEditorElementsForParameters(parameters, index);
-    };
-    this->pipelineExtension = new PipelineExtension(world->graphicsWrapper, generateEditorElementsForParameters, world->renderPipeline, world->assetManager, world->options, GraphicsPipeline::getRenderMethodNames(), renderMethods);
 
     for(auto program:programs) {
         std::string programName = program->getProgramName();
@@ -2822,71 +2825,119 @@ void Editor::createNodeGraph() {
         programNameInfo.shadowDirectionalUsed = program->isShadowDirectionalUsed();
         programNameInfo.shadowPointUsed = program->isShadowPointUsed();
 
-        type->nodeExtensionConstructor = [=](const NodeType* nodeType[[gnu::unused]]) ->NodeExtension* {return new PipelineStageExtension(this->pipelineExtension, programNameInfo);};
+        type->nodeExtensionConstructor = [this, programNameInfo](const NodeType* nodeType[[gnu::unused]]) ->NodeExtension* {return new PipelineStageExtension(this->pipelineExtension, programNameInfo);};
         type->extraVariables["vertexShaderName"] = program->getVertexShaderFile();
         type->extraVariables["geometryShaderName"] = program->getGeometryShaderFile();
         type->extraVariables["fragmentShaderName"] = program->getFragmentShaderFile();
 
         nodeTypeVector.push_back(type);
     }
+    return nodeTypeVector;
+}
+
+// we loaded an old nodegraph. What if the available programs changed? if user add new programs, we should add them. If user removed programs, we should mark the pipeline as invalid, and warn.
+static void reconcileNodeTypes(NodeGraph* nodeGraph, PipelineExtension* pipelineExtension, const std::vector<NodeType*>& nodeTypeVector) {
+    // First check if any node type we don't have is defined
+    std::vector<const NodeType *> oldDefinedNodeTypes = nodeGraph->getNodeTypes();
+    for(const NodeType* oldNodeType: oldDefinedNodeTypes) {
+        bool nodeTypeFound = false;
+        for(NodeType* newNodeType: nodeTypeVector) {
+            if(newNodeType->isSameNodeType(*oldNodeType)) {
+                nodeTypeFound = true;
+                break;
+            }
+        }
+        if(!nodeTypeFound) {
+            // a node type that is unknown is found mark pipeline as invalid
+            pipelineExtension->setNodeGraphValid(false);
+            pipelineExtension->addError("Old Node type " + oldNodeType->name + " Not found, this graph is invalid");
+        }
+    }
+    //now do it in reverse, and try to add new programs we found, to the nodeGraph
+    for( NodeType* newNodeType: nodeTypeVector) {
+        bool nodeTypeFound = false;
+        for (const NodeType *oldNodeType: oldDefinedNodeTypes) {
+            if (newNodeType->name == oldNodeType->name) {
+                //TODO it is possible, that there is a node type that has the same name, but it is different. we need to replace them
+                nodeTypeFound = true;
+                break;
+            }
+        }
+        if (!nodeTypeFound) {
+            if (nodeGraph->addNodeType(newNodeType)) {
+                std::cout << "New node type " << newNodeType->name << " added" << std::endl;
+            } else {
+                std::cerr << "New node type " << newNodeType->name << " should be added, but rejected!" << std::endl;
+            }
+        }
+    }
+}
+
+void Editor::createNodeGraph() {
+    this->iterationExtension = new IterationExtension();
+
+    RenderMethods renderMethods = world->buildRenderMethods();
+
+    GenerateEditorElementsCallback generateEditorElementsForParameters = [this](std::vector<LimonTypes::GenericParameter> &parameters, uint32_t index) {
+        return this->generateEditorElementsForParameters(parameters, index);
+    };
+    this->pipelineExtension = new PipelineExtension(world->graphicsWrapper, generateEditorElementsForParameters, world->renderPipeline, world->assetManager, world->options, GraphicsPipeline::getRenderMethodNames(), renderMethods);
+
+    std::vector<NodeType*> nodeTypeVector = buildAvailableNodeTypes();
 
     std::unordered_map<std::string, std::function<EditorExtension*()>> possibleEditorExtensions;
-    possibleEditorExtensions["PipelineExtension"] = [=]() ->EditorExtension* {return this->pipelineExtension;};
+    possibleEditorExtensions["PipelineExtension"] = [this]() ->EditorExtension* {return this->pipelineExtension;};
 
     std::unordered_map<std::string, std::function<NodeExtension*(const NodeType*)>> possibleNodeExtensions;
-    possibleNodeExtensions["PipelineStageExtension"] = [=](const NodeType* nodeType) ->NodeExtension* {return new PipelineStageExtension(nodeType, this->pipelineExtension);};
-    possibleNodeExtensions["IterationExtension"] = [=](const NodeType*) -> NodeExtension* {return new IterationExtension();};
+    possibleNodeExtensions["PipelineStageExtension"] = [this](const NodeType* nodeType) ->NodeExtension* {return new PipelineStageExtension(nodeType, this->pipelineExtension);};
+    possibleNodeExtensions["IterationExtension"] = [](const NodeType*) -> NodeExtension* {return new IterationExtension();};
 
-    this->nodeGraph = NodeGraph::deserialize("./Data/nodeGraph.xml", possibleEditorExtensions, possibleNodeExtensions);
+    std::string loadedFileName = "./Data/nodeGraph.xml";
+    this->nodeGraph = NodeGraph::deserialize(loadedFileName, possibleEditorExtensions, possibleNodeExtensions);
 
     bool freshNodeGraphCreated = false;
     if(this->nodeGraph == nullptr) {
         std::cerr << "No custom Nodegraph found, using the default." << std::endl;
-        this->nodeGraph = NodeGraph::deserialize("./Engine/nodeGraph.xml", possibleEditorExtensions, possibleNodeExtensions);
+        loadedFileName = "./Engine/nodeGraph.xml";
+        this->nodeGraph = NodeGraph::deserialize(loadedFileName, possibleEditorExtensions, possibleNodeExtensions);
         if(this->nodeGraph == nullptr) {
             std::cerr << "Default Node deserialize failed too, using empty node graph" << std::endl;
             this->nodeGraph = new NodeGraph(nodeTypeVector, false, this->pipelineExtension);
             freshNodeGraphCreated = true;
+            loadedFileName.clear();
         }
     }
+    copyToBuffer(nodeGraphFileNameBuffer, sizeof(nodeGraphFileNameBuffer), loadedFileName);
 
     if(!freshNodeGraphCreated) {
-        // we loaded an old nodegraph. What if the available programs changed? if user add new programs, we should add them. If user removed programs, we should mark the pipeline as invalid, and warn.
-        // First check if any node type we don't have is defined
-        std::vector<const NodeType *> oldDefinedNodeTypes = this->nodeGraph->getNodeTypes();
-        for(const NodeType* oldNodeType: oldDefinedNodeTypes) {
-            bool nodeTypeFound = false;
-            for(NodeType* newNodeType: nodeTypeVector) {
-                if(newNodeType->isSameNodeType(*oldNodeType)) {
-                    nodeTypeFound = true;
-                    break;
-                }
-            }
-            if(!nodeTypeFound) {
-                // a node type that is unknown is found mark pipeline as invalid
-                this->pipelineExtension->setNodeGraphValid(false);
-                this->pipelineExtension->addError("Old Node type " + oldNodeType->name + " Not found, this graph is invalid");
-            }
-        }
-        //now do it in reverse, and try to add new programs we found, to the nodeGraph
-        for( NodeType* newNodeType: nodeTypeVector) {
-            bool nodeTypeFound = false;
-            for (const NodeType *oldNodeType: oldDefinedNodeTypes) {
-                if (newNodeType->name == oldNodeType->name) {
-                    //TODO it is possible, that there is a node type that has the same name, but it is different. we need to replace them
-                    nodeTypeFound = true;
-                    break;
-                }
-            }
-            if (!nodeTypeFound) {
-                if (this->nodeGraph->addNodeType(newNodeType)) {
-                    std::cout << "New node type " << newNodeType->name << " added" << std::endl;
-                } else {
-                    std::cerr << "New node type " << newNodeType->name << " should be added, but rejected!" << std::endl;
-                }
-            }
-        }
+        reconcileNodeTypes(this->nodeGraph, this->pipelineExtension, nodeTypeVector);
     }
+}
+
+void Editor::loadNodeGraphFile(const std::string &fileName) {
+    std::vector<NodeType*> nodeTypeVector = buildAvailableNodeTypes();
+
+    std::unordered_map<std::string, std::function<EditorExtension*()>> possibleEditorExtensions;
+    possibleEditorExtensions["PipelineExtension"] = [this]() ->EditorExtension* {return this->pipelineExtension;};
+
+    std::unordered_map<std::string, std::function<NodeExtension*(const NodeType*)>> possibleNodeExtensions;
+    possibleNodeExtensions["PipelineStageExtension"] = [this](const NodeType* nodeType) ->NodeExtension* {return new PipelineStageExtension(nodeType, this->pipelineExtension);};
+    possibleNodeExtensions["IterationExtension"] = [](const NodeType*) -> NodeExtension* {return new IterationExtension();};
+
+    NodeGraph* newNodeGraph = NodeGraph::deserialize(fileName, possibleEditorExtensions, possibleNodeExtensions);
+    if(newNodeGraph == nullptr) {
+        std::cerr << "Failed to load node graph from \"" << fileName << "\"" << std::endl;
+        if(this->nodeGraph != nullptr) {
+            this->nodeGraph->addError("Failed to load node graph from \"" + fileName + "\"");
+        }
+        return;
+    }
+
+    reconcileNodeTypes(newNodeGraph, this->pipelineExtension, nodeTypeVector);
+
+    delete this->nodeGraph;
+    this->nodeGraph = newNodeGraph;
+    copyToBuffer(nodeGraphFileNameBuffer, sizeof(nodeGraphFileNameBuffer), fileName);
 }
 
 void Editor::update(InputHandler &inputHandler) {
