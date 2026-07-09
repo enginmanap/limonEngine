@@ -326,7 +326,6 @@ std::shared_ptr<Material> Material::deserialize(AssetManager* assetManager, tiny
         }
         material->originalHash = originalHash;
         material->setMaps(maps);
-        assetManager->registerOverriddenMaterial(material);
         return material;
 }
 

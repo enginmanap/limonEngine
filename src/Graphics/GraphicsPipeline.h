@@ -32,14 +32,29 @@ public:
         std::vector<std::string> renderTags;
 
         void addRenderMethod(RenderMethods::RenderMethod method) {
-            for (auto iterator = renderMethods.begin(); iterator != renderMethods.end();++iterator) {
-                if(iterator->getPriority() > method.getPriority()) {
-                    renderMethods.insert(iterator, method);
-                    return;
+            auto insertionIterator = renderMethods.begin();
+            for (; insertionIterator != renderMethods.end(); ++insertionIterator) {
+                if(insertionIterator->getPriority() > method.getPriority()) {
+                    break;
                 }
             }
-            highestPriority = method.getPriority();
-            renderMethods.emplace_back(method);
+            if(insertionIterator == renderMethods.end()) {
+                highestPriority = method.getPriority();
+                renderMethods.emplace_back(std::move(method));
+                return;
+            }
+            //RenderMethod holds a HashedString with const members, so it is not assignable. vector::insert()
+            //shifts elements via assignment, so the vector is rebuilt via move-construction instead.
+            std::vector<RenderMethods::RenderMethod> newRenderMethods;
+            newRenderMethods.reserve(renderMethods.size() + 1);
+            for (auto iterator = renderMethods.begin(); iterator != insertionIterator; ++iterator) {
+                newRenderMethods.emplace_back(std::move(*iterator));
+            }
+            newRenderMethods.emplace_back(std::move(method));
+            for (auto iterator = insertionIterator; iterator != renderMethods.end(); ++iterator) {
+                newRenderMethods.emplace_back(std::move(*iterator));
+            }
+            renderMethods = std::move(newRenderMethods);
         }
 
         uint32_t getHighestPriority() const {

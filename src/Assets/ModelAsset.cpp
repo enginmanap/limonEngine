@@ -3,6 +3,7 @@
 //
 
 #include <set>
+#include <unordered_set>
 #include <limits>
 
 #include "ModelAsset.h"
@@ -969,8 +970,13 @@ btCompoundShape * ModelAsset::getCompoundShapeForMass(uint32_t mass, std::map<ui
 }
 
 ModelAsset::~ModelAsset() {
+    //materialMap can have multiple names pointing at the same deduplicated Material (see registerMaterial()),
+    // so unregister each distinct Material once, not once per name that happens to reference it.
+    std::unordered_set<Material*> unregisteredMaterials;
     for (auto materialIt: materialMap) {
-        assetManager->unregisterMaterial(materialIt.second);
+        if (unregisteredMaterials.insert(materialIt.second.get()).second) {
+            assetManager->unregisterMaterial(materialIt.second);
+        }
     }
 
     for (unsigned int i = 0; i < shapeCopies.size(); ++i) {

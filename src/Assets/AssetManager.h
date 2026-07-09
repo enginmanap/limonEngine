@@ -29,7 +29,11 @@ class Material;
 
 class AssetManager {
     std::mutex cpuLoadConditionMutex;
-    std::mutex partialLoadCpuMutex;
+    std::mutex assetsMutex; //guards the `assets` map only; must be held for every insert/find/erase/refcount change on it, but released before any actual loading work
+    std::mutex materialsMutex; //guards the `materials` map only, independent of assetsMutex
+    std::mutex availableAssetsMutex; //guards `availableAssetsRootNode` and `filteredResults`: getAvailableAssetsTreeFiltered() is called
+                                      // from background texture-loading threads (TextureAsset's not-found fallback search), while
+                                      // applyPendingAssetListReload() swaps/deletes these from the main thread.
     std::condition_variable cpuLoadDoneCondition;
     std::atomic<std::int32_t> nextMaterialIndex;
 
@@ -253,6 +257,7 @@ public:
         std::vector<std::shared_ptr<T>> loadedAssets;
         std::unordered_set<uint32_t> startedAssetIds;
         for(const auto &files : filesList) {
+            std::lock_guard<std::mutex> lock(assetsMutex);
             if (assets.count(files) == 0) {
                 uint32_t nextAssetIndexLocal = getNextAssetIndex();
                 bool loaded = false;
@@ -313,7 +318,7 @@ public:
     // ex: Model assets load Texture assets
     // If model asset was loading on a non main loading thread, this will be called by that thread.
     // Since there are multiple non main loading threads, this means race condition possible, and we need a lock.
-    std::unique_lock<std::mutex> lock(partialLoadCpuMutex);
+    std::unique_lock<std::mutex> lock(assetsMutex);
         if (assets.count(files) == 0) {
             uint32_t nextAssetIndexLocal = getNextAssetIndex();
             bool loaded = false;
@@ -364,40 +369,52 @@ public:
 
     template<class T>
     std::shared_ptr<T>loadAsset(const std::vector<std::string> files) {
-        if (assets.count(files) == 0) {
-            bool loaded = false;
-            //check if asset is cereal deserialize file.
-            if(files.size() == 1) {
-                std::string extension = files[0].substr(files[0].find_last_of(".") + 1);
-                if (extension == "limonmodel") {
+        std::shared_ptr<Asset> assetPtr;
+        bool needsSynchronousLoad = false;
+        {
+            //reservation: the existence check and the placeholder insert must happen in the same
+            // critical section, so no two threads can ever both decide to load the same asset.
+            std::lock_guard<std::mutex> lock(assetsMutex);
+            if (assets.count(files) == 0) {
+                bool loaded = false;
+                //check if asset is cereal deserialize file.
+                if(files.size() == 1) {
+                    std::string extension = files[0].substr(files[0].find_last_of(".") + 1);
+                    if (extension == "limonmodel") {
 #ifdef CEREAL_SUPPORT
-                    std::ifstream is(files[0], std::ios::binary);
-                    cereal::BinaryInputArchive archive(is);
-                    assets[files] = std::make_pair(std::make_shared<T>(this, getNextAssetIndex(), files, archive), 0);
-                    assets[files].first->loadGPUPart();
-                    assets[files].first->setLoadState(Asset::LoadState::DONE);
+                        std::ifstream is(files[0], std::ios::binary);
+                        cereal::BinaryInputArchive archive(is);
+                        assets[files] = std::make_pair(std::make_shared<T>(this, getNextAssetIndex(), files, archive), 0);
+                        assets[files].first->loadGPUPart();
+                        assets[files].first->setLoadState(Asset::LoadState::DONE);
 #else
-                    std::cerr << "Limon compiled without limonmodel support. Please acquire a release version. Exiting..." << std::endl;
-                    std::cerr << "Compile should define \"CEREAL_SUPPORT\"." << std::endl;
-                    exit(-1);
+                        std::cerr << "Limon compiled without limonmodel support. Please acquire a release version. Exiting..." << std::endl;
+                        std::cerr << "Compile should define \"CEREAL_SUPPORT\"." << std::endl;
+                        exit(-1);
 #endif
-                    loaded = true;
+                        loaded = true;
+                    }
+                }
+                if(!loaded) {
+                    assets[files] = std::make_pair(std::make_shared<T>(this, getNextAssetIndex(), files), 0);
+                    needsSynchronousLoad = true;
                 }
             }
-            if(!loaded) {
-                assets[files] = std::make_pair(std::make_shared<T>(this, getNextAssetIndex(), files), 0);
-                assets[files].first->load();
-            }
+            assetPtr = assets[files].first;
         }
-        if(assets[files].first->getLoadState() != Asset::LoadState::DONE) {
+        //everything below runs without assetsMutex held, so unrelated assets stay fully parallel.
+        if(needsSynchronousLoad) {
+            assetPtr->load();
+        }
+        while (assetPtr->getLoadState() != Asset::LoadState::DONE) {
             //some other thread is working on this, we should block.
-            while (assets[files].first->getLoadState() != Asset::LoadState::DONE) {
-                std::cerr << "Partial load and full load clashing, please fix. Will busy wait" << std::endl;
-                std::this_thread::sleep_for(std::chrono::milliseconds(15));
-            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(15));
         }
-        assets[files].second++;
-        return std::dynamic_pointer_cast<T>(assets[files].first);
+        {
+            std::lock_guard<std::mutex> lock(assetsMutex);
+            assets[files].second++;
+        }
+        return std::dynamic_pointer_cast<T>(assetPtr);
     }
 
     void freeAsset(const std::vector<std::string> files) {
@@ -405,6 +422,7 @@ public:
             std::cerr << "Free asset call with empty file list, this is invalid!" << std::endl;
             return;
         }
+        std::lock_guard<std::mutex> lock(assetsMutex);
         if (assets.count(files) == 0) {
             std::cerr << "Unloading an asset [";
             for (uint32_t i = 0; i < files.size() -1; ++i) {
@@ -434,6 +452,7 @@ public:
     }
 
     bool isLoaded(std::vector<std::string> filename) {
+        std::lock_guard<std::mutex> lock(assetsMutex);
         return this->assets.find(filename) != this->assets.end();
     }
 
@@ -475,12 +494,15 @@ public:
         if (pendingAssetsRootNode == nullptr) {
             return false;
         }
-        for (auto treeIterator = filteredResults.begin(); treeIterator != filteredResults.end(); ++treeIterator) {
-            delete treeIterator->second;
+        {
+            std::lock_guard<std::mutex> lock(availableAssetsMutex);
+            for (auto treeIterator = filteredResults.begin(); treeIterator != filteredResults.end(); ++treeIterator) {
+                delete treeIterator->second;
+            }
+            filteredResults.clear();
+            delete availableAssetsRootNode;
+            availableAssetsRootNode = pendingAssetsRootNode;
         }
-        filteredResults.clear();
-        delete availableAssetsRootNode;
-        availableAssetsRootNode = pendingAssetsRootNode;
         pendingAssetsRootNode = nullptr;
         assetListVersion++;
         return true;

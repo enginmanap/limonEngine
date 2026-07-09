@@ -73,6 +73,7 @@ private:
     static ImGuiResult putAIonGUI(ActorInterface *actorInterface, std::vector<LimonTypes::GenericParameter> &parameters,
                                   const ImGuiRequest &request, std::string &lastSelectedAIName);
 
+public:
     /**
      * This method returns a list of MeshAsset->Material pairs, that has been customized specifically for this model, that is not shared with the
      * ModelAsset. Model asset has a default material, and world has overrides for that asset. This method returns overrides for not the asset level,
@@ -86,7 +87,6 @@ private:
      */
     std::vector<std::pair<std::string, std::shared_ptr<const Material>>> getNewMeshMaterials() const;
 
-public:
     void loadOverriddenMeshMaterial(std::vector<std::pair<std::string, std::shared_ptr<Material>>> & customisedMeshMaterialList);
 
     void setRigId(uint32_t rigId) {

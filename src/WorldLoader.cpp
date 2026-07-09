@@ -2313,7 +2313,11 @@ bool WorldLoader::loadMaterials(tinyxml2::XMLNode *worldNode, World *world) cons
     for (tinyxml2::XMLElement *materialNode = materialsNode->FirstChildElement("Material");
          materialNode != nullptr;
          materialNode = materialNode->NextSiblingElement("Material")) {
+         //this list only ever contains materials edited in place (not tied to a specific mesh override -
+         // see WorldSaver::fillMaterials), so registering by originalHash here is correct: it redirects
+         // anything that would otherwise load the un-edited base material to this edited version instead.
          std::shared_ptr<Material> material = Material::deserialize(world->assetManager.get(), materialNode);
+         world->assetManager->registerOverriddenMaterial(material);
     }
     return true;
 }

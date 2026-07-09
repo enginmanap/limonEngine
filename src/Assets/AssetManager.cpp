@@ -148,6 +148,7 @@ AssetManager::getAvailableAssetsTreeFiltered(AssetManager::AssetTypes type, cons
     std::string filterTextLower = filterText;
     std::transform(filterTextLower.begin(), filterTextLower.end(), filterTextLower.begin(), ::tolower);
     std::pair<AssetTypes , std::string> key = std::make_pair(type,filterTextLower);
+    std::lock_guard<std::mutex> lock(availableAssetsMutex);
     if(filteredResults.find(key) != filteredResults.end()) {
         return filteredResults[key];
     }
@@ -203,14 +204,13 @@ AssetManager::getAvailableAssetsTreeFilteredRecursive(const AvailableAssetsNode 
  * @return material that should be used.
  */
 std::shared_ptr<Material> AssetManager::registerMaterial(std::shared_ptr<Material> material) {
+    std::lock_guard<std::mutex> lock(materialsMutex);
     const auto foundIt = materials.find(material->getHash());
     if(foundIt != materials.end()) {
-        //std::cerr << "Material found, return "<< material->getName() << std::endl;
         foundIt->second.second++;
         return foundIt->second.first;
     }
     //not found, add
-    //std::cerr << "Material not found, create for " << material->getName() << std::endl;
     material->materialIndex = nextMaterialIndex++;
     materials[material->getHash()] = std::make_pair(material, 1);
     return material;
@@ -221,13 +221,17 @@ std::shared_ptr<Material> AssetManager::registerMaterial(std::shared_ptr<Materia
  * Registers an overriden material if the material if it is not found, and returns the material that should be used.
  * if the material is not found, itself is returned, if it is found, the original one is returned.
  *
- * for insterting in to possible materials list, original hash is used instead of current, because the material is
- * an override for the original hash, not for the current hash
+ * Keyed by originalHash instead of current hash: this is what lets a globally-edited material (edited in place,
+ * not tied to any specific mesh override) redirect anything that would otherwise ask for the un-edited base
+ * material by its own hash - since an unaltered material's originalHash equals its own current hash. Only call
+ * this for materials that are meant to replace their base everywhere; per-mesh overrides must register via
+ * registerMaterial() instead (see Model::loadOverriddenMeshMaterial), or they'd hijack the base's slot too.
  *
  * @param material to register or search for the original
  * @return material that should be used.
  */
 std::shared_ptr<Material> AssetManager::registerOverriddenMaterial(std::shared_ptr<Material> material) {
+    std::lock_guard<std::mutex> lock(materialsMutex);
     const auto foundIt = materials.find(material->getOriginalHash());
     if(foundIt != materials.end()) {
         //std::cerr << "Material found, return "<< material->getName() << std::endl;
@@ -242,11 +246,11 @@ std::shared_ptr<Material> AssetManager::registerOverriddenMaterial(std::shared_p
 }
 
 void AssetManager::unregisterMaterial(std::shared_ptr<const Material> material) {
+    std::lock_guard<std::mutex> lock(materialsMutex);
     auto materialIt = materials.find(material->getHash());
     if(materialIt == materials.end()) {
         std::cerr << "Unregister for non existent material found!" << std::endl;
     }
-    //std::cerr << "Material unregister " << material->getName() << std::endl;
     materialIt->second.second--;
     if(materialIt->second.second == 0) {
         //time to remove the item
