@@ -2317,6 +2317,7 @@ bool WorldLoader::loadMaterials(tinyxml2::XMLNode *worldNode, World *world) cons
          // see WorldSaver::fillMaterials), so registering by originalHash here is correct: it redirects
          // anything that would otherwise load the un-edited base material to this edited version instead.
          std::shared_ptr<Material> material = Material::deserialize(world->assetManager.get(), materialNode);
+         material->loadGPUSide(world->assetManager.get());
          world->assetManager->registerOverriddenMaterial(material);
     }
     return true;
