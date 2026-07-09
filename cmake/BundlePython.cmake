@@ -81,29 +81,61 @@ function(bundle_python_environment TARGET_NAME)
         )
     endforeach()
 
-    add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
-            COMMENT "Compressing Python..."
+    # Unix-style Python installs (e.g. MSYS2) put binary extension modules inside the stdlib
+    # tree at lib-dynload/, which ends up copied into PY_TEMP_DIR and needs to be moved out.
+    # Windows-installer-style Python (e.g. python.org) instead keeps them in a DLLs/ folder
+    # that is a sibling of Lib/, so there is nothing under PY_TEMP_DIR to rename in that case.
+    if(EXISTS "${PY_SRC_STDLIB}/lib-dynload")
+        add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
+                COMMENT "Compressing Python..."
 
-            # 1. Move Binary Extensions (lib-dynload) OUT of the temp folder
-            # (Python cannot load DLLs from inside a zip)
-            COMMAND ${CMAKE_COMMAND} -E rename
-            "${PY_TEMP_DIR}/lib-dynload"
-            "${PY_DIST_LIB}/lib-dynload"
+                # 1. Move Binary Extensions (lib-dynload) OUT of the temp folder
+                # (Python cannot load DLLs from inside a zip)
+                COMMAND ${CMAKE_COMMAND} -E rename
+                "${PY_TEMP_DIR}/lib-dynload"
+                "${PY_DIST_LIB}/lib-dynload"
 
-            # 2. Zip the remaining .py files
-            COMMAND ${CMAKE_COMMAND} -E chdir "${PY_TEMP_DIR}"
-            ${CMAKE_COMMAND} -E tar "cf" "${PYTHON_BUNDLE_ZIP}" --format=zip .
+                # 2. Zip the remaining .py files
+                COMMAND ${CMAKE_COMMAND} -E chdir "${PY_TEMP_DIR}"
+                ${CMAKE_COMMAND} -E tar "cf" "${PYTHON_BUNDLE_ZIP}" --format=zip .
 
-            # 3. Cleanup Temp
-            COMMAND ${CMAKE_COMMAND} -E remove_directory "${PY_TEMP_DIR}"
-    )
+                # 3. Cleanup Temp
+                COMMAND ${CMAKE_COMMAND} -E remove_directory "${PY_TEMP_DIR}"
+        )
+    else()
+        get_filename_component(PY_INSTALL_DIR "${PY_SRC_STDLIB}" DIRECTORY)
+
+        add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
+                COMMENT "Compressing Python..."
+
+                # 1. Copy Binary Extensions from the sibling DLLs folder
+                # (Python cannot load DLLs from inside a zip)
+                COMMAND ${CMAKE_COMMAND} -E copy_directory
+                "${PY_INSTALL_DIR}/DLLs"
+                "${PY_DIST_LIB}/lib-dynload"
+
+                # 2. Zip the remaining .py files
+                COMMAND ${CMAKE_COMMAND} -E chdir "${PY_TEMP_DIR}"
+                ${CMAKE_COMMAND} -E tar "cf" "${PYTHON_BUNDLE_ZIP}" --format=zip .
+
+                # 3. Cleanup Temp
+                COMMAND ${CMAKE_COMMAND} -E remove_directory "${PY_TEMP_DIR}"
+        )
+    endif()
 
     # 4. HANDLE MAIN DLL (Windows/MinGW Specific)
     if(WIN32)
-        # MSYS2 usually puts the DLL in /bin, not /lib. We attempt to find it.
         get_filename_component(PY_LIB_PARENT "${PY_SRC_STDLIB}" DIRECTORY)
-        get_filename_component(PY_ROOT "${PY_LIB_PARENT}" DIRECTORY)
-        set(MSYS_DLL "${PY_ROOT}/bin/libpython${Python3_VERSION_MAJOR}.${Python3_VERSION_MINOR}.dll")
+
+        if(EXISTS "${PY_SRC_STDLIB}/lib-dynload")
+            # MSYS2 layout: Lib/ is "<root>/lib/python3.Y", and the DLL lives in "<root>/bin".
+            get_filename_component(PY_ROOT "${PY_LIB_PARENT}" DIRECTORY)
+            set(MSYS_DLL "${PY_ROOT}/bin/libpython${Python3_VERSION_MAJOR}.${Python3_VERSION_MINOR}.dll")
+        else()
+            # Windows-installer (python.org) layout: Lib/ is "<root>/Lib", and the versioned
+            # DLL (e.g. python314.dll) sits directly in "<root>", not in a bin/ subfolder.
+            set(MSYS_DLL "${PY_LIB_PARENT}/python${Python3_VERSION_MAJOR}${Python3_VERSION_MINOR}.dll")
+        endif()
 
         add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
                 COMMENT "Copying Python DLL..."
