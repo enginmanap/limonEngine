@@ -2957,7 +2957,7 @@ void Editor::loadNodeGraphFile(const std::string &fileName) {
 }
 
 void Editor::update(InputHandler &inputHandler) {
-    if(!world->currentPlayersSettings->editorShown || inputHandler.getInputStates().getInputEvents(InputActions::EDITOR) || !imgGuiHelper->ProcessEvent(inputHandler)) {
+    if(!world->currentPlayersSettings->editorShown || inputHandler.getInputStates().getInputEvents(InputActions::EDITOR) || world->currentPlayer->prioritizesInput() || !imgGuiHelper->ProcessEvent(inputHandler)) {
         if(world->handlePlayerInput(inputHandler)) {
             world->handleQuitRequest();
             return;

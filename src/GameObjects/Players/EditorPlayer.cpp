@@ -61,8 +61,10 @@ void EditorPlayer::processInput(const InputStates &inputState, long time [[gnu::
     // Handle right-click for free look
     if (inputState.getInputEvents(InputActions::MOUSE_BUTTON_RIGHT)) {
         if (inputState.getInputStatus(InputActions::MOUSE_BUTTON_RIGHT)) {
+            captureInput = true;
             inputHandler->setMouseModeRelative();
         } else {
+            captureInput = false;
             inputHandler->setMouseModeFree();
         }
     }

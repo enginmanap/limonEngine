@@ -11,12 +11,15 @@ class InputHandler;
 
 class EditorPlayer : public FreeCursorPlayer {
     InputHandler* inputHandler;
+    bool captureInput = false;
     void rotateFree(float xChange, float yChange);
 public:
     EditorPlayer(OptionsUtil::Options *options, GUIRenderable *cursor, const glm::vec3 &position,
                  const glm::vec3 &lookDirection, InputHandler* inputHandler);
 
     void processInput(const InputStates &inputState, long time) override;
+
+    bool prioritizesInput() const override { return captureInput; }
 };
 
 #endif //LIMONENGINE_EDITORPLAYER_H

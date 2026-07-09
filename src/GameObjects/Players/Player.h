@@ -208,6 +208,8 @@ public:
 
     virtual void setDead() {};
 
+    virtual bool prioritizesInput() const { return false; }
+
     bool isDead() const {
         return dead;
     }
