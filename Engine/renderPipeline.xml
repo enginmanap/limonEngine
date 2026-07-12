@@ -360,7 +360,7 @@
                 <ToScreen>False</ToScreen>
                 <CameraTags>directional_camera</CameraTags>
                 <ObjectTags>basic_player_attachment,animated_player_attachment,basic_model_object,animated_model_object,ambient_model_object</ObjectTags>
-                <CullMode>FRONT</CullMode>
+                <CullMode>BACK</CullMode>
                 <Inputs/>
                 <Outputs>
                     <Output Attachment="DEPTH" textureID="1"/>

@@ -79,7 +79,7 @@ float _SampleCascadeShadow(int lightIndex, int layer, vec3 world_space_frag_pos,
     return shadow / float(shadow_directionalSampleCount);
 }
 
-float ShadowCalculationDirectional(int lightIndex, vec3 world_space_frag_pos, float precise_view_z){
+float ShadowCalculationDirectional(int lightIndex, vec3 world_space_frag_pos, vec3 worldNormal, float diffuseRate, float precise_view_z){
     int layer = -1;
     float splitDist = 0.0;
 
@@ -92,14 +92,20 @@ float ShadowCalculationDirectional(int lightIndex, vec3 world_space_frag_pos, fl
     }
     if (layer == -1) layer = shadow_cascadeCount - 1;
 
+    // we calculate normal bias after cascade selection, so we can scale it based on the cascade.
+    // The bias needed for first cascade is tiny, compared to last cascade. We would need to pass
+    // texel size to calculate it correctly, this is an approxmate.
+    float baseNormalBias = mix(0.01, 0.100, diffuseRate);
+    vec3 biasedFragPos = world_space_frag_pos + worldNormal * (baseNormalBias * (cascadePlaneDistances[layer] / cascadePlaneDistances[0]));
+
     // Calculate rotation matrix once per directional light
-    float rotAngle = _random(world_space_frag_pos, 0) * 6.28318530718;
+    float rotAngle = _random(biasedFragPos, 0) * 6.28318530718;
     float s = sin(rotAngle);
     float c = cos(rotAngle);
     mat2 rot = mat2(c, -s, s, c);
 
     // Sample the primary cascade
-    float shadow = _SampleCascadeShadow(lightIndex, layer, world_space_frag_pos, rot);
+    float shadow = _SampleCascadeShadow(lightIndex, layer, biasedFragPos, rot);
 
     // Blend with the next cascade if within the transition zone
     if (layer < shadow_cascadeCount - 1) {
@@ -107,7 +113,11 @@ float ShadowCalculationDirectional(int lightIndex, vec3 world_space_frag_pos, fl
         float threshold = splitDist - blendRegion;
 
         if (precise_view_z > threshold) {
-            float nextShadow = _SampleCascadeShadow(lightIndex, layer + 1, world_space_frag_pos, rot);
+            // layer+1 has a larger cascade scale (coarser texels) than layer, so it needs its own,
+            // bigger bias here -- reusing biasedFragPos (scaled for layer) would under-bias this
+            // sample and cause acne right in the blend band.
+            vec3 nextBiasedFragPos = world_space_frag_pos + worldNormal * (baseNormalBias * (cascadePlaneDistances[layer + 1] / cascadePlaneDistances[0]));
+            float nextShadow = _SampleCascadeShadow(lightIndex, layer + 1, nextBiasedFragPos, rot);
             float factor = (precise_view_z - threshold) / blendRegion;
             factor = smoothstep(0.0, 1.0, factor);
             shadow = mix(shadow, nextShadow, factor);

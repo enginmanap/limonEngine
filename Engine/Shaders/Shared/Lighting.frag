@@ -29,18 +29,17 @@ vec3 calculateLighting(vec3 fragPos, vec3 normal, vec3 albedo, float shininess, 
                 specularRate = 0.0;
             }
 
-            // Normal offset bias: push comparison point off the surface to avoid self-shadowing.
-            // Magnitude differs by type — directional is orthographic over a large area (small bias
-            // needed), point is a perspective cube map where depth precision degrades with distance.
-            float normalBias = (lightType == 1)
-                ? mix(0.01, 0.005, diffuseRate)
-                : mix(0.08,  0.02, diffuseRate);
-            vec3 biasedFragPos = fragPos + normal * normalBias;
-
             float shadow = 0.0;
             if(lightType == 1) {
-                shadow = ShadowCalculationDirectional(i, biasedFragPos, precise_view_z);
+                // We can't calculate bias of directional light because we don't know which cascade is selected
+                // it has to be computed within. diffuseRate is already computed above, pass it through
+                // instead of recalculating lightDirectory/diffuseRate again in there.
+                shadow = ShadowCalculationDirectional(i, fragPos, normal, diffuseRate, precise_view_z);
             } else {
+                // Normal offset bias: push comparison point off the surface to avoid self-shadowing.
+                // Point light is a perspective cube map where depth precision degrades with distance.
+                float normalBias = mix(0.08, 0.02, diffuseRate);
+                vec3 biasedFragPos = fragPos + normal * normalBias;
                 shadow = ShadowCalculationPoint(biasedFragPos, viewDistance, i);
             }
 
