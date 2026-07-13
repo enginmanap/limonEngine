@@ -305,6 +305,7 @@ add_library(customTriggers SHARED
         samples/WesternStoryAtTrainAction.cpp
         samples/WesternStoryNewGameAction.cpp
         samples/SSAOKernelRenderMethod.cpp
+        samples/WaterRenderMethod.cpp
         samples/OptionsDisplayAction.cpp
         )
 disable_postfixes(customTriggers)
