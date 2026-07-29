@@ -621,6 +621,36 @@ bool ModelAsset::getTransform(long time, bool looped, std::string animationName,
     return result;
 }
 
+void ModelAsset::getJointTransforms(long time, bool looped, const std::string &animationName, std::vector<glm::mat4> &outJointTransforms) const {
+    if (animationName.empty()) {
+        glm::mat4 parentTransform(1.0f);
+        traverseAndSetBindPoseJointTransform(rootNode, parentTransform, outJointTransforms);
+        return;
+    }
+
+    std::shared_ptr<const AnimationInterface> currentAnimation;
+    if (animations.find(animationName) != animations.end()) {
+        currentAnimation = animations.at(animationName);
+    } else {
+        currentAnimation = animations.begin()->second;
+    }
+
+    float ticksPerSecond = currentAnimation->getTicksPerSecond() != 0 ? currentAnimation->getTicksPerSecond() : TICK_PER_SECOND;
+
+    float animationTime;
+    float requestedTime = (time / 1000.0f) * ticksPerSecond;
+    if (requestedTime < currentAnimation->getDuration()) {
+        animationTime = requestedTime;
+    } else if (looped) {
+        animationTime = fmod(requestedTime, currentAnimation->getDuration());
+    } else {
+        animationTime = currentAnimation->getDuration();
+    }
+
+    glm::mat4 parentTransform(1.0f);
+    traverseAndSetJointTransform(rootNode, parentTransform, currentAnimation, animationTime, outJointTransforms);
+}
+
 void ModelAsset::traverseAndSetTransformBlended(std::shared_ptr<const BoneNode> boneNode, const glm::mat4 &parentTransform,
                                                 std::shared_ptr<const AnimationInterface> animationOld,
                                                 float timeInTicksOld,
@@ -694,6 +724,40 @@ void ModelAsset::traverseAndSetTransform( std::shared_ptr<const BoneNode> boneNo
     //Call children even if parent does not have animation attached.
     for (unsigned int i = 0; i < boneNode->children.size(); ++i) {
         traverseAndSetTransform(boneNode->children[i], nodeTransform, animation, timeInTicks, transforms);
+    }
+}
+
+void ModelAsset::traverseAndSetJointTransform(std::shared_ptr<const BoneNode> boneNode, const glm::mat4 &parentTransform,
+                                              std::shared_ptr<const AnimationInterface> animation, float timeInTicks,
+                                              std::vector<glm::mat4> &outJointTransforms) const {
+    if (boneNode == nullptr) {
+        return;
+    }
+    Transformation tf;
+    bool status = animation->calculateTransform(boneNode->name, timeInTicks, tf);
+    glm::mat4 nodeTransform = status ? tf.getWorldTransform() : boneNode->transformation;
+    nodeTransform = parentTransform * nodeTransform;
+
+    if (boneNode->boneID < outJointTransforms.size()) {
+        outJointTransforms[boneNode->boneID] = nodeTransform;
+    }
+
+    for (size_t i = 0; i < boneNode->children.size(); ++i) {
+        traverseAndSetJointTransform(boneNode->children[i], nodeTransform, animation, timeInTicks, outJointTransforms);
+    }
+}
+
+void ModelAsset::traverseAndSetBindPoseJointTransform(std::shared_ptr<const BoneNode> boneNode, const glm::mat4 &parentTransform,
+                                                       std::vector<glm::mat4> &outJointTransforms) const {
+    if (boneNode == nullptr) {
+        return;
+    }
+    glm::mat4 nodeTransform = parentTransform * boneNode->transformation;
+    if (boneNode->boneID < outJointTransforms.size()) {
+        outJointTransforms[boneNode->boneID] = nodeTransform;
+    }
+    for (size_t i = 0; i < boneNode->children.size(); ++i) {
+        traverseAndSetBindPoseJointTransform(boneNode->children[i], nodeTransform, outJointTransforms);
     }
 }
 
@@ -876,6 +940,19 @@ int32_t ModelAsset::buildEditorBoneTreeRecursive(std::shared_ptr<BoneNode> boneN
 
     }
     return result;
+}
+
+void ModelAsset::collectBoneHierarchyEdgesRecursive(const std::shared_ptr<BoneNode> &boneNode, std::vector<std::pair<uint32_t, uint32_t>> &edges) const {
+    if (boneNode == nullptr) {
+        return;
+    }
+    //Every node's joint transform (see traverseAndSetJointTransform) is computed unconditionally, regardless of
+    //boneInformationMap membership -- so every node in the hierarchy has a meaningful joint position, including
+    //structural nodes (e.g. a spine/chest connector) with no direct skin weights. No filtering needed here.
+    for (size_t i = 0; i < boneNode->children.size(); ++i) {
+        edges.emplace_back(boneNode->children[i]->boneID, boneNode->boneID);
+        collectBoneHierarchyEdgesRecursive(boneNode->children[i], edges);
+    }
 }
 
 bool ModelAsset::isTransparent() const {

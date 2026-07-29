@@ -109,6 +109,24 @@ class ModelAsset : public Asset {
                                  float timeInTicks,
                                  std::vector<glm::mat4> &transforms) const;
 
+    /**
+    Used only by editor preview of bones/animations
+
+    intentionally separate from the main transform calculation, as it is used in runtime
+
+    Sets the matrices for joints, so editor can render them
+    */
+    void traverseAndSetJointTransform(std::shared_ptr<const BoneNode> boneNode, const glm::mat4 &parentTransform,
+                                      std::shared_ptr<const AnimationInterface> animation, float timeInTicks,
+                                      std::vector<glm::mat4> &outJointTransforms) const;
+    /**
+    Used only by editor preview of bones/animations
+
+    Same as above, but for no-animation/t-pose case
+    */
+    void traverseAndSetBindPoseJointTransform(std::shared_ptr<const BoneNode> boneNode, const glm::mat4 &parentTransform,
+                                              std::vector<glm::mat4> &outJointTransforms) const;
+
     void traverseAndSetTransformBlended(std::shared_ptr<const BoneNode> boneNode, const glm::mat4 &parentTransform,
                                         std::shared_ptr<const AnimationInterface> animationOld,
                                         float timeInTicksOld,
@@ -122,6 +140,8 @@ class ModelAsset : public Asset {
     void deserializeCustomizations();
 
     int32_t buildEditorBoneTreeRecursive(std::shared_ptr<BoneNode> boneNode, int32_t selectedBoneNodeID);
+
+    void collectBoneHierarchyEdgesRecursive(const std::shared_ptr<BoneNode> &boneNode, std::vector<std::pair<uint32_t, uint32_t>> &edges) const;
 
 #ifdef CEREAL_SUPPORT
     friend class cereal::access;
@@ -164,6 +184,20 @@ public:
     bool getTransformBlended(std::string animationName1, long time1, bool looped1,
                                          std::string animationName2, long time2, bool looped2,
                                          float blendFactor, std::vector<glm::mat4> &transformMatrixVector) const;
+
+    /**
+     * Editor Only
+     *
+     * Computes each bone's own current joint transform (parent-chain accumulated, not the skinning matrix
+     * getTransform produces -- see traverseAndSetJointTransform). Used by the bone-exposure
+     * preview to visualize joint positions, entirely separate from the gameplay animation path.
+     *
+     * @param time Requested animation time in milliseconds. Ignored if animationName is empty (bind pose).
+     * @param looped if animation should loop or not.
+     * @param animationName name of animation to seek, or empty for bind pose.
+     * @param outJointTransforms transform list for bones, pre-sized by the caller.
+     */
+    void getJointTransforms(long time, bool looped, const std::string &animationName, std::vector<glm::mat4> &outJointTransforms) const;
 
     const glm::vec3 &getBoundingBoxMin() const { return boundingBoxMin; }
 
@@ -219,6 +253,16 @@ public:
     void serializeCustomizations();
 
     int32_t buildEditorBoneTree(int32_t selectedBoneNodeID);
+
+    /**
+    This might be cached, but since it is used for rendering, and we already limit bone count to 128, there is
+    virtually no chance this will become a measurable time spent.
+    */
+    std::vector<std::pair<uint32_t, uint32_t>> getBoneHierarchyEdges() const {
+        std::vector<std::pair<uint32_t, uint32_t>> edges;
+        collectBoneHierarchyEdgesRecursive(rootNode, edges);
+        return edges;
+    }
 #ifdef CEREAL_SUPPORT
     template<class Archive>
     void save( Archive & ar ) const {

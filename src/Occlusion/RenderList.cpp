@@ -5,13 +5,14 @@
 #include "RenderList.h"
 
 #include "../GameObjects/Model.h"
-void RenderList::addMeshMaterial(const std::shared_ptr<const Material> &material, const std::shared_ptr<MeshAsset> &meshAsset, const Model *model, uint32_t lod, float maxDepth) {
+void RenderList::addMeshMaterial(const std::shared_ptr<const Material> &material, const std::shared_ptr<MeshAsset> &meshAsset, const Model *model, uint32_t lod, float maxDepth, int32_t rigIdOverride) {
     std::unordered_map<std::shared_ptr<const Material>, PerMaterialRenderInformation>::iterator materialIterator;
     getOrCreateMaterialEntry(material, materialIterator);
     auto meshIterator = materialIterator->second.getOrCreateMeshEntry(meshAsset);
     auto requestedObjectIterator = std::find_if(meshIterator->second.indices.begin(), meshIterator->second.indices.end(), [model](const glm::uvec4& entry) { return entry.x == model->getWorldObjectID(); });
     if (requestedObjectIterator == meshIterator->second.indices.end()) {
-        meshIterator->second.indices.emplace_back(model->getWorldObjectID(), material->getMaterialIndex(), model->getRigId(), 0);
+        uint32_t rigId = rigIdOverride >= 0 ? (uint32_t)rigIdOverride : model->getRigId();
+        meshIterator->second.indices.emplace_back(model->getWorldObjectID(), material->getMaterialIndex(), rigId, 0);
         meshIterator->second.depth = std::max(meshIterator->second.depth, maxDepth);
         meshIterator->second.lod = std::min(meshIterator->second.lod, lod);
         meshIterator->second.isAnimated = meshIterator->second.isAnimated || model->isAnimated();

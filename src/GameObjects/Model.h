@@ -169,7 +169,7 @@ public:
 
     void renderWithProgram(std::shared_ptr<GraphicsProgram> program, uint32_t lodLevel) override;
 
-    RenderList convertToRenderList(uint32_t lodLevel, float depth) const;
+    RenderList convertToRenderList(uint32_t lodLevel, float depth, int32_t rigIdOverride = -1) const;
     void renderWithProgramInstanced(const std::vector<glm::uvec4> & modelIndices, GraphicsProgram &program, uint32_t lodLevel);
 
     bool isAnimated() const { return animated;}
@@ -269,6 +269,14 @@ public:
 
     uint32_t getAssetID() {
         return modelAsset->getAssetID();
+    }
+
+    const std::shared_ptr<ModelAsset>& getModelAsset() const {
+        return modelAsset;
+    }
+
+    int32_t getSelectedBoneID() const {
+        return selectedBoneID;
     }
 
     void convertAssetToLimon(std::set<std::vector<std::string>>& convertedAssetsSet);

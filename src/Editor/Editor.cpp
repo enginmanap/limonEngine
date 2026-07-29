@@ -53,13 +53,34 @@ Editor::Editor(World *world) : world(world){
     backgroundRenderStage->setOutput(GraphicsInterface::FrameBufferAttachPoints::COLOR0, colorTexture, true);
     backgroundRenderStage->setOutput(GraphicsInterface::FrameBufferAttachPoints::DEPTH, depthTexture, true);
     wrapper = new ImGuiImageWrapper();
+
+    bonePreview.renderStage = std::make_unique<GraphicsPipelineStage>(world->graphicsWrapper, 640,480,"","",true,true,true,false,false);
+    bonePreview.colorTexture = std::make_shared<Texture>(world->graphicsWrapper, GraphicsInterface::TextureTypes::T2D, GraphicsInterface::InternalFormatTypes::RGBA, GraphicsInterface::FormatTypes::RGBA, GraphicsInterface::DataTypes::UNSIGNED_BYTE, 640, 480);
+    bonePreview.colorTexture->setName("EditorBonePreviewColorTexture");
+    bonePreview.colorTexture->setFilterMode(GraphicsInterface::FilterModes::NEAREST);
+    bonePreview.depthTexture = std::make_shared<Texture>(world->graphicsWrapper, GraphicsInterface::TextureTypes::T2D, GraphicsInterface::InternalFormatTypes::DEPTH, GraphicsInterface::FormatTypes::DEPTH, GraphicsInterface::DataTypes::FLOAT, 640, 480);
+    bonePreview.depthTexture->setName("EditorBonePreviewDepthTexture");
+    bonePreview.renderStage->setOutput(GraphicsInterface::FrameBufferAttachPoints::COLOR0, bonePreview.colorTexture, true);
+    bonePreview.renderStage->setOutput(GraphicsInterface::FrameBufferAttachPoints::DEPTH, bonePreview.depthTexture, true);
+    bonePreview.wrapper = new ImGuiImageWrapper();
+    bonePreview.rigId = world->getNextRigId();
+
     imgGuiHelper = new ImGuiHelper(world->assetManager, world->options);
+    // We wanna render the bone overlay to the preview texture. We can't do it clearly with main context, so we need
+    // a secondary imgui context
+    ImGuiContext* mainImGuiContext = ImGui::GetCurrentContext();
+    ImFontAtlas* sharedFontAtlas = ImGui::GetIO().Fonts;
+    bonePreview.imGuiContext = ImGui::CreateContext(sharedFontAtlas);
+    ImGui::SetCurrentContext(mainImGuiContext);
+
     world->getName().copy(worldSaveNameBuffer, sizeof(worldSaveNameBuffer));
 
 }
 
 Editor::~Editor() {
+    ImGui::DestroyContext(bonePreview.imGuiContext);
     delete wrapper;
+    delete bonePreview.wrapper;
     delete nodeGraph;
     delete pipelineExtension;
     delete iterationExtension;
@@ -1654,7 +1675,7 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
         ImGui::End();
     }
 
-    /* window definitions */
+    finalizeOffscreenModelPreviews(graphicsProgram);
     imgGuiHelper->RenderDrawLists(graphicsProgram);
 }
 
@@ -2165,12 +2186,161 @@ void Editor::createObjectTreeRecursive(PhysicalRenderable *physicalRenderable, u
    }
 }
 
-void Editor::renderSelectedObject(Model* model, std::shared_ptr<GraphicsProgram> graphicsProgram) const {
-    backgroundRenderStage->activate(true);
+void Editor::beginOffscreenModelPreview(GraphicsPipelineStage* targetStage, std::shared_ptr<GraphicsProgram> graphicsProgram) {
+    //Set unconditionally (cheap) so each 3D draw is self-sufficient regardless of what any other offscreen
+    //preview did to this uniform earlier in the frame. The flag below is only about end-of-frame cleanup.
     graphicsProgram->setUniform("renderModelIMGUI", 1);
+    offscreenPreviewRenderedThisFrame = true;
+    targetStage->activate(true);
+}
+
+void Editor::finalizeOffscreenModelPreviews(std::shared_ptr<GraphicsProgram> graphicsProgram) {
+    if (offscreenPreviewRenderedThisFrame) {
+        graphicsProgram->setUniform("renderModelIMGUI", 0);
+        world->renderPipeline->reActivateLastStage();
+        offscreenPreviewRenderedThisFrame = false;
+    }
+}
+
+void Editor::renderSelectedObject(Model* model, std::shared_ptr<GraphicsProgram> graphicsProgram) {
+    beginOffscreenModelPreview(backgroundRenderStage.get(), graphicsProgram);
     model->convertToRenderList(0, 0).render(world->graphicsWrapper, graphicsProgram, true);
+}
+
+//Projects a world position through cameraMatrix/projectionMatrix into a pixel position in local [0,width]x[0,height]
+//image space (0,0 = top-left, y down -- standard UI convention, matching PositionIMGUI).
+//Since we use a dedicated context, we don't need to do hack together some way to actually position them
+static bool projectWorldPositionToLocalPixel(const glm::vec3 &worldPosition, const glm::mat4 &cameraMatrix,
+                                              const glm::mat4 &projectionMatrix, float width, float height,
+                                              ImVec2 &outPixel) {
+    glm::vec4 clipPosition = projectionMatrix * cameraMatrix * glm::vec4(worldPosition, 1.0f);
+    if (clipPosition.w <= 0.0f) {
+        return false;
+    }
+    glm::vec3 ndcPosition = glm::vec3(clipPosition) / clipPosition.w;
+    float u = (ndcPosition.x * 0.5f) + 0.5f;
+    float v = 1.0f - ((ndcPosition.y * 0.5f) + 0.5f);
+    outPixel.x = u * width;
+    outPixel.y = v * height;
+    return true;
+}
+
+void Editor::bakeSkeletonOverlay(Model* model, const std::vector<glm::mat4> &jointTransforms,
+                                  const glm::mat4 &previewCameraMatrix, const glm::mat4 &previewProjectionMatrix,
+                                  std::shared_ptr<GraphicsProgram> graphicsProgram) {
+    constexpr float width = 640.0f;
+    constexpr float height = 480.0f;
+
+    // get the previous context, and then switch
+    ImGuiContext* previousContext = ImGui::GetCurrentContext();
+    ImGui::SetCurrentContext(bonePreview.imGuiContext);
+    ImGuiIO &previewIO = ImGui::GetIO();
+    previewIO.DisplaySize = ImVec2(width, height);
+    previewIO.DisplayFramebufferScale = ImVec2(1.0f, 1.0f);
+    previewIO.DeltaTime = 1.0f / TICK_PER_SECOND;//dummy; this context is draw-only and never advances real time
+    ImGui::NewFrame();
+
+    ImDrawList* drawList = ImGui::GetBackgroundDrawList();
+    const glm::mat4 worldTransform = model->getTransformation()->getWorldTransform();
+    const std::vector<std::pair<uint32_t, uint32_t>> boneEdges = model->getModelAsset()->getBoneHierarchyEdges();
+
+    //jointTransforms is sized to the shader's fixed NR_BONE slot count, not the model's actual bone count; slots
+    //this skeleton doesn't use stay identity (GLM default-constructs mat4 to identity), which would draw a
+    //phantom joint at the model's own local origin if iterated directly. Only draw bones present in the hierarchy.
+    std::set<uint32_t> realBoneIDs;
+    for (const auto &edge : boneEdges) {
+        realBoneIDs.insert(edge.first);
+        realBoneIDs.insert(edge.second);
+    }
+
+    int32_t selectedBoneID = model->getSelectedBoneID();
+
+    for (const auto &edge : boneEdges) {
+        uint32_t childBoneID = edge.first;
+        uint32_t parentBoneID = edge.second;
+        if (childBoneID >= jointTransforms.size() || parentBoneID >= jointTransforms.size()) {
+            continue;
+        }
+        glm::vec3 childWorldPos = glm::vec3((worldTransform * jointTransforms[childBoneID])[3]);
+        glm::vec3 parentWorldPos = glm::vec3((worldTransform * jointTransforms[parentBoneID])[3]);
+        ImVec2 childPixel, parentPixel;
+        if (projectWorldPositionToLocalPixel(childWorldPos, previewCameraMatrix, previewProjectionMatrix, width, height, childPixel) &&
+            projectWorldPositionToLocalPixel(parentWorldPos, previewCameraMatrix, previewProjectionMatrix, width, height, parentPixel)) {
+            drawList->AddLine(parentPixel, childPixel, IM_COL32(255, 220, 0, 200), 2.0f);
+        }
+    }
+    for (uint32_t boneID : realBoneIDs) {
+        if (boneID >= jointTransforms.size()) {
+            continue;
+        }
+        glm::vec3 boneWorldPos = glm::vec3((worldTransform * jointTransforms[boneID])[3]);
+        ImVec2 bonePixel;
+        if (!projectWorldPositionToLocalPixel(boneWorldPos, previewCameraMatrix, previewProjectionMatrix, width, height, bonePixel)) {
+            continue;
+        }
+        bool isSelected = (static_cast<int32_t>(boneID) == selectedBoneID);
+        drawList->AddCircleFilled(bonePixel, isSelected ? 6.0f : 3.5f, isSelected ? IM_COL32(255, 60, 60, 255) : IM_COL32(80, 200, 255, 220));
+    }
+
+    ImGui::Render();
+
+    // we wanna render imgui render list, not model, flag it
     graphicsProgram->setUniform("renderModelIMGUI", 0);
-    world->renderPipeline->reActivateLastStage();
+    imgGuiHelper->RenderDrawLists(graphicsProgram);
+
+    ImGui::SetCurrentContext(previousContext);
+}
+
+ImGuiImageWrapper* Editor::renderBonePreview(Model* model, std::shared_ptr<GraphicsProgram> graphicsProgram) {
+    if (model->getWorldObjectID() != bonePreview.modelObjectID || model->getAnimationName() != bonePreview.animationName) {
+        //different model, or same model with a newly selected animation: restart preview playback from now
+        bonePreview.modelObjectID = model->getWorldObjectID();
+        bonePreview.animationName = model->getAnimationName();
+        bonePreview.startWallTime = world->wallTime;
+    }
+    long previewAnimationTime = static_cast<long>(world->wallTime - bonePreview.startWallTime);
+    // The model getTransform does not check the vector size, we need to resize here.
+    std::vector<glm::mat4> skinningMatrices(NR_BONE);
+    // get transform and get joint transform can be combined, but we don't want to, because that would change the hot path
+    // logic for editor. This split is intentional
+    model->getModelAsset()->getTransform(previewAnimationTime, true, model->getAnimationName(), skinningMatrices);
+
+    std::vector<glm::mat4> jointTransforms(NR_BONE);
+    model->getModelAsset()->getJointTransforms(previewAnimationTime, true, model->getAnimationName(), jointTransforms);
+
+    world->graphicsWrapper->setBoneTransforms(bonePreview.rigId, skinningMatrices);
+
+    // We want to render the model from the front. But there are 2 sets of information used for this:
+    // 1) Object transform -> Used for the real object, in a texture, read from multiple threads
+    // 2) Camera transform(s) -> Used for everything, but in UBO, single threaded
+    // To avoid race condition risk, we will update the camera transforms.
+    glm::vec3 aabbMin = model->getAabbMin();
+    glm::vec3 aabbMax = model->getAabbMax();
+    glm::vec3 modelCenter = (aabbMin + aabbMax) * 0.5f;
+    float modelRadius = glm::length(aabbMax - aabbMin) * 0.5f;
+    if (modelRadius < 0.01f) {
+        modelRadius = 1.0f;//degenerate/zero-size AABB guard
+    }
+    glm::vec3 previewCameraPosition = modelCenter + glm::vec3(0.0f, modelRadius * 0.5f, modelRadius * 2.5f);
+    glm::mat4 previewCameraMatrix = glm::lookAt(previewCameraPosition, modelCenter, glm::vec3(0.0f, 1.0f, 0.0f));
+    glm::mat4 previewProjectionMatrix = glm::perspective(glm::radians(60.0f), 640.0f / 480.0f, 0.1f, modelRadius * 20.0f + 10.0f);
+
+    const glm::vec3 liveCameraPosition = world->playerCamera->getPosition();
+    const glm::mat4 liveCameraMatrix = world->playerCamera->getCameraMatrix();
+    const glm::mat4 liveProjectionMatrix = world->playerCamera->getProjectionMatrix();
+
+    world->graphicsWrapper->setPlayerMatrices(previewCameraPosition, previewCameraMatrix, previewProjectionMatrix, world->gameTime);
+    beginOffscreenModelPreview(bonePreview.renderStage.get(), graphicsProgram);
+    // We want animation, so we should not force Not animated, unlike the add object preview
+    model->convertToRenderList(0, 0, static_cast<int32_t>(bonePreview.rigId)).render(world->graphicsWrapper, graphicsProgram, false);
+
+    bakeSkeletonOverlay(model, jointTransforms, previewCameraMatrix, previewProjectionMatrix, graphicsProgram);
+
+    world->graphicsWrapper->setPlayerMatrices(liveCameraPosition, liveCameraMatrix, liveProjectionMatrix, world->gameTime);
+
+    bonePreview.wrapper->texture = bonePreview.colorTexture;
+    bonePreview.wrapper->layer = 0;
+    return bonePreview.wrapper;
 }
 
 void Editor::addGUITextControls() {

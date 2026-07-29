@@ -56,6 +56,31 @@ class Editor {
     Model *createRenderAndAddModelToLRU(const std::string &modelFileName, const glm::vec3 &newObjectPosition, std::shared_ptr<GraphicsProgram> graphicsProgram);
     ImGuiImageWrapper* wrapper = nullptr;
 
+    // We can't re-use the background renderer state for animation/bone preview, as editor might have both visible at the same time.
+    struct BonePreviewState {
+        // We can't use the main context, as it is mid frame, so we create a separate one for this.
+        // We do reuse the font atlas, so it is a very lightweight thingy.
+        ImGuiContext* imGuiContext = nullptr;
+
+        std::shared_ptr<Texture> colorTexture;
+        std::shared_ptr<Texture> depthTexture;
+        std::unique_ptr<GraphicsPipelineStage> renderStage;
+        ImGuiImageWrapper* wrapper = nullptr;
+        // We can't use the actual rig-id, because that would corrupt the models state, so we will reserve another ID and use that.
+        uint32_t rigId = 0;
+        uint64_t startWallTime = 0;//wall time when the currently-previewed model/animation was first shown, for looping playback
+        uint32_t modelObjectID = 0xFFFFFFFF;//tracks which model+animation startWallTime belongs to
+        std::string animationName;
+    };
+    BonePreviewState bonePreview;
+
+    // We might or might not render add object preview, same with animation/bone preview. If neither rendered, we don't need to
+    // clean up/restore so we flag if any of them did render.
+    // TODO: this flag might not be needed, or we might have a better solution, needs re-check
+    bool offscreenPreviewRenderedThisFrame = false;
+    void beginOffscreenModelPreview(GraphicsPipelineStage* targetStage, std::shared_ptr<GraphicsProgram> graphicsProgram);
+    void finalizeOffscreenModelPreviews(std::shared_ptr<GraphicsProgram> graphicsProgram);
+
     std::unordered_map<std::string, std::shared_ptr<ModelAsset>> modelAssetsWaitingCPULoad;
     std::unordered_map<std::string, std::shared_ptr<ModelAsset>> modelAssetsPreloaded;
 
@@ -86,6 +111,7 @@ public:
     Editor(World* world);
     ~Editor();
     bool generateEditorElementsForParameters(std::vector<LimonTypes::GenericParameter> &runParameters, uint32_t index);
+    ImGuiImageWrapper* renderBonePreview(Model* model, std::shared_ptr<GraphicsProgram> graphicsProgram);
     void renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram);
     void applyPendingPick();
 
@@ -114,7 +140,11 @@ private:
     bool buildFilteredVisibleIDs(PhysicalRenderable *physicalRenderable, const std::string& filterText,
                                  std::unordered_set<uint32_t>& visibleIDs);
 
-    void renderSelectedObject(Model* model, std::shared_ptr<GraphicsProgram> graphicsProgram) const;
+    void renderSelectedObject(Model* model, std::shared_ptr<GraphicsProgram> graphicsProgram);
+
+    void bakeSkeletonOverlay(Model* model, const std::vector<glm::mat4> &jointTransforms,
+                             const glm::mat4 &previewCameraMatrix, const glm::mat4 &previewProjectionMatrix,
+                             std::shared_ptr<GraphicsProgram> graphicsProgram);
 
     void setTransformToModel(Model *model, const glm::vec3 &newObjectPosition);
 

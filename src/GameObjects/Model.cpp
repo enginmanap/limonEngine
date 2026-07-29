@@ -175,11 +175,11 @@ void Model::renderWithProgram(std::shared_ptr<GraphicsProgram> program, uint32_t
     }
 }
 
-RenderList Model::convertToRenderList(uint32_t lodLevel, float depth) const {
+RenderList Model::convertToRenderList(uint32_t lodLevel, float depth, int32_t rigIdOverride) const {
     RenderList renderList;
 
     for (auto iter = meshMetaData.begin(); iter != meshMetaData.end(); ++iter) {
-        renderList.addMeshMaterial((*iter)->material, (*iter)->mesh, this, lodLevel, depth);
+        renderList.addMeshMaterial((*iter)->material, (*iter)->mesh, this, lodLevel, depth, rigIdOverride);
     }
     return renderList;
 }
@@ -387,6 +387,19 @@ ImGuiResult Model::addImGuiEditorElements(const ImGuiRequest &request) {
             if (newSelectedBoneID != -1 && newSelectedBoneID != selectedBoneID) {
                 selectedBoneID = newSelectedBoneID;
                 std::cout << "selected bone is " << selectedBoneID << std::endl;
+            }
+
+            //Editor renders the model AND bakes the skeleton overlay (lines, joints, selection highlight) into
+            //one texture -- see Editor::renderBonePreview / Editor::bakeSkeletonOverlay. This is just a display
+            //of a finished image; no camera/joint-transform data or drawing logic lives here.
+            if (request.renderBonePreview) {
+                ImGuiImageWrapper* previewWrapper = request.renderBonePreview(this);
+                if (previewWrapper != nullptr && previewWrapper->texture != nullptr) {
+                    ImVec2 size(static_cast<float>(previewWrapper->texture->getWidth()), static_cast<float>(previewWrapper->texture->getHeight()));
+                    ImGui::Dummy(ImVec2(0.0f, size.y));
+                    size.y = -1 * size.y;//ImGui assumes y up; the preview texture is rendered y down, same hack used for the Add-Object preview
+                    ImGui::Image((ImTextureID)(intptr_t)previewWrapper, size);
+                }
             }
         } else {
             selectedBoneID = -1;

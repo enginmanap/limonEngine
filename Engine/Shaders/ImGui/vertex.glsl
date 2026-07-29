@@ -4,14 +4,14 @@
 #import <./Engine/Shaders/Shared/ModelRendering.vert>
 
 uniform mat4 ProjMtx;
-layout (location = 2) in vec4 position;
-layout (location = 3) in vec2 textureCoordinate;
-layout (location = 4) in vec3 normal;
-layout (location = 5) in vec2 PositionIMGUI;
-layout (location = 6) in vec2 UV;
-layout (location = 7) in vec4 Color;
-layout (location = 8) in uvec4 boneIDs;
-layout (location = 9) in vec4 boneWeights;
+layout (location = 2) in vec4 position;         // hard coded slot
+layout (location = 3) in vec2 textureCoordinate;// hard coded slot
+layout (location = 4) in vec3 normal;           // hard coded slot
+layout (location = 5) in uvec4 boneIDs;         // hard coded slot
+layout (location = 6) in vec4 boneWeights;      // hard coded slot
+layout (location = 8) in vec2 PositionIMGUI;    // Dynamic slot
+layout (location = 9) in vec2 UV;               // Dynamic slot
+layout (location = 10) in vec4 Color;           // Dynamic slot
 out vec2 Frag_UV;
 out vec4 Frag_Color;
 
