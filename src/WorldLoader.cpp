@@ -155,6 +155,9 @@ World * WorldLoader::loadMapFromXML(const std::string &worldFileName, LimonAPI *
 
     World* world = new World(std::string(worldName->GetText()), startingPlayer, inputHandler, assetManager, options, profilerSystem);
 
+
+
+
     attachedAPIMethodsToWorld(world, limonAPI);
     world->loadingImage = loadingImageStr;
 
@@ -2313,12 +2316,15 @@ bool WorldLoader::loadMaterials(tinyxml2::XMLNode *worldNode, World *world) cons
     for (tinyxml2::XMLElement *materialNode = materialsNode->FirstChildElement("Material");
          materialNode != nullptr;
          materialNode = materialNode->NextSiblingElement("Material")) {
-         //this list only ever contains materials edited in place (not tied to a specific mesh override -
-         // see WorldSaver::fillMaterials), so registering by originalHash here is correct: it redirects
-         // anything that would otherwise load the un-edited base material to this edited version instead.
+         /*
+          * These are the materials this world uses instead of the asset's own. originalHash is the base
+          * they replace, carried in the save file, and it is matched to a registrationID once that base is
+          * actually loaded - see World::resolvePendingMaterialOverrides.
+          */
          std::shared_ptr<Material> material = Material::deserialize(world->assetManager.get(), materialNode);
          material->loadGPUSide(world->assetManager.get());
-         world->assetManager->registerOverriddenMaterial(material);
+         material = world->assetManager->getMaterialRegistry().registerMaterial(material);
+         world->addPendingMaterialOverride(material);
     }
     return true;
 }

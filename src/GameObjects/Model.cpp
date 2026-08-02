@@ -493,21 +493,21 @@ ImGuiResult Model::addImGuiEditorElements(const ImGuiRequest &request) {
             }
         }
     }
+    static int32_t selectedIndex = -1;
+    static uint32_t selectedModel = 0;
+    if (this->getWorldObjectID() != selectedModel) {
+        selectedIndex = -1;
+        selectedModel = this->getWorldObjectID();
+    }
     if (ImGui::CollapsingHeader("Material properties")) {
         //add material listing
-        static int32_t selectedIndex = -1;
-        static uint32_t selectedModel = 0;
-        if (this->getWorldObjectID() != selectedModel) {
-            selectedIndex = -1;
-            selectedModel = this->getWorldObjectID();
-        }
         bool isSelected = false;
         if(ImGui::BeginListBox("Meshes##ModelObject")) {
             for (size_t i = 0; i < meshMetaData.size(); ++i) {
                 isSelected = selectedIndex == static_cast<int32_t>(i);
                 if (ImGui::Selectable((meshMetaData[i]->mesh->getName() + " -> " + meshMetaData[i]->material->getName()).c_str(), isSelected)) {
                     if (selectedIndex != static_cast<int32_t>(i)) { //means selection changed, trigger material change on main window
-                        EditorNS::selectedMeshesMaterial = meshMetaData[i]->material;
+                        result.selectedMeshMaterial = meshMetaData[i]->material;
                     }
                     selectedIndex = static_cast<int32_t>(i);
                 }
@@ -516,38 +516,38 @@ ImGuiResult Model::addImGuiEditorElements(const ImGuiRequest &request) {
             if (selectedIndex == -1) {
                 ImGui::BeginDisabled();
             }
-            if (EditorNS::selectedFromListMaterial == nullptr) {
+            if (request.materialSelectedInList == nullptr) {
                 ImGui::BeginDisabled();
             }
             if (ImGui::Button("Switch material")) {
-                //Materials are registered by assets, we should not unregister
-                this->meshMetaData[selectedIndex]->material = EditorNS::selectedFromListMaterial;
+                //this model now holds a reference of its own, released when the mesh is reseated again or the model dies
+                this->setMeshMaterial(selectedIndex, request.materialSelectedInList);
                 result.materialChanged = true;
                 this->dirtyForFrustum = true;
             }
-            if (EditorNS::selectedFromListMaterial == nullptr) {
+            if (request.materialSelectedInList == nullptr) {
                 ImGui::EndDisabled();
             }
             ImGui::SameLine();
 
             ImGuiHelper::ShowHelpMarker("This will switch the material to the one selected in world editor");
             ImGui::SameLine();
-            static std::shared_ptr<Material> copiedMaterial = nullptr;
-            if (ImGui::Button("Alter material for this model")) {
-                copiedMaterial = std::make_shared<Material>(*this->meshMetaData[selectedIndex]->material);//copy construct
-                int randomNum = (rand() % 100) + 1;//it is super unlikely that 2 copies will be created without actually changing something, but it is possible. Randomize to prevent clash
-                copiedMaterial->setAmbientColor(glm::vec3(copiedMaterial->getAmbientColor().x,copiedMaterial->getAmbientColor().y,copiedMaterial->getAmbientColor().z + (0.000001f * randomNum)));
-
-                copiedMaterial = assetManager->registerMaterial(copiedMaterial);//this is to get a valid index, not deduplicate.
-                meshMetaData[selectedIndex]-> material = copiedMaterial;
-                graphicsWrapper->setMaterial(*copiedMaterial);
-                result.materialChanged = true;
-                this->dirtyForFrustum = true;
+            //altering an alteration would chain copies, and Revert would then land on the previous copy
+            //rather than on the material the mesh started with
+            if (request.alteredMaterial != nullptr) {
+                ImGui::BeginDisabled();
             }
-            if (copiedMaterial != nullptr) {
-                copiedMaterial->addImGuiEditorElements(request);
-                if (ImGui::Button("Close##materialAlterInModel")) {
-                    copiedMaterial = nullptr;
+            if (ImGui::Button("Alter material for this model")) {
+                //the copy and its edit window belong to the Editor, it outlives this panel and this object
+                result.alterMaterialForMeshIndex = selectedIndex;
+            }
+            if (request.alteredMaterial != nullptr) {
+                ImGui::EndDisabled();
+            }
+            if (request.alteredMaterial != nullptr) {
+                request.alteredMaterial->addImGuiEditorElements(request);
+                if (ImGui::Button("Revert##materialAlterInModel")) {
+                    result.revertAlteredMaterial = true;
                 }
             }
             if (selectedIndex == -1) {
@@ -575,6 +575,8 @@ Model::~Model() {
     delete AIActor;
 
     for (size_t i = 0; i < meshMetaData.size(); ++i) {
+        //a material this model overrode to belongs to this model, so it goes away with it
+        releaseOwnedMeshMaterial(i);
         delete meshMetaData[i];
     }
 
@@ -601,9 +603,10 @@ Model::Model(const Model &otherModel, uint32_t objectID) :
     this->animationTime = otherModel.animationTime;
 
     for (const auto& materialOverride : otherModel.getNewMeshMaterials()) {
-        for (auto& meshMeta : this->meshMetaData) {
-            if (meshMeta->mesh->getName() == materialOverride.first) {
-                meshMeta->material = materialOverride.second;
+        for (size_t meshIndex = 0; meshIndex < this->meshMetaData.size(); ++meshIndex) {
+            if (this->meshMetaData[meshIndex]->mesh->getName() == materialOverride.first) {
+                //the copy holds its own reference to the override, it does not share the original's
+                this->setMeshMaterial(meshIndex, materialOverride.second);
                 break;
             }
         }
@@ -685,23 +688,66 @@ std::vector<std::pair<std::string, std::shared_ptr<const Material>>> Model::getN
             continue;
         }
         if (material != thisMeshMaterial->material) {//difference in materials, we should save this.
+            //global overrides are already saved once as a <Materials> entry and come back through their
+            //forwarding rule, don't repeat them for every mesh showing them
+            /*
+             * A world override ends up written here as well as under <Materials>. That is redundant, not
+             * wrong: on load the per mesh copy and the world one dedup by content into a single material.
+             * Filtering on originalHash instead would give that field a second meaning and collide with the
+             * "is this world owned" test in Editor::ensureWorldOwnedMaterial.
+             */
             meshMaterialList.emplace_back(thisMeshMaterial->mesh->getName(), thisMeshMaterial->material);
         }
     }
     return meshMaterialList;
 }
 
+void Model::releaseOwnedMeshMaterial(size_t meshIndex) {
+    MeshMeta* meshMeta = meshMetaData[meshIndex];
+    if (meshMeta->material == nullptr) {
+        return;
+    }
+    if (meshMeta->material == modelAsset->getMeshMaterial(meshMeta->mesh)) {
+        return;//borrowed from the asset, which releases it itself in ~ModelAsset
+    }
+    assetManager->getMaterialRegistry().unregisterMaterial(meshMeta->material);
+    meshMeta->material = nullptr;
+}
+
+std::shared_ptr<const Material> Model::setMeshMaterial(size_t meshIndex, std::shared_ptr<const Material> material) {
+    if (meshIndex >= meshMetaData.size()) {
+        std::cerr << "Mesh index " << meshIndex << " is out of range for model " << this->name << std::endl;
+        return nullptr;
+    }
+    MeshMeta* meshMeta = meshMetaData[meshIndex];
+    if (meshMeta->material == material) {
+        return material;
+    }
+    releaseOwnedMeshMaterial(meshIndex);
+
+    std::shared_ptr<const Material> materialToUse = material;
+    if (material != nullptr && material != modelAsset->getMeshMaterial(meshMeta->mesh)) {
+        //const_pointer_cast because registering assigns materialIndex. Install what comes back, not what
+        //we asked for, dedup can hand us a different instance
+        materialToUse = assetManager->getMaterialRegistry().registerMaterial(std::const_pointer_cast<Material>(material));
+    }
+    meshMeta->material = materialToUse;
+    return materialToUse;
+}
+
 void Model::loadOverriddenMeshMaterial(std::vector<std::pair<std::string, std::shared_ptr<Material>>> &customisedMeshMaterialList) {
     for (const auto& thisMeshMaterial:customisedMeshMaterialList) {
         //find the mesh
         bool found = false;
-        for (auto& meshMetaData: this->meshMetaData) {
-            if (meshMetaData->mesh->getName() == thisMeshMaterial.first) {
+        for (size_t meshIndex = 0; meshIndex < this->meshMetaData.size(); ++meshIndex) {
+            if (this->meshMetaData[meshIndex]->mesh->getName() == thisMeshMaterial.first) {
                 std::shared_ptr<Material> newMaterial = thisMeshMaterial.second;
                 newMaterial->loadGPUSide(assetManager.get());
-                newMaterial = assetManager->registerMaterial(newMaterial);
-                graphicsWrapper->setMaterial(*newMaterial);
-                meshMetaData->material = newMaterial;
+                //setMeshMaterial registers, and can hand back a deduplicated instance instead
+                std::shared_ptr<const Material> installedMaterial = setMeshMaterial(meshIndex, newMaterial);
+                if (installedMaterial != nullptr) {
+                    graphicsWrapper->setMaterial(*installedMaterial);
+                }
                 found = true;
             }
         }
@@ -721,6 +767,11 @@ void Model::reloadWithFlip(const std::string &newFlipAxes) {
     if (animated) {
         std::cerr << "WARNING: flip change requested for animated model " << name << " — flip is not supported for animated meshes, ignoring." << std::endl;
         return;
+    }
+
+    //release before modelAsset is swapped below, after that we can't tell which of these we registered
+    for (size_t i = 0; i < meshMetaData.size(); ++i) {
+        releaseOwnedMeshMaterial(i);
     }
 
     std::string oldKey = modelAsset->getAssetName();

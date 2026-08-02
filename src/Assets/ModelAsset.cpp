@@ -344,9 +344,13 @@ std::shared_ptr<Material> ModelAsset::loadMaterials(const aiScene *scene, unsign
         }
 
         newMaterial->setMaps(maps);
-        newMaterial->calculateOriginalHash();
-        newMaterial = assetManager->registerMaterial(newMaterial);
-        std::string requestedName = newMaterial->getName();
+        //no originalHash, an asset's own material overrides nothing. It gets one only when a world overrides
+        //it, set by MaterialRegistry::splitOffOverride, the only place that has the pre edit values
+        newMaterial = assetManager->getMaterialRegistry().registerMaterial(newMaterial);
+        //key by the name we asked for, not the dedup winner's name, or the next mesh asking for this name
+        //misses the lookup above and registers it again. Several names on one Material is fine,
+        //~ModelAsset dedups by pointer
+        std::string requestedName = property.C_Str();
         materialMap[requestedName] = newMaterial;
     } else {
         newMaterial = materialMap[property.C_Str()];
@@ -1071,10 +1075,12 @@ btCompoundShape * ModelAsset::getCompoundShapeForMass(uint32_t mass, std::map<ui
 ModelAsset::~ModelAsset() {
     //materialMap can have multiple names pointing at the same deduplicated Material (see registerMaterial()),
     // so unregister each distinct Material once, not once per name that happens to reference it.
-    std::unordered_set<Material*> unregisteredMaterials;
+    //Keyed by registrationID, the same identity the registry files them under. Safe because assignment is
+    //deleted, so no two live materials can share one.
+    std::unordered_set<uint32_t> unregisteredMaterials;
     for (auto materialIt: materialMap) {
-        if (unregisteredMaterials.insert(materialIt.second.get()).second) {
-            assetManager->unregisterMaterial(materialIt.second);
+        if (unregisteredMaterials.insert(materialIt.second->getRegistrationID()).second) {
+            assetManager->getMaterialRegistry().unregisterMaterial(materialIt.second);
         }
     }
 

@@ -39,9 +39,6 @@
 #include <glm/gtx/matrix_decompose.hpp>
 #include <glm/gtx/euler_angles.hpp>
 
-std::shared_ptr<const Material> EditorNS::selectedMeshesMaterial = nullptr;
-std::shared_ptr<Material> EditorNS::selectedFromListMaterial = nullptr;
-
 Editor::Editor(World *world) : world(world){
     backgroundRenderStage = std::make_unique<GraphicsPipelineStage>(world->graphicsWrapper, 640,480,"","",true,true,true,false,false);
     colorTexture = std::make_shared<Texture>(world->graphicsWrapper, GraphicsInterface::TextureTypes::T2D, GraphicsInterface::InternalFormatTypes::RGBA, GraphicsInterface::FormatTypes::RGBA, GraphicsInterface::DataTypes::UNSIGNED_BYTE, 640, 480);
@@ -78,6 +75,8 @@ Editor::Editor(World *world) : world(world){
 }
 
 Editor::~Editor() {
+    //~World resets us while its objects are still alive, so the mesh keeping the alteration is still valid
+    releaseAlteredMaterialEdit();
     ImGui::DestroyContext(bonePreview.imGuiContext);
     delete wrapper;
     delete bonePreview.wrapper;
@@ -508,6 +507,122 @@ bool getNameOfLoadedAnimation(void* data, int index, const char** outText) {
 
 }
 
+void Editor::beginAlteredMaterialEdit(Model* model, int32_t meshIndex) {
+    releaseAlteredMaterialEdit();//only one panel at a time, the previous alteration stands
+    if (model == nullptr || meshIndex < 0 || static_cast<size_t>(meshIndex) >= model->getMeshMetaData().size()) {
+        return;
+    }
+    /*
+     * The copy carries the base's content, so registering it would dedup it straight back into the base and
+     * we would be editing the base for every model using it. Give it its own slot and keep it out of the
+     * registry until it actually differs - dedup then happens at that point, on real content.
+     */
+    std::shared_ptr<const Material> sourceMaterial = model->getMeshMetaData()[meshIndex]->material;
+    std::shared_ptr<Material> copiedMaterial = world->assetManager->getMaterialRegistry().createScratchCopy(sourceMaterial);
+    model->setMeshMaterial(meshIndex, copiedMaterial);
+    world->graphicsWrapper->setMaterial(*copiedMaterial);
+
+    alteredMaterialEdit.objectID = model->getWorldObjectID();
+    alteredMaterialEdit.meshIndex = meshIndex;
+    alteredMaterialEdit.material = copiedMaterial;
+    alteredMaterialEdit.sourceMaterial = std::const_pointer_cast<Material>(sourceMaterial);
+    //point the global pane at the copy too, so both panes edit the same material rather than this one and
+    //the material it was copied from. Also commits whatever the global pane was holding
+    selectedMeshMaterial = copiedMaterial;
+    world->onModelMaterialChanged(model->getWorldObjectID());
+}
+
+/*
+ * The Revert button: throw the alteration away and put the mesh back on what it had. It has to be the
+ * recorded source rather than the asset's material - the mesh may have been carrying an override already, and
+ * dropping to the asset's would discard that too.
+ */
+void Editor::revertAlteredMaterialEdit() {
+    if (alteredMaterialEdit.material == nullptr) {
+        return;
+    }
+    std::shared_ptr<Material> sourceMaterial = alteredMaterialEdit.sourceMaterial;
+    if (sourceMaterial != nullptr) {
+        auto objectIt = world->objects.find(alteredMaterialEdit.objectID);
+        Model* model = (objectIt != world->objects.end()) ? dynamic_cast<Model*>(objectIt->second) : nullptr;
+        if (model != nullptr) {
+            model->setMeshMaterial(alteredMaterialEdit.meshIndex, sourceMaterial);
+            world->onModelMaterialChanged(alteredMaterialEdit.objectID);
+        }
+    }
+    releaseAlteredMaterialEdit();
+    if (sourceMaterial != nullptr) {
+        //release left the list on the copy we just threw away, which is about to be erased. Follow the
+        //material the mesh actually ended up on instead
+        selectedRegistrationID = sourceMaterial->getRegistrationID();
+    }
+}
+
+/*
+ * The panel is going away for some reason other than Revert - another object picked, the editor shutting
+ * down. The alteration stands; we only drop the reference createScratchCopy took for us and forget the panel
+ * state. The mesh holds its own reference, so the material stays alive exactly as long as it is in use.
+ */
+void Editor::releaseAlteredMaterialEdit() {
+    if (alteredMaterialEdit.material == nullptr) {
+        return;
+    }
+    selectedRegistrationID = alteredMaterialEdit.material->getRegistrationID();//keep the list on what we made
+    world->assetManager->getMaterialRegistry().unregisterMaterial(alteredMaterialEdit.material);
+    alteredMaterialEdit = AlteredMaterialEdit();
+}
+
+//points every mesh in this world that uses baseMaterial at overrideMaterial
+void Editor::reseatWorldMeshes(const std::shared_ptr<const Material> &baseMaterial, const std::shared_ptr<Material> &overrideMaterial) {
+    for (auto objectIt = world->objects.begin(); objectIt != world->objects.end(); ++objectIt) {
+        Model* model = dynamic_cast<Model*>(objectIt->second);
+        if (model == nullptr) {
+            continue;
+        }
+        bool anyMeshChanged = false;
+        const std::vector<Model::MeshMeta *> &meshMetas = model->getMeshMetaData();
+        for (size_t meshIndex = 0; meshIndex < meshMetas.size(); ++meshIndex) {
+            if (meshMetas[meshIndex]->material == baseMaterial) {
+                model->setMeshMaterial(meshIndex, overrideMaterial);
+                anyMeshChanged = true;
+            }
+        }
+        if (anyMeshChanged) {
+            //culling entries are keyed by the material pointer, the ones under the base can't be removed
+            //anymore. Strip per model, not per mesh, same as the flip change path below
+            world->onModelMaterialChanged(model->getWorldObjectID());
+        }
+    }
+}
+
+/**
+ * Splits an asset owned material into a world owned one carrying the edit, so the pane never leaves an edit
+ * on an object ModelAsset owns and other worlds point at.
+ *
+ * Called on the first frame the material reports dirty, which is why there is no commit anywhere: by then
+ * the copy already differs, so there is nothing provisional left to finalise later.
+ */
+std::shared_ptr<Material> Editor::ensureWorldOwnedMaterial(const std::shared_ptr<Material> &material) {
+    /*
+     * Already ours, so edit it in place. This is what stops copy_copy_ chains.
+     *
+     * originalHash names whatever a material replaces, so it covers both an override this world's table no
+     * longer lists and a private copy left on a mesh after its panel closed. An asset's own material always
+     * carries 0, so it can never be mistaken for either.
+     */
+    if (world->isMaterialOverride(material) || material == alteredMaterialEdit.material || material->getOriginalHash() != 0) {
+        return material;
+    }
+    if (selectedMaterialSnapshot == nullptr) {
+        std::cerr << "Material " << material->getName() << " went dirty with no snapshot, can not split it off." << std::endl;
+        return material;
+    }
+    std::shared_ptr<Material> overrideMaterial = world->assetManager->getMaterialRegistry().splitOffOverride(material, selectedMaterialSnapshot);
+    world->addMaterialOverride(material->getRegistrationID(), overrideMaterial);
+    reseatWorldMeshes(material, overrideMaterial);
+    return overrideMaterial;
+}
+
 Model* Editor::getModelAndMoveToEnd(const std::string& modelFilePath) {
     for(auto iter = modelQueue.begin(); iter != modelQueue.end(); ++iter) {
         Model* model = *iter;
@@ -569,6 +684,10 @@ void Editor::applyPendingPick() {
     hasPendingPick = false;
     if (pickedObject != nullptr) {
         pickedObject->removeTag(HardCodedTags::PICKED_OBJECT);
+    }
+    if (alteredMaterialEdit.material != nullptr && pendingPickedObject != pickedObject) {
+        //selecting away closes the panel. The alteration stands, we just stop tracking it
+        releaseAlteredMaterialEdit();
     }
     pickedObject = pendingPickedObject;
     pendingPickedObject = nullptr;
@@ -1358,33 +1477,70 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
 
 
         }
+
         if(ImGui::CollapsingHeader("List materials")) {
             //listing
-            static size_t selectedHash = 0;
             static bool syncWithObjectSelection = true;
             ImGui::Checkbox("follow model material selection", &syncWithObjectSelection);
-            if (EditorNS::selectedMeshesMaterial != nullptr) {
+            if (selectedMeshMaterial != nullptr) {
                 if (syncWithObjectSelection) {
-                    selectedHash = EditorNS::selectedMeshesMaterial->getHash();
+                    selectedRegistrationID = selectedMeshMaterial->getRegistrationID();
                 }
-                EditorNS::selectedMeshesMaterial = nullptr;
+                selectedMeshMaterial = nullptr;
             }
             bool isSelected = false;
-            auto allMaterials = world->assetManager->getMaterials();
+            /*
+             * A copy, because the background asset threads register materials while we walk this. Rebuilt
+             * only when the registry actually changed, so browsing the list costs nothing per frame - the
+             * vector keeps its capacity, so a rebuild does not go back to the heap either.
+             */
+            MaterialRegistry& materialRegistry = world->assetManager->getMaterialRegistry();
+            if (materialsSnapshotVersion != materialRegistry.getMaterialsVersion()) {
+                materialsSnapshotVersion = materialRegistry.getMaterialsVersion();
+                materialRegistry.fillMaterialsSnapshot(materialsSnapshot);
+            }
+            const std::vector<std::pair<uint32_t, std::shared_ptr<Material>>>& allMaterials = materialsSnapshot;
             ImGui::Text("Total material count is %lu", (unsigned long) allMaterials.size());
+            std::shared_ptr<Material> selectedMaterial = nullptr;
             if (ImGui::BeginListBox("Materials")) {
-                for (auto it = allMaterials.begin(); it != allMaterials.end(); ++it) {
-                    isSelected = selectedHash == it->first;
-                    if (ImGui::Selectable((it->second.first->getName() + " -> " + std::to_string(it->first)).c_str(), isSelected)) {
-                        selectedHash = it->first;
+                for (std::vector<std::pair<uint32_t, std::shared_ptr<Material>>>::const_iterator it = allMaterials.begin(); it != allMaterials.end(); ++it) {
+                    isSelected = selectedRegistrationID == it->first;
+                    if (isSelected) {
+                        selectedMaterial = it->second;//keyed by identity, so a selection can not go stale
+                    }
+                    //derived, not stored: the base is usually ModelAsset's own material, shared by every
+                    //world and cached to disk, so it must not be renamed just because this world overrode it
+                    std::string rowLabel = world->isOverriddenBase(it->first)
+                                           ? "base_" + it->second->getName()
+                                           : it->second->getName();
+                    if (ImGui::Selectable((rowLabel + " -> " + std::to_string(it->first)).c_str(), isSelected)) {
+                        selectedRegistrationID = it->first;
+                        selectedMaterial = it->second;
                     }
                 }
                 ImGui::EndListBox();
             }
-            auto selectedMaterialIt = allMaterials.find(selectedHash);
-            if(selectedMaterialIt != allMaterials.end()) {
-                EditorNS::selectedFromListMaterial = selectedMaterialIt->second.first;
-                selectedMaterialIt->second.first->addImGuiEditorElements(*this->request);
+            if (selectedMaterial != snapshotSourceMaterial) {
+                //snapshot before anything can be dragged, so an asset owned material can be put back exactly
+                snapshotSourceMaterial = selectedMaterial;
+                selectedMaterialSnapshot = (selectedMaterial != nullptr) ? std::make_shared<Material>(*selectedMaterial) : nullptr;
+            }
+            if(selectedMaterial != nullptr) {
+                materialSelectedInList = selectedMaterial;//"Switch material" picks this up, no edit involved
+                ImGuiResult materialEditorResult = selectedMaterial->addImGuiEditorElements(*this->request);
+                if (materialEditorResult.materialDirty) {
+                    /*
+                     * The first changed value is where an asset owned material splits off into a world owned
+                     * one. Nothing is provisional afterwards, so there is no commit to detect later, which is
+                     * what every earlier attempt kept getting wrong.
+                     */
+                    selectedMaterial = ensureWorldOwnedMaterial(selectedMaterial);
+                    selectedRegistrationID = selectedMaterial->getRegistrationID();
+                    snapshotSourceMaterial = selectedMaterial;
+                    //only the frames that changed something can have moved the content, and the last of them
+                    //indexes the settled value. Doing it unconditionally took the registry lock every frame
+                    materialRegistry.refreshContentIndex(selectedMaterial);
+                }
             }
         }
         ImGui::End();
@@ -1403,7 +1559,24 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
 
         if(this->pickedObject != nullptr) {
             //search for the selected element in the rendered elements
+            //only hand the copy down while the object that owns it is the one being drawn
+            this->request->alteredMaterial = (alteredMaterialEdit.material != nullptr &&
+                                              alteredMaterialEdit.objectID == this->pickedObject->getWorldObjectID())
+                                             ? alteredMaterialEdit.material : nullptr;
+            this->request->materialSelectedInList = materialSelectedInList;
             ImGuiResult objectEditorResult = this->pickedObject->addImGuiEditorElements(*this->request);
+            this->request->alteredMaterial = nullptr;
+            this->request->materialSelectedInList = nullptr;
+            if (objectEditorResult.selectedMeshMaterial != nullptr) {
+                //the list is drawn before this, so it picks this up next frame
+                selectedMeshMaterial = objectEditorResult.selectedMeshMaterial;
+            }
+            if (objectEditorResult.revertAlteredMaterial) {
+                revertAlteredMaterialEdit();
+            }
+            if (objectEditorResult.alterMaterialForMeshIndex >= 0) {
+                beginAlteredMaterialEdit(dynamic_cast<Model*>(this->pickedObject), objectEditorResult.alterMaterialForMeshIndex);
+            }
             //the player owns its camera, so the active camera rig's parameters are tuned here, under the player.
             //the rig is CHOSEN in the "Camera Extension" panel; this edits the live, already-active instance in place.
             if(this->pickedObject->getTypeID() == GameObject::ObjectTypes::CAMERA_RIG) {

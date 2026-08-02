@@ -215,6 +215,21 @@ private:
     mutable std::vector<uint32_t > modelIndicesBuffer;
     std::shared_ptr<AssetManager> assetManager;
     std::unique_ptr<Editor> editor;
+
+    /*
+     * Materials this world uses instead of the asset's own, keyed by the base material's registrationID.
+     * Per world by construction, so nothing has to tag them with an owner or clean them up on a switch.
+     * Applied when a model joins the world, which is the point where the world is known.
+     */
+    std::unordered_map<uint32_t, std::shared_ptr<Material>> materialOverrides;
+
+    /*
+     * Loaded overrides that have not been matched to a base yet. The save file identifies the base by its
+     * content hash (originalHash), but the map above is keyed by registrationID, which only exists once the
+     * base is actually loaded. Resolved in resolveMaterialOverrides, called from setupForPlay - the one
+     * point every path into a world passes through after loading and before anything renders.
+     */
+    std::vector<std::shared_ptr<Material>> pendingMaterialOverrides;
     OptionsUtil::Options* options;
     ProfilerSystem* profilerSystem;
     uint32_t nextWorldID = 2;
@@ -361,6 +376,29 @@ private:
     void updateWorldAABB(glm::vec3 aabbMin, glm::vec3 aabbMax);
 
     bool addModelToWorld(Model *xmlModel);
+
+    //swaps in whatever this world overrides, for every mesh of the model
+    void applyMaterialOverrides(Model *model);
+
+    //the registry holds a reference for each of these, released in ~World
+    void addMaterialOverride(uint32_t baseRegistrationID, const std::shared_ptr<Material> &material);
+
+    //true when this world replaces the given material, so the editor can show it as the base it is
+    bool isOverriddenBase(uint32_t baseRegistrationID) const {
+        return materialOverrides.count(baseRegistrationID) > 0;
+    }
+
+    //from the save file, still identified by the base's content hash rather than a registrationID
+    void addPendingMaterialOverride(const std::shared_ptr<Material> &material);
+
+    //matches loaded overrides to their base and applies them. Called from setupForPlay
+    void resolveMaterialOverrides();
+
+    bool isMaterialOverride(const std::shared_ptr<const Material> &material) const;
+
+    const std::unordered_map<uint32_t, std::shared_ptr<Material>>& getMaterialOverrides() const {
+        return materialOverrides;
+    }
     /**
      * Changes a model's mass, reloading its collision shape (mass 0 = static triangle mesh, >0 = dynamic convex hull).
      * Removes the body from the dynamics world, reloads the shape, then re-adds it with the collision group matching

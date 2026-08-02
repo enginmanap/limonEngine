@@ -59,6 +59,9 @@ private:
     std::map<uint32_t, uint32_t> boneIdCompoundChildMap;
 
     std::vector<MeshMeta *> meshMetaData;
+
+    //asset materials are registered by the asset, so we only release the ones we swapped in ourselves
+    void releaseOwnedMeshMaterial(size_t meshIndex);
     std::shared_ptr<Sound> stepOnSound = nullptr;
 
     btCompoundShape *compoundShape;
@@ -89,6 +92,10 @@ public:
     std::vector<std::pair<std::string, std::shared_ptr<const Material>>> getNewMeshMaterials() const;
 
     void loadOverriddenMeshMaterial(std::vector<std::pair<std::string, std::shared_ptr<Material>>> & customisedMeshMaterialList);
+
+    //every path that changes a mesh material has to come through here, releaseOwnedMeshMaterial relies on
+    //it. Returns what was installed, dedup can give back a different instance than the one passed in
+    std::shared_ptr<const Material> setMeshMaterial(size_t meshIndex, std::shared_ptr<const Material> material);
 
     void setRigId(uint32_t rigId) {
         this->rigID = rigId;

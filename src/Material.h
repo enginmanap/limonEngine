@@ -9,6 +9,8 @@
 #include <cereal/access.hpp>
 #endif
 
+#include <atomic>
+
 #include "glm/glm.hpp"
 #include "Assets/TextureAsset.h"
 #include "Assets/AssetManager.h"
@@ -20,6 +22,15 @@
 
 class GraphicsProgram;
 
+/*
+ * Function local static, not a class level one: the graphics backends include this header and are built as
+ * separate shared libraries, where a header static does not reliably resolve to a single instance.
+ */
+inline uint32_t nextRegistrationID() {
+    static std::atomic<uint32_t> counter{1};//0 means unset
+    return counter++;
+}
+
 class Material : public EditorRenderable {
 private:
     std::string name;
@@ -28,6 +39,14 @@ private:
     glm::vec3 diffuseColor;
     glm::vec3 specularColor;
 
+    /*
+     * Identity. Assigned once at construction, never reused, never recomputed, so it is what the registry
+     * files this material under. Editing changes the content hash, it can not change this.
+     *
+     * Not materialIndex: that is a slot in a fixed size GPU buffer, recycled, and only handed out once the
+     * registry has decided this material is new.
+     */
+    uint32_t registrationID = nextRegistrationID();
     uint32_t materialIndex;
     uint32_t maps = 0;
     AssetManager *assetManager;
@@ -65,13 +84,40 @@ private:
 #ifdef CEREAL_SUPPORT
     friend class cereal::access;
 #endif
-    friend class AssetManager;
+    //registration is the only thing that assigns materialIndex, sets which base we override, or renames
+    friend class MaterialRegistry;
+
+    //name is not part of the content hash, so this never invalidates a registry key
+    void setName(const std::string &name) {
+        this->name = name;
+    }
     Material() {};
 
     friend class WorldLoader;
 
     void setOriginalHash(size_t originalHash) {
         this->originalHash = originalHash;
+    }
+
+    //~Material frees every texture it holds, so a copy has to take its own reference for each one or it
+    //releases what it never took. getName() is the full asset key, same one the destructor frees
+    std::shared_ptr<TextureAsset> acquireCopiedTexture(const std::shared_ptr<TextureAsset> &sourceTexture) {
+        if (sourceTexture == nullptr) {
+            return nullptr;
+        }
+        return assetManager->partialLoadAssetAsync<TextureAsset>(sourceTexture->getName());
+    }
+
+    //acquire before free, or swapping between two materials that share a texture drops it to zero in between
+    void replaceTexture(std::shared_ptr<TextureAsset> &currentTexture, const std::shared_ptr<TextureAsset> &newTexture) {
+        if (currentTexture == newTexture) {
+            return;
+        }
+        std::shared_ptr<TextureAsset> previousTexture = currentTexture;
+        currentTexture = acquireCopiedTexture(newTexture);
+        if (previousTexture != nullptr) {
+            assetManager->freeAsset(previousTexture->getName());
+        }
     }
 public:
     Material(AssetManager *assetManager, const std::string &name, uint32_t materialIndex, float specularExponent, const glm::vec3 &ambientColor,
@@ -113,14 +159,45 @@ public:
         this->isOpacityMap = other.isOpacityMap;
         this->maps = other.maps;
 
-        this->ambientTexture = other.ambientTexture;
-        this->diffuseTexture = other.diffuseTexture;
-        this->specularTexture = other.specularTexture;
-        this->normalTexture = other.normalTexture;
-        this->opacityTexture = other.opacityTexture;
+        //assetManager is assigned above, acquireCopiedTexture needs it
+        this->ambientTexture = acquireCopiedTexture(other.ambientTexture);
+        this->diffuseTexture = acquireCopiedTexture(other.diffuseTexture);
+        this->specularTexture = acquireCopiedTexture(other.specularTexture);
+        this->normalTexture = acquireCopiedTexture(other.normalTexture);
+        this->opacityTexture = acquireCopiedTexture(other.opacityTexture);
 
         this->materialIndex = 0;
         this->originalHash = other.originalHash;
+    }
+
+    /*
+     * No assignment. It would copy registrationID, giving two live materials the same identity, and it would
+     * copy the texture shared_ptrs without acquiring AssetManager references while ~Material still frees
+     * them - the same imbalance the copy constructor had to be fixed for. Copy construction is fine and used;
+     * to overwrite an existing material's appearance use restoreValuesFrom, which leaves identity alone.
+     */
+    Material& operator=(const Material &other) = delete;
+
+    //appearance only, name/materialIndex/originalHash stay put so we keep our registration and UBO slot
+    void restoreValuesFrom(const Material &other) {
+        this->ambientColor = other.ambientColor;
+        this->diffuseColor = other.diffuseColor;
+        this->specularColor = other.specularColor;
+        this->specularExponent = other.specularExponent;
+        this->refractionIndex = other.refractionIndex;
+
+        this->isAmbientMap = other.isAmbientMap;
+        this->isDiffuseMap = other.isDiffuseMap;
+        this->isSpecularMap = other.isSpecularMap;
+        this->isNormalMap = other.isNormalMap;
+        this->isOpacityMap = other.isOpacityMap;
+        this->maps = other.maps;
+
+        replaceTexture(this->ambientTexture, other.ambientTexture);
+        replaceTexture(this->diffuseTexture, other.diffuseTexture);
+        replaceTexture(this->specularTexture, other.specularTexture);
+        replaceTexture(this->normalTexture, other.normalTexture);
+        replaceTexture(this->opacityTexture, other.opacityTexture);
     }
 
     void loadGPUSide(AssetManager *assetManager);
@@ -144,6 +221,10 @@ public:
 
     uint32_t getMaterialIndex() const {
         return materialIndex;
+    }
+
+    uint32_t getRegistrationID() const {
+        return registrationID;
     }
 
     float getSpecularExponent() const {
@@ -316,10 +397,10 @@ public:
     }
 
     size_t getHash() const;
+
+    //the base we globally override, 0 if none. Set once when a world overrides that base, or read
+    //from XML, never recomputed from current content
     size_t getOriginalHash() const;
-    void calculateOriginalHash() {
-        this->originalHash = getHash();
-    }
 
 
     ImGuiResult addImGuiEditorElements(const ImGuiRequest &request) override;

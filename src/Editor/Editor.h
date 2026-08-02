@@ -37,13 +37,6 @@ class PipelineExtension;
 class IterationExtension;
 class ImGuiHelper;
 
-namespace EditorNS {
-    //This is used as a global variable store. For multiple windows, ImGui doesn't provide anything else
-    extern std::shared_ptr<const Material> selectedMeshesMaterial;
-    extern std::shared_ptr<Material> selectedFromListMaterial;
-}
-
-
 class Editor {
     World* world;
     std::shared_ptr<Texture> colorTexture;
@@ -53,6 +46,59 @@ class Editor {
     std::vector<Model*> modelQueue;
     std::set<uint32_t> modelIdSet;
     Model* getModelAndMoveToEnd(const std::string& modelFilePath);
+
+    //points every mesh in this world that uses baseMaterial at overrideMaterial
+    void reseatWorldMeshes(const std::shared_ptr<const Material> &baseMaterial, const std::shared_ptr<Material> &overrideMaterial);
+
+    //splits an asset owned material off into a world owned one carrying the edit, on the first dirty frame
+    std::shared_ptr<Material> ensureWorldOwnedMaterial(const std::shared_ptr<Material> &material);
+
+    /**
+     * The private material copy made by "Alter material for this model", and its open edit window.
+     * Owned here rather than on Model, which has thousands of gameplay instances and no business
+     * carrying editor state. Only one object is picked at a time, so one is enough.
+     */
+    struct AlteredMaterialEdit {
+        uint32_t objectID = 0;
+        int32_t meshIndex = -1;
+        std::shared_ptr<Material> material = nullptr;
+        /*
+         * What the copy was made from, which is not necessarily the asset's material - the mesh may already
+         * have been carrying an override. Closing without an edit has to put the mesh back on this one, and
+         * "was it edited" is this one's content against the copy's.
+         */
+        std::shared_ptr<Material> sourceMaterial = nullptr;
+    };
+    AlteredMaterialEdit alteredMaterialEdit;
+
+    /*
+     * List Materials selection and the material it has armed. Members, not function local statics: an
+     * Editor belongs to one World and worlds coexist, so a static here would let one world's editor commit
+     * a material another world's editor armed, and reseat the wrong world's models.
+     */
+    //by registrationID, so a selection can never go stale because the material was edited
+    uint32_t selectedRegistrationID = 0;
+    //taken when the selection changes, so an asset owned material can be put back exactly when it splits
+    std::shared_ptr<Material> selectedMaterialSnapshot = nullptr;
+    std::shared_ptr<const Material> snapshotSourceMaterial = nullptr;
+
+    //the material list's own copy of the registry, rebuilt only when the registry's version moves
+    std::vector<std::pair<uint32_t, std::shared_ptr<Material>>> materialsSnapshot;
+    uint32_t materialsSnapshotVersion = 0;
+    //what the material list currently has picked, handed to the object pane so "Switch material" can apply it
+    std::shared_ptr<Material> materialSelectedInList = nullptr;
+    //a mesh pick from the object pane, which the list follows. Carried on a member because the object pane
+    //is drawn after the list, so it is consumed on the next frame
+    std::shared_ptr<const Material> selectedMeshMaterial = nullptr;
+
+    //creates the copy, points the mesh at it, opens its window
+    void beginAlteredMaterialEdit(Model* model, int32_t meshIndex);
+
+    //the Revert button: discard the alteration and put the mesh back on what it had
+    void revertAlteredMaterialEdit();
+
+    //the panel is going away for another reason. The alteration stands, we just let go of it
+    void releaseAlteredMaterialEdit();
     Model *createRenderAndAddModelToLRU(const std::string &modelFileName, const glm::vec3 &newObjectPosition, std::shared_ptr<GraphicsProgram> graphicsProgram);
     ImGuiImageWrapper* wrapper = nullptr;
 

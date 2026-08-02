@@ -134,6 +134,7 @@ ImGuiResult Material::addImGuiEditorElements(const ImGuiRequest &request) {
     }
     if(dirty) {
         assetManager->getGraphicsWrapper()->setMaterial(*this);
+        result.materialDirty = true;//the pane needs to know before this edit can reach anything shared
     }
     return result;
 }

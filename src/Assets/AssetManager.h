@@ -17,6 +17,7 @@
 #endif
 
 #include "Asset.h"
+#include "MaterialRegistry.h"
 #include <thread>
 #include <mutex>
 #include <condition_variable>
@@ -26,16 +27,15 @@
 class GraphicsInterface;
 class ALHelper;
 class Material;
+class World;//only ever used as an opaque owner token for material override rules
 
 class AssetManager {
     std::mutex cpuLoadConditionMutex;
     std::mutex assetsMutex; //guards the `assets` map only; must be held for every insert/find/erase/refcount change on it, but released before any actual loading work
-    std::mutex materialsMutex; //guards the `materials` map only, independent of assetsMutex
     std::mutex availableAssetsMutex; //guards `availableAssetsRootNode` and `filteredResults`: getAvailableAssetsTreeFiltered() is called
                                       // from background texture-loading threads (TextureAsset's not-found fallback search), while
                                       // applyPendingAssetListReload() swaps/deletes these from the main thread.
     std::condition_variable cpuLoadDoneCondition;
-    std::atomic<std::int32_t> nextMaterialIndex;
 
 public:
     enum AssetTypes { Asset_type_DIRECTORY, Asset_type_MODEL, Asset_type_TEXTURE, Asset_type_SKYMAP, Asset_type_SOUND, Asset_type_GRAPHICSPROGRAM, Asset_type_UNKNOWN };
@@ -195,7 +195,6 @@ private:
     std::unordered_map<std::string, std::vector<std::shared_ptr<const EmbeddedTexture>>> embeddedTextures;
     std::atomic<std::int32_t> nextAssetIndex;
 
-    std::map<size_t, std::pair<std::shared_ptr<Material>, uint32_t>> materials;//this is used to make objects share materials.
 
     //std::map<std::string, AssetTypes> availableAssetsList;//this map should be ordered, or editor list order would be unpredictable
     AvailableAssetsNode* availableAssetsRootNode = nullptr;
@@ -205,6 +204,9 @@ private:
     AvailableAssetsNode* pendingAssetsRootNode = nullptr;
     std::thread assetReloadThread;
     uint32_t assetListVersion = 0;
+    //its own object because it shares no state with asset caching, neither touches the other's members
+    MaterialRegistry materialRegistry;
+
     GraphicsInterface* graphicsWrapper;
     ALHelper *alHelper;
 
@@ -237,8 +239,7 @@ private:
 
 public:
 
-    explicit AssetManager(GraphicsInterface* graphicsWrapper, ALHelper *alHelper) : graphicsWrapper(graphicsWrapper), alHelper(alHelper) {
-        nextMaterialIndex.store(1);
+    explicit AssetManager(GraphicsInterface* graphicsWrapper, ALHelper *alHelper) : materialRegistry(graphicsWrapper), graphicsWrapper(graphicsWrapper), alHelper(alHelper) {
         nextAssetIndex.store(0);
         loadAssetList();
         size_t num_threads = std::thread::hardware_concurrency();
@@ -565,12 +566,14 @@ public:
 
     }
 
-    std::shared_ptr<Material> registerMaterial(std::shared_ptr<Material> material);
 
-    std::shared_ptr<Material> registerOverriddenMaterial(std::shared_ptr<Material> material);
+    MaterialRegistry& getMaterialRegistry() {
+        return materialRegistry;
+    }
 
-    void unregisterMaterial(std::shared_ptr<const Material> material);
-    const std::map<size_t, std::pair<std::shared_ptr<Material>, uint32_t>>& getMaterials() const;
+    const MaterialRegistry& getMaterialRegistry() const {
+        return materialRegistry;
+    }
 
     GraphicsInterface* getGraphicsWrapper() const {
         return graphicsWrapper;

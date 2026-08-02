@@ -749,33 +749,11 @@ bool WorldSaver::fillGUILayersAndElements(tinyxml2::XMLDocument &document, tinyx
 }
 
 bool WorldSaver::fillMaterials(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *materialsNode, const World *world) {
-    //materials that a specific mesh overrides to are already fully saved through that mesh's own
-    // MeshMaterialList entry (see Model::fillObjects / Model::getNewMeshMaterials). Collect their hashes
-    // so we don't also duplicate them here - this list is only for materials edited in place, with no
-    // mesh explicitly pointing at them, which have no other way to be persisted.
-    std::unordered_set<size_t> meshOverriddenHashes;
-    for (auto it = world->objects.begin(); it != world->objects.end(); ++it) {
-        Model* model = dynamic_cast<Model*>(it->second);
-        if (model != nullptr) {
-            for (const auto& meshMaterial : model->getNewMeshMaterials()) {
-                meshOverriddenHashes.insert(meshMaterial.second->getHash());
-            }
-        }
-    }
+    //this world's overrides, each identified on load by the originalHash of the base it replaces
+    const std::unordered_map<uint32_t, std::shared_ptr<Material>>& materialOverrides = world->getMaterialOverrides();
 
-    const std::map<size_t, std::pair<std::shared_ptr<Material>, uint32_t>>& materials = world->assetManager->getMaterials();
-
-    for (auto it = materials.begin(); it != materials.end(); ++it) {
-        std::shared_ptr<Material> currentMaterial = it->second.first;
-        if (currentMaterial->getHash() == currentMaterial->getOriginalHash()) {
-            //if material is not modified, we don't need to save
-            continue;
-        }
-        if (meshOverriddenHashes.count(currentMaterial->getHash()) > 0) {
-            //already saved via a mesh's own MeshMaterialList entry, don't duplicate it here
-            continue;
-        }
-        currentMaterial->serialize(document,materialsNode);
+    for (std::unordered_map<uint32_t, std::shared_ptr<Material>>::const_iterator it = materialOverrides.begin(); it != materialOverrides.end(); ++it) {
+        it->second->serialize(document, materialsNode);
     }
     return true;
 }

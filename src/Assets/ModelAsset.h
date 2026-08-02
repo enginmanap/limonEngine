@@ -302,7 +302,9 @@ public:
                     meshMaterialToUpdateItList.emplace_back(it);
                 }
             }
-            materialPair.second = assetManager->registerOverriddenMaterial(materialPair.second);
+            //asset's own materials, not overrides, so register like the fresh assimp path does. As
+            //overrides they would each install a forwarding rule and replace their own base everywhere
+            materialPair.second = assetManager->getMaterialRegistry().registerMaterial(materialPair.second);
             for (auto& meshMaterialToUpdateIt: meshMaterialToUpdateItList) {
                 meshMaterialMap[meshMaterialToUpdateIt->first] = materialPair.second;
             }

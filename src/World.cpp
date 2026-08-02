@@ -931,10 +931,22 @@ World::~World() {
 
     //music and musicOutgoing are unique_ptr, cleaned up automatically
 
+    /*
+     * Destroy the editor here rather than letting it go with the other members: as a member it would be
+     * destroyed after this body, and its own cleanup has to reseat meshes on objects this body deletes below.
+     */
+    editor.reset();
+
     //FIXME clear GUIlayer elements
     for (auto it = objects.begin(); it != objects.end(); ++it) {
         delete (*it).second;
     }
+
+    //the overrides belong to this world, so they go with it. No owner filtering needed, the map is ours
+    for (std::unordered_map<uint32_t, std::shared_ptr<Material>>::iterator overrideIt = materialOverrides.begin(); overrideIt != materialOverrides.end(); ++overrideIt) {
+        assetManager->getMaterialRegistry().unregisterMaterial(overrideIt->second);
+    }
+    materialOverrides.clear();
 
     for (auto it = triggers.begin(); it != triggers.end(); ++it) {
         delete (*it).second;
@@ -978,11 +990,81 @@ World::~World() {
 
 }
 
+void World::addPendingMaterialOverride(const std::shared_ptr<Material> &material) {
+    pendingMaterialOverrides.emplace_back(material);
+}
+
+/*
+ * Loaded overrides name the base they replace by content hash, because registrationID is a runtime counter
+ * and can not be saved. Matching them needs every base registered, which is only guaranteed once loading is
+ * done, so this runs from setupForPlay - the one point every path into a world passes through before
+ * anything renders. Idempotent, re-entering a world finds the list already empty.
+ */
+void World::resolveMaterialOverrides() {
+    for (std::vector<std::shared_ptr<Material>>::iterator pendingIt = pendingMaterialOverrides.begin(); pendingIt != pendingMaterialOverrides.end(); ++pendingIt) {
+        std::shared_ptr<Material> baseMaterial = assetManager->getMaterialRegistry().findByContentHash((*pendingIt)->getOriginalHash());
+        if (baseMaterial == nullptr) {
+            //the material this was authored against is not in this world, or its content changed on disk
+            std::cerr << "Material override " << (*pendingIt)->getName() << " has no base loaded, dropping it." << std::endl;
+            assetManager->getMaterialRegistry().unregisterMaterial(*pendingIt);
+            continue;
+        }
+        addMaterialOverride(baseMaterial->getRegistrationID(), *pendingIt);
+    }
+    pendingMaterialOverrides.clear();
+
+    for (auto objectIt = objects.begin(); objectIt != objects.end(); ++objectIt) {
+        Model* model = dynamic_cast<Model*>(objectIt->second);
+        if (model != nullptr) {
+            applyMaterialOverrides(model);
+        }
+    }
+}
+
+bool World::isMaterialOverride(const std::shared_ptr<const Material> &material) const {
+    for (std::unordered_map<uint32_t, std::shared_ptr<Material>>::const_iterator overrideIt = materialOverrides.begin(); overrideIt != materialOverrides.end(); ++overrideIt) {
+        if (overrideIt->second == material) {
+            return true;
+        }
+    }
+    return false;
+}
+
+void World::applyMaterialOverrides(Model *model) {
+    if (materialOverrides.empty()) {
+        return;
+    }
+    const std::vector<Model::MeshMeta *> &meshMetas = model->getMeshMetaData();
+    for (size_t meshIndex = 0; meshIndex < meshMetas.size(); ++meshIndex) {
+        if (meshMetas[meshIndex]->material == nullptr) {
+            continue;
+        }
+        std::unordered_map<uint32_t, std::shared_ptr<Material>>::const_iterator overrideIt =
+                materialOverrides.find(meshMetas[meshIndex]->material->getRegistrationID());
+        if (overrideIt != materialOverrides.end()) {
+            model->setMeshMaterial(meshIndex, overrideIt->second);
+        }
+    }
+}
+
+void World::addMaterialOverride(uint32_t baseRegistrationID, const std::shared_ptr<Material> &material) {
+    std::unordered_map<uint32_t, std::shared_ptr<Material>>::iterator existingIt = materialOverrides.find(baseRegistrationID);
+    if (existingIt != materialOverrides.end()) {
+        if (existingIt->second == material) {
+            return;//already the override for this base, do not take a second reference
+        }
+        assetManager->getMaterialRegistry().unregisterMaterial(existingIt->second);
+    }
+    materialOverrides[baseRegistrationID] = material;
+}
+
 bool World::addModelToWorld(Model *xmlModel) {
     if(objects.find(xmlModel->getWorldObjectID()) != objects.end()) {
         //the object is already registered. fail
         return false;
     }
+    //before it joins, so it never renders a frame with the asset's material when this world overrides it
+    applyMaterialOverrides(xmlModel);
     xmlModel->getTransformation()->getWorldTransform();
     objects[xmlModel->getWorldObjectID()] = xmlModel;
     if (xmlModel->isAnimated()) {
@@ -1308,6 +1390,10 @@ void World::switchPlayer(Player *targetPlayer, InputHandler &inputHandler) {
 }
 
 void World::setupForPlay(InputHandler &inputHandler) {
+    //everything is loaded by now, so a saved override can finally be matched to the base it replaces
+    resolveMaterialOverrides();
+
+
     if(currentPlayersSettings->debugMode == Player::DEBUG_ENABLED) {
         dynamicsWorld->getDebugDrawer()->setDebugMode(
                 dynamicsWorld->getDebugDrawer()->DBG_MAX_DEBUG_DRAW_MODE | dynamicsWorld->getDebugDrawer()->DBG_DrawAabb | dynamicsWorld->getDebugDrawer()->DBG_DrawConstraints | dynamicsWorld->getDebugDrawer()->DBG_DrawConstraintLimits);
