@@ -139,7 +139,7 @@ class ModelAsset : public Asset {
 
     void deserializeCustomizations();
 
-    int32_t buildEditorBoneTreeRecursive(std::shared_ptr<BoneNode> boneNode, int32_t selectedBoneNodeID);
+    int32_t buildEditorBoneTreeRecursive(std::shared_ptr<BoneNode> boneNode, int32_t selectedBoneNodeID, bool followSelection);
 
     void collectBoneHierarchyEdgesRecursive(const std::shared_ptr<BoneNode> &boneNode, std::vector<std::pair<uint32_t, uint32_t>> &edges) const;
 
@@ -252,7 +252,7 @@ public:
 
     void serializeCustomizations();
 
-    int32_t buildEditorBoneTree(int32_t selectedBoneNodeID);
+    int32_t buildEditorBoneTree(int32_t selectedBoneNodeID, bool followSelection);
 
     /**
     This might be cached, but since it is used for rendering, and we already limit bone count to 128, there is

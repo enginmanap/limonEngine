@@ -20,6 +20,9 @@ struct ImGuiResult {
     bool putOnTop = false;
     bool flipChanged = false;
     bool massChanged = false;
+    bool boneClicked = false;//user clicked inside the bone-exposure preview image; pixel coords below are local to it
+    float boneClickPixelX = 0.0f;
+    float boneClickPixelY = 0.0f;
     std::string actorTypeName;
     std::string newFlipAxes;
 };

@@ -902,34 +902,65 @@ void ModelAsset::deserializeCustomizations() {
 
 }
 
-int32_t ModelAsset::buildEditorBoneTree(int32_t selectedBoneNodeID) {
+int32_t ModelAsset::buildEditorBoneTree(int32_t selectedBoneNodeID, bool followSelection) {
    if(rootNode != nullptr) {
-       return buildEditorBoneTreeRecursive(rootNode, selectedBoneNodeID);
+       return buildEditorBoneTreeRecursive(rootNode, selectedBoneNodeID, followSelection);
    }
    return -1;//not found
 }
 
-int32_t ModelAsset::buildEditorBoneTreeRecursive(std::shared_ptr<BoneNode> boneNode, int32_t selectedBoneNodeID) {
+//Used only to decide whether an ancestor branch must be force-opened to reveal selectedBoneID (see followSelection
+//below) -- true for the node itself too, so every ancestor level up to and including the selected node's parent
+//gets expanded.
+static bool subtreeContainsBone(const std::shared_ptr<BoneNode> &boneNode, int32_t targetBoneID) {
+    if (boneNode == nullptr) {
+        return false;
+    }
+    if (static_cast<int32_t>(boneNode->boneID) == targetBoneID) {
+        return true;
+    }
+    for (const auto &child : boneNode->children) {
+        if (subtreeContainsBone(child, targetBoneID)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+int32_t ModelAsset::buildEditorBoneTreeRecursive(std::shared_ptr<BoneNode> boneNode, int32_t selectedBoneNodeID, bool followSelection) {
     int32_t result = -1;
     if(boneNode == nullptr) {
         return result;
     }
-    ImGuiTreeNodeFlags node_flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ((selectedBoneNodeID == (int32_t)boneNode->boneID) ? ImGuiTreeNodeFlags_Selected : 0);
+    bool isSelected = (selectedBoneNodeID == (int32_t)boneNode->boneID);
+    ImGuiTreeNodeFlags node_flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | (isSelected ? ImGuiTreeNodeFlags_Selected : 0);
 
     if(boneNode->children.size() == 0) {
         node_flags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
         ImGui::TreeNodeEx((boneNode->name + "##BoneTree" + std::to_string(boneNode->boneID)).c_str(), node_flags);
+        if (followSelection && isSelected) {
+            ImGui::SetScrollHereY();
+        }
         if (ImGui::IsItemClicked()) {
             result = boneNode->boneID;
             return result;
         }
     } else {
-        if(ImGui::TreeNodeEx((boneNode->name + "##BoneTree" + std::to_string(boneNode->boneID)).c_str(), node_flags)) {
+        if (followSelection && subtreeContainsBone(boneNode, selectedBoneNodeID)) {
+            //Force this branch open so navigating here from a preview-image click reveals the target node, even
+            //if the user had this branch collapsed. Only forced for the one frame followSelection is true.
+            ImGui::SetNextItemOpen(true, ImGuiCond_Always);
+        }
+        bool nodeOpen = ImGui::TreeNodeEx((boneNode->name + "##BoneTree" + std::to_string(boneNode->boneID)).c_str(), node_flags);
+        if (followSelection && isSelected) {
+            ImGui::SetScrollHereY();
+        }
+        if(nodeOpen) {
             if (ImGui::IsItemClicked()) {
                 result = boneNode->boneID;
             }
             for (size_t i = 0; i < boneNode->children.size(); ++i) {
-                result = std::max(buildEditorBoneTreeRecursive(boneNode->children[i], selectedBoneNodeID), result);
+                result = std::max(buildEditorBoneTreeRecursive(boneNode->children[i], selectedBoneNodeID, followSelection), result);
             }
             ImGui::TreePop();
         } else {

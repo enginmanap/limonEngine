@@ -383,12 +383,6 @@ ImGuiResult Model::addImGuiEditorElements(const ImGuiRequest &request) {
 
         }
         if (ImGui::CollapsingHeader("Expose Bone for attachment")) {
-            int32_t newSelectedBoneID = this->modelAsset->buildEditorBoneTree(selectedBoneID);
-            if (newSelectedBoneID != -1 && newSelectedBoneID != selectedBoneID) {
-                selectedBoneID = newSelectedBoneID;
-                std::cout << "selected bone is " << selectedBoneID << std::endl;
-            }
-
             //Editor renders the model AND bakes the skeleton overlay (lines, joints, selection highlight) into
             //one texture -- see Editor::renderBonePreview / Editor::bakeSkeletonOverlay. This is just a display
             //of a finished image; no camera/joint-transform data or drawing logic lives here.
@@ -396,11 +390,30 @@ ImGuiResult Model::addImGuiEditorElements(const ImGuiRequest &request) {
                 ImGuiImageWrapper* previewWrapper = request.renderBonePreview(this);
                 if (previewWrapper != nullptr && previewWrapper->texture != nullptr) {
                     ImVec2 size(static_cast<float>(previewWrapper->texture->getWidth()), static_cast<float>(previewWrapper->texture->getHeight()));
-                    ImGui::Dummy(ImVec2(0.0f, size.y));
-                    size.y = -1 * size.y;//ImGui assumes y up; the preview texture is rendered y down, same hack used for the Add-Object preview
-                    ImGui::Image((ImTextureID)(intptr_t)previewWrapper, size);
+                    //ImGui assumes y up; the preview texture is rendered y down. Flipped via uv0/uv1 here (not a
+                    //negated size like the Add-Object preview uses) because a negated size inverts ImGui's own
+                    //item rect (Min.y > Max.y), which makes IsItemHovered/IsItemClicked never fire for this item.
+                    ImGui::Image((ImTextureID)(intptr_t)previewWrapper, size, ImVec2(0.0f, 1.0f), ImVec2(1.0f, 0.0f));
+                    if (ImGui::IsItemClicked()) {
+                        //Rect is normal here (Min=top-left, Max=bottom-right), so no inversion handling needed.
+                        //We only report the raw local pixel; Editor owns bone screen positions and does the hit-test.
+                        ImVec2 rectMin = ImGui::GetItemRectMin();
+                        ImVec2 mouse = ImGui::GetMousePos();
+                        result.boneClicked = true;
+                        result.boneClickPixelX = mouse.x - rectMin.x;
+                        result.boneClickPixelY = mouse.y - rectMin.y;
+                    }
                 }
             }
+
+            ImGui::BeginChild("BoneTreeScrollRegion", ImVec2(0.0f, 200.0f), true);
+            int32_t newSelectedBoneID = this->modelAsset->buildEditorBoneTree(selectedBoneID, boneTreeShouldFollowSelection);
+            boneTreeShouldFollowSelection = false;//consumed for this frame regardless of whether it found a target
+            if (newSelectedBoneID != -1 && newSelectedBoneID != selectedBoneID) {
+                selectedBoneID = newSelectedBoneID;
+                std::cout << "selected bone is " << selectedBoneID << std::endl;
+            }
+            ImGui::EndChild();
         } else {
             selectedBoneID = -1;
         }

@@ -1432,6 +1432,25 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
             if (objectEditorResult.materialChanged) {
                 world->onModelMaterialChanged(this->pickedObjectID);
             }
+            if (objectEditorResult.boneClicked && this->pickedObject->getTypeID() == GameObject::ObjectTypes::MODEL) {
+                //bonePreview.boneScreenPositions was refreshed this same frame, by the renderBonePreview() call
+                //that already happened inside addImGuiEditorElements above -- same pose, no staleness.
+                constexpr float hitRadius = 6.0f;
+                float closestDistanceSquared = hitRadius * hitRadius;
+                int32_t closestBoneID = -1;
+                for (const auto &boneScreenPosition : bonePreview.boneScreenPositions) {
+                    float deltaX = boneScreenPosition.second.x - objectEditorResult.boneClickPixelX;
+                    float deltaY = boneScreenPosition.second.y - objectEditorResult.boneClickPixelY;
+                    float distanceSquared = deltaX * deltaX + deltaY * deltaY;
+                    if (distanceSquared <= closestDistanceSquared) {
+                        closestDistanceSquared = distanceSquared;
+                        closestBoneID = static_cast<int32_t>(boneScreenPosition.first);
+                    }
+                }
+                if (closestBoneID != -1) {
+                    static_cast<Model*>(this->pickedObject)->setSelectedBoneID(closestBoneID);
+                }
+            }
             switch(this->pickedObject->getTypeID()) {
                 case GameObject::ObjectTypes::MODEL: {
                     if (objectEditorResult.updated) {
@@ -2255,6 +2274,8 @@ void Editor::bakeSkeletonOverlay(Model* model, const std::vector<glm::mat4> &joi
 
     int32_t selectedBoneID = model->getSelectedBoneID();
 
+    bonePreview.boneScreenPositions.clear();
+
     for (const auto &edge : boneEdges) {
         uint32_t childBoneID = edge.first;
         uint32_t parentBoneID = edge.second;
@@ -2280,6 +2301,7 @@ void Editor::bakeSkeletonOverlay(Model* model, const std::vector<glm::mat4> &joi
         }
         bool isSelected = (static_cast<int32_t>(boneID) == selectedBoneID);
         drawList->AddCircleFilled(bonePixel, isSelected ? 6.0f : 3.5f, isSelected ? IM_COL32(255, 60, 60, 255) : IM_COL32(80, 200, 255, 220));
+        bonePreview.boneScreenPositions.emplace_back(boneID, bonePixel);
     }
 
     ImGui::Render();

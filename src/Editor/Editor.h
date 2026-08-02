@@ -71,6 +71,9 @@ class Editor {
         uint64_t startWallTime = 0;//wall time when the currently-previewed model/animation was first shown, for looping playback
         uint32_t modelObjectID = 0xFFFFFFFF;//tracks which model+animation startWallTime belongs to
         std::string animationName;
+        //Refreshed every bakeSkeletonOverlay() call (same frame the preview image is shown), so click hit-testing
+        //always matches the exact pose currently on screen. Local pixel space, same convention as the overlay itself.
+        std::vector<std::pair<uint32_t, ImVec2>> boneScreenPositions;
     };
     BonePreviewState bonePreview;
 

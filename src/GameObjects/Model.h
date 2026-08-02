@@ -67,6 +67,7 @@ private:
 
     uint32_t triangleCount;
     int32_t selectedBoneID = -1;
+    bool boneTreeShouldFollowSelection = false; //FIXME this doesn't belong here, does it?
     std::map<uint32_t, Transformation*> exposedBoneTransforms;
 
 
@@ -277,6 +278,13 @@ public:
 
     int32_t getSelectedBoneID() const {
         return selectedBoneID;
+    }
+
+    //Used by Editor to apply a click-to-select hit-test result from the bone preview; same field the
+    //"Expose Bone for attachment" tree widget already mutates internally.
+    void setSelectedBoneID(int32_t newSelectedBoneID) {
+        selectedBoneID = newSelectedBoneID;
+        boneTreeShouldFollowSelection = true;
     }
 
     void convertAssetToLimon(std::set<std::vector<std::string>>& convertedAssetsSet);
