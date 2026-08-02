@@ -457,8 +457,38 @@ public:
     }
 
     const AvailableAssetsNode* getAvailableAssetsTree() {
+        std::lock_guard<std::mutex> lock(availableAssetsMutex);
         return availableAssetsRootNode;
     };
+
+    // Since we are locking the asset tree, we should return from getting the nodes as fast as possible
+    // To do that, we can't just parse all mixamo assets inline.
+    // This helper allows getting the list so we don't need to hold the lock while looking for the files themselves
+    std::vector<std::string> getMixamoAnimationFilePaths(const std::string &modelAssetPath) {
+        std::vector<std::string> mixamoFilePaths;
+        std::lock_guard<std::mutex> lock(availableAssetsMutex);
+        const AvailableAssetsNode* thisAssetsNode = availableAssetsRootNode->findNode(modelAssetPath);
+        if (thisAssetsNode == nullptr) {
+            std::cerr << "The asset " << modelAssetPath << " is not in asset tree, skipping Mixamo search" << std::endl;
+            return mixamoFilePaths;
+        }
+        if (thisAssetsNode->parent == nullptr) {
+            return mixamoFilePaths;
+        }
+        const AvailableAssetsNode* parentNode = thisAssetsNode->parent;
+        for (size_t i = 0; i < parentNode->children.size(); ++i) {
+            const AvailableAssetsNode* sibling = parentNode->children[i];
+            if (sibling->name == "Mixamo") {
+                for (size_t j = 0; j < sibling->children.size(); ++j) {
+                    const AvailableAssetsNode* mixamoFile = sibling->children[j];
+                    if (mixamoFile->assetType == AssetTypes::Asset_type_MODEL) {
+                        mixamoFilePaths.push_back(mixamoFile->fullPath);
+                    }
+                }
+            }
+        }
+        return mixamoFilePaths;
+    }
 
     void beginReloadAssetList() {
         if (assetListReloadInProgress.load()) {

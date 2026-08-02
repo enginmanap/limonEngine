@@ -129,44 +129,35 @@ void ModelAsset::loadCPUPart() {
     //std::cout << "Model asset: " << name << "Assimp bounding box is " << GLMUtils::vectorToString(boundingBoxMin) << ", " <<  GLMUtils::vectorToString(boundingBoxMax) << std::endl;
     //Implicit call to import.FreeScene(), and removal of scene.
 
-    //it is possible that there are mixamo animation files, check if they do, add them too if needed
-    const AssetManager::AvailableAssetsNode* availableAssetsTree = assetManager->getAvailableAssetsTree();
+    //it is possible that there are mixamo animation files, check if they do, add them too if needed.
+    // we get a list of file paths, so we don't hold the lock in asset tree for longer than needed
+    std::vector<std::string> mixamoFilePaths = assetManager->getMixamoAnimationFilePaths(this->name);
 
-    //first find node of the object itself
-    const AssetManager::AvailableAssetsNode* thisAssetsNode = availableAssetsTree->findNode(this->name);
-
-    if(thisAssetsNode == nullptr) {
-        std::cerr << "The asset " << this->name << " is not in asset tree, skipping Mixamo search" << std::endl;
-    } else {
-        AssetManager::AvailableAssetsNode* parentNode = thisAssetsNode->parent;
-        for (auto child = parentNode->children.begin(); child != parentNode->children.end(); ++child) {
-            if((*child)->name == "Mixamo") {
-                std::cout << "searching mixamo animations at path: " << (*child)->fullPath << std::endl;
-                int32_t mixamoCount = 0;
-                Assimp::Importer importer2;
-                const aiScene *mixamoScene = nullptr;
-                for (auto mixamoFile = (*child)->children.begin(); mixamoFile != (*child)->children.end(); ++mixamoFile) {
-                    if((*mixamoFile)->assetType == AssetManager::AssetTypes::Asset_type_MODEL) {
-                        mixamoScene = importer2.ReadFile((*mixamoFile)->fullPath, 0);
-                        if (!mixamoScene || !mixamoScene->mRootNode) {//it might have mixamoScene->mFlags == AI_SCENE_FLAGS_INCOMPLETE, but that is expected
-                            std::cerr << "ERROR::ASSIMP::MIXAMO" << importer2.GetErrorString() << std::endl;
-                            //delete mixamoScene; don't delete, importer deletes
-                            continue;
-                        }
-                        if (mixamoScene->mNumAnimations != 0) {
-                            //Since we found an animation, lets first make sure we set this model as animated
-                            this->hasAnimation = true;
-                            //get the file name
-                            fillAnimationSet(mixamoScene->mNumAnimations, mixamoScene->mAnimations, (*mixamoFile)->name.substr(0, (*mixamoFile)->name.find_last_of("."))+ "|");
-                            mixamoCount++;
-                        } else {
-                            std::cout << "No animation in Mixamo file, it won't effect anyting." << std::endl;
-                        }
-                    }
-                }
-                    std::cout << mixamoCount << " mixamo animations found for model " << this->name << std::endl;
+    if (!mixamoFilePaths.empty()) {
+        int32_t mixamoCount = 0;
+        Assimp::Importer importer2;
+        const aiScene *mixamoScene = nullptr;
+        for (size_t i = 0; i < mixamoFilePaths.size(); ++i) {
+            const std::string &mixamoFilePath = mixamoFilePaths[i];
+            mixamoScene = importer2.ReadFile(mixamoFilePath, 0);
+            if (!mixamoScene || !mixamoScene->mRootNode) {//it might have mixamoScene->mFlags == AI_SCENE_FLAGS_INCOMPLETE, but that is expected
+                std::cerr << "ERROR::ASSIMP::MIXAMO" << importer2.GetErrorString() << std::endl;
+                //delete mixamoScene; don't delete, importer deletes
+                continue;
+            }
+            if (mixamoScene->mNumAnimations != 0) {
+                //Since we found an animation, lets first make sure we set this model as animated
+                this->hasAnimation = true;
+                //get the file name without extension
+                size_t slashPosition = mixamoFilePath.find_last_of("/\\");
+                std::string mixamoFileName = (slashPosition == std::string::npos) ? mixamoFilePath : mixamoFilePath.substr(slashPosition + 1);
+                fillAnimationSet(mixamoScene->mNumAnimations, mixamoScene->mAnimations, mixamoFileName.substr(0, mixamoFileName.find_last_of(".")) + "|");
+                mixamoCount++;
+            } else {
+                std::cout << "No animation in Mixamo file, it won't effect anyting." << std::endl;
             }
         }
+        std::cout << mixamoCount << " mixamo animations found for model " << this->name << std::endl;
     }
 
     this->deserializeCustomizations();
