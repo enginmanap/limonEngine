@@ -1572,6 +1572,13 @@ void OpenGLGraphics::setMaterial(const Material& material) {
     float shininess = material.getSpecularExponent();
     uint32_t maps = material.getMaps();
 
+    if (material.getMaterialIndex() >= NR_MAX_MATERIALS) {
+        //writing past the UBO would silently corrupt whatever material sits at the wrapped offset
+        std::cerr << "Material " << material.getName() << " has index " << material.getMaterialIndex()
+                  << ", which does not fit in the " << NR_MAX_MATERIALS << " slot material buffer. Not uploading." << std::endl;
+        return;
+    }
+
     glBindBuffer(GL_UNIFORM_BUFFER, allMaterialsUBOLocation);
     glBufferSubData(GL_UNIFORM_BUFFER, material.getMaterialIndex() * materialUniformSize,
                     sizeof(glm::vec3), glm::value_ptr(material.getAmbientColor()));
