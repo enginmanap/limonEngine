@@ -250,6 +250,7 @@ void AssetManager::unregisterMaterial(std::shared_ptr<const Material> material) 
     auto materialIt = materials.find(material->getHash());
     if(materialIt == materials.end()) {
         std::cerr << "Unregister for non existent material found!" << std::endl;
+        return;
     }
     materialIt->second.second--;
     if(materialIt->second.second == 0) {
