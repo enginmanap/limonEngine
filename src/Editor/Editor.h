@@ -102,6 +102,9 @@ class Editor {
     Model *createRenderAndAddModelToLRU(const std::string &modelFileName, const glm::vec3 &newObjectPosition, std::shared_ptr<GraphicsProgram> graphicsProgram);
     ImGuiImageWrapper* wrapper = nullptr;
 
+    static constexpr uint32_t BONE_PREVIEW_WIDTH = 640;
+    static constexpr uint32_t BONE_PREVIEW_HEIGHT = 480;
+
     // We can't re-use the background renderer state for animation/bone preview, as editor might have both visible at the same time.
     struct BonePreviewState {
         // We can't use the main context, as it is mid frame, so we create a separate one for this.

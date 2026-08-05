@@ -2,6 +2,8 @@
 // Created by engin on 28/09/2021.
 //
 
+#include <limits>
+#include <cmath>
 #include <Assets/Animations/AnimationLoader.h>
 #include "Editor.h"
 #include "World.h"
@@ -51,11 +53,11 @@ Editor::Editor(World *world) : world(world){
     backgroundRenderStage->setOutput(GraphicsInterface::FrameBufferAttachPoints::DEPTH, depthTexture, true);
     wrapper = new ImGuiImageWrapper();
 
-    bonePreview.renderStage = std::make_unique<GraphicsPipelineStage>(world->graphicsWrapper, 640,480,"","",true,true,true,false,false);
-    bonePreview.colorTexture = std::make_shared<Texture>(world->graphicsWrapper, GraphicsInterface::TextureTypes::T2D, GraphicsInterface::InternalFormatTypes::RGBA, GraphicsInterface::FormatTypes::RGBA, GraphicsInterface::DataTypes::UNSIGNED_BYTE, 640, 480);
+    bonePreview.renderStage = std::make_unique<GraphicsPipelineStage>(world->graphicsWrapper, BONE_PREVIEW_WIDTH, BONE_PREVIEW_HEIGHT,"","",true,true,true,false,false);
+    bonePreview.colorTexture = std::make_shared<Texture>(world->graphicsWrapper, GraphicsInterface::TextureTypes::T2D, GraphicsInterface::InternalFormatTypes::RGBA, GraphicsInterface::FormatTypes::RGBA, GraphicsInterface::DataTypes::UNSIGNED_BYTE, BONE_PREVIEW_WIDTH, BONE_PREVIEW_HEIGHT);
     bonePreview.colorTexture->setName("EditorBonePreviewColorTexture");
     bonePreview.colorTexture->setFilterMode(GraphicsInterface::FilterModes::NEAREST);
-    bonePreview.depthTexture = std::make_shared<Texture>(world->graphicsWrapper, GraphicsInterface::TextureTypes::T2D, GraphicsInterface::InternalFormatTypes::DEPTH, GraphicsInterface::FormatTypes::DEPTH, GraphicsInterface::DataTypes::FLOAT, 640, 480);
+    bonePreview.depthTexture = std::make_shared<Texture>(world->graphicsWrapper, GraphicsInterface::TextureTypes::T2D, GraphicsInterface::InternalFormatTypes::DEPTH, GraphicsInterface::FormatTypes::DEPTH, GraphicsInterface::DataTypes::FLOAT, BONE_PREVIEW_WIDTH, BONE_PREVIEW_HEIGHT);
     bonePreview.depthTexture->setName("EditorBonePreviewDepthTexture");
     bonePreview.renderStage->setOutput(GraphicsInterface::FrameBufferAttachPoints::COLOR0, bonePreview.colorTexture, true);
     bonePreview.renderStage->setOutput(GraphicsInterface::FrameBufferAttachPoints::DEPTH, bonePreview.depthTexture, true);
@@ -2420,8 +2422,8 @@ static bool projectWorldPositionToLocalPixel(const glm::vec3 &worldPosition, con
 void Editor::bakeSkeletonOverlay(Model* model, const std::vector<glm::mat4> &jointTransforms,
                                   const glm::mat4 &previewCameraMatrix, const glm::mat4 &previewProjectionMatrix,
                                   std::shared_ptr<GraphicsProgram> graphicsProgram) {
-    constexpr float width = 640.0f;
-    constexpr float height = 480.0f;
+    constexpr float width = static_cast<float>(BONE_PREVIEW_WIDTH);
+    constexpr float height = static_cast<float>(BONE_PREVIEW_HEIGHT);
 
     // get the previous context, and then switch
     ImGuiContext* previousContext = ImGui::GetCurrentContext();
@@ -2509,16 +2511,52 @@ ImGuiImageWrapper* Editor::renderBonePreview(Model* model, std::shared_ptr<Graph
     // 1) Object transform -> Used for the real object, in a texture, read from multiple threads
     // 2) Camera transform(s) -> Used for everything, but in UBO, single threaded
     // To avoid race condition risk, we will update the camera transforms.
-    glm::vec3 aabbMin = model->getAabbMin();
-    glm::vec3 aabbMax = model->getAabbMax();
-    glm::vec3 modelCenter = (aabbMin + aabbMax) * 0.5f;
-    float modelRadius = glm::length(aabbMax - aabbMin) * 0.5f;
-    if (modelRadius < 0.01f) {
-        modelRadius = 1.0f;//degenerate/zero-size AABB guard
+    //
+    // model->getAabbMin()/getAabbMax() is out: it returns the model's live gameplay animation state, we want wall time
+    // So we get the asset AABB and use it as a proxy
+    const glm::vec3 localBoundsMin = model->getModelAsset()->getBoundingBoxMin();
+    const glm::vec3 localBoundsMax = model->getModelAsset()->getBoundingBoxMax();
+    const glm::mat4 previewWorldTransform = model->getTransformation()->getWorldTransform();
+    glm::vec3 aabbMin(std::numeric_limits<float>::max());
+    glm::vec3 aabbMax(std::numeric_limits<float>::lowest());
+    for (int cornerIndex = 0; cornerIndex < 8; ++cornerIndex) {
+        glm::vec3 localCorner((cornerIndex & 1) ? localBoundsMax.x : localBoundsMin.x,
+                               (cornerIndex & 2) ? localBoundsMax.y : localBoundsMin.y,
+                               (cornerIndex & 4) ? localBoundsMax.z : localBoundsMin.z);
+        glm::vec3 worldCorner = glm::vec3(previewWorldTransform * glm::vec4(localCorner, 1.0f));
+        aabbMin = glm::min(aabbMin, worldCorner);
+        aabbMax = glm::max(aabbMax, worldCorner);
     }
-    glm::vec3 previewCameraPosition = modelCenter + glm::vec3(0.0f, modelRadius * 0.5f, modelRadius * 2.5f);
+    glm::vec3 modelCenter = (aabbMin + aabbMax) * 0.5f;
+
+    // We can just estimate the far size, it doesn't really matter
+    float farPlaneRadius = glm::length(aabbMax - aabbMin) * 0.5f;
+    if (farPlaneRadius < 0.01f) {
+        farPlaneRadius = 1.0f;//degenerate/zero-size AABB guard
+    }
+
+
+    // Camera distance needs to be calculated properly, or it gets too small.
+    // Using sphere proved causing too small, and using diagonal is also not working as it makes the
+    // image smaller because depth also extends it.
+    float boxHalfWidth = (aabbMax.x - aabbMin.x) * 0.5f;
+    float boxHalfHeight = (aabbMax.y - aabbMin.y) * 0.5f;
+    if (boxHalfWidth < 0.005f && boxHalfHeight < 0.005f) {
+        boxHalfWidth = boxHalfHeight = 0.5f;//degenerate/zero-size AABB guard
+    }
+    const float fovYRadians = glm::radians(60.0f);
+    const float aspect = static_cast<float>(BONE_PREVIEW_WIDTH) / static_cast<float>(BONE_PREVIEW_HEIGHT);
+    const float fovXRadians = 2.0f * std::atan(std::tan(fovYRadians * 0.5f) * aspect);
+    const float distanceForHeight = boxHalfHeight / std::tan(fovYRadians * 0.5f);
+    const float distanceForWidth = boxHalfWidth / std::tan(fovXRadians * 0.5f);
+    //10% headroom so the model doesn't sit exactly edge-to-edge against the preview borders
+    const float previewCameraDistance = std::max(distanceForHeight, distanceForWidth) * 1.1f;
+
+    // Tiny offset
+    const glm::vec3 previewOffsetDirection = glm::normalize(glm::vec3(0.0f, 0.5f, 2.5f));
+    glm::vec3 previewCameraPosition = modelCenter + previewOffsetDirection * previewCameraDistance;
     glm::mat4 previewCameraMatrix = glm::lookAt(previewCameraPosition, modelCenter, glm::vec3(0.0f, 1.0f, 0.0f));
-    glm::mat4 previewProjectionMatrix = glm::perspective(glm::radians(60.0f), 640.0f / 480.0f, 0.1f, modelRadius * 20.0f + 10.0f);
+    glm::mat4 previewProjectionMatrix = glm::perspective(fovYRadians, aspect, 0.1f, farPlaneRadius * 20.0f + 10.0f);
 
     const glm::vec3 liveCameraPosition = world->playerCamera->getPosition();
     const glm::mat4 liveCameraMatrix = world->playerCamera->getCameraMatrix();
