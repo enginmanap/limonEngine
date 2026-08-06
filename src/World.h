@@ -34,6 +34,7 @@ static const int SKIP_LOD_LEVEL = 9999;
 #include "Profiler/ProfilerSystem.h"
 
 class Editor;
+class PreviewRenderer;
 class btGhostPairCallback;
 class Camera;
 class PerspectiveCamera;
@@ -101,6 +102,7 @@ class WorldAPIAccessor;
 
 class World {
     friend class Editor;
+    friend class PreviewRenderer; //Editor's asset-browser/bone-exposure preview rendering, tightly coupled the same way Editor is
     friend class VisibilityManager;
 public:
     struct PlayerInfo {

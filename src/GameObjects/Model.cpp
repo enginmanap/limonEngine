@@ -383,25 +383,29 @@ ImGuiResult Model::addImGuiEditorElements(const ImGuiRequest &request) {
 
         }
         if (ImGui::CollapsingHeader("Expose Bone for attachment")) {
-            //Editor renders the model AND bakes the skeleton overlay (lines, joints, selection highlight) into
-            //one texture -- see Editor::renderBonePreview / Editor::bakeSkeletonOverlay. This is just a display
-            //of a finished image; no camera/joint-transform data or drawing logic lives here.
+            //Editor bakes the model and skeleton overlay into one texture, see PreviewRenderer::renderBonePreview.
+            //Just a display here, no camera/joint logic
             if (request.renderBonePreview) {
                 ImGuiImageWrapper* previewWrapper = request.renderBonePreview(this);
                 if (previewWrapper != nullptr && previewWrapper->texture != nullptr) {
                     ImVec2 size(static_cast<float>(previewWrapper->texture->getWidth()), static_cast<float>(previewWrapper->texture->getHeight()));
-                    //ImGui assumes y up; the preview texture is rendered y down. Flipped via uv0/uv1 here (not a
-                    //negated size like the Add-Object preview uses) because a negated size inverts ImGui's own
-                    //item rect (Min.y > Max.y), which makes IsItemHovered/IsItemClicked never fire for this item.
+                    //flipped via uv0/uv1, not a negated size, that would invert the item rect and IsItemClicked
+                    //would never fire
                     ImGui::Image((ImTextureID)(intptr_t)previewWrapper, size, ImVec2(0.0f, 1.0f), ImVec2(1.0f, 0.0f));
                     if (ImGui::IsItemClicked()) {
-                        //Rect is normal here (Min=top-left, Max=bottom-right), so no inversion handling needed.
-                        //We only report the raw local pixel; Editor owns bone screen positions and does the hit-test.
+                        //raw local pixel only, Editor owns bone screen positions and does the hit-test
                         ImVec2 rectMin = ImGui::GetItemRectMin();
                         ImVec2 mouse = ImGui::GetMousePos();
                         result.boneClicked = true;
                         result.boneClickPixelX = mouse.x - rectMin.x;
                         result.boneClickPixelY = mouse.y - rectMin.y;
+                    }
+                    if (ImGui::IsItemHovered() && ImGui::IsMouseDragging(ImGuiMouseButton_Right)) {
+                        //orbits the preview camera, raw delta only, PreviewRenderer applies it
+                        ImVec2 mouseDelta = ImGui::GetIO().MouseDelta;
+                        result.boneOrbitDragging = true;
+                        result.boneOrbitDeltaX = mouseDelta.x;
+                        result.boneOrbitDeltaY = mouseDelta.y;
                     }
                 }
             }

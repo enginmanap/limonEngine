@@ -17,7 +17,6 @@
 #include "Editor/ImGuiRequest.h"
 #include "limonAPI/LimonTypes.h"
 
-#define MAX_PRELOAD_MODEL_COUNT_EDITOR 10
 class InputHandler;
 class Attachable;
 class GameObject;
@@ -36,16 +35,10 @@ class NodeType;
 class PipelineExtension;
 class IterationExtension;
 class ImGuiHelper;
+class PreviewRenderer;
 
 class Editor {
     World* world;
-    std::shared_ptr<Texture> colorTexture;
-    std::shared_ptr<Texture> depthTexture;
-    std::unique_ptr<GraphicsPipelineStage> backgroundRenderStage;
-
-    std::vector<Model*> modelQueue;
-    std::set<uint32_t> modelIdSet;
-    Model* getModelAndMoveToEnd(const std::string& modelFilePath);
 
     //points every mesh in this world that uses baseMaterial at overrideMaterial
     void reseatWorldMeshes(const std::shared_ptr<const Material> &baseMaterial, const std::shared_ptr<Material> &overrideMaterial);
@@ -99,42 +92,6 @@ class Editor {
 
     //the panel is going away for another reason. The alteration stands, we just let go of it
     void releaseAlteredMaterialEdit();
-    Model *createRenderAndAddModelToLRU(const std::string &modelFileName, const glm::vec3 &newObjectPosition, std::shared_ptr<GraphicsProgram> graphicsProgram);
-    ImGuiImageWrapper* wrapper = nullptr;
-
-    static constexpr uint32_t BONE_PREVIEW_WIDTH = 640;
-    static constexpr uint32_t BONE_PREVIEW_HEIGHT = 480;
-
-    // We can't re-use the background renderer state for animation/bone preview, as editor might have both visible at the same time.
-    struct BonePreviewState {
-        // We can't use the main context, as it is mid frame, so we create a separate one for this.
-        // We do reuse the font atlas, so it is a very lightweight thingy.
-        ImGuiContext* imGuiContext = nullptr;
-
-        std::shared_ptr<Texture> colorTexture;
-        std::shared_ptr<Texture> depthTexture;
-        std::unique_ptr<GraphicsPipelineStage> renderStage;
-        ImGuiImageWrapper* wrapper = nullptr;
-        // We can't use the actual rig-id, because that would corrupt the models state, so we will reserve another ID and use that.
-        uint32_t rigId = 0;
-        uint64_t startWallTime = 0;//wall time when the currently-previewed model/animation was first shown, for looping playback
-        uint32_t modelObjectID = 0xFFFFFFFF;//tracks which model+animation startWallTime belongs to
-        std::string animationName;
-        //Refreshed every bakeSkeletonOverlay() call (same frame the preview image is shown), so click hit-testing
-        //always matches the exact pose currently on screen. Local pixel space, same convention as the overlay itself.
-        std::vector<std::pair<uint32_t, ImVec2>> boneScreenPositions;
-    };
-    BonePreviewState bonePreview;
-
-    // We might or might not render add object preview, same with animation/bone preview. If neither rendered, we don't need to
-    // clean up/restore so we flag if any of them did render.
-    // TODO: this flag might not be needed, or we might have a better solution, needs re-check
-    bool offscreenPreviewRenderedThisFrame = false;
-    void beginOffscreenModelPreview(GraphicsPipelineStage* targetStage, std::shared_ptr<GraphicsProgram> graphicsProgram);
-    void finalizeOffscreenModelPreviews(std::shared_ptr<GraphicsProgram> graphicsProgram);
-
-    std::unordered_map<std::string, std::shared_ptr<ModelAsset>> modelAssetsWaitingCPULoad;
-    std::unordered_map<std::string, std::shared_ptr<ModelAsset>> modelAssetsPreloaded;
 
 public:
     bool showNodeGraph = false;
@@ -142,6 +99,11 @@ public:
     IterationExtension *iterationExtension = nullptr;
     NodeGraph* nodeGraph = nullptr;
     ImGuiHelper *imgGuiHelper = nullptr;
+    //Declared after imgGuiHelper on purpose: PreviewRenderer's constructor needs imgGuiHelper already built (to
+    //share its font atlas for the bone-preview's dedicated ImGui context), and members are destroyed in reverse
+    //declaration order, so previewRenderer (which tears down that dedicated context) is guaranteed to be
+    //destroyed before imgGuiHelper is -- matching the ordering the code relied on before this was extracted.
+    std::unique_ptr<PreviewRenderer> previewRenderer;
     ImGuiRequest* request = nullptr;
 
     GameObject* pickedObject = nullptr;
@@ -191,14 +153,6 @@ private:
 
     bool buildFilteredVisibleIDs(PhysicalRenderable *physicalRenderable, const std::string& filterText,
                                  std::unordered_set<uint32_t>& visibleIDs);
-
-    void renderSelectedObject(Model* model, std::shared_ptr<GraphicsProgram> graphicsProgram);
-
-    void bakeSkeletonOverlay(Model* model, const std::vector<glm::mat4> &jointTransforms,
-                             const glm::mat4 &previewCameraMatrix, const glm::mat4 &previewProjectionMatrix,
-                             std::shared_ptr<GraphicsProgram> graphicsProgram);
-
-    void setTransformToModel(Model *model, const glm::vec3 &newObjectPosition);
 
     void loadNodeGraphFile(const std::string &fileName);
     std::vector<NodeType*> buildAvailableNodeTypes();

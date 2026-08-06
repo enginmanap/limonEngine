@@ -2,10 +2,10 @@
 // Created by engin on 28/09/2021.
 //
 
-#include <limits>
 #include <cmath>
 #include <Assets/Animations/AnimationLoader.h>
 #include "Editor.h"
+#include "PreviewRenderer.h"
 #include "World.h"
 #include "../WorldAPIAccessor.h"
 #include "ImGuiHelper.h"
@@ -42,35 +42,8 @@
 #include <glm/gtx/euler_angles.hpp>
 
 Editor::Editor(World *world) : world(world){
-    backgroundRenderStage = std::make_unique<GraphicsPipelineStage>(world->graphicsWrapper, 640,480,"","",true,true,true,false,false);
-    colorTexture = std::make_shared<Texture>(world->graphicsWrapper, GraphicsInterface::TextureTypes::T2D, GraphicsInterface::InternalFormatTypes::RGBA, GraphicsInterface::FormatTypes::RGBA, GraphicsInterface::DataTypes::UNSIGNED_BYTE, 640, 480);
-    colorTexture->setName("EditorColorTexture");
-    colorTexture->setFilterMode(GraphicsInterface::FilterModes::NEAREST);
-    depthTexture = std::make_shared<Texture>(world->graphicsWrapper, GraphicsInterface::TextureTypes::T2D, GraphicsInterface::InternalFormatTypes::DEPTH, GraphicsInterface::FormatTypes::DEPTH, GraphicsInterface::DataTypes::FLOAT, 640, 480);
-    depthTexture->setName("EditorDepthTexture");
-    colorTexture->setFilterMode(GraphicsInterface::FilterModes::NEAREST);
-    backgroundRenderStage->setOutput(GraphicsInterface::FrameBufferAttachPoints::COLOR0, colorTexture, true);
-    backgroundRenderStage->setOutput(GraphicsInterface::FrameBufferAttachPoints::DEPTH, depthTexture, true);
-    wrapper = new ImGuiImageWrapper();
-
-    bonePreview.renderStage = std::make_unique<GraphicsPipelineStage>(world->graphicsWrapper, BONE_PREVIEW_WIDTH, BONE_PREVIEW_HEIGHT,"","",true,true,true,false,false);
-    bonePreview.colorTexture = std::make_shared<Texture>(world->graphicsWrapper, GraphicsInterface::TextureTypes::T2D, GraphicsInterface::InternalFormatTypes::RGBA, GraphicsInterface::FormatTypes::RGBA, GraphicsInterface::DataTypes::UNSIGNED_BYTE, BONE_PREVIEW_WIDTH, BONE_PREVIEW_HEIGHT);
-    bonePreview.colorTexture->setName("EditorBonePreviewColorTexture");
-    bonePreview.colorTexture->setFilterMode(GraphicsInterface::FilterModes::NEAREST);
-    bonePreview.depthTexture = std::make_shared<Texture>(world->graphicsWrapper, GraphicsInterface::TextureTypes::T2D, GraphicsInterface::InternalFormatTypes::DEPTH, GraphicsInterface::FormatTypes::DEPTH, GraphicsInterface::DataTypes::FLOAT, BONE_PREVIEW_WIDTH, BONE_PREVIEW_HEIGHT);
-    bonePreview.depthTexture->setName("EditorBonePreviewDepthTexture");
-    bonePreview.renderStage->setOutput(GraphicsInterface::FrameBufferAttachPoints::COLOR0, bonePreview.colorTexture, true);
-    bonePreview.renderStage->setOutput(GraphicsInterface::FrameBufferAttachPoints::DEPTH, bonePreview.depthTexture, true);
-    bonePreview.wrapper = new ImGuiImageWrapper();
-    bonePreview.rigId = world->getNextRigId();
-
     imgGuiHelper = new ImGuiHelper(world->assetManager, world->options);
-    // We wanna render the bone overlay to the preview texture. We can't do it clearly with main context, so we need
-    // a secondary imgui context
-    ImGuiContext* mainImGuiContext = ImGui::GetCurrentContext();
-    ImFontAtlas* sharedFontAtlas = ImGui::GetIO().Fonts;
-    bonePreview.imGuiContext = ImGui::CreateContext(sharedFontAtlas);
-    ImGui::SetCurrentContext(mainImGuiContext);
+    previewRenderer = std::make_unique<PreviewRenderer>(world, imgGuiHelper);
 
     world->getName().copy(worldSaveNameBuffer, sizeof(worldSaveNameBuffer));
 
@@ -79,9 +52,6 @@ Editor::Editor(World *world) : world(world){
 Editor::~Editor() {
     //~World resets us while its objects are still alive, so the mesh keeping the alteration is still valid
     releaseAlteredMaterialEdit();
-    ImGui::DestroyContext(bonePreview.imGuiContext);
-    delete wrapper;
-    delete bonePreview.wrapper;
     delete nodeGraph;
     delete pipelineExtension;
     delete iterationExtension;
@@ -625,35 +595,6 @@ std::shared_ptr<Material> Editor::ensureWorldOwnedMaterial(const std::shared_ptr
     return overrideMaterial;
 }
 
-Model* Editor::getModelAndMoveToEnd(const std::string& modelFilePath) {
-    for(auto iter = modelQueue.begin(); iter != modelQueue.end(); ++iter) {
-        Model* model = *iter;
-        if (model->getName() == modelFilePath + "_" + std::to_string(model->getWorldObjectID())) {
-            modelQueue.erase(iter);
-            modelQueue.emplace_back(model);
-            return model;
-        }
-    }
-    return nullptr;
-}
-Model * Editor::createRenderAndAddModelToLRU(const std::string &modelFileName, const glm::vec3 &newObjectPosition, std::shared_ptr<GraphicsProgram> graphicsProgram) {
-    uint32_t newWorldObjectId;
-    if(modelQueue.size() >= MAX_PRELOAD_MODEL_COUNT_EDITOR) {
-        newWorldObjectId = modelQueue[0]->getWorldObjectID();
-        delete modelQueue[0];
-        modelQueue.erase(modelQueue.begin());
-    } else {
-        newWorldObjectId = (*modelIdSet.begin());
-        modelIdSet.erase(modelIdSet.begin());
-    }
-
-    Model* model = new Model(newWorldObjectId, world->assetManager, modelFileName);// FIXME this will cause gaps, we should reserve and reuse
-    modelQueue.push_back(model);
-    setTransformToModel(model, newObjectPosition);
-    renderSelectedObject(model, graphicsProgram);
-    return model;
-}
-
 std::unique_ptr<ClosestNotMeConvexResultCallback> Editor::convexSweepTestDown(Model * selectedObject) const {
     std::unique_ptr<ClosestNotMeConvexResultCallback> resultCallback = std::make_unique<ClosestNotMeConvexResultCallback>(selectedObject->getRigidBody());
     btCompoundShape *compoundShape = selectedObject->getCompoundShapeForSweepTest();//Creates a new shape, that is convex hull of the compound shape or the shape itself if it is convex.
@@ -762,16 +703,14 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
             io.ConfigFlags |= !ImGuiConfigFlags_NavEnableKeyboard;
             static float newObjectWeight;
             ImGui::NewLine();
-            wrapper->layer = 0;
-            wrapper->texture = colorTexture;
+            ImGuiImageWrapper* assetPreviewWrapper = previewRenderer->getAssetPreviewWrapper();
             ImVec2 size;
-            size.x = wrapper->texture->getWidth();
-            size.y = wrapper->texture->getHeight();
+            size.x = assetPreviewWrapper->texture->getWidth();
+            size.y = assetPreviewWrapper->texture->getHeight();
             ImGui::Dummy(ImVec2(0.0f, size.y));
             size.y = -1 * size.y;//This is because ImGui assumes y up. Since this code is shared with fonts, and fixing font generation is hard, I am using this hack for upside down fix.
 
-            //ImGui::Image(this->colorTexture->getTextureID(), ImVec2(region_sz * zoom, region_sz * zoom), uv0, uv1, ImColor(255,255,255,255), ImColor(255,255,255,128));
-            ImGui::Image((ImTextureID)(intptr_t)wrapper, size);
+            ImGui::Image((ImTextureID)(intptr_t)assetPreviewWrapper, size);
             ImGui::NewLine();
             ImGui::SliderFloat("Weight", &newObjectWeight, 0.0f, 100.0f);
             ImGui::NewLine();
@@ -787,38 +726,8 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
                 ImGui::SameLine();
                 ImGuiHelper::ShowHelpMarker("No Asset Selected!");
             } else {
-                if(this->modelIdSet.empty() && modelQueue.empty()) {
-                    for(size_t i =0; i < MAX_PRELOAD_MODEL_COUNT_EDITOR; ++i) {
-                        this->modelIdSet.insert(world->getNextObjectID());
-                    }
-                }
-                if((modelAssetsWaitingCPULoad.find(selectedAsset->fullPath) == modelAssetsWaitingCPULoad.end()
-                        && world->assetManager->isLoaded({selectedAsset->fullPath})) || modelAssetsPreloaded.find(selectedAsset->fullPath) != modelAssetsPreloaded.end()) {
-                    // Preloaded case
-                    Model* model = getModelAndMoveToEnd(selectedAsset->fullPath);
-                    if(model == nullptr) {
-                        this->createRenderAndAddModelToLRU(selectedAsset->fullPath, newObjectPosition, graphicsProgram);
-                        if(modelAssetsPreloaded.count(selectedAsset->fullPath)) {
-                            // Only release the editor-side preload reference; if the asset was
-                            // already in the world we have no extra counter to balance.
-                            modelAssetsPreloaded.erase(selectedAsset->fullPath);
-                            world->assetManager->freeAsset({selectedAsset->fullPath});
-                        }
-                    } else {
-                        setTransformToModel(model, newObjectPosition);
-                        renderSelectedObject(model, graphicsProgram);
-                    }
-                } else if(modelAssetsWaitingCPULoad.find(selectedAsset->fullPath) != modelAssetsWaitingCPULoad.end()) {
-                    if(modelAssetsWaitingCPULoad[selectedAsset->fullPath]->getLoadState() == Asset::LoadState::CPU_LOAD_DONE) {
-                        world->assetManager->partialLoadGPUSide(modelAssetsWaitingCPULoad[selectedAsset->fullPath]);
-                        modelAssetsPreloaded[selectedAsset->fullPath] = modelAssetsWaitingCPULoad[selectedAsset->fullPath];
-                        modelAssetsWaitingCPULoad.erase(selectedAsset->fullPath);
-                    } else {
-                        ImGui::Text("Loading...");
-                    }
-                } else {
-                    //Requesting Load case
-                    modelAssetsWaitingCPULoad[selectedAsset->fullPath] = world->assetManager->partialLoadAssetAsync<ModelAsset>({selectedAsset->fullPath});
+                if (previewRenderer->updateAssetPreview(selectedAsset->fullPath, newObjectPosition, graphicsProgram)) {
+                    ImGui::Text("Loading...");
                 }
                 if(ImGui::Button("Add Object")) {
                     std::string newFlipAxes;
@@ -1453,8 +1362,10 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
             static int listbox_item_current = -1;//not static because I don't want user to select a item.
             static ImGuiImageWrapper wrapper;//keeps selected texture and layer;
             std::vector<std::shared_ptr<Texture>> allTextures = world->renderPipeline->getTextures();
-            allTextures.emplace_back(colorTexture);
-            allTextures.emplace_back(depthTexture);
+            allTextures.emplace_back(previewRenderer->getBackgroundColorTexture());
+            allTextures.emplace_back(previewRenderer->getBackgroundDepthTexture());
+            allTextures.emplace_back(previewRenderer->getBonePreviewColorTexture());
+            allTextures.emplace_back(previewRenderer->getBonePreviewDepthTexture());
             if(ImGui::ListBox("Current Textures##Render Debugging", &listbox_item_current, World::getNameOfTexture,
                               static_cast<void *>(&allTextures), allTextures.size(), 10)) {
                 wrapper.layer = 0;
@@ -1608,20 +1519,10 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
                 world->onModelMaterialChanged(this->pickedObjectID);
             }
             if (objectEditorResult.boneClicked && this->pickedObject->getTypeID() == GameObject::ObjectTypes::MODEL) {
-                //bonePreview.boneScreenPositions was refreshed this same frame, by the renderBonePreview() call
-                //that already happened inside addImGuiEditorElements above -- same pose, no staleness.
+                //previewRenderer's bone screen positions were refreshed this same frame, by the renderBonePreview()
+                //call that already happened inside addImGuiEditorElements above -- same pose, no staleness.
                 constexpr float hitRadius = 6.0f;
-                float closestDistanceSquared = hitRadius * hitRadius;
-                int32_t closestBoneID = -1;
-                for (const auto &boneScreenPosition : bonePreview.boneScreenPositions) {
-                    float deltaX = boneScreenPosition.second.x - objectEditorResult.boneClickPixelX;
-                    float deltaY = boneScreenPosition.second.y - objectEditorResult.boneClickPixelY;
-                    float distanceSquared = deltaX * deltaX + deltaY * deltaY;
-                    if (distanceSquared <= closestDistanceSquared) {
-                        closestDistanceSquared = distanceSquared;
-                        closestBoneID = static_cast<int32_t>(boneScreenPosition.first);
-                    }
-                }
+                int32_t closestBoneID = previewRenderer->findClosestBoneAtPixel(objectEditorResult.boneClickPixelX, objectEditorResult.boneClickPixelY, hitRadius);
                 if (closestBoneID != -1) {
                     static_cast<Model*>(this->pickedObject)->setSelectedBoneID(closestBoneID);
                 }
@@ -1869,35 +1770,9 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
         ImGui::End();
     }
 
-    finalizeOffscreenModelPreviews(graphicsProgram);
+    previewRenderer->finalizeOffscreenModelPreviews(graphicsProgram);
     imgGuiHelper->RenderDrawLists(graphicsProgram);
 }
-
-void Editor::setTransformToModel(Model *model, const glm::vec3 &newObjectPosition) {
-    //First reset the model transform
-    model->getTransformation()->setTransformations(glm::vec3(0.0f, 0.0f, 0.0f),
-    glm::vec3(1.0f, 1.0f, 1.0f),
-    glm::quat(1.0f, 0.0f, 0.0f, 0.0f));
-    //now calculate
-    float expectedSize = 9.5f;
-    const glm::mat4 reversalTransformation = glm::inverse(glm::lookAt(world->playerCamera->getPosition(),
-                                                                      newObjectPosition, glm::vec3(0, 1, 0)));
-    glm::vec3 scale, translation, skew;
-    glm::vec4 perspective;
-    glm::quat rotationDe;
-    glm::decompose(reversalTransformation, scale, rotationDe, translation, skew, perspective);
-    model->getTransformation()->setOrientation(rotationDe * glm::quat(0.970f, 0.175f, -0.175f, 0.0f));
-    glm::vec3 min = model->getAabbMin(), max = model->getAabbMax();
-    glm::vec3 size = max - min;
-    float maxDim = std::max(size.x, size.y);
-    float scaleF = expectedSize /maxDim ;
-    model->getTransformation()->setScale(glm::vec3(scaleF, scaleF, scaleF));
-    glm::vec3 centerOffset = (min + max) * 0.5f * scaleF;
-    translation = newObjectPosition - centerOffset;
-    model->getTransformation()->setTranslate(translation);
-
-}
-
 
 void Editor::addAnimationDefinitionToEditor() {
     if (ImGui::CollapsingHeader("Custom animation properties")) {
@@ -2380,200 +2255,8 @@ void Editor::createObjectTreeRecursive(PhysicalRenderable *physicalRenderable, u
    }
 }
 
-void Editor::beginOffscreenModelPreview(GraphicsPipelineStage* targetStage, std::shared_ptr<GraphicsProgram> graphicsProgram) {
-    //Set unconditionally (cheap) so each 3D draw is self-sufficient regardless of what any other offscreen
-    //preview did to this uniform earlier in the frame. The flag below is only about end-of-frame cleanup.
-    graphicsProgram->setUniform("renderModelIMGUI", 1);
-    offscreenPreviewRenderedThisFrame = true;
-    targetStage->activate(true);
-}
-
-void Editor::finalizeOffscreenModelPreviews(std::shared_ptr<GraphicsProgram> graphicsProgram) {
-    if (offscreenPreviewRenderedThisFrame) {
-        graphicsProgram->setUniform("renderModelIMGUI", 0);
-        world->renderPipeline->reActivateLastStage();
-        offscreenPreviewRenderedThisFrame = false;
-    }
-}
-
-void Editor::renderSelectedObject(Model* model, std::shared_ptr<GraphicsProgram> graphicsProgram) {
-    beginOffscreenModelPreview(backgroundRenderStage.get(), graphicsProgram);
-    model->convertToRenderList(0, 0).render(world->graphicsWrapper, graphicsProgram, true);
-}
-
-//Projects a world position through cameraMatrix/projectionMatrix into a pixel position in local [0,width]x[0,height]
-//image space (0,0 = top-left, y down -- standard UI convention, matching PositionIMGUI).
-//Since we use a dedicated context, we don't need to do hack together some way to actually position them
-static bool projectWorldPositionToLocalPixel(const glm::vec3 &worldPosition, const glm::mat4 &cameraMatrix,
-                                              const glm::mat4 &projectionMatrix, float width, float height,
-                                              ImVec2 &outPixel) {
-    glm::vec4 clipPosition = projectionMatrix * cameraMatrix * glm::vec4(worldPosition, 1.0f);
-    if (clipPosition.w <= 0.0f) {
-        return false;
-    }
-    glm::vec3 ndcPosition = glm::vec3(clipPosition) / clipPosition.w;
-    float u = (ndcPosition.x * 0.5f) + 0.5f;
-    float v = 1.0f - ((ndcPosition.y * 0.5f) + 0.5f);
-    outPixel.x = u * width;
-    outPixel.y = v * height;
-    return true;
-}
-
-void Editor::bakeSkeletonOverlay(Model* model, const std::vector<glm::mat4> &jointTransforms,
-                                  const glm::mat4 &previewCameraMatrix, const glm::mat4 &previewProjectionMatrix,
-                                  std::shared_ptr<GraphicsProgram> graphicsProgram) {
-    constexpr float width = static_cast<float>(BONE_PREVIEW_WIDTH);
-    constexpr float height = static_cast<float>(BONE_PREVIEW_HEIGHT);
-
-    // get the previous context, and then switch
-    ImGuiContext* previousContext = ImGui::GetCurrentContext();
-    ImGui::SetCurrentContext(bonePreview.imGuiContext);
-    ImGuiIO &previewIO = ImGui::GetIO();
-    previewIO.DisplaySize = ImVec2(width, height);
-    previewIO.DisplayFramebufferScale = ImVec2(1.0f, 1.0f);
-    previewIO.DeltaTime = 1.0f / TICK_PER_SECOND;//dummy; this context is draw-only and never advances real time
-    ImGui::NewFrame();
-
-    ImDrawList* drawList = ImGui::GetBackgroundDrawList();
-    const glm::mat4 worldTransform = model->getTransformation()->getWorldTransform();
-    const std::vector<std::pair<uint32_t, uint32_t>> boneEdges = model->getModelAsset()->getBoneHierarchyEdges();
-
-    //jointTransforms is sized to the shader's fixed NR_BONE slot count, not the model's actual bone count; slots
-    //this skeleton doesn't use stay identity (GLM default-constructs mat4 to identity), which would draw a
-    //phantom joint at the model's own local origin if iterated directly. Only draw bones present in the hierarchy.
-    std::set<uint32_t> realBoneIDs;
-    for (const auto &edge : boneEdges) {
-        realBoneIDs.insert(edge.first);
-        realBoneIDs.insert(edge.second);
-    }
-
-    int32_t selectedBoneID = model->getSelectedBoneID();
-
-    bonePreview.boneScreenPositions.clear();
-
-    for (const auto &edge : boneEdges) {
-        uint32_t childBoneID = edge.first;
-        uint32_t parentBoneID = edge.second;
-        if (childBoneID >= jointTransforms.size() || parentBoneID >= jointTransforms.size()) {
-            continue;
-        }
-        glm::vec3 childWorldPos = glm::vec3((worldTransform * jointTransforms[childBoneID])[3]);
-        glm::vec3 parentWorldPos = glm::vec3((worldTransform * jointTransforms[parentBoneID])[3]);
-        ImVec2 childPixel, parentPixel;
-        if (projectWorldPositionToLocalPixel(childWorldPos, previewCameraMatrix, previewProjectionMatrix, width, height, childPixel) &&
-            projectWorldPositionToLocalPixel(parentWorldPos, previewCameraMatrix, previewProjectionMatrix, width, height, parentPixel)) {
-            drawList->AddLine(parentPixel, childPixel, IM_COL32(255, 220, 0, 200), 2.0f);
-        }
-    }
-    for (uint32_t boneID : realBoneIDs) {
-        if (boneID >= jointTransforms.size()) {
-            continue;
-        }
-        glm::vec3 boneWorldPos = glm::vec3((worldTransform * jointTransforms[boneID])[3]);
-        ImVec2 bonePixel;
-        if (!projectWorldPositionToLocalPixel(boneWorldPos, previewCameraMatrix, previewProjectionMatrix, width, height, bonePixel)) {
-            continue;
-        }
-        bool isSelected = (static_cast<int32_t>(boneID) == selectedBoneID);
-        drawList->AddCircleFilled(bonePixel, isSelected ? 6.0f : 3.5f, isSelected ? IM_COL32(255, 60, 60, 255) : IM_COL32(80, 200, 255, 220));
-        bonePreview.boneScreenPositions.emplace_back(boneID, bonePixel);
-    }
-
-    ImGui::Render();
-
-    // we wanna render imgui render list, not model, flag it
-    graphicsProgram->setUniform("renderModelIMGUI", 0);
-    imgGuiHelper->RenderDrawLists(graphicsProgram);
-
-    ImGui::SetCurrentContext(previousContext);
-}
-
 ImGuiImageWrapper* Editor::renderBonePreview(Model* model, std::shared_ptr<GraphicsProgram> graphicsProgram) {
-    if (model->getWorldObjectID() != bonePreview.modelObjectID || model->getAnimationName() != bonePreview.animationName) {
-        //different model, or same model with a newly selected animation: restart preview playback from now
-        bonePreview.modelObjectID = model->getWorldObjectID();
-        bonePreview.animationName = model->getAnimationName();
-        bonePreview.startWallTime = world->wallTime;
-    }
-    long previewAnimationTime = static_cast<long>(world->wallTime - bonePreview.startWallTime);
-    // The model getTransform does not check the vector size, we need to resize here.
-    std::vector<glm::mat4> skinningMatrices(NR_BONE);
-    // get transform and get joint transform can be combined, but we don't want to, because that would change the hot path
-    // logic for editor. This split is intentional
-    model->getModelAsset()->getTransform(previewAnimationTime, true, model->getAnimationName(), skinningMatrices);
-
-    std::vector<glm::mat4> jointTransforms(NR_BONE);
-    model->getModelAsset()->getJointTransforms(previewAnimationTime, true, model->getAnimationName(), jointTransforms);
-
-    world->graphicsWrapper->setBoneTransforms(bonePreview.rigId, skinningMatrices);
-
-    // We want to render the model from the front. But there are 2 sets of information used for this:
-    // 1) Object transform -> Used for the real object, in a texture, read from multiple threads
-    // 2) Camera transform(s) -> Used for everything, but in UBO, single threaded
-    // To avoid race condition risk, we will update the camera transforms.
-    //
-    // model->getAabbMin()/getAabbMax() is out: it returns the model's live gameplay animation state, we want wall time
-    // So we get the asset AABB and use it as a proxy
-    const glm::vec3 localBoundsMin = model->getModelAsset()->getBoundingBoxMin();
-    const glm::vec3 localBoundsMax = model->getModelAsset()->getBoundingBoxMax();
-    const glm::mat4 previewWorldTransform = model->getTransformation()->getWorldTransform();
-    glm::vec3 aabbMin(std::numeric_limits<float>::max());
-    glm::vec3 aabbMax(std::numeric_limits<float>::lowest());
-    for (int cornerIndex = 0; cornerIndex < 8; ++cornerIndex) {
-        glm::vec3 localCorner((cornerIndex & 1) ? localBoundsMax.x : localBoundsMin.x,
-                               (cornerIndex & 2) ? localBoundsMax.y : localBoundsMin.y,
-                               (cornerIndex & 4) ? localBoundsMax.z : localBoundsMin.z);
-        glm::vec3 worldCorner = glm::vec3(previewWorldTransform * glm::vec4(localCorner, 1.0f));
-        aabbMin = glm::min(aabbMin, worldCorner);
-        aabbMax = glm::max(aabbMax, worldCorner);
-    }
-    glm::vec3 modelCenter = (aabbMin + aabbMax) * 0.5f;
-
-    // We can just estimate the far size, it doesn't really matter
-    float farPlaneRadius = glm::length(aabbMax - aabbMin) * 0.5f;
-    if (farPlaneRadius < 0.01f) {
-        farPlaneRadius = 1.0f;//degenerate/zero-size AABB guard
-    }
-
-
-    // Camera distance needs to be calculated properly, or it gets too small.
-    // Using sphere proved causing too small, and using diagonal is also not working as it makes the
-    // image smaller because depth also extends it.
-    float boxHalfWidth = (aabbMax.x - aabbMin.x) * 0.5f;
-    float boxHalfHeight = (aabbMax.y - aabbMin.y) * 0.5f;
-    if (boxHalfWidth < 0.005f && boxHalfHeight < 0.005f) {
-        boxHalfWidth = boxHalfHeight = 0.5f;//degenerate/zero-size AABB guard
-    }
-    const float fovYRadians = glm::radians(60.0f);
-    const float aspect = static_cast<float>(BONE_PREVIEW_WIDTH) / static_cast<float>(BONE_PREVIEW_HEIGHT);
-    const float fovXRadians = 2.0f * std::atan(std::tan(fovYRadians * 0.5f) * aspect);
-    const float distanceForHeight = boxHalfHeight / std::tan(fovYRadians * 0.5f);
-    const float distanceForWidth = boxHalfWidth / std::tan(fovXRadians * 0.5f);
-    //10% headroom so the model doesn't sit exactly edge-to-edge against the preview borders
-    const float previewCameraDistance = std::max(distanceForHeight, distanceForWidth) * 1.1f;
-
-    // Tiny offset
-    const glm::vec3 previewOffsetDirection = glm::normalize(glm::vec3(0.0f, 0.5f, 2.5f));
-    glm::vec3 previewCameraPosition = modelCenter + previewOffsetDirection * previewCameraDistance;
-    glm::mat4 previewCameraMatrix = glm::lookAt(previewCameraPosition, modelCenter, glm::vec3(0.0f, 1.0f, 0.0f));
-    glm::mat4 previewProjectionMatrix = glm::perspective(fovYRadians, aspect, 0.1f, farPlaneRadius * 20.0f + 10.0f);
-
-    const glm::vec3 liveCameraPosition = world->playerCamera->getPosition();
-    const glm::mat4 liveCameraMatrix = world->playerCamera->getCameraMatrix();
-    const glm::mat4 liveProjectionMatrix = world->playerCamera->getProjectionMatrix();
-
-    world->graphicsWrapper->setPlayerMatrices(previewCameraPosition, previewCameraMatrix, previewProjectionMatrix, world->gameTime);
-    beginOffscreenModelPreview(bonePreview.renderStage.get(), graphicsProgram);
-    // We want animation, so we should not force Not animated, unlike the add object preview
-    model->convertToRenderList(0, 0, static_cast<int32_t>(bonePreview.rigId)).render(world->graphicsWrapper, graphicsProgram, false);
-
-    bakeSkeletonOverlay(model, jointTransforms, previewCameraMatrix, previewProjectionMatrix, graphicsProgram);
-
-    world->graphicsWrapper->setPlayerMatrices(liveCameraPosition, liveCameraMatrix, liveProjectionMatrix, world->gameTime);
-
-    bonePreview.wrapper->texture = bonePreview.colorTexture;
-    bonePreview.wrapper->layer = 0;
-    return bonePreview.wrapper;
+    return previewRenderer->renderBonePreview(model, graphicsProgram);
 }
 
 void Editor::addGUITextControls() {
