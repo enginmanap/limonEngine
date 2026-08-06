@@ -707,10 +707,15 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
             ImVec2 size;
             size.x = assetPreviewWrapper->texture->getWidth();
             size.y = assetPreviewWrapper->texture->getHeight();
-            ImGui::Dummy(ImVec2(0.0f, size.y));
-            size.y = -1 * size.y;//This is because ImGui assumes y up. Since this code is shared with fonts, and fixing font generation is hard, I am using this hack for upside down fix.
-
-            ImGui::Image((ImTextureID)(intptr_t)assetPreviewWrapper, size);
+            //ImGui assumes y up; the preview texture is rendered y down. Flipped via uv0/uv1 (not a negated size)
+            //because a negated size inverts ImGui's own item rect (Min.y > Max.y), which makes IsItemHovered --
+            //needed below for the right-click-drag orbit -- never fire for this item. Same fix already applied
+            //to the bone preview's image earlier this session.
+            ImGui::Image((ImTextureID)(intptr_t)assetPreviewWrapper, size, ImVec2(0.0f, 1.0f), ImVec2(1.0f, 0.0f));
+            if (ImGui::IsItemHovered() && ImGui::IsMouseDragging(ImGuiMouseButton_Right)) {
+                ImVec2 mouseDelta = ImGui::GetIO().MouseDelta;
+                previewRenderer->applyAssetPreviewOrbitDrag(mouseDelta.x, mouseDelta.y);
+            }
             ImGui::NewLine();
             ImGui::SliderFloat("Weight", &newObjectWeight, 0.0f, 100.0f);
             ImGui::NewLine();
@@ -1526,6 +1531,11 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
                 if (closestBoneID != -1) {
                     static_cast<Model*>(this->pickedObject)->setSelectedBoneID(closestBoneID);
                 }
+            }
+            if (objectEditorResult.boneOrbitDragging) {
+                //One-frame-lag, same as click-to-select above: this drag was detected on the image displayed
+                //this frame (rendered from last frame's orbit state), so it only takes effect next frame.
+                previewRenderer->applyBonePreviewOrbitDrag(objectEditorResult.boneOrbitDeltaX, objectEditorResult.boneOrbitDeltaY);
             }
             switch(this->pickedObject->getTypeID()) {
                 case GameObject::ObjectTypes::MODEL: {
