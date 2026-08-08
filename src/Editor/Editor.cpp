@@ -707,15 +707,23 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
             ImVec2 size;
             size.x = assetPreviewWrapper->texture->getWidth();
             size.y = assetPreviewWrapper->texture->getHeight();
-            //ImGui assumes y up; the preview texture is rendered y down. Flipped via uv0/uv1 (not a negated size)
-            //because a negated size inverts ImGui's own item rect (Min.y > Max.y), which makes IsItemHovered --
-            //needed below for the right-click-drag orbit -- never fire for this item. Same fix already applied
-            //to the bone preview's image earlier this session.
-            ImGui::Image((ImTextureID)(intptr_t)assetPreviewWrapper, size, ImVec2(0.0f, 1.0f), ImVec2(1.0f, 0.0f));
+            // 3 lines to convince ImGUI to our scrool behaviour
+            ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));                       // Hide the next element
+            ImGui::BeginChild("AssetPreviewImage", size, false, ImGuiWindowFlags_NoScrollbar);      // Which is a parent with no scroll bar
+            ImGui::SetScrollY(0.0f);                                                                              // And no scroll
+            //ImGui assumes y up, the preview texture is y down. Flipped via uv0/uv1, not a negated size, since a
+            //negated size inverts the item rect and breaks IsItemHovered below.
+            ImGui::Image((ImTextureID)(intptr_t)assetPreviewWrapper, size, ImVec2(0.0f, 1.0f), ImVec2(1.0f, 0.0f)); // So this doesn't scroll, it zooms
             if (ImGui::IsItemHovered() && ImGui::IsMouseDragging(ImGuiMouseButton_Right)) {
                 ImVec2 mouseDelta = ImGui::GetIO().MouseDelta;
                 previewRenderer->applyAssetPreviewOrbitDrag(mouseDelta.x, mouseDelta.y);
             }
+            if (ImGui::IsItemHovered() && ImGui::GetIO().MouseWheel != 0.0f) {
+                previewRenderer->applyAssetPreviewZoom(ImGui::GetIO().MouseWheel);
+            }
+            ImGui::Dummy(ImVec2(1.0f, 1.0f));
+            ImGui::EndChild();
+            ImGui::PopStyleVar();
             ImGui::NewLine();
             ImGui::SliderFloat("Weight", &newObjectWeight, 0.0f, 100.0f);
             ImGui::NewLine();
@@ -1525,19 +1533,22 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
             if (objectEditorResult.materialChanged) {
                 world->onModelMaterialChanged(this->pickedObjectID);
             }
-            if (objectEditorResult.boneClicked && this->pickedObject->getTypeID() == GameObject::ObjectTypes::MODEL) {
-                //previewRenderer's bone screen positions were refreshed this same frame, by the renderBonePreview()
-                //call that already happened inside addImGuiEditorElements above -- same pose, no staleness.
+            if (objectEditorResult.bonePreview.clicked && this->pickedObject->getTypeID() == GameObject::ObjectTypes::MODEL) {
+                //previewRenderer's bone screen positions were refreshed this frame by the renderBonePreview() call
+                //already made inside addImGuiEditorElements above, so this is hit-testing the pose actually shown.
                 constexpr float hitRadius = 6.0f;
-                int32_t closestBoneID = previewRenderer->findClosestBoneAtPixel(objectEditorResult.boneClickPixelX, objectEditorResult.boneClickPixelY, hitRadius);
+                int32_t closestBoneID = previewRenderer->findClosestBoneAtPixel(objectEditorResult.bonePreview.clickPixelX, objectEditorResult.bonePreview.clickPixelY, hitRadius);
                 if (closestBoneID != -1) {
                     static_cast<Model*>(this->pickedObject)->setSelectedBoneID(closestBoneID);
                 }
             }
-            if (objectEditorResult.boneOrbitDragging) {
+            if (objectEditorResult.bonePreview.orbitDragging) {
                 //One-frame-lag, same as click-to-select above: this drag was detected on the image displayed
                 //this frame (rendered from last frame's orbit state), so it only takes effect next frame.
-                previewRenderer->applyBonePreviewOrbitDrag(objectEditorResult.boneOrbitDeltaX, objectEditorResult.boneOrbitDeltaY);
+                previewRenderer->applyBonePreviewOrbitDrag(objectEditorResult.bonePreview.orbitDeltaX, objectEditorResult.bonePreview.orbitDeltaY);
+            }
+            if (objectEditorResult.bonePreview.zoomDelta != 0.0f) {
+                previewRenderer->applyBonePreviewZoom(objectEditorResult.bonePreview.zoomDelta);
             }
             switch(this->pickedObject->getTypeID()) {
                 case GameObject::ObjectTypes::MODEL: {

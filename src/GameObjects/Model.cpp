@@ -391,22 +391,34 @@ ImGuiResult Model::addImGuiEditorElements(const ImGuiRequest &request) {
                     ImVec2 size(static_cast<float>(previewWrapper->texture->getWidth()), static_cast<float>(previewWrapper->texture->getHeight()));
                     //flipped via uv0/uv1, not a negated size, that would invert the item rect and IsItemClicked
                     //would never fire
+                    //Child + oversized dummy claims the wheel from the panel, same trick as FlameGraph::HandleInput's canvas.
+                    //SetScrollY(0) every frame cancels the scroll that trick would otherwise leave on the image.
+                    //No border/padding: a child adds both by default, and this should sit flush like before the wrapper.
+                    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+                    ImGui::BeginChild("BonePreviewImage", size, false, ImGuiWindowFlags_NoScrollbar);
+                    ImGui::SetScrollY(0.0f);
                     ImGui::Image((ImTextureID)(intptr_t)previewWrapper, size, ImVec2(0.0f, 1.0f), ImVec2(1.0f, 0.0f));
                     if (ImGui::IsItemClicked()) {
                         //raw local pixel only, Editor owns bone screen positions and does the hit-test
                         ImVec2 rectMin = ImGui::GetItemRectMin();
                         ImVec2 mouse = ImGui::GetMousePos();
-                        result.boneClicked = true;
-                        result.boneClickPixelX = mouse.x - rectMin.x;
-                        result.boneClickPixelY = mouse.y - rectMin.y;
+                        result.bonePreview.clicked = true;
+                        result.bonePreview.clickPixelX = mouse.x - rectMin.x;
+                        result.bonePreview.clickPixelY = mouse.y - rectMin.y;
                     }
                     if (ImGui::IsItemHovered() && ImGui::IsMouseDragging(ImGuiMouseButton_Right)) {
                         //orbits the preview camera, raw delta only, PreviewRenderer applies it
                         ImVec2 mouseDelta = ImGui::GetIO().MouseDelta;
-                        result.boneOrbitDragging = true;
-                        result.boneOrbitDeltaX = mouseDelta.x;
-                        result.boneOrbitDeltaY = mouseDelta.y;
+                        result.bonePreview.orbitDragging = true;
+                        result.bonePreview.orbitDeltaX = mouseDelta.x;
+                        result.bonePreview.orbitDeltaY = mouseDelta.y;
                     }
+                    if (ImGui::IsItemHovered() && ImGui::GetIO().MouseWheel != 0.0f) {
+                        result.bonePreview.zoomDelta = ImGui::GetIO().MouseWheel;
+                    }
+                    ImGui::Dummy(ImVec2(1.0f, 1.0f));
+                    ImGui::EndChild();
+                    ImGui::PopStyleVar();
                 }
             }
 

@@ -32,12 +32,16 @@ struct ImGuiResult {
     bool putOnTop = false;
     bool flipChanged = false;
     bool massChanged = false;
-    bool boneClicked = false;//user clicked inside the bone-exposure preview image; pixel coords below are local to it
-    float boneClickPixelX = 0.0f;
-    float boneClickPixelY = 0.0f;
-    bool boneOrbitDragging = false;//user is right-click-dragging inside the bone-exposure preview image this frame
-    float boneOrbitDeltaX = 0.0f;//raw ImGui mouse-delta pixels for this frame, only meaningful if boneOrbitDragging
-    float boneOrbitDeltaY = 0.0f;
+    struct BonePreviewInput {
+        bool clicked = false;      //user clicked inside the bone-exposure preview image; pixel coords are local to it
+        float clickPixelX = 0.0f;
+        float clickPixelY = 0.0f;
+        bool orbitDragging = false;//user is right-click-dragging inside the preview image this frame
+        float orbitDeltaX = 0.0f;  //raw ImGui mouse-delta pixels for this frame, only meaningful if orbitDragging
+        float orbitDeltaY = 0.0f;
+        float zoomDelta = 0.0f;    //raw ImGui.io.MouseWheel for this frame, 0 means no scroll
+    };
+    BonePreviewInput bonePreview;
     std::string actorTypeName;
     std::string newFlipAxes;
 };

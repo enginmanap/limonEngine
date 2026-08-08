@@ -139,7 +139,7 @@ static void computeModelWorldBounds(Model *model, const glm::mat4 &renderTransfo
 //since depth is linear in distance; the fit uses whichever corner/axis needs the most
 static glm::mat4 computeFittedPreviewCameraMatrix(const glm::vec3 &boundsMin, const glm::vec3 &boundsMax,
                                                    float fovYRadians, float aspect, const glm::vec3 &viewDirection,
-                                                   glm::vec3 &outCameraPosition) {
+                                                   float zoomFactor, glm::vec3 &outCameraPosition) {
     glm::vec3 center = (boundsMin + boundsMax) * 0.5f;
     glm::vec3 extents = (boundsMax - boundsMin) * 0.5f;
     if (glm::length(extents) < 0.005f) {
@@ -168,6 +168,7 @@ static glm::mat4 computeFittedPreviewCameraMatrix(const glm::vec3 &boundsMin, co
     }
     //10% headroom so the model doesn't sit exactly edge-to-edge against the preview borders
     requiredDistance *= 1.1f;
+    requiredDistance *= zoomFactor;
 
     outCameraPosition = center + direction * requiredDistance;
     return glm::lookAt(outCameraPosition, center, worldUp);
@@ -209,6 +210,24 @@ void PreviewRenderer::applyAssetPreviewOrbitDrag(float dragDeltaX, float dragDel
     applyOrbitDragToState(assetPreviewOrbit, ASSET_PREVIEW_BASE_DIRECTION, dragDeltaX, dragDeltaY);
 }
 
+void PreviewRenderer::applyZoomToState(OrbitState &orbit, float wheelDelta) {
+    constexpr float zoomStepPerNotch = 0.9f;//tuned by feel, scroll forward = closer, same idea as FlameGraph's zoom
+    //below this, requiredDistance*zoomFactor hits zero and glm::lookAt's normalize(center-eye) goes to NaN
+    constexpr float minZoomFactor = 0.02f;
+    //bind-pose fit box can undershoot a posed skeleton (a raised arm, say), so the ceiling sits a bit above 1.0
+    constexpr float maxZoomFactor = 1.15f;
+    orbit.zoomFactor *= std::pow(zoomStepPerNotch, wheelDelta);
+    orbit.zoomFactor = std::clamp(orbit.zoomFactor, minZoomFactor, maxZoomFactor);
+}
+
+void PreviewRenderer::applyBonePreviewZoom(float wheelDelta) {
+    applyZoomToState(bonePreview.orbit, wheelDelta);
+}
+
+void PreviewRenderer::applyAssetPreviewZoom(float wheelDelta) {
+    applyZoomToState(assetPreviewOrbit, wheelDelta);
+}
+
 void PreviewRenderer::renderSelectedObject(Model* model, std::shared_ptr<GraphicsProgram> graphicsProgram) {
     glm::vec3 boundsMin, boundsMax;
     computeModelWorldBounds(model, model->getTransformation()->getWorldTransform(), boundsMin, boundsMax);
@@ -218,7 +237,7 @@ void PreviewRenderer::renderSelectedObject(Model* model, std::shared_ptr<Graphic
     //wildly in shape so a bit of top+side reads better than a flat front view
     const glm::vec3 assetPreviewViewDirection = applyOrbit(ASSET_PREVIEW_BASE_DIRECTION, assetPreviewOrbit.yaw, assetPreviewOrbit.pitch);
     glm::mat4 previewCameraMatrix = computeFittedPreviewCameraMatrix(boundsMin, boundsMax, glm::radians(60.0f), aspect,
-                                                                     assetPreviewViewDirection, previewCameraPosition);
+                                                                     assetPreviewViewDirection, assetPreviewOrbit.zoomFactor, previewCameraPosition);
     glm::mat4 previewProjectionMatrix = glm::perspective(glm::radians(60.0f), aspect, 0.1f,
                                                           glm::length(boundsMax - boundsMin) * 20.0f + 10.0f);
 
@@ -407,7 +426,7 @@ ImGuiImageWrapper* PreviewRenderer::renderBonePreview(Model* model, std::shared_
     //near-frontal, a bit above, not the asset preview's top-left angle
     const glm::vec3 bonePreviewViewDirection = applyOrbit(BONE_PREVIEW_BASE_DIRECTION, bonePreview.orbit.yaw, bonePreview.orbit.pitch);
     glm::mat4 previewCameraMatrix = computeFittedPreviewCameraMatrix(aabbMin, aabbMax, fovYRadians, aspect,
-                                                                     bonePreviewViewDirection, previewCameraPosition);
+                                                                     bonePreviewViewDirection, bonePreview.orbit.zoomFactor, previewCameraPosition);
     glm::mat4 previewProjectionMatrix = glm::perspective(fovYRadians, aspect, 0.1f, farPlaneRadius * 20.0f + 10.0f);
 
     const glm::vec3 liveCameraPosition = world->playerCamera->getPosition();

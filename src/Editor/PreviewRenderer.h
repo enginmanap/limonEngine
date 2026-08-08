@@ -45,6 +45,7 @@ class PreviewRenderer {
     struct OrbitState {
         float yaw = 0.0f;   // radians, around world up
         float pitch = 0.0f; // radians, around the yawed local right axis, clamped to avoid pole flip
+        float zoomFactor = 1.0f; // multiplies the box-fit distance, clamped in applyZoomToState
     };
     OrbitState assetPreviewOrbit;
 
@@ -94,6 +95,7 @@ class PreviewRenderer {
 
     //needs baseDirection for the pitch clamp, see the .cpp for why
     void applyOrbitDragToState(OrbitState &orbit, const glm::vec3 &baseDirection, float dragDeltaX, float dragDeltaY);
+    void applyZoomToState(OrbitState &orbit, float wheelDelta);
 
 public:
     PreviewRenderer(World* world, ImGuiHelper* imgGuiHelper);
@@ -107,6 +109,10 @@ public:
     //dragDeltaX/Y are this frame's raw ImGui mouse delta
     void applyBonePreviewOrbitDrag(float dragDeltaX, float dragDeltaY);
     void applyAssetPreviewOrbitDrag(float dragDeltaX, float dragDeltaY);
+
+    //wheelDelta is this frame's raw ImGui.io.MouseWheel
+    void applyBonePreviewZoom(float wheelDelta);
+    void applyAssetPreviewZoom(float wheelDelta);
 
     //always valid once constructed, shown unconditionally every frame like before extraction
     ImGuiImageWrapper* getAssetPreviewWrapper() const {
