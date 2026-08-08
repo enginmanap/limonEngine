@@ -75,6 +75,8 @@ include("libs/tracy/cmake/server.cmake")
 
 # TracyServer and PPQSort heavily depend on C++20 standard library features
 if(TARGET TracyServer)
+	#find_package(TBB REQUIRED)
+	#target_link_libraries(TracyServer INTERFACE TBB::tbb)
     set_target_properties(TracyServer PROPERTIES CXX_STANDARD 20 CXX_STANDARD_REQUIRED ON)
 endif()
 
@@ -96,6 +98,16 @@ include_directories("libs/consthash/include")
 add_library(rtfuncs libs/consthash/dep/crc32.c libs/consthash/dep/crc64.c)
 add_library(cityhash libs/consthash/dep/cityhash/city.cc)
 
+if (WIN32)
+    # Embedding must use the Python from the same MSYS2 environment as the compiler
+    # (matching MinGW/clang ABI). A Windows-installer or venv Python is MSVC-built and
+    # crashes when its extension modules are loaded into a MinGW/clang-built process.
+    get_filename_component(_TOOLCHAIN_BIN_DIR "${CMAKE_CXX_COMPILER}" DIRECTORY)
+    get_filename_component(_MSYS2_ENV_ROOT "${_TOOLCHAIN_BIN_DIR}" DIRECTORY)
+    set(Python3_ROOT_DIR "${_MSYS2_ENV_ROOT}" CACHE PATH "MSYS2 environment root used to locate a matching-ABI Python" FORCE)
+    set(Python3_FIND_VIRTUALENV "STANDARD" CACHE STRING "Ignore active venvs when locating Python3" FORCE)
+    set(Python3_FIND_REGISTRY "NEVER" CACHE STRING "Ignore Windows registry Python installs" FORCE)
+endif()
 find_package(Python3 COMPONENTS Interpreter Development REQUIRED)
 add_subdirectory("libs/pybind11")
 message(STATUS "Python3_INCLUDE_DIRS: ${Python3_INCLUDE_DIRS}")
