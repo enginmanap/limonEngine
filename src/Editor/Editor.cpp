@@ -1365,7 +1365,9 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
                 }
             }
             static int listbox_item_current = -1;//not static because I don't want user to select a item.
-            static ImGuiImageWrapper wrapper;//keeps selected texture and layer;
+            // This is a pointer because otherwise it would be destroyed at process exit, which clashes with asset manager,
+            // deleting the texture by ref count
+            static ImGuiImageWrapper* wrapper = new ImGuiImageWrapper();
             std::vector<std::shared_ptr<Texture>> allTextures = world->renderPipeline->getTextures();
             allTextures.emplace_back(previewRenderer->getBackgroundColorTexture());
             allTextures.emplace_back(previewRenderer->getBackgroundDepthTexture());
@@ -1373,24 +1375,24 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
             allTextures.emplace_back(previewRenderer->getBonePreviewDepthTexture());
             if(ImGui::ListBox("Current Textures##Render Debugging", &listbox_item_current, World::getNameOfTexture,
                               static_cast<void *>(&allTextures), allTextures.size(), 10)) {
-                wrapper.layer = 0;
+                wrapper->layer = 0;
             }
             if(listbox_item_current != -1) {
-                wrapper.texture = allTextures[listbox_item_current];
-                float aspect = (float) wrapper.texture->getHeight() / (float)wrapper.texture->getWidth();
+                wrapper->texture = allTextures[listbox_item_current];
+                float aspect = (float) wrapper->texture->getHeight() / (float)wrapper->texture->getWidth();
                 ImVec2 size;
                 size.x = 640;
                 size.y = std::floor(size.x * aspect);
-                ImGui::Text("%s", ("Texture id selected is: " + std::to_string(wrapper.texture->getTextureID())).c_str());
+                ImGui::Text("%s", ("Texture id selected is: " + std::to_string(wrapper->texture->getTextureID())).c_str());
 
-                if(wrapper.texture->getType() == GraphicsInterface::TextureTypes::T2D_ARRAY ||
-                   wrapper.texture->getType() == GraphicsInterface::TextureTypes::TCUBE_MAP_ARRAY) {
-                    ImGui::InputInt("Layer##CurrentTextures", &wrapper.layer);
+                if(wrapper->texture->getType() == GraphicsInterface::TextureTypes::T2D_ARRAY ||
+                   wrapper->texture->getType() == GraphicsInterface::TextureTypes::TCUBE_MAP_ARRAY) {
+                    ImGui::InputInt("Layer##CurrentTextures", &wrapper->layer);
 
                 }
                 ImGui::Dummy(ImVec2(0.0f, size.y));
                 size.y = -1 * size.y;//This is because ImGui assumes y up. Since this code is shared with fonts, and fixing font generation is hard, I am using this hack for upside down fix.
-                ImGui::Image((ImTextureID)(intptr_t)&wrapper, size);
+                ImGui::Image((ImTextureID)(intptr_t)wrapper, size);
             }
 
 
