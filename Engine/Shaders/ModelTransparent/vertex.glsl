@@ -1,5 +1,5 @@
 
-#define_option performance_maximumLights
+#import <./Engine/Shaders/Shared/Lights.glsl>
 #import <./Engine/Shaders/Shared/PlayerInformation.glsl>
 #import <./Engine/Shaders/Shared/ModelRendering.vert>
 
@@ -16,21 +16,6 @@ out VS_FS {
     vec4 fragPosLightSpace[performance_maximumLights];
     flat int materialIndex;
 } to_fs;
-
-struct LightSource {
-    mat4 shadowMatrices[6];
-    vec3 position;
-    float farPlanePoint;
-    vec3 color;
-    int type; //1 Directional, 2 point
-	vec3 attenuation;
-	vec3 ambient;
-};
-
-layout (std140) uniform LightSourceBlock
-{
-    LightSource lights[performance_maximumLights];
-} LightSources;
 
 void main(void)
 {

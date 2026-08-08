@@ -1,5 +1,5 @@
 
-#define_option performance_maximumLights
+#import <./Engine/Shaders/Shared/Lights.glsl>
 #import <./Engine/Shaders/Shared/PlayerInformation.glsl>
 #import <./Engine/Shaders/Shared/Material.frag>
 
@@ -15,20 +15,6 @@ in vec4 Frag_Color;
 out vec4 Out_Color;
 
 /** Model rendering definitions */
-struct LightSource {
-    mat4 shadowMatrices[6];
-    vec3 position;
-    float farPlanePoint;
-    vec3 color;
-    int type; //1 Directional, 2 point
-    vec3 attenuation;
-    vec3 ambient;
-};
-
-layout (std140) uniform LightSourceBlock
-{
-    LightSource lights[performance_maximumLights];
-} LightSources;
 
 in VS_FS {
     vec2 textureCoord;

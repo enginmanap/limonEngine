@@ -1,26 +1,11 @@
 
-#define_option performance_maximumLights
+#import <./Engine/Shaders/Shared/Lights.glsl>
 #import <./Engine/Shaders/Shared/ModelRendering.vert>
 
 layout (location = 2) in vec4 position;
 layout (location = 4) in vec3 normal;
 layout (location = 5) in uvec4 boneIDs;
 layout (location = 6) in vec4 boneWeights;
-
-struct LightSource {
-    mat4 shadowMatrices[6];
-    vec3 position;
-    float farPlanePoint;
-    vec3 color;
-    int type;
-    vec3 attenuation;
-    vec3 ambient;
-};
-
-layout (std140) uniform LightSourceBlock
-{
-    LightSource lights[performance_maximumLights];
-} LightSources;
 
 uniform int renderLightIndex;
 uniform int renderLightLayer;

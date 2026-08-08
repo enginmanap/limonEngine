@@ -2,7 +2,7 @@
 // Shared Lighting calculations for Forward Rendering and Deferred Lighting Pass
 // Used by Forward_ModelAmbient, Forward_ModelAnimated, ModelTransparent, and CombineColorsWithSSAO
 
-#define_option performance_maximumLights
+#import <./Engine/Shaders/Shared/Lights.glsl>
 
 vec3 calculateLighting(vec3 fragPos, vec3 normal, vec3 albedo, float shininess, vec3 materialAmbient, float viewDistance, float precise_view_z, float depth, out vec3 totalAmbient) {
     vec3 directLighting = vec3(0.0);

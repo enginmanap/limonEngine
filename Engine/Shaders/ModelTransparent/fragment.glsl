@@ -1,7 +1,7 @@
-#define_option performance_maximumLights
 #define_option shadow_cascadeCount
 #define_option shadow_cascadeLimitList
 
+#import <./Engine/Shaders/Shared/Lights.glsl>
 #import <./Engine/Shaders/Shared/PlayerInformation.glsl>
 #import <./Engine/Shaders/Shared/PointShadow.frag>
 #import <./Engine/Shaders/Shared/DirectionalShadow.frag>

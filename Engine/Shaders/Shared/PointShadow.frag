@@ -1,21 +1,4 @@
-#ifndef LIGHT_DEFINITIONS
-#define LIGHT_DEFINITIONS
-#define_option performance_maximumLights
-struct LightSource {
-    mat4 shadowMatrices[6];
-    vec3 position;
-    float farPlanePoint;
-    vec3 color;
-    int type;
-	vec3 attenuation;
-	vec3 ambient;
-};
-
-layout (std140) uniform LightSourceBlock
-{
-    LightSource lights[performance_maximumLights];
-} LightSources;
-#endif
+#import <./Engine/Shaders/Shared/Lights.glsl>
 
 #define_option shadow_pointSampleCount
 
