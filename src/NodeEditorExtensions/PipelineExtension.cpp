@@ -3,6 +3,7 @@
 //
 
 #include <ImGui/imgui.h>
+#include <cctype>
 #include <memory>
 #include <set>
 #include <nodeGraph/src/Node.h>
@@ -28,20 +29,58 @@ PipelineExtension::PipelineExtension(GraphicsInterface *graphicsWrapper, Generat
             usedTextures[texture->getName()] = texture;
         }
 
-        //Add a texture to the list as place holder for screen
-        if(usedTextures.find("Screen") == usedTextures.end()) {
+        //key must equal the texture's own name, they used to differ (Screen vs ScreenPlaceHolder) and that's how output selections drifted silently
+        if(usedTextures.find(PipelineExtension::SCREEN_COLOR_TEXTURE_NAME) == usedTextures.end()) {
             auto texture = std::make_shared<Texture>(graphicsWrapper, GraphicsInterface::TextureTypes::T2D, GraphicsInterface::InternalFormatTypes::RGBA,
                                                      GraphicsInterface::FormatTypes::RGBA, GraphicsInterface::DataTypes::UNSIGNED_BYTE, 1, 1);
-            texture->setName("ScreenPlaceHolder");
-            usedTextures["Screen"] = texture;
+            texture->setName(PipelineExtension::SCREEN_COLOR_TEXTURE_NAME);
+            usedTextures[PipelineExtension::SCREEN_COLOR_TEXTURE_NAME] = texture;
         }
-        if(usedTextures.find("Screen Depth") == usedTextures.end()) {
+        if(usedTextures.find(PipelineExtension::SCREEN_DEPTH_TEXTURE_NAME) == usedTextures.end()) {
             auto texture2 = std::make_shared<Texture>(graphicsWrapper, GraphicsInterface::TextureTypes::T2D, GraphicsInterface::InternalFormatTypes::DEPTH,
                                                       GraphicsInterface::FormatTypes::DEPTH, GraphicsInterface::DataTypes::UNSIGNED_BYTE, 1, 1);
-            texture2->setName("ScreenDepthPlaceHolder");
-            usedTextures["Screen Depth"] = texture2;
+            texture2->setName(PipelineExtension::SCREEN_DEPTH_TEXTURE_NAME);
+            usedTextures[PipelineExtension::SCREEN_DEPTH_TEXTURE_NAME] = texture2;
+        }
+        if(usedTextures.find(PipelineExtension::IGNORED_TEXTURE_NAME) == usedTextures.end()) {
+            auto texture3 = std::make_shared<Texture>(graphicsWrapper, GraphicsInterface::TextureTypes::T2D, GraphicsInterface::InternalFormatTypes::RGBA,
+                                                      GraphicsInterface::FormatTypes::RGBA, GraphicsInterface::DataTypes::UNSIGNED_BYTE, 1, 1);
+            texture3->setName(PipelineExtension::IGNORED_TEXTURE_NAME);
+            usedTextures[PipelineExtension::IGNORED_TEXTURE_NAME] = texture3;
         }
     }
+}
+
+bool PipelineExtension::connectionTargetsScreen(const Connection* connection) {
+    for(auto connectedNode:connection->getConnectedNodes()) {
+        if(connectedNode->getName() == "Screen") {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool PipelineExtension::isReservedTextureName(const std::string& candidateName) {
+    size_t start = candidateName.find_first_not_of(" \t");
+    if(start == std::string::npos) {
+        return false;
+    }
+    size_t end = candidateName.find_last_not_of(" \t");
+    std::string trimmed = candidateName.substr(start, end - start + 1);
+    for(char& character:trimmed) {
+        character = static_cast<char>(std::tolower(static_cast<unsigned char>(character)));
+    }
+    const char* reservedNames[] = {PipelineExtension::SCREEN_COLOR_TEXTURE_NAME, PipelineExtension::SCREEN_DEPTH_TEXTURE_NAME, PipelineExtension::IGNORED_TEXTURE_NAME};
+    for(const char* reservedNameRaw:reservedNames) {
+        std::string reservedName = reservedNameRaw;
+        for(char& character:reservedName) {
+            character = static_cast<char>(std::tolower(static_cast<unsigned char>(character)));
+        }
+        if(trimmed == reservedName) {
+            return true;
+        }
+    }
+    return false;
 }
 
 //This method is used only for ImGui texture name generation
@@ -349,14 +388,18 @@ void PipelineExtension::drawTextureSettings() {
     if(selectedTexture == -1 ) {
         if (ImGui::Button("Create Texture##create_button_PipelineExtension")) {
             if (strnlen(tempName, sizeof(tempName) / sizeof tempName[0]) != 0) {
-                currentTextureInfo.name = std::string(tempName);
-                currentTextureInfo.heightOption = std::string(tempHeightOption);
-                currentTextureInfo.widthOption = std::string(tempWidthOption);
-                std::shared_ptr<Texture> texture = std::make_shared<Texture>(graphicsWrapper, currentTextureInfo);
-                usedTextures[currentTextureInfo.name] = texture;
-                memset(tempName, 0, sizeof(currentTextureInfo.name));
-                currentTextureInfo = Texture::TextureInfo();
-                ImGui::CloseCurrentPopup();
+                if(PipelineExtension::isReservedTextureName(tempName)) {
+                    addError(std::string("Texture name [") + tempName + "] is reserved for the screen placeholder, pick another name.");
+                } else {
+                    currentTextureInfo.name = std::string(tempName);
+                    currentTextureInfo.heightOption = std::string(tempHeightOption);
+                    currentTextureInfo.widthOption = std::string(tempWidthOption);
+                    std::shared_ptr<Texture> texture = std::make_shared<Texture>(graphicsWrapper, currentTextureInfo);
+                    usedTextures[currentTextureInfo.name] = texture;
+                    memset(tempName, 0, sizeof(currentTextureInfo.name));
+                    currentTextureInfo = Texture::TextureInfo();
+                    ImGui::CloseCurrentPopup();
+                }
             }
         }
     }
@@ -709,6 +752,15 @@ bool PipelineExtension::canBeJoined(const std::set<const Node*>& existingNodes, 
         }
     }
 
+    //frameBufferID is one value per stage, a Screen node joined with a real-texture node would silently drop one of their outputs
+    bool currentToScreen = false;
+    for(auto outputConnection:currentNode->getOutputConnections()) {
+        if(PipelineExtension::connectionTargetsScreen(outputConnection)) {
+            currentToScreen = true;
+            break;
+        }
+    }
+
     //now find what depthmap is used by existing set. Current Depth map might be null.
     std::shared_ptr<Texture> existingDepthMap = nullptr;
     int32_t existingRenderResolution[2];
@@ -762,6 +814,20 @@ bool PipelineExtension::canBeJoined(const std::set<const Node*>& existingNodes, 
             break;
         }
     }
+
+    bool existingToScreen = false;
+    for(auto existingNode:existingNodes) {
+        for(auto outputConnection:existingNode->getOutputConnections()) {
+            if(PipelineExtension::connectionTargetsScreen(outputConnection)) {
+                existingToScreen = true;
+                break;
+            }
+        }
+        if(existingToScreen) {
+            break;
+        }
+    }
+
     if(currentStageExtension->getCameraTags().size() != existingCameraTags.size()) {
         std::cerr << "Failed to join because existing camera tags "<< StringUtils::join(existingCameraTags,",") << " is not same as " << StringUtils::join(currentStageExtension->getCameraTags(),",") << std::endl;
         return false;
@@ -848,6 +914,11 @@ bool PipelineExtension::canBeJoined(const std::set<const Node*>& existingNodes, 
     }
     if(existingShadowPointUsed != currentStageExtension->getProgramNameInfo().shadowPointUsed) {
         std::cerr << "Failed because Shadow Point usage is different" << std::endl;
+        return false;
+    }
+    if(existingToScreen != currentToScreen) {
+        //mirrors the toScreen check above, for the existing side
+        std::cerr << "Failed to join because ToScreen status is different between existing set "<< existingNodeName <<" and current node " << currentNode->getDisplayName() << std::endl;
         return false;
     }
 
@@ -943,17 +1014,10 @@ bool PipelineExtension::buildRenderPipelineRecursive(const Node *node,
 
     if(stageExtension != nullptr) {
         bool toScreen = false;
-        if (!node->getOutputConnections().empty()) {
-            for (auto connection:node->getOutputConnections()) {
-                for (auto connectedNodes:connection->getConnectedNodes()) {
-                    if (connectedNodes->getName() == "Screen") {
-                        toScreen = true;
-                        break;
-                    }
-                }
-                if (toScreen) {
-                    break;
-                }
+        for (auto connection:node->getOutputConnections()) {
+            if (PipelineExtension::connectionTargetsScreen(connection)) {
+                toScreen = true;
+                break;
             }
         }
         std::shared_ptr<GraphicsProgram> stageProgram;
@@ -1037,6 +1101,10 @@ bool PipelineExtension::buildRenderPipelineRecursive(const Node *node,
                     return false;
                 }
                 std::shared_ptr<Texture> connectedTexture = inputNodeExtension->getOutputTexture(inputConnection);
+                if(connectedTexture != nullptr && connectedTexture->getName() == PipelineExtension::IGNORED_TEXTURE_NAME) {
+                    //Ignored was never attached to anything, treat as unset instead of silently binding the 1x1 dummy
+                    connectedTexture = nullptr;
+                }
                 if (inputTexture == nullptr) {
                     inputTexture = connectedTexture;
                 } else if (connectedTexture == nullptr || inputTexture->getTextureID() != connectedTexture->getTextureID()) {
@@ -1104,12 +1172,12 @@ bool PipelineExtension::buildRenderPipelineRecursive(const Node *node,
                     if(connection->getName() == "Depth" && !stageExtension->isDepthWriteEnabled() && !stageExtension->isDepthTestEnabled()) {
                         continue;
                     }
-                    addError("Output [" + connection->getName() + "] of node " + node->getDisplayName() + " is not set.");
+                    addError("Output [" + connection->getName() + "] of node " + node->getDisplayName() +
+                              " is not set. If this output is not needed, you can use the Ignored texture.");
                     return false;
                 }
-                if (stageExtension->getOutputTextureInfo(connection)->name != "Screen" &&
-                    stageExtension->getOutputTextureInfo(connection)->name !=
-                    "Screen Depth") {//for screen we don't need to attach anything
+                bool outputIsIgnored = stageExtension->getOutputTexture(connection)->getName() == PipelineExtension::IGNORED_TEXTURE_NAME;
+                if (!outputIsIgnored && !PipelineExtension::connectionTargetsScreen(connection)) {//for screen or ignored we don't need to attach anything
                     if (stageExtension->getOutputTexture(connection)->getFormat() ==
                         GraphicsInterface::FormatTypes::DEPTH &&
                         stageExtension->getOutputTexture(connection)->getType() ==
@@ -1214,6 +1282,12 @@ void PipelineExtension::deserialize(const std::string &fileName[[gnu::unused]], 
     tinyxml2::XMLElement *textureElement = usedTexturesElement->FirstChildElement("Texture");
     while(textureElement != nullptr) {
         std::shared_ptr<Texture> texture = Texture::deserialize(textureElement,this->graphicsWrapper, assetManager, options);
+        if(PipelineExtension::isReservedTextureName(texture->getName())) {
+            //constructor already built the canonical one, this exact overwrite is how ScreenPlaceHolder ended up duplicated
+            std::cout << "Skipping loaded texture [" << texture->getName() << "], it is a reserved placeholder name" << std::endl;
+            textureElement = textureElement->NextSiblingElement("Texture");
+            continue;
+        }
         usedTextures[texture->getName()] = texture;
         std::cout << "read texture with name [" << texture->getName() << "] and id " << texture->getSerializeID() << std::endl;
         textureElement = textureElement->NextSiblingElement("Texture");

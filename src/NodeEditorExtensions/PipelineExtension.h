@@ -14,6 +14,7 @@
 #include <vector>
 
 class PipelineStageExtension;
+class Connection;
 inline const char* DRAG_AND_DROP_PIPELINE_STAGE = "DND_PIPELINE_STAGE";
 
 
@@ -21,6 +22,13 @@ class GraphicsPipelineStage;
 
 class PipelineExtension : public EditorExtension {
 
+public:
+    //reserved, a user texture or a loaded file's own copy can never take these names (drawTextureSettings, deserialize)
+    static constexpr const char* SCREEN_COLOR_TEXTURE_NAME = "Screen";
+    static constexpr const char* SCREEN_DEPTH_TEXTURE_NAME = "ScreenDepth";
+    static constexpr const char* IGNORED_TEXTURE_NAME = "Ignored"; //pick for a declared output you don't need, unset fails the build
+
+private:
     Texture::TextureInfo currentTextureInfo;
     char tempName[256] = {0};           //
     char tempHeightOption[256] = {0};   // These 4 are used for ImGui strings.
@@ -42,6 +50,8 @@ class PipelineExtension : public EditorExtension {
     int32_t selectedTexture = -1;//-1 means it is not selected, there for we are building a new one
 
     static bool getNameOfTexture(void* data, int index, const char** outText);
+    static bool isReservedTextureName(const std::string& candidateName); //trims and case-folds first, catches "screen", "Screen " too
+    static bool connectionTargetsScreen(const Connection* connection); //wired to Screen in the graph, unlike a texture name this can't drift
 
     static bool isGraphCyclic(const std::vector<const Node*> &nodes);
     static bool depthFirstSearchForCycle(const Node *currentNode, std::set<const Node*> &visitedNodes, std::set<const Node*> &recursionStack);
@@ -90,9 +100,19 @@ public:
 
     std::shared_ptr<GraphicsPipeline> combineStagesToPipeline() {
         std::shared_ptr<GraphicsPipeline> builtGraphicsPipeline = std::make_shared<GraphicsPipeline>(renderMethods);
-        for(const auto& usedTexture: usedTextures) {
-            if(usedTexture.second != nullptr) {
-                builtGraphicsPipeline->addTexture(usedTexture.second);
+        //only textures the built stages actually reference, usedTextures itself has orphans from old sessions
+        std::set<std::shared_ptr<Texture>> referencedTextures;
+        for (size_t i = 0; i < orderedStages.size(); ++i) {
+            for(const auto& input:orderedStages[i].second->stage->getInputs()) {
+                referencedTextures.insert(input.second);
+            }
+            for(const auto& output:orderedStages[i].second->stage->getOutputs()) {
+                referencedTextures.insert(output.second);
+            }
+        }
+        for(const auto& texture: referencedTextures) {
+            if(texture != nullptr) {
+                builtGraphicsPipeline->addTexture(texture);
             }
         }
         for (size_t i = 0; i < orderedStages.size(); ++i) {

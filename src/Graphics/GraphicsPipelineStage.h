@@ -115,6 +115,10 @@ public:
         return outputs;
     }
 
+    const std::map<uint32_t, std::shared_ptr<Texture>>& getInputs() {
+        return inputs;
+    }
+
     uint32_t getLastPresetIndex() const {
         return nextPresetIndex;
     }

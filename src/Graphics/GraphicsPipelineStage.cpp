@@ -448,6 +448,9 @@ std::shared_ptr<GraphicsPipelineStage> GraphicsPipelineStage::deserialize(tinyxm
                 }
                 if (outputTexture == nullptr) {
                     std::cerr << "For output " << attachmentString << " texture deserialize failed, skipping" << std::endl;
+                } else if(toScreen) {
+                    //frameBufferID 0 has nothing to attach to, drop just this entry, the rest of the stage still loads
+                    std::cerr << "Pipeline stage is ToScreen but has an Output entry for " << attachmentString << "; this is stale, please regenerate the pipeline. Skipping this output." << std::endl;
                 } else {
                     if(attachmentPoint != GraphicsInterface::FrameBufferAttachPoints::DEPTH ||
                             (depthWriteEnabled || depthTestEnabled)) { //if depth is not read or written, then don't attach it.

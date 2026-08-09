@@ -23,6 +23,45 @@ void PipelineStageExtension::drawDetailPane(Node *node) {
         ImGui::BeginChild("Output Textures##PipelineStageExtensionOutputRegion", ImVec2(0, 120), true, ImGuiWindowFlags_HorizontalScrollbar);
         auto usedTextures = this->pipelineExtension->getUsedTextures();
         for (const Connection *connection:node->getOutputConnections()) {
+            //frameBufferID is one value per stage, drop the Screen wire when a sibling output already writes real data
+            bool wiredToScreen = false;
+            for(auto connectedNode:connection->getConnectedNodes()) {
+                if(connectedNode->getName() == "Screen") {
+                    wiredToScreen = true;
+                    break;
+                }
+            }
+            if(wiredToScreen) {
+                for(const Connection *sibling:node->getOutputConnections()) {
+                    if(sibling == connection) {
+                        continue;
+                    }
+                    auto siblingIt = outputTextures.find(sibling->getId());
+                    if(siblingIt != outputTextures.end() && siblingIt->second.texture != nullptr) {
+                        std::string siblingTextureName = siblingIt->second.texture->getName();
+                        if(siblingTextureName != PipelineExtension::SCREEN_COLOR_TEXTURE_NAME &&
+                           siblingTextureName != PipelineExtension::SCREEN_DEPTH_TEXTURE_NAME &&
+                           siblingTextureName != PipelineExtension::IGNORED_TEXTURE_NAME) {
+                            pipelineExtension->addError("Disconnected [" + connection->getName() + "] from Screen: sibling output [" +
+                                sibling->getName() + "] on this node already writes to texture [" + siblingTextureName +
+                                "]. A node can't both go to Screen and write a real texture.");
+                            const_cast<Connection*>(connection)->clearConnections();
+                            break;
+                        }
+                    }
+                }
+            }
+            //Ignored is never attached, drop any wire still reading it instead of feeding it the dummy texture
+            auto ownSelectionIt = outputTextures.find(connection->getId());
+            if(ownSelectionIt != outputTextures.end() && ownSelectionIt->second.texture != nullptr &&
+               ownSelectionIt->second.texture->getName() == PipelineExtension::IGNORED_TEXTURE_NAME) {
+                std::vector<Node*> consumers = connection->getConnectedNodes();
+                if(!consumers.empty()) {
+                    pipelineExtension->addError("Disconnected [" + connection->getName() + "] on this node from its consumer(s): "
+                        "this output is marked Ignored, so nothing may read it.");
+                    const_cast<Connection*>(connection)->clearConnections();
+                }
+            }
             std::string currentTextureName = "None";
             if (outputTextures.find(connection->getId()) != outputTextures.end()) {
                 currentTextureName = outputTextures[connection->getId()].name;

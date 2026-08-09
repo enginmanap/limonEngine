@@ -165,7 +165,7 @@
                 </WrapModes>
             </Texture>
             <Texture>
-                <Name>ScreenDepthPlaceHolder</Name>
+                <Name>ScreenDepth</Name>
                 <TextureType>T2D</TextureType>
                 <InternalFormat>DEPTH</InternalFormat>
                 <Format>DEPTH</Format>
@@ -192,7 +192,7 @@
                 </WrapModes>
             </Texture>
             <Texture>
-                <Name>ScreenPlaceHolder</Name>
+                <Name>Screen</Name>
                 <TextureType>T2D</TextureType>
                 <InternalFormat>RGBA</InternalFormat>
                 <Format>RGBA</Format>
@@ -948,15 +948,15 @@
                 <OutputTextures>
                     <OutputInfo>
                         <Connection>1</Connection>
-                        <Name>ScreenDepthPlaceHolder</Name>
+                        <Name>ScreenDepth</Name>
                         <AttachPoint>NONE</AttachPoint>
-                        <TextureName>ScreenDepthPlaceHolder</TextureName>
+                        <TextureName>ScreenDepth</TextureName>
                     </OutputInfo>
                     <OutputInfo>
                         <Connection>2</Connection>
-                        <Name>ScreenPlaceHolder</Name>
+                        <Name>Screen</Name>
                         <AttachPoint>NONE</AttachPoint>
-                        <TextureName>ScreenPlaceHolder</TextureName>
+                        <TextureName>Screen</TextureName>
                     </OutputInfo>
                 </OutputTextures>
                 <ProgramInfo>
@@ -1119,15 +1119,15 @@
                 <OutputTextures>
                     <OutputInfo>
                         <Connection>1</Connection>
-                        <Name>finalColor</Name>
+                        <Name>Screen</Name>
                         <AttachPoint>NONE</AttachPoint>
-                        <TextureName>DiffuseAndSpecularBuffer</TextureName>
+                        <TextureName>Screen</TextureName>
                     </OutputInfo>
                     <OutputInfo>
                         <Connection>2</Connection>
-                        <Name>Depth</Name>
+                        <Name>ScreenDepth</Name>
                         <AttachPoint>NONE</AttachPoint>
-                        <TextureName>DepthBuffer</TextureName>
+                        <TextureName>ScreenDepth</TextureName>
                     </OutputInfo>
                     <OutputInfo>
                         <Connection>3</Connection>
@@ -1245,15 +1245,15 @@
                 <OutputTextures>
                     <OutputInfo>
                         <Connection>3</Connection>
-                        <Name>ScreenDepthPlaceHolder</Name>
+                        <Name>ScreenDepth</Name>
                         <AttachPoint>NONE</AttachPoint>
-                        <TextureName>ScreenDepthPlaceHolder</TextureName>
+                        <TextureName>ScreenDepth</TextureName>
                     </OutputInfo>
                     <OutputInfo>
                         <Connection>4</Connection>
-                        <Name>ScreenPlaceHolder</Name>
+                        <Name>Screen</Name>
                         <AttachPoint>NONE</AttachPoint>
-                        <TextureName>ScreenPlaceHolder</TextureName>
+                        <TextureName>Screen</TextureName>
                     </OutputInfo>
                 </OutputTextures>
                 <ProgramInfo>
@@ -1443,15 +1443,15 @@
                 <OutputTextures>
                     <OutputInfo>
                         <Connection>6</Connection>
-                        <Name>ScreenDepthPlaceHolder</Name>
+                        <Name>ScreenDepth</Name>
                         <AttachPoint>NONE</AttachPoint>
-                        <TextureName>ScreenDepthPlaceHolder</TextureName>
+                        <TextureName>ScreenDepth</TextureName>
                     </OutputInfo>
                     <OutputInfo>
                         <Connection>7</Connection>
-                        <Name>ScreenPlaceHolder</Name>
+                        <Name>Screen</Name>
                         <AttachPoint>NONE</AttachPoint>
-                        <TextureName>ScreenPlaceHolder</TextureName>
+                        <TextureName>Screen</TextureName>
                     </OutputInfo>
                 </OutputTextures>
                 <ProgramInfo>
@@ -1768,15 +1768,15 @@
                 <OutputTextures>
                     <OutputInfo>
                         <Connection>1</Connection>
-                        <Name>ScreenDepthPlaceHolder</Name>
+                        <Name>ScreenDepth</Name>
                         <AttachPoint>NONE</AttachPoint>
-                        <TextureName>ScreenDepthPlaceHolder</TextureName>
+                        <TextureName>ScreenDepth</TextureName>
                     </OutputInfo>
                     <OutputInfo>
                         <Connection>2</Connection>
-                        <Name>ScreenPlaceHolder</Name>
+                        <Name>Screen</Name>
                         <AttachPoint>NONE</AttachPoint>
-                        <TextureName>ScreenPlaceHolder</TextureName>
+                        <TextureName>Screen</TextureName>
                     </OutputInfo>
                 </OutputTextures>
                 <ProgramInfo>
@@ -1857,15 +1857,15 @@
                 <OutputTextures>
                     <OutputInfo>
                         <Connection>1</Connection>
-                        <Name>ScreenDepthPlaceHolder</Name>
+                        <Name>ScreenDepth</Name>
                         <AttachPoint>NONE</AttachPoint>
-                        <TextureName>ScreenDepthPlaceHolder</TextureName>
+                        <TextureName>ScreenDepth</TextureName>
                     </OutputInfo>
                     <OutputInfo>
                         <Connection>2</Connection>
-                        <Name>ScreenPlaceHolder</Name>
+                        <Name>Screen</Name>
                         <AttachPoint>NONE</AttachPoint>
-                        <TextureName>ScreenPlaceHolder</TextureName>
+                        <TextureName>Screen</TextureName>
                     </OutputInfo>
                 </OutputTextures>
                 <ProgramInfo>
@@ -1946,15 +1946,15 @@
                 <OutputTextures>
                     <OutputInfo>
                         <Connection>1</Connection>
-                        <Name>ScreenDepthPlaceHolder</Name>
+                        <Name>ScreenDepth</Name>
                         <AttachPoint>NONE</AttachPoint>
-                        <TextureName>ScreenDepthPlaceHolder</TextureName>
+                        <TextureName>ScreenDepth</TextureName>
                     </OutputInfo>
                     <OutputInfo>
                         <Connection>2</Connection>
-                        <Name>ScreenPlaceHolder</Name>
+                        <Name>Screen</Name>
                         <AttachPoint>NONE</AttachPoint>
-                        <TextureName>ScreenPlaceHolder</TextureName>
+                        <TextureName>Screen</TextureName>
                     </OutputInfo>
                 </OutputTextures>
                 <ProgramInfo>
@@ -2035,15 +2035,15 @@
                 <OutputTextures>
                     <OutputInfo>
                         <Connection>1</Connection>
-                        <Name>ScreenDepthPlaceHolder</Name>
+                        <Name>ScreenDepth</Name>
                         <AttachPoint>NONE</AttachPoint>
-                        <TextureName>ScreenDepthPlaceHolder</TextureName>
+                        <TextureName>ScreenDepth</TextureName>
                     </OutputInfo>
                     <OutputInfo>
                         <Connection>2</Connection>
-                        <Name>ScreenPlaceHolder</Name>
+                        <Name>Screen</Name>
                         <AttachPoint>NONE</AttachPoint>
-                        <TextureName>ScreenPlaceHolder</TextureName>
+                        <TextureName>Screen</TextureName>
                     </OutputInfo>
                 </OutputTextures>
                 <ProgramInfo>
@@ -2124,15 +2124,15 @@
                 <OutputTextures>
                     <OutputInfo>
                         <Connection>1</Connection>
-                        <Name>ScreenDepthPlaceHolder</Name>
+                        <Name>ScreenDepth</Name>
                         <AttachPoint>NONE</AttachPoint>
-                        <TextureName>ScreenDepthPlaceHolder</TextureName>
+                        <TextureName>ScreenDepth</TextureName>
                     </OutputInfo>
                     <OutputInfo>
                         <Connection>2</Connection>
-                        <Name>ScreenPlaceHolder</Name>
+                        <Name>Screen</Name>
                         <AttachPoint>NONE</AttachPoint>
-                        <TextureName>ScreenPlaceHolder</TextureName>
+                        <TextureName>Screen</TextureName>
                     </OutputInfo>
                 </OutputTextures>
                 <ProgramInfo>

@@ -258,6 +258,10 @@ GraphicsPipeline::StageInfo::deserialize(tinyxml2::XMLElement *stageInfoElement,
     }
 
     newStageInfo.stage = GraphicsPipelineStage::deserialize(graphicsStageElement, assetManager->getGraphicsWrapper(), textures);
+    if (newStageInfo.stage == nullptr) {
+        std::cerr << "StageInfo's GraphicsPipelineStage failed to deserialize, cancelling!" << std::endl;
+        return false;
+    }
 
     newStageInfo.renderTags = newStageInfo.stage->getObjectTags();
     std::vector<HashUtil::HashedString> hashedRenderTags;

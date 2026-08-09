@@ -163,7 +163,7 @@
             </WrapModes>
         </Texture>
         <Texture>
-            <Name>ScreenDepthPlaceHolder</Name>
+            <Name>ScreenDepth</Name>
             <TextureType>T2D</TextureType>
             <InternalFormat>DEPTH</InternalFormat>
             <Format>DEPTH</Format>
@@ -190,7 +190,7 @@
             </WrapModes>
         </Texture>
         <Texture>
-            <Name>ScreenPlaceHolder</Name>
+            <Name>Screen</Name>
             <TextureType>T2D</TextureType>
             <InternalFormat>RGBA</InternalFormat>
             <Format>RGBA</Format>
@@ -570,10 +570,7 @@
                     <Input Index="6" textureID="2"/>
                     <Input Index="7" textureID="6"/>
                 </Inputs>
-                <Outputs>
-                    <Output Attachment="COLOR0" textureID="15"/>
-                    <Output Attachment="DEPTH" textureID="14"/>
-                </Outputs>
+                <Outputs/>
             </GraphicsPipelineStage>
         </StageInformation>
         <StageInformation>
@@ -605,10 +602,7 @@
                 <ObjectTags></ObjectTags>
                 <CullMode>BACK</CullMode>
                 <Inputs/>
-                <Outputs>
-                    <Output Attachment="COLOR0" textureID="15"/>
-                    <Output Attachment="DEPTH" textureID="14"/>
-                </Outputs>
+                <Outputs/>
             </GraphicsPipelineStage>
         </StageInformation>
         <StageInformation>
@@ -647,10 +641,7 @@
                     <Input Index="30" textureID="2"/>
                     <Input Index="31" textureID="1"/>
                 </Inputs>
-                <Outputs>
-                    <Output Attachment="COLOR0" textureID="15"/>
-                    <Output Attachment="DEPTH" textureID="14"/>
-                </Outputs>
+                <Outputs/>
             </GraphicsPipelineStage>
         </StageInformation>
         <StageInformation>
@@ -691,10 +682,7 @@
                 <ObjectTags></ObjectTags>
                 <CullMode>NO_CHANGE</CullMode>
                 <Inputs/>
-                <Outputs>
-                    <Output Attachment="COLOR0" textureID="15"/>
-                    <Output Attachment="DEPTH" textureID="14"/>
-                </Outputs>
+                <Outputs/>
             </GraphicsPipelineStage>
         </StageInformation>
         <StageInformation>
@@ -726,10 +714,7 @@
                 <ObjectTags></ObjectTags>
                 <CullMode>NONE</CullMode>
                 <Inputs/>
-                <Outputs>
-                    <Output Attachment="COLOR0" textureID="15"/>
-                    <Output Attachment="DEPTH" textureID="14"/>
-                </Outputs>
+                <Outputs/>
             </GraphicsPipelineStage>
         </StageInformation>
         <StageInformation>
@@ -779,10 +764,7 @@
                 <ObjectTags></ObjectTags>
                 <CullMode>NO_CHANGE</CullMode>
                 <Inputs/>
-                <Outputs>
-                    <Output Attachment="COLOR0" textureID="15"/>
-                    <Output Attachment="DEPTH" textureID="14"/>
-                </Outputs>
+                <Outputs/>
             </GraphicsPipelineStage>
         </StageInformation>
     </Stages>
