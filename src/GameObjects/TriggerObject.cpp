@@ -133,7 +133,11 @@ void TriggerObject::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElem
     currentElement->SetText(objectID);
     triggerNode->InsertEndChild(currentElement);
 
-    transformation.serialize(document, triggerNode);
+    if(parentBoneID != -1) {
+        transformation.serializeLocal(document, triggerNode);
+    } else {
+        transformation.serialize(document, triggerNode);
+    }
 
     // There are 3 trigger codes, put them all
     if(firstEnterTriggerCode != nullptr) {
@@ -155,6 +159,11 @@ void TriggerObject::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElem
             tinyxml2::XMLElement* parentIDElement = document.NewElement("ParentID");
             parentIDElement->SetText(parentGO->getWorldObjectID());
             triggerNode->InsertEndChild(parentIDElement);
+        }
+        if(parentBoneID != -1) {
+            tinyxml2::XMLElement* parentBoneIDElement = document.NewElement("ParentBoneID");
+            parentBoneIDElement->SetText(parentBoneID);
+            triggerNode->InsertEndChild(parentBoneIDElement);
         }
     }
 }

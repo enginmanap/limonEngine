@@ -161,7 +161,11 @@ bool WorldSaver::saveWorld(const std::string& mapName, const World* world) {
             }
             cameraRigNode->InsertEndChild(parametersNode);
 
-            cameraRig->getTransformation()->serialize(mapDocument, cameraRigNode);
+            if(cameraRig->getParentBoneID() != -1) {
+                cameraRig->getTransformation()->serializeLocal(mapDocument, cameraRigNode);
+            } else {
+                cameraRig->getTransformation()->serialize(mapDocument, cameraRigNode);
+            }
 
             if(cameraRig->getParentObject() != nullptr) {
                 const GameObject* parentGO = dynamic_cast<const GameObject*>(cameraRig->getParentObject());
@@ -169,6 +173,11 @@ bool WorldSaver::saveWorld(const std::string& mapName, const World* world) {
                     tinyxml2::XMLElement *parentIDNode = mapDocument.NewElement("ParentID");
                     parentIDNode->SetText(std::to_string(parentGO->getWorldObjectID()).c_str());
                     cameraRigNode->InsertEndChild(parentIDNode);
+                }
+                if(cameraRig->getParentBoneID() != -1) {
+                    tinyxml2::XMLElement *parentBoneIDNode = mapDocument.NewElement("ParentBoneID");
+                    parentBoneIDNode->SetText(std::to_string(cameraRig->getParentBoneID()).c_str());
+                    cameraRigNode->InsertEndChild(parentBoneIDNode);
                 }
             }
 
@@ -343,7 +352,11 @@ bool WorldSaver::fillLights(tinyxml2::XMLDocument &document, tinyxml2::XMLElemen
         currentElement->SetText(std::to_string((*it)->getWorldObjectID()).c_str());
         lightElement->InsertEndChild(currentElement);
 
-        (*it)->getTransformation()->serialize(document, lightElement);
+        if((*it)->getParentBoneID() != -1) {
+            (*it)->getTransformation()->serializeLocal(document, lightElement);
+        } else {
+            (*it)->getTransformation()->serialize(document, lightElement);
+        }
 
         tinyxml2::XMLElement *parent = document.NewElement("Color");
         glm::vec3 color = (*it)->getColor();
@@ -389,6 +402,11 @@ bool WorldSaver::fillLights(tinyxml2::XMLDocument &document, tinyxml2::XMLElemen
             if(parentGO != nullptr) {
                 currentElement = document.NewElement("ParentID");
                 currentElement->SetText(std::to_string(parentGO->getWorldObjectID()).c_str());
+                lightElement->InsertEndChild(currentElement);
+            }
+            if((*it)->getParentBoneID() != -1) {
+                currentElement = document.NewElement("ParentBoneID");
+                currentElement->SetText(std::to_string((*it)->getParentBoneID()).c_str());
                 lightElement->InsertEndChild(currentElement);
             }
         }
@@ -438,13 +456,22 @@ bool WorldSaver::fillSounds(tinyxml2::XMLDocument &document, tinyxml2::XMLElemen
         currentElement->SetText(sound->isListenerRelative());
         soundElement->InsertEndChild(currentElement);
 
-        sound->getTransformation()->serialize(document, soundElement);
+        if(sound->getParentBoneID() != -1) {
+            sound->getTransformation()->serializeLocal(document, soundElement);
+        } else {
+            sound->getTransformation()->serialize(document, soundElement);
+        }
 
         if(sound->getParentObject() != nullptr) {
             const GameObject* parentGO = dynamic_cast<const GameObject*>(sound->getParentObject());
             if(parentGO != nullptr) {
                 currentElement = document.NewElement("ParentID");
                 currentElement->SetText(std::to_string(parentGO->getWorldObjectID()).c_str());
+                soundElement->InsertEndChild(currentElement);
+            }
+            if(sound->getParentBoneID() != -1) {
+                currentElement = document.NewElement("ParentBoneID");
+                currentElement->SetText(std::to_string(sound->getParentBoneID()).c_str());
                 soundElement->InsertEndChild(currentElement);
             }
         }
@@ -467,7 +494,11 @@ bool WorldSaver::fillEmitters(tinyxml2::XMLDocument &document, tinyxml2::XMLElem
         currentElement->SetText(currentEmitter->getName().c_str());
         emitterElement->InsertEndChild(currentElement);
 
-        currentEmitter->getTransformation()->serialize(document, emitterElement);
+        if(currentEmitter->getParentBoneID() != -1) {
+            currentEmitter->getTransformation()->serializeLocal(document, emitterElement);
+        } else {
+            currentEmitter->getTransformation()->serialize(document, emitterElement);
+        }
 
         tinyxml2::XMLElement *parent = document.NewElement("Gravity");
         glm::vec3 gravity = currentEmitter->getGravity();
@@ -588,6 +619,11 @@ bool WorldSaver::fillEmitters(tinyxml2::XMLDocument &document, tinyxml2::XMLElem
             if(parentGO != nullptr) {
                 currentElement = document.NewElement("ParentID");
                 currentElement->SetText(std::to_string(parentGO->getWorldObjectID()).c_str());
+                emitterElement->InsertEndChild(currentElement);
+            }
+            if(currentEmitter->getParentBoneID() != -1) {
+                currentElement = document.NewElement("ParentBoneID");
+                currentElement->SetText(std::to_string(currentEmitter->getParentBoneID()).c_str());
                 emitterElement->InsertEndChild(currentElement);
             }
         }

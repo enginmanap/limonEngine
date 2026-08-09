@@ -1200,9 +1200,26 @@ bool WorldLoader::loadLights(tinyxml2::XMLNode *lightsNode, World* world) const 
         tinyxml2::XMLElement* lightParentIDElement = lightNode->FirstChildElement("ParentID");
         if(lightParentIDElement != nullptr && lightParentIDElement->GetText() != nullptr) {
             uint32_t parentID = std::stoul(lightParentIDElement->GetText());
+            int32_t parentBoneID = -1;
+            tinyxml2::XMLElement* lightParentBoneIDElement = lightNode->FirstChildElement("ParentBoneID");
+            if(lightParentBoneIDElement != nullptr && lightParentBoneIDElement->GetText() != nullptr) {
+                parentBoneID = std::stoi(lightParentBoneIDElement->GetText());
+            }
             Attachable* parent = world->findAttachableByID(parentID);
             if(parent != nullptr) {
-                xmlLight->attachTo(parent);
+                if(parentBoneID != -1) {
+                    Model* parentModel = dynamic_cast<Model*>(parent);
+                    if(parentModel != nullptr) {
+                        xmlLight->setParentObject(parentModel, parentBoneID);
+                        parentModel->addChild(xmlLight);
+                        xmlLight->getTransformation()->setParentTransform(
+                                parentModel->getAttachmentTransformForKnownBone(parentBoneID));
+                    } else {
+                        xmlLight->attachTo(parent, parentBoneID);
+                    }
+                } else {
+                    xmlLight->attachTo(parent);
+                }
             } else {
                 std::cerr << "Light parent ID " << parentID << " not found, attachment skipped." << std::endl;
             }
@@ -1221,7 +1238,7 @@ bool WorldLoader::loadSounds(tinyxml2::XMLNode *worldNode, World *world) const {
         return true; // No sounds section — valid for all pre-feature world files.
     }
 
-    struct PendingSound { Sound* sound; uint32_t parentID; };
+    struct PendingSound { Sound* sound; uint32_t parentID; int32_t parentBoneID; };
     std::vector<PendingSound> pendingAttachments;
 
     tinyxml2::XMLElement* soundNode = soundsListNode->FirstChildElement("Sound");
@@ -1291,7 +1308,12 @@ bool WorldLoader::loadSounds(tinyxml2::XMLNode *worldNode, World *world) const {
 
         tinyxml2::XMLElement* parentEl = soundNode->FirstChildElement("ParentID");
         if(parentEl != nullptr && parentEl->GetText() != nullptr) {
-            pendingAttachments.push_back({sound, std::stoul(parentEl->GetText())});
+            int32_t parentBoneID = -1;
+            tinyxml2::XMLElement* parentBoneIDEl = soundNode->FirstChildElement("ParentBoneID");
+            if(parentBoneIDEl != nullptr && parentBoneIDEl->GetText() != nullptr) {
+                parentBoneID = std::stoi(parentBoneIDEl->GetText());
+            }
+            pendingAttachments.push_back({sound, std::stoul(parentEl->GetText()), parentBoneID});
         }
 
         world->addSound(sound);
@@ -1301,7 +1323,19 @@ bool WorldLoader::loadSounds(tinyxml2::XMLNode *worldNode, World *world) const {
     for(auto& ps : pendingAttachments) {
         Attachable* parent = world->findAttachableByID(ps.parentID);
         if(parent != nullptr) {
-            ps.sound->attachTo(parent);
+            if(ps.parentBoneID != -1) {
+                Model* parentModel = dynamic_cast<Model*>(parent);
+                if(parentModel != nullptr) {
+                    ps.sound->setParentObject(parentModel, ps.parentBoneID);
+                    parentModel->addChild(ps.sound);
+                    ps.sound->getTransformation()->setParentTransform(
+                            parentModel->getAttachmentTransformForKnownBone(ps.parentBoneID));
+                } else {
+                    ps.sound->attachTo(parent, ps.parentBoneID);
+                }
+            } else {
+                ps.sound->attachTo(parent);
+            }
         } else {
             std::cerr << "Sound parent ID " << ps.parentID << " not found, attachment skipped." << std::endl;
         }
@@ -1322,7 +1356,7 @@ bool WorldLoader::loadCameraRigs(tinyxml2::XMLNode *worldNode, World *world) con
         activeCameraRigID = std::stoul(activeIDNode->GetText());
     }
 
-    struct PendingCameraRig { CameraRig* rig; uint32_t parentID; };
+    struct PendingCameraRig { CameraRig* rig; uint32_t parentID; int32_t parentBoneID; };
     std::vector<PendingCameraRig> pendingAttachments;
 
     tinyxml2::XMLElement* cameraRigNode = cameraRigsListNode->FirstChildElement("CameraRig");
@@ -1374,7 +1408,12 @@ bool WorldLoader::loadCameraRigs(tinyxml2::XMLNode *worldNode, World *world) con
 
         tinyxml2::XMLElement* parentEl = cameraRigNode->FirstChildElement("ParentID");
         if(parentEl != nullptr && parentEl->GetText() != nullptr) {
-            pendingAttachments.push_back({cameraRig.get(), std::stoul(parentEl->GetText())});
+            int32_t parentBoneID = -1;
+            tinyxml2::XMLElement* parentBoneIDEl = cameraRigNode->FirstChildElement("ParentBoneID");
+            if(parentBoneIDEl != nullptr && parentBoneIDEl->GetText() != nullptr) {
+                parentBoneID = std::stoi(parentBoneIDEl->GetText());
+            }
+            pendingAttachments.push_back({cameraRig.get(), std::stoul(parentEl->GetText()), parentBoneID});
         }
 
         if(rigID == activeCameraRigID) {
@@ -1387,7 +1426,19 @@ bool WorldLoader::loadCameraRigs(tinyxml2::XMLNode *worldNode, World *world) con
     for(auto& pca : pendingAttachments) {
         Attachable* parent = world->findAttachableByID(pca.parentID);
         if(parent != nullptr) {
-            pca.rig->attachTo(parent);
+            if(pca.parentBoneID != -1) {
+                Model* parentModel = dynamic_cast<Model*>(parent);
+                if(parentModel != nullptr) {
+                    pca.rig->setParentObject(parentModel, pca.parentBoneID);
+                    parentModel->addChild(pca.rig);
+                    pca.rig->getTransformation()->setParentTransform(
+                            parentModel->getAttachmentTransformForKnownBone(pca.parentBoneID));
+                } else {
+                    pca.rig->attachTo(parent, pca.parentBoneID);
+                }
+            } else {
+                pca.rig->attachTo(parent);
+            }
         } else {
             std::cerr << "CameraRig parent ID " << pca.parentID << " not found, attachment skipped." << std::endl;
         }
@@ -1717,9 +1768,26 @@ bool WorldLoader::loadParticleEmitters(tinyxml2::XMLNode *EmittersNode, World* w
         emitterAttributeElement = EmitterNode->FirstChildElement("ParentID");
         if(emitterAttributeElement != nullptr && emitterAttributeElement->GetText() != nullptr) {
             uint32_t parentID = std::stoul(emitterAttributeElement->GetText());
+            int32_t parentBoneID = -1;
+            tinyxml2::XMLElement* emitterParentBoneIDElement = EmitterNode->FirstChildElement("ParentBoneID");
+            if(emitterParentBoneIDElement != nullptr && emitterParentBoneIDElement->GetText() != nullptr) {
+                parentBoneID = std::stoi(emitterParentBoneIDElement->GetText());
+            }
             Attachable* parent = world->findAttachableByID(parentID);
             if(parent != nullptr) {
-                emitter->attachTo(parent);
+                if(parentBoneID != -1) {
+                    Model* parentModel = dynamic_cast<Model*>(parent);
+                    if(parentModel != nullptr) {
+                        emitter->setParentObject(parentModel, parentBoneID);
+                        parentModel->addChild(emitter.get());
+                        emitter->getTransformation()->setParentTransform(
+                                parentModel->getAttachmentTransformForKnownBone(parentBoneID));
+                    } else {
+                        emitter->attachTo(parent, parentBoneID);
+                    }
+                } else {
+                    emitter->attachTo(parent);
+                }
             } else {
                 std::cerr << "Emitter parent ID " << parentID << " not found, attachment skipped." << std::endl;
             }
@@ -2106,9 +2174,26 @@ bool WorldLoader::loadTriggers(tinyxml2::XMLNode *worldNode, World *world) const
         tinyxml2::XMLElement* triggerParentIDElement = triggerNode->FirstChildElement("ParentID");
         if(triggerParentIDElement != nullptr && triggerParentIDElement->GetText() != nullptr) {
             uint32_t parentID = std::stoul(triggerParentIDElement->GetText());
+            int32_t parentBoneID = -1;
+            tinyxml2::XMLElement* triggerParentBoneIDElement = triggerNode->FirstChildElement("ParentBoneID");
+            if(triggerParentBoneIDElement != nullptr && triggerParentBoneIDElement->GetText() != nullptr) {
+                parentBoneID = std::stoi(triggerParentBoneIDElement->GetText());
+            }
             Attachable* parent = world->findAttachableByID(parentID);
             if(parent != nullptr) {
-                triggerObject->attachTo(parent);
+                if(parentBoneID != -1) {
+                    Model* parentModel = dynamic_cast<Model*>(parent);
+                    if(parentModel != nullptr) {
+                        triggerObject->setParentObject(parentModel, parentBoneID);
+                        parentModel->addChild(triggerObject);
+                        triggerObject->getTransformation()->setParentTransform(
+                                parentModel->getAttachmentTransformForKnownBone(parentBoneID));
+                    } else {
+                        triggerObject->attachTo(parent, parentBoneID);
+                    }
+                } else {
+                    triggerObject->attachTo(parent);
+                }
             } else {
                 std::cerr << "Trigger parent ID " << parentID << " not found, attachment skipped." << std::endl;
             }
