@@ -27,6 +27,8 @@
 #include "AI/AIMovementGrid.h"
 #include "../Utils/ClosestNotMeConvexResultCallback.h"
 #include "Graphics/Particles/Emitter.h"
+#include "Graphics/Particles/GPUParticleEmitter.h"
+#include "GamePlay/APISerializer.h"
 #include "nodeGraph/src/NodeGraph.h"
 #include "NodeEditorExtensions/PipelineExtension.h"
 #include "NodeEditorExtensions/IterationExtension.h"
@@ -764,25 +766,17 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
             ImGui::Separator();
             static float copyOffsets[3] { 0.25f, 0.25f, 0.25f};
             ImGui::DragFloat3("Copy position offsets", copyOffsets, 0.1f);
+            static bool copyRecursive = false;
+            ImGui::Checkbox("Copy children too", &copyRecursive);
+            ImGui::SameLine();
             if (ImGui::Button("Copy Selected object")) {
                 if(this->pickedObject != nullptr ) {
                     this->pickedObject->removeTag(HardCodedTags::PICKED_OBJECT);
                 }
                 Model* pickedModel = dynamic_cast<Model*>(this->pickedObject);
-                this->pickedObject->addTag(HardCodedTags::PICKED_OBJECT);
-                Model* newModel = new Model(*pickedModel, world->getNextObjectID());
+                Model* newModel = dynamic_cast<Model*>(this->copyAttachable(pickedModel, copyRecursive));
                 newModel->getTransformation()->addTranslate(glm::vec3(copyOffsets[0], copyOffsets[1], copyOffsets[2]));
-                world->addModelToWorld(newModel);
-                //now we should apply the animations
 
-                if(world->onLoadAnimations.find(pickedModel) != world->onLoadAnimations.end() &&
-                        world->activeAnimations.find(pickedModel) != world->activeAnimations.end()) {
-                    world->apiAccessor->addAnimationToObject(newModel->getWorldObjectID(), world->activeAnimations[pickedModel]->animationIndex,
-                                         true, true);
-                }
-                if(this->pickedObject != nullptr ) {
-                    this->pickedObject->removeTag(HardCodedTags::PICKED_OBJECT);
-                }
                 this->pickedObject = static_cast<GameObject*>(newModel);
                 this->pickedObject->addTag(HardCodedTags::PICKED_OBJECT);
             }
@@ -1870,6 +1864,104 @@ bool Editor::buildFilteredVisibleIDs(PhysicalRenderable *physicalRenderable, con
         return true;
     }
     return false;
+}
+
+void Editor::buildCopyIDRemap(Attachable* source, bool recursive, std::unordered_map<uint32_t, uint32_t>& idRemap) {
+    GameObject* sourceGameObject = dynamic_cast<GameObject*>(source);
+    if (sourceGameObject == nullptr) {
+        std::cerr << "Editor::buildCopyIDRemap: an Attachable that isn't a GameObject can't be copied, skipping." << std::endl;
+        return;
+    }
+    idRemap[sourceGameObject->getWorldObjectID()] = world->getNextObjectID();
+    if (recursive) {
+        for (Attachable* child : source->getChildren()) {
+            buildCopyIDRemap(child, true, idRemap);
+        }
+    }
+}
+
+Attachable* Editor::copyAttachableRecursive(Attachable* source, Attachable* newParent, bool recursive,
+                                            const std::unordered_map<uint32_t, uint32_t>& idRemap) {
+    GameObject* sourceGameObject = dynamic_cast<GameObject*>(source);
+    if (sourceGameObject == nullptr) {
+        return nullptr; // already warned by buildCopyIDRemap
+    }
+    uint32_t newObjectID = idRemap.at(sourceGameObject->getWorldObjectID());
+    Attachable* newObj = source->clone(newObjectID, world->apiInstance, idRemap);
+    if (newObj == nullptr) {
+        std::cerr << "Editor::copyAttachable: copying is not supported for object " << sourceGameObject->getWorldObjectID()
+                   << " (" << sourceGameObject->getName() << "), skipping." << std::endl;
+        world->unusedIDs.push(newObjectID);
+        return nullptr;
+    }
+
+    // World registration is inherently type-specific — World stores each type in a different
+    // container — this mirrors the exact call shape Editor already uses when creating each type
+    // from scratch (see the "Add Object" panel handlers for Model/Light/Sound/CameraRig/Emitter,
+    // and the trigger-add handler for TriggerObject).
+    if (Model* newModel = dynamic_cast<Model*>(newObj)) {
+        Model* sourceModel = dynamic_cast<Model*>(source);
+        if (sourceModel->getAI() != nullptr) {
+            uint32_t newAIID = world->getNextObjectID();
+            ActorInterface* newActor = ActorInterface::createActor(sourceModel->getAI()->getName(), newAIID, world->apiInstance);
+            if (newActor != nullptr) {
+                std::vector<LimonTypes::GenericParameter> aiParameters = sourceModel->getAI()->getParameters();
+                APISerializer::remapObjectReferenceParameters(aiParameters, idRemap);
+                newActor->setParameters(aiParameters);
+                newActor->setModel(newModel->getWorldObjectID());
+                newModel->attachAI(newActor);
+                world->addActor(newActor);
+            } else {
+                world->unusedIDs.push(newAIID);
+            }
+        }
+
+        world->addModelToWorld(newModel);
+        newModel->getRigidBody()->activate();
+
+        if (world->onLoadAnimations.find(sourceModel) != world->onLoadAnimations.end() &&
+                world->activeAnimations.find(sourceModel) != world->activeAnimations.end()) {
+            world->apiAccessor->addAnimationToObject(newModel->getWorldObjectID(),
+                                                     world->activeAnimations[sourceModel]->animationIndex, true, true);
+        }
+    } else if (Light* newLight = dynamic_cast<Light*>(newObj)) {
+        world->addLight(newLight);
+    } else if (CameraRig* newRig = dynamic_cast<CameraRig*>(newObj)) {
+        world->addCameraRig(std::unique_ptr<CameraRig>(newRig));
+    } else if (Sound* newSound = dynamic_cast<Sound*>(newObj)) {
+        world->addSound(newSound);
+    } else if (Emitter* newEmitter = dynamic_cast<Emitter*>(newObj)) {
+        world->emitters[newEmitter->getWorldObjectID()] = std::shared_ptr<Emitter>(newEmitter);
+    } else if (GPUParticleEmitter* newGPUEmitter = dynamic_cast<GPUParticleEmitter*>(newObj)) {
+        world->gpuParticleEmitters[newGPUEmitter->getWorldObjectID()] = std::shared_ptr<GPUParticleEmitter>(newGPUEmitter);
+    } else if (TriggerObject* newTrigger = dynamic_cast<TriggerObject*>(newObj)) {
+        world->triggers[newTrigger->getWorldObjectID()] = newTrigger;
+        world->dynamicsWorld->addCollisionObject(newTrigger->getGhostObject(),
+                                                 World::CollisionTypes::COLLIDE_TRIGGER_VOLUME | World::CollisionTypes::COLLIDE_EVERYTHING,
+                                                 World::CollisionTypes::COLLIDE_PLAYER | World::CollisionTypes::COLLIDE_EVERYTHING);
+    } else {
+        std::cerr << "Editor::copyAttachable: object " << sourceGameObject->getName() << " has clone() but no registration path in the editor, it will leak." << std::endl;
+    }
+
+    if (newParent != nullptr) {
+        //newObj currently sits at source's world position (from clone()); attachTo derives the local
+        //offset from that, keeping the same world position under newParent.
+        newObj->attachTo(newParent, source->getParentBoneID());
+    }
+
+    if (recursive) {
+        for (Attachable* child : source->getChildren()) {
+            copyAttachableRecursive(child, newObj, true, idRemap);
+        }
+    }
+
+    return newObj;
+}
+
+Attachable* Editor::copyAttachable(Attachable* source, bool recursive) {
+    std::unordered_map<uint32_t, uint32_t> idRemap;
+    buildCopyIDRemap(source, recursive, idRemap);
+    return copyAttachableRecursive(source, nullptr, recursive, idRemap);
 }
 
 void Editor::buildTreeFromAllGameObjects() {

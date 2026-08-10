@@ -67,6 +67,16 @@ public:
         transformation.setUpdateCallback([this]() noexcept { updatePhysicsFromTransform(); });
     }
 
+    // Rebuilds ghostShape/ghostObject fresh via the normal constructor (never shallow-copy Bullet
+    // objects), then rebuilds each configured TriggerInterface via its type factory, remapping any
+    // object-reference parameters through idRemap so a copied trigger's actions target the copies
+    // instead of the originals.
+    TriggerObject(const TriggerObject& other, uint32_t newObjectID, LimonAPI* limonAPI,
+                  const std::unordered_map<uint32_t, uint32_t>& idRemap);
+
+    Attachable* clone(uint32_t newObjectID, LimonAPI* limonAPI,
+                      const std::unordered_map<uint32_t, uint32_t>& idRemap) const override;
+
     void onTransformUpdated() noexcept override {
         updatePhysicsFromTransform();
     }

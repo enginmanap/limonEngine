@@ -37,6 +37,14 @@ public:
     CameraRig(uint32_t worldID, const std::string& name, CameraExtensionInterface* heldAttachment)
         : name(name), worldID(worldID), heldAttachment(heldAttachment) {}
 
+    // Rebuilds heldAttachment from scratch via its type factory (it's an owned, plugin-authored
+    // behaviour object and can't be shared between two rigs), then copies the transform. Parameters
+    // are applied separately by clone(), after remapping any object-reference parameters.
+    CameraRig(const CameraRig& other, uint32_t newObjectID, LimonAPI* limonAPI);
+
+    Attachable* clone(uint32_t newObjectID, LimonAPI* limonAPI,
+                      const std::unordered_map<uint32_t, uint32_t>& idRemap) const override;
+
     ~CameraRig() override {
         delete heldAttachment;
     }

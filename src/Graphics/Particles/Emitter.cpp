@@ -44,6 +44,25 @@ Emitter::Emitter(long worldObjectId, std::string name, std::shared_ptr<AssetMana
     }
 }
 
+Emitter::Emitter(const Emitter& other, uint32_t newObjectID) :
+        Emitter(newObjectID, other.name, other.assetManager, other.textureAsset->getName().front(),
+                other.transformation.getTranslate(), other.maxStartDistances, other.size, other.maxCount,
+                other.lifeTime, other.perMsParticleCount) {
+    this->gravity = other.gravity;
+    this->speedMultiplier = other.speedMultiplier;
+    this->speedOffset = other.speedOffset;
+    this->timedColorMultipliers = other.timedColorMultipliers;
+    this->continuousEmit = other.continuousEmit;
+    this->enabled = other.enabled;
+    this->transformation.setTransformationsNotPropagate(
+            other.transformation.getTranslate(), other.transformation.getOrientation(), other.transformation.getScale());
+}
+
+Attachable* Emitter::clone(uint32_t newObjectID, LimonAPI* limonAPI [[gnu::unused]],
+                           const std::unordered_map<uint32_t, uint32_t>& idRemap [[gnu::unused]]) const {
+    return new Emitter(*this, newObjectID);
+}
+
 void Emitter::addRandomParticle(const glm::vec3 &startPosition, const glm::vec3 &maxStartDistances, long time) {
     float x = randomStartingPoints(randomFloatGenerator) * maxStartDistances.x;
     float y = randomStartingPoints(randomFloatGenerator) * maxStartDistances.y;

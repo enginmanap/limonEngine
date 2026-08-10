@@ -76,6 +76,15 @@ public:
             const std::string &textureFile, glm::vec3 startPosition, glm::vec3 maxStartDistances, glm::vec2 size, long count,
             long lifeTime, float particlePerMs = -1);
 
+    // Rebuilds GPU state (VAO, particle data texture, texture asset reference) from scratch via the
+    // normal constructor, then copies settings. Live simulation state (particle positions/speeds,
+    // counters, timers) is deliberately left at fresh-construction defaults — a copy starts its own
+    // simulation, it doesn't fork mid-flight.
+    Emitter(const Emitter& other, uint32_t newObjectID);
+
+    Attachable* clone(uint32_t newObjectID, LimonAPI* limonAPI,
+                      const std::unordered_map<uint32_t, uint32_t>& idRemap) const override;
+
     void setupForTime(long time) override {
         if(lastSetupTime == 0) {
             lastSetupTime = time;//don't try to create massive amounts in first setup.

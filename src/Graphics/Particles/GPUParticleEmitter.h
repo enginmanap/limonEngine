@@ -70,6 +70,14 @@ public:
             const std::string &textureFile, glm::vec3 startPosition, glm::vec3 maxStartDistances, glm::vec2 size, long count,
             long lifeTime, long startTime, float particlePerMs = -1);
 
+    // Rebuilds GPU state from scratch via the normal constructor, then copies settings. Live particle
+    // state is left at fresh-construction defaults (dirty=true triggers a fresh setupParticles), same
+    // reasoning as Emitter's copy constructor.
+    GPUParticleEmitter(const GPUParticleEmitter& other, uint32_t newObjectID);
+
+    Attachable* clone(uint32_t newObjectID, LimonAPI* limonAPI,
+                      const std::unordered_map<uint32_t, uint32_t>& idRemap) const override;
+
     ~GPUParticleEmitter() override;
 
     Transformation* getTransformation() override { return &transformation; }

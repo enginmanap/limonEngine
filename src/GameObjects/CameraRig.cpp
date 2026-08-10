@@ -6,6 +6,28 @@
 
 #include <glm/gtx/matrix_decompose.hpp>
 #include "ImGui/imgui.h"
+#include "GamePlay/APISerializer.h"
+
+CameraRig::CameraRig(const CameraRig& other, uint32_t newObjectID, LimonAPI* limonAPI) :
+        CameraRig(newObjectID, other.name,
+                  other.heldAttachment != nullptr ?
+                          CameraExtensionInterface::createExtension(other.getRigTypeName(), limonAPI) : nullptr) {
+    this->transformation.setTransformationsNotPropagate(
+            other.transformation.getTranslate(),
+            other.transformation.getOrientation(),
+            other.transformation.getScale());
+}
+
+Attachable* CameraRig::clone(uint32_t newObjectID, LimonAPI* limonAPI,
+                             const std::unordered_map<uint32_t, uint32_t>& idRemap) const {
+    CameraRig* newRig = new CameraRig(*this, newObjectID, limonAPI);
+    if (this->heldAttachment != nullptr && newRig->heldAttachment != nullptr) {
+        std::vector<LimonTypes::GenericParameter> parameters = this->heldAttachment->getParameters();
+        APISerializer::remapObjectReferenceParameters(parameters, idRemap);
+        newRig->heldAttachment->setParameters(parameters);
+    }
+    return newRig;
+}
 
 ImGuiResult CameraRig::addImGuiEditorElements(const ImGuiRequest &request) {
     ImGuiResult result;

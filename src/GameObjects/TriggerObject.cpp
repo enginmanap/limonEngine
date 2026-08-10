@@ -8,6 +8,43 @@
 #include "../GameObjects/Model.h"
 #include "GamePlay/APISerializer.h"
 
+static TriggerInterface* cloneTriggerCode(TriggerInterface* source, LimonAPI* limonAPI,
+                                          const std::unordered_map<uint32_t, uint32_t>& idRemap) {
+    if (source == nullptr) {
+        return nullptr;
+    }
+    TriggerInterface* newCode = TriggerInterface::createTrigger(source->getName(), limonAPI);
+    if (newCode != nullptr) {
+        std::vector<LimonTypes::GenericParameter> parameters = source->getParameters();
+        APISerializer::remapObjectReferenceParameters(parameters, idRemap);
+        newCode->setParameters(parameters);
+    }
+    return newCode;
+}
+
+TriggerObject::TriggerObject(const TriggerObject& other, uint32_t newObjectID, LimonAPI* limonAPI,
+                             const std::unordered_map<uint32_t, uint32_t>& idRemap)
+        : TriggerObject(newObjectID, limonAPI) {
+    this->name = other.name;
+    this->transformation.setTransformationsNotPropagate(
+            other.transformation.getTranslate(), other.transformation.getOrientation(), other.transformation.getScale());
+    this->updatePhysicsFromTransform(); // setTransformationsNotPropagate doesn't sync the ghost object
+
+    this->firstEnterTriggerCode = cloneTriggerCode(other.firstEnterTriggerCode, limonAPI, idRemap);
+    this->enterTriggerCode = cloneTriggerCode(other.enterTriggerCode, limonAPI, idRemap);
+    this->exitTriggerCode = cloneTriggerCode(other.exitTriggerCode, limonAPI, idRemap);
+
+    this->enabledFirstTrigger = other.enabledFirstTrigger;
+    this->enabledEnterTrigger = other.enabledEnterTrigger;
+    this->enabledExitTrigger = other.enabledExitTrigger;
+    this->enabledAny = other.enabledAny;
+}
+
+Attachable* TriggerObject::clone(uint32_t newObjectID, LimonAPI* limonAPI,
+                                 const std::unordered_map<uint32_t, uint32_t>& idRemap) const {
+    return new TriggerObject(*this, newObjectID, limonAPI, idRemap);
+}
+
 void TriggerObject::render(BulletDebugDrawer *debugDrawer) {
     //render 12 lines
 

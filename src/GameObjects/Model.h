@@ -113,6 +113,11 @@ public:
 
     Model(const Model& otherModel, uint32_t objectID); //kind of copy constructor, except ID
 
+    Attachable* clone(uint32_t newObjectID, LimonAPI* limonAPI [[gnu::unused]],
+                      const std::unordered_map<uint32_t, uint32_t>& idRemap [[gnu::unused]]) const override {
+        return new Model(*this, newObjectID);
+    }
+
     void reloadWithFlip(const std::string &newFlipAxes);
 
     /**
@@ -270,6 +275,10 @@ public:
     void attachAI(ActorInterface *AIActor);
 
     uint32_t getAIID();
+
+    ActorInterface* getAI() const {
+        return AIActor;
+    }
 
     void detachAI() {
         this->AIActor = nullptr;

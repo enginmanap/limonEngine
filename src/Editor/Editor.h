@@ -142,6 +142,15 @@ public:
     void update(InputHandler &inputHandler);
 
 private:
+    // Allows copying asseet trees (if recursive), uses clone method from attachable
+    // Would fail if clone is not implemented, returns nullptr
+    Attachable* copyAttachable(Attachable* source, bool recursive);
+    // Reserves a new world ID for source and, if recursive, every descendant, without constructing
+    // anything yet — so extension parameters can be remapped using a complete ID table.
+    void buildCopyIDRemap(Attachable* source, bool recursive, std::unordered_map<uint32_t, uint32_t>& idRemap);
+    Attachable* copyAttachableRecursive(Attachable* source, Attachable* newParent, bool recursive,
+                                        const std::unordered_map<uint32_t, uint32_t>& idRemap);
+
     void buildTreeFromAllGameObjects();
     std::unique_ptr<ClosestNotMeConvexResultCallback> convexSweepTestDown(Model * selectedObject) const;
     void addAnimationDefinitionToEditor();

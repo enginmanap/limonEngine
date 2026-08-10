@@ -51,6 +51,25 @@ GPUParticleEmitter::GPUParticleEmitter(long worldObjectId, std::string name, std
     this->dirty = true;
 }
 
+GPUParticleEmitter::GPUParticleEmitter(const GPUParticleEmitter& other, uint32_t newObjectID) :
+        GPUParticleEmitter(newObjectID, other.name, other.assetManager, other.textureAsset->getName().front(),
+                           other.transformation.getTranslate(), other.maxStartDistances, other.size, other.maxCount,
+                           other.lifeTime, 0, other.perMsParticleCount) {
+    this->gravity = other.gravity;
+    this->speedMultiplier = other.speedMultiplier;
+    this->speedOffset = other.speedOffset;
+    this->timedColorMultipliers = other.timedColorMultipliers;
+    this->continuousEmit = other.continuousEmit;
+    this->enabled = other.enabled;
+    this->transformation.setTransformationsNotPropagate(
+            other.transformation.getTranslate(), other.transformation.getOrientation(), other.transformation.getScale());
+}
+
+Attachable* GPUParticleEmitter::clone(uint32_t newObjectID, LimonAPI* limonAPI [[gnu::unused]],
+                                      const std::unordered_map<uint32_t, uint32_t>& idRemap [[gnu::unused]]) const {
+    return new GPUParticleEmitter(*this, newObjectID);
+}
+
 GPUParticleEmitter::~GPUParticleEmitter() {
     if(parentObject != nullptr) {
         detach();

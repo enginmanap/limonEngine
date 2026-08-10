@@ -13,6 +13,22 @@ Sound::Sound(uint32_t worldID, std::shared_ptr<AssetManager> assetManager, const
     transformation.setUpdateCallback([this]() noexcept { onTransformUpdated(); });
 }
 
+Sound::Sound(const Sound& other, uint32_t newObjectID)
+        : name(other.name), worldID(newObjectID), assetManager(other.assetManager),
+          position(other.position), listenerRelative(other.listenerRelative),
+          startSecond(other.startSecond), stopPosition(other.stopPosition), gain(other.gain),
+          referenceDistance(other.referenceDistance), maxDistance(other.maxDistance),
+          looped(other.looped), autoPlay(other.autoPlay), temporary(other.temporary), channel(other.channel) {
+    transformation.setUpdateCallback([this]() noexcept { onTransformUpdated(); });
+    transformation.setTransformationsNotPropagate(
+            other.transformation.getTranslate(), other.transformation.getOrientation(), other.transformation.getScale());
+}
+
+Attachable* Sound::clone(uint32_t newObjectID, LimonAPI* limonAPI [[gnu::unused]],
+                         const std::unordered_map<uint32_t, uint32_t>& idRemap [[gnu::unused]]) const {
+    return new Sound(*this, newObjectID);
+}
+
 void Sound::onTransformUpdated() noexcept {
     this->position = glm::vec3(transformation.getWorldTransform()[3]);
     if (soundHandleID != 0) {

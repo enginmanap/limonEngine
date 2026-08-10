@@ -117,6 +117,19 @@ public:
         frustumChanged = true;
     }
 
+    // Rebuilds shadow cameras/option handles from scratch via the normal constructor (they are owned,
+    // not shareable between two Lights), then copies the remaining settings not derivable from that.
+    Light(const Light& other, uint32_t newObjectID) :
+            Light(other.graphicsWrapper, newObjectID, other.lightType, other.position, other.color) {
+        this->attenuation = other.attenuation;
+        this->ambientColor = other.ambientColor;
+    }
+
+    Attachable* clone(uint32_t newObjectID, LimonAPI* limonAPI [[gnu::unused]],
+                      const std::unordered_map<uint32_t, uint32_t>& idRemap [[gnu::unused]]) const override {
+        return new Light(*this, newObjectID);
+    }
+
     void onTransformUpdated() noexcept override {
         this->position = glm::vec3(this->attachTransformation.getWorldTransform()[3]);
         this->frustumChanged = true;

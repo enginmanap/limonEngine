@@ -615,8 +615,30 @@ Model::Model(const Model &otherModel, uint32_t objectID) :
     this->updateAABB();
 
     this->animationName = otherModel.animationName;
-    this->animationTimeScale = otherModel.animationTimeScale;
     this->animationTime = otherModel.animationTime;
+    this->animationLooped = otherModel.animationLooped;
+
+    this->animationNameOld = otherModel.animationNameOld;
+    this->animationTimeOld = otherModel.animationTimeOld;
+    this->animationLoopedOld = otherModel.animationLoopedOld;
+
+    this->animationBlend = otherModel.animationBlend;
+    this->animationBlendTime = otherModel.animationBlendTime;
+
+    this->animationLastFramePlayed = otherModel.animationLastFramePlayed;
+    this->animationTimeScale = otherModel.animationTimeScale;
+    this->lastSetupTime = otherModel.lastSetupTime;
+
+    this->temporary = otherModel.temporary;
+
+    //own Sound instance for the same file, so playback state (soundHandleID) isn't shared with the original
+    if (otherModel.stepOnSound != nullptr) {
+        this->setPlayerStepOnSound(std::make_shared<Sound>(0, assetManager, otherModel.stepOnSound->getName()));
+    }
+
+    for (const auto& customTag : otherModel.getTagsCustomOnly()) {
+        this->addTag(customTag.text);
+    }
 
     for (const auto& materialOverride : otherModel.getNewMeshMaterials()) {
         for (size_t meshIndex = 0; meshIndex < this->meshMetaData.size(); ++meshIndex) {
@@ -627,6 +649,10 @@ Model::Model(const Model &otherModel, uint32_t objectID) :
             }
         }
     }
+
+    //AI and parent/child attachment are intentionally not copied here: AI needs a world-registered
+    //ID and children need their own copies. See Editor::copyAttachableRecursive, which builds on
+    //this constructor via clone().
 }
 
 ImGuiResult Model::putAIonGUI(ActorInterface *actorInterface,

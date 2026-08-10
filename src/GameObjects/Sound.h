@@ -43,6 +43,14 @@ private:
 
 public:
     Sound(uint32_t worldID, std::shared_ptr<AssetManager> assetManager, const std::string &filename);
+
+    // Copies settings only; soundHandleID/playState stay at their fresh-construction defaults so the
+    // clone gets its own OpenAL source instead of fighting the original over one playback handle.
+    Sound(const Sound& other, uint32_t newObjectID);
+
+    Attachable* clone(uint32_t newObjectID, LimonAPI* limonAPI,
+                      const std::unordered_map<uint32_t, uint32_t>& idRemap) const override;
+
     ~Sound();
 
     void setLoop(bool looped);

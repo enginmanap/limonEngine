@@ -6,6 +6,37 @@
 #include "APISerializer.h"
 #include "limonAPI/TriggerInterface.h"
 
+void APISerializer::remapObjectReferenceParameters(std::vector<LimonTypes::GenericParameter>& parameters,
+                                                    const std::unordered_map<uint32_t, uint32_t>& idRemap) {
+    for (auto& param : parameters) {
+        if (!param.isSet) {
+            continue;
+        }
+        switch (param.requestType) {
+            case LimonTypes::GenericParameter::MODEL:
+            case LimonTypes::GenericParameter::GUI_TEXT:
+            case LimonTypes::GenericParameter::LIGHT:
+            case LimonTypes::GenericParameter::SOUND:
+            case LimonTypes::GenericParameter::CAMERA_RIG: {
+                auto it = idRemap.find(static_cast<uint32_t>(param.value.longValue));
+                if (it != idRemap.end()) {
+                    param.value.longValue = static_cast<long>(it->second);
+                }
+                break;
+            }
+            case LimonTypes::GenericParameter::TRIGGER: {
+                auto it = idRemap.find(static_cast<uint32_t>(param.value.longValues[1]));
+                if (it != idRemap.end()) {
+                    param.value.longValues[1] = static_cast<long>(it->second);
+                }
+                break;
+            }
+            default:
+                break; // ANIMATION (index, not ID), SWITCH, and free-form types: not object references
+        }
+    }
+}
+
 bool APISerializer::serializeParameterRequest(const LimonTypes::GenericParameter &parameterRequest,
                                               tinyxml2::XMLDocument &document, tinyxml2::XMLElement *ParametersNode,
                                               uint32_t index) {

@@ -10,7 +10,10 @@
 #include "HasTransform.h"
 #include <vector>
 #include <algorithm>
+#include <unordered_map>
 #include <tinyxml2.h>
+
+class LimonAPI;
 
 class Attachable : public virtual HasTransform {
 protected:
@@ -139,6 +142,18 @@ public:
     // PhysicalRenderable redeclares this as pure virtual so Models must implement it.
     virtual bool fillObjects(tinyxml2::XMLDocument& /*document*/, tinyxml2::XMLElement* /*objectsNode*/) const {
         return false;
+    }
+
+    // Returns a property-complete copy of this object using newObjectID, or nullptr if this concrete
+    // type doesn't support copying yet (default: unsupported).
+    // limonAPI is available for types that own a plugin-style extension needing to be recreated
+    // (AI/trigger/camera-rig behavior). idRemap maps each original object's world ID to its freshly
+    // copied counterpart, for every object being copied in the same operation — implementations that
+    // own GenericParameter lists referencing other objects should rewrite matching entries via
+    // APISerializer::remapObjectReferenceParameters before applying them.
+    virtual Attachable* clone(uint32_t newObjectID [[gnu::unused]], LimonAPI* limonAPI [[gnu::unused]],
+                              const std::unordered_map<uint32_t, uint32_t>& idRemap [[gnu::unused]]) const {
+        return nullptr;
     }
 };
 
