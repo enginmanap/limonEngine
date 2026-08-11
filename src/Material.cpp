@@ -6,8 +6,7 @@
 #include "Material.h"
 
 #include <ImGuiHelper.h>
-#include <WorldLoader.h>
-#include <WorldSaver.h>
+#include "XMLHelper.h"
 
 #include "limonAPI/Graphics/GraphicsInterface.h"
 #include "limonAPI/Graphics/GraphicsProgram.h"
@@ -180,13 +179,13 @@ bool Material::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *
         materialNameNode->SetText(this->getName().c_str());
         materialNode->InsertEndChild(materialNameNode);
         tinyxml2::XMLElement *materialAmbientColorNode = document.NewElement("AmbientColor");
-        WorldSaver::serializeVec3(document, materialAmbientColorNode, this->getAmbientColor());
+        XMLHelper::writeVec3(document, materialAmbientColorNode, this->getAmbientColor());
         materialNode->InsertEndChild(materialAmbientColorNode);
         tinyxml2::XMLElement *materialDiffuseColorNode = document.NewElement("DiffuseColor");
-        WorldSaver::serializeVec3(document, materialDiffuseColorNode, this->getDiffuseColor());
+        XMLHelper::writeVec3(document, materialDiffuseColorNode, this->getDiffuseColor());
         materialNode->InsertEndChild(materialDiffuseColorNode);
         tinyxml2::XMLElement *materialSpecularColorNode = document.NewElement("SpecularColor");
-        WorldSaver::serializeVec3(document, materialSpecularColorNode, this->getSpecularColor());
+        XMLHelper::writeVec3(document, materialSpecularColorNode, this->getSpecularColor());
         materialNode->InsertEndChild(materialSpecularColorNode);
         tinyxml2::XMLElement *materialIndexNode = document.NewElement("MaterialIndex");
         materialIndexNode->SetText(this->getMaterialIndex());
@@ -239,13 +238,13 @@ std::shared_ptr<Material> Material::deserialize(AssetManager* assetManager, tiny
         std::string name = materialNode->FirstChildElement("Name")->GetText();
 
         glm::vec3 ambientColor;
-        WorldLoader::loadVec3(materialNode->FirstChildElement("AmbientColor"), ambientColor);
+        XMLHelper::readVec3(materialNode->FirstChildElement("AmbientColor"), ambientColor);
 
         glm::vec3 diffuseColor;
-        WorldLoader::loadVec3(materialNode->FirstChildElement("DiffuseColor"), diffuseColor);
+        XMLHelper::readVec3(materialNode->FirstChildElement("DiffuseColor"), diffuseColor);
 
         glm::vec3 specularColor;
-        WorldLoader::loadVec3(materialNode->FirstChildElement("SpecularColor"), specularColor);
+        XMLHelper::readVec3(materialNode->FirstChildElement("SpecularColor"), specularColor);
 
         size_t originalHash = 0;
         uint32_t materialIndex = std::stoi(materialNode->FirstChildElement("MaterialIndex")->GetText());

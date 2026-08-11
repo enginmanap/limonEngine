@@ -7,6 +7,7 @@
 
 
 #include <memory>
+#include <tinyxml2.h>
 #include "GameObject.h"
 #include "../Attachable.h"
 #include "../Editor/ImGuiResult.h"
@@ -149,6 +150,14 @@ public:
     State getState();
 
     ImGuiResult addImGuiEditorElements(const ImGuiRequest &request) override;
+
+    void serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *soundsNode) const; // skips temporary sounds
+
+    // nullptr on a malformed entry means skip it, not abort the list. unlike Light, IDs are used
+    // verbatim here - no reassignment, a missing/colliding one is corruption to report, not a legacy
+    // format to migrate.
+    static Sound *deserialize(tinyxml2::XMLElement *soundNode, std::shared_ptr<AssetManager> assetManager,
+                               bool &hasParent, uint32_t &parentID, int32_t &parentBoneID);
 };
 
 

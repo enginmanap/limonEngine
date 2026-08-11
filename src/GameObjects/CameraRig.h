@@ -6,6 +6,7 @@
 #define LIMONENGINE_CAMERARIG_H
 
 #include <string>
+#include <tinyxml2.h>
 
 #include "GameObject.h"
 #include "../Attachable.h"
@@ -75,6 +76,13 @@ public:
     std::string getName() const override { return name; }
     uint32_t getWorldObjectID() const override { return worldID; }
     ImGuiResult addImGuiEditorElements(const ImGuiRequest &request) override;
+
+    void serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *cameraRigsNode) const;
+
+    // nullptr if the rig type/ID is missing or the type's plugin isn't loaded; parentID/parentBoneID
+    // come back unresolved for WorldLoader::resolvePendingAttachments.
+    static CameraRig *deserialize(tinyxml2::XMLElement *cameraRigNode, LimonAPI *limonAPI,
+                                   bool &hasParent, uint32_t &parentID, int32_t &parentBoneID);
 };
 
 #endif //LIMONENGINE_CAMERARIG_H

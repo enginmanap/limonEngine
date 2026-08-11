@@ -10,6 +10,7 @@
 #include <limonAPI/Graphics/GraphicsProgram.h>
 #include <random>
 #include <utility>
+#include <tinyxml2.h>
 #include <Renderable.h>
 #include "../../Assets/TextureAsset.h"
 #include "../../Attachable.h"
@@ -266,6 +267,8 @@ public:
         return result;
     }
 
-
+    // no serialize() - WorldSaver has never written a GPUEmitters section, nothing to preserve there.
+    // no parent attachment either, same as the loader this replaces.
+    static GPUParticleEmitter *deserialize(tinyxml2::XMLElement *gpuEmitterNode, std::shared_ptr<AssetManager> assetManager);
 };
 #endif //LIMONENGINE_GPUPARTICLEEMITTER_H

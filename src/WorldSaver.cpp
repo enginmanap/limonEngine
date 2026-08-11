@@ -7,9 +7,11 @@
 #include <unordered_set>
 
 #include "WorldSaver.h"
+#include "XMLHelper.h"
 #include "World.h"
 #include "GameObjects/Model.h"
 #include "GameObjects/Light.h"
+#include "GameObjects/SkyBox.h"
 #include "Assets/Animations/AnimationCustom.h"
 #include "GameObjects/TriggerObject.h"
 #include "GameObjects/ModelGroup.h"
@@ -76,29 +78,21 @@ bool WorldSaver::saveWorld(const std::string& mapName, const World* world) {
     tinyxml2::XMLNode * rootNode = mapDocument.NewElement("World");
     mapDocument.InsertFirstChild(rootNode);
 
-    tinyxml2::XMLElement * currentElement = mapDocument.NewElement("Name");
-    currentElement->SetText(mapName.c_str());
-    rootNode->InsertEndChild(currentElement);
+    XMLHelper::writeElement(mapDocument, rootNode, "Name", mapName);
+    XMLHelper::writeElement(mapDocument, rootNode, "SaveVersion", 2);
+    XMLHelper::writeElement(mapDocument, rootNode, "LoadingImage", world->loadingImage);
 
-    currentElement = mapDocument.NewElement("SaveVersion");
-    currentElement->SetText(2);
-    rootNode->InsertEndChild(currentElement);
-
-    currentElement = mapDocument.NewElement("LoadingImage");
-    currentElement->SetText(world->loadingImage.c_str());
-    rootNode->InsertEndChild(currentElement);
-
-    currentElement = mapDocument.NewElement("Player");
+    tinyxml2::XMLElement * currentElement = mapDocument.NewElement("Player");
     tinyxml2::XMLElement *playerType = mapDocument.NewElement("Type");
     playerType->SetText(world->startingPlayer.typeToString().c_str());
     currentElement->InsertEndChild(playerType);
 
     tinyxml2::XMLElement *playerPosition = mapDocument.NewElement("Position");
-    serializeVec3(mapDocument, playerPosition, world->startingPlayer.position);
+    XMLHelper::writeVec3(mapDocument, playerPosition, world->startingPlayer.position);
     currentElement->InsertEndChild(playerPosition);
 
     tinyxml2::XMLElement *playerOrientation = mapDocument.NewElement("Orientation");
-    serializeVec3(mapDocument, playerOrientation, world->startingPlayer.orientation);
+    XMLHelper::writeVec3(mapDocument, playerOrientation, world->startingPlayer.orientation);
     currentElement->InsertEndChild(playerOrientation);
 
     tinyxml2::XMLElement *playerExtension = mapDocument.NewElement("ExtensionName");
@@ -133,82 +127,27 @@ bool WorldSaver::saveWorld(const std::string& mapName, const World* world) {
     if(!world->cameraRigs.empty()) {
         tinyxml2::XMLElement *cameraRigsNode = mapDocument.NewElement("CameraRigs");
 
-        tinyxml2::XMLElement *activeIDNode = mapDocument.NewElement("ActiveID");
-        activeIDNode->SetText(std::to_string(world->activeCameraRig != nullptr ? world->activeCameraRig->getWorldObjectID() : 0).c_str());
-        cameraRigsNode->InsertEndChild(activeIDNode);
+        XMLHelper::writeElement(mapDocument, cameraRigsNode, "ActiveID",
+                                 world->activeCameraRig != nullptr ? world->activeCameraRig->getWorldObjectID() : 0u);
 
         for(const std::unique_ptr<CameraRig>& cameraRig : world->cameraRigs) {
-            tinyxml2::XMLElement *cameraRigNode = mapDocument.NewElement("CameraRig");
-
-            tinyxml2::XMLElement *typeNode = mapDocument.NewElement("Type");
-            typeNode->SetText(cameraRig->getRigTypeName().c_str());
-            cameraRigNode->InsertEndChild(typeNode);
-
-            tinyxml2::XMLElement *idNode = mapDocument.NewElement("ID");
-            idNode->SetText(std::to_string(cameraRig->getWorldObjectID()).c_str());
-            cameraRigNode->InsertEndChild(idNode);
-
-            tinyxml2::XMLElement *nameNode = mapDocument.NewElement("Name");
-            nameNode->SetText(cameraRig->getName().c_str());
-            cameraRigNode->InsertEndChild(nameNode);
-
-            tinyxml2::XMLElement *parametersNode = mapDocument.NewElement("Parameters");
-            std::vector<LimonTypes::GenericParameter> rigParameters =
-                cameraRig->getHeldAttachment() != nullptr ? cameraRig->getHeldAttachment()->getParameters()
-                                                          : std::vector<LimonTypes::GenericParameter>();
-            for (size_t i = 0; i < rigParameters.size(); ++i) {
-                APISerializer::serializeParameterRequest(rigParameters[i], mapDocument, parametersNode, i);
-            }
-            cameraRigNode->InsertEndChild(parametersNode);
-
-            if(cameraRig->getParentBoneID() != -1) {
-                cameraRig->getTransformation()->serializeLocal(mapDocument, cameraRigNode);
-            } else {
-                cameraRig->getTransformation()->serialize(mapDocument, cameraRigNode);
-            }
-
-            if(cameraRig->getParentObject() != nullptr) {
-                const GameObject* parentGO = dynamic_cast<const GameObject*>(cameraRig->getParentObject());
-                if(parentGO != nullptr) {
-                    tinyxml2::XMLElement *parentIDNode = mapDocument.NewElement("ParentID");
-                    parentIDNode->SetText(std::to_string(parentGO->getWorldObjectID()).c_str());
-                    cameraRigNode->InsertEndChild(parentIDNode);
-                }
-                if(cameraRig->getParentBoneID() != -1) {
-                    tinyxml2::XMLElement *parentBoneIDNode = mapDocument.NewElement("ParentBoneID");
-                    parentBoneIDNode->SetText(std::to_string(cameraRig->getParentBoneID()).c_str());
-                    cameraRigNode->InsertEndChild(parentBoneIDNode);
-                }
-            }
-
-            cameraRigsNode->InsertEndChild(cameraRigNode);
+            cameraRig->serialize(mapDocument, cameraRigsNode);
         }
         rootNode->InsertEndChild(cameraRigsNode);
     }
 
     if(world->music != nullptr) {
-        currentElement = mapDocument.NewElement("Music");
-        currentElement->SetText(world->music->getName().c_str());
+        XMLHelper::writeElement(mapDocument, rootNode, "Music", world->music->getName());
     }
-    rootNode->InsertEndChild(currentElement);
 
-    currentElement = mapDocument.NewElement("QuitResponse");
+    const char* quitResponseStr = "QuitGame";
     switch (world->currentQuitResponse) {
-        case World::QuitResponse::QUIT_GAME:
-            currentElement->SetText("QuitGame");
-            break;
-        case World::QuitResponse::RETURN_PREVIOUS:
-            currentElement->SetText("ReturnPrevious");
-            break;
-        case World::QuitResponse::LOAD_WORLD:
-            currentElement->SetText("LoadWorld");
-            break;
+        case World::QuitResponse::QUIT_GAME:       quitResponseStr = "QuitGame";       break;
+        case World::QuitResponse::RETURN_PREVIOUS: quitResponseStr = "ReturnPrevious"; break;
+        case World::QuitResponse::LOAD_WORLD:      quitResponseStr = "LoadWorld";      break;
     }
-    rootNode->InsertEndChild(currentElement);
-
-    currentElement = mapDocument.NewElement("QuitWorldName");
-    currentElement->SetText(world->quitWorldName.c_str());
-    rootNode->InsertEndChild(currentElement);
+    XMLHelper::writeElement(mapDocument, rootNode, "QuitResponse", quitResponseStr);
+    XMLHelper::writeElement(mapDocument, rootNode, "QuitWorldName", world->quitWorldName);
 
     const char* distanceModelStr = "LinearClamped";
     switch(world->soundDistanceModel) {
@@ -217,9 +156,7 @@ bool WorldSaver::saveWorld(const std::string& mapName, const World* world) {
         case ALHelper::DistanceModel::LINEAR_CLAMPED:   distanceModelStr = "LinearClamped";   break;
         default:                                        distanceModelStr = "LinearClamped";   break;
     }
-    currentElement = mapDocument.NewElement("SoundDistanceModel");
-    currentElement->SetText(distanceModelStr);
-    rootNode->InsertEndChild(currentElement);
+    XMLHelper::writeElement(mapDocument, rootNode, "SoundDistanceModel", distanceModelStr);
 
     currentElement = mapDocument.NewElement("Materials");
     if(!fillMaterials(mapDocument, currentElement, world)) {
@@ -259,9 +196,9 @@ bool WorldSaver::saveWorld(const std::string& mapName, const World* world) {
     rootNode->InsertEndChild(currentElement);//add emitters
 
     currentElement = mapDocument.NewElement("Sky");
-    if(!addSky(mapDocument, currentElement, world)) {
-        return false;
-    };
+    if(world->sky != nullptr) {
+        world->sky->serialize(mapDocument, currentElement);
+    }
     rootNode->InsertEndChild(currentElement);//add Sky
 
     currentElement = mapDocument.NewElement("LoadedAnimations");
@@ -330,151 +267,14 @@ bool WorldSaver::fillObjects(tinyxml2::XMLDocument& document, tinyxml2::XMLEleme
 
 bool WorldSaver::fillLights(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *lightsNode, const World *world) {
     for(auto it=world->lights.begin(); it != world->lights.end(); it++) {//object ids are not constant, so they can be removed.
-
-        tinyxml2::XMLElement *lightElement = document.NewElement("Light");
-        lightsNode->InsertEndChild(lightElement);
-
-        tinyxml2::XMLElement *currentElement = document.NewElement("Type");
-        switch((*it)->getLightType()) {
-            case Light::LightTypes::NONE:
-                currentElement->SetText("NONE");
-                break;
-            case Light::LightTypes::DIRECTIONAL:
-                currentElement->SetText("DIRECTIONAL");
-                break;
-            case Light::LightTypes::POINT:
-                currentElement->SetText("POINT");
-                break;
-        }
-        lightElement->InsertEndChild(currentElement);
-
-        currentElement = document.NewElement("ID");
-        currentElement->SetText(std::to_string((*it)->getWorldObjectID()).c_str());
-        lightElement->InsertEndChild(currentElement);
-
-        if((*it)->getParentBoneID() != -1) {
-            (*it)->getTransformation()->serializeLocal(document, lightElement);
-        } else {
-            (*it)->getTransformation()->serialize(document, lightElement);
-        }
-
-        tinyxml2::XMLElement *parent = document.NewElement("Color");
-        glm::vec3 color = (*it)->getColor();
-        currentElement = document.NewElement("R");
-        currentElement->SetText(color.r);
-        parent->InsertEndChild(currentElement);
-        currentElement = document.NewElement("G");
-        currentElement->SetText(color.g);
-        parent->InsertEndChild(currentElement);
-        currentElement = document.NewElement("B");
-        currentElement->SetText(color.b);
-        parent->InsertEndChild(currentElement);
-        lightElement->InsertEndChild(parent);
-
-        parent = document.NewElement("Attenuation");
-        glm::vec3 attenuation = (*it)->getAttenuation();
-        currentElement = document.NewElement("X");
-        currentElement->SetText(attenuation.x);
-        parent->InsertEndChild(currentElement);
-        currentElement = document.NewElement("Y");
-        currentElement->SetText(attenuation.y);
-        parent->InsertEndChild(currentElement);
-        currentElement = document.NewElement("Z");
-        currentElement->SetText(attenuation.z);
-        parent->InsertEndChild(currentElement);
-        lightElement->InsertEndChild(parent);
-
-        parent = document.NewElement("Ambient");
-        glm::vec3 ambientColor = (*it)->getAmbientColor();
-        currentElement = document.NewElement("X");//these are xyz, because they deserialize in standard vec3 way.
-        currentElement->SetText(ambientColor.x);
-        parent->InsertEndChild(currentElement);
-        currentElement = document.NewElement("Y");
-        currentElement->SetText(ambientColor.y);
-        parent->InsertEndChild(currentElement);
-        currentElement = document.NewElement("Z");
-        currentElement->SetText(ambientColor.z);
-        parent->InsertEndChild(currentElement);
-        lightElement->InsertEndChild(parent);
-
-        if((*it)->getParentObject() != nullptr) {
-            GameObject* parentGO = dynamic_cast<GameObject*>((*it)->getParentObject());
-            if(parentGO != nullptr) {
-                currentElement = document.NewElement("ParentID");
-                currentElement->SetText(std::to_string(parentGO->getWorldObjectID()).c_str());
-                lightElement->InsertEndChild(currentElement);
-            }
-            if((*it)->getParentBoneID() != -1) {
-                currentElement = document.NewElement("ParentBoneID");
-                currentElement->SetText(std::to_string((*it)->getParentBoneID()).c_str());
-                lightElement->InsertEndChild(currentElement);
-            }
-        }
+        (*it)->serialize(document, lightsNode);
     }
     return true;
 }
 
 bool WorldSaver::fillSounds(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *soundsNode, const World *world) {
     for(auto& kv : world->sounds) {
-        const Sound* sound = kv.second.get();
-        if(sound->isTemporary()) {
-            continue;
-        }
-
-        tinyxml2::XMLElement* soundElement = document.NewElement("Sound");
-        soundsNode->InsertEndChild(soundElement);
-
-        tinyxml2::XMLElement* currentElement = document.NewElement("File");
-        currentElement->SetText(sound->getName().c_str());
-        soundElement->InsertEndChild(currentElement);
-
-        currentElement = document.NewElement("ID");
-        currentElement->SetText(std::to_string(sound->getWorldObjectID()).c_str());
-        soundElement->InsertEndChild(currentElement);
-
-        currentElement = document.NewElement("Gain");
-        currentElement->SetText(sound->getGain());
-        soundElement->InsertEndChild(currentElement);
-
-        currentElement = document.NewElement("ReferenceDistance");
-        currentElement->SetText(sound->getReferenceDistance());
-        soundElement->InsertEndChild(currentElement);
-
-        currentElement = document.NewElement("MaxDistance");
-        currentElement->SetText(sound->getMaxDistance());
-        soundElement->InsertEndChild(currentElement);
-
-        currentElement = document.NewElement("Looped");
-        currentElement->SetText(sound->isLooped());
-        soundElement->InsertEndChild(currentElement);
-
-        currentElement = document.NewElement("AutoPlay");
-        currentElement->SetText(sound->isAutoPlay());
-        soundElement->InsertEndChild(currentElement);
-
-        currentElement = document.NewElement("ListenerRelative");
-        currentElement->SetText(sound->isListenerRelative());
-        soundElement->InsertEndChild(currentElement);
-
-        if(sound->getParentBoneID() != -1) {
-            sound->getTransformation()->serializeLocal(document, soundElement);
-        } else {
-            sound->getTransformation()->serialize(document, soundElement);
-        }
-
-        if(sound->getParentObject() != nullptr) {
-            const GameObject* parentGO = dynamic_cast<const GameObject*>(sound->getParentObject());
-            if(parentGO != nullptr) {
-                currentElement = document.NewElement("ParentID");
-                currentElement->SetText(std::to_string(parentGO->getWorldObjectID()).c_str());
-                soundElement->InsertEndChild(currentElement);
-            }
-            if(sound->getParentBoneID() != -1) {
-                currentElement = document.NewElement("ParentBoneID");
-                currentElement->SetText(std::to_string(sound->getParentBoneID()).c_str());
-                soundElement->InsertEndChild(currentElement);
-            }
-        }
+        kv.second->serialize(document, soundsNode);
     }
     return true;
 }
@@ -482,193 +282,8 @@ bool WorldSaver::fillSounds(tinyxml2::XMLDocument &document, tinyxml2::XMLElemen
 
 bool WorldSaver::fillEmitters(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *EmittersNode, const World *world) {
     for(auto it=world->emitters.begin(); it != world->emitters.end(); it++) {//object ids are not constant, so they can be removed.
-        std::shared_ptr<Emitter> currentEmitter = it->second;
-        tinyxml2::XMLElement *emitterElement = document.NewElement("Emitter");
-        EmittersNode->InsertEndChild(emitterElement);
-
-        tinyxml2::XMLElement *currentElement = document.NewElement("ID");
-        currentElement->SetText(std::to_string(currentEmitter->getWorldObjectID()).c_str());
-        emitterElement->InsertEndChild(currentElement);
-
-        currentElement = document.NewElement("Name");
-        currentElement->SetText(currentEmitter->getName().c_str());
-        emitterElement->InsertEndChild(currentElement);
-
-        if(currentEmitter->getParentBoneID() != -1) {
-            currentEmitter->getTransformation()->serializeLocal(document, emitterElement);
-        } else {
-            currentEmitter->getTransformation()->serialize(document, emitterElement);
-        }
-
-        tinyxml2::XMLElement *parent = document.NewElement("Gravity");
-        glm::vec3 gravity = currentEmitter->getGravity();
-        currentElement = document.NewElement("X");
-        currentElement->SetText(gravity.x);
-        parent->InsertEndChild(currentElement);
-        currentElement = document.NewElement("Y");
-        currentElement->SetText(gravity.y);
-        parent->InsertEndChild(currentElement);
-        currentElement = document.NewElement("Z");
-        currentElement->SetText(gravity.z);
-        parent->InsertEndChild(currentElement);
-        emitterElement->InsertEndChild(parent);
-
-
-        parent = document.NewElement("SpeedMultiplier");
-        glm::vec3 speedMultiplier = currentEmitter->getSpeedMultiplier();
-        currentElement = document.NewElement("X");
-        currentElement->SetText(speedMultiplier.x);
-        parent->InsertEndChild(currentElement);
-        currentElement = document.NewElement("Y");
-        currentElement->SetText(speedMultiplier.y);
-        parent->InsertEndChild(currentElement);
-        currentElement = document.NewElement("Z");
-        currentElement->SetText(speedMultiplier.z);
-        parent->InsertEndChild(currentElement);
-        emitterElement->InsertEndChild(parent);
-
-        parent = document.NewElement("SpeedOffset");
-        glm::vec3 speedOffset = currentEmitter->getSpeedOffset();
-        currentElement = document.NewElement("X");
-        currentElement->SetText(speedOffset.x);
-        parent->InsertEndChild(currentElement);
-        currentElement = document.NewElement("Y");
-        currentElement->SetText(speedOffset.y);
-        parent->InsertEndChild(currentElement);
-        currentElement = document.NewElement("Z");
-        currentElement->SetText(speedOffset.z);
-        parent->InsertEndChild(currentElement);
-        emitterElement->InsertEndChild(parent);
-
-        parent = document.NewElement("Size");
-        glm::vec2 size = currentEmitter->getSize();
-        currentElement = document.NewElement("X");
-        currentElement->SetText(size.x);
-        parent->InsertEndChild(currentElement);
-        currentElement = document.NewElement("Y");
-        currentElement->SetText(size.y);
-        parent->InsertEndChild(currentElement);
-        emitterElement->InsertEndChild(parent);
-
-        currentElement = document.NewElement("MaxCount");
-        currentElement->SetText(std::to_string(currentEmitter->getMaxCount()).c_str());
-        emitterElement->InsertEndChild(currentElement);
-
-        currentElement = document.NewElement("LifeTime");
-        currentElement->SetText(std::to_string(currentEmitter->getLifeTime()).c_str());
-        emitterElement->InsertEndChild(currentElement);
-
-        currentElement = document.NewElement("ContinuousEmitting");
-        if(currentEmitter->isContinuousEmit()) {
-            currentElement->SetText("True");
-        } else {
-            currentElement->SetText("False");
-        }
-        emitterElement->InsertEndChild(currentElement);
-
-        currentElement = document.NewElement("Enabled");
-        if(currentEmitter->isEnabled()) {
-            currentElement->SetText("True");
-        } else {
-            currentElement->SetText("False");
-        }        emitterElement->InsertEndChild(currentElement);
-
-        parent = document.NewElement("MaximumStartDistances");
-        glm::vec3 maximumStartDistance = currentEmitter->getMaximumStartDistances();
-        currentElement = document.NewElement("X");
-        currentElement->SetText(maximumStartDistance.x);
-        parent->InsertEndChild(currentElement);
-        currentElement = document.NewElement("Y");
-        currentElement->SetText(maximumStartDistance.y);
-        parent->InsertEndChild(currentElement);
-        currentElement = document.NewElement("Z");
-        currentElement->SetText(maximumStartDistance.z);
-        parent->InsertEndChild(currentElement);
-        emitterElement->InsertEndChild(parent);
-
-        currentElement = document.NewElement("Texture");
-        currentElement->SetText(currentEmitter->getTexture()->getName().c_str());
-        emitterElement->InsertEndChild(currentElement);
-
-        parent = document.NewElement("TimedColorMultipliers");
-        std::vector<Emitter::TimedColorMultiplier>multipliers = currentEmitter->getTimedColorMultipliers();
-        for (size_t i = 0; i < multipliers.size(); ++i) {
-            const Emitter::TimedColorMultiplier& multiplier = multipliers[i];
-            tinyxml2::XMLElement *timedColorElement = document.NewElement("TimedColorMultiplier");
-            currentElement = document.NewElement("R");
-            currentElement->SetText(multiplier.colorMultiplier.x);
-            timedColorElement->InsertEndChild(currentElement);
-            currentElement = document.NewElement("G");
-            currentElement->SetText(multiplier.colorMultiplier.y);
-            timedColorElement->InsertEndChild(currentElement);
-            currentElement = document.NewElement("B");
-            currentElement->SetText(multiplier.colorMultiplier.z);
-            timedColorElement->InsertEndChild(currentElement);
-            currentElement = document.NewElement("A");
-            currentElement->SetText(multiplier.colorMultiplier.w);
-            timedColorElement->InsertEndChild(currentElement);
-            currentElement = document.NewElement("Time");
-            currentElement->SetText(std::to_string(multiplier.time).c_str());
-            timedColorElement->InsertEndChild(currentElement);
-            parent->InsertEndChild(timedColorElement);
-        }
-        emitterElement->InsertEndChild(parent);
-
-        if(currentEmitter->getParentObject() != nullptr) {
-            GameObject* parentGO = dynamic_cast<GameObject*>(currentEmitter->getParentObject());
-            if(parentGO != nullptr) {
-                currentElement = document.NewElement("ParentID");
-                currentElement->SetText(std::to_string(parentGO->getWorldObjectID()).c_str());
-                emitterElement->InsertEndChild(currentElement);
-            }
-            if(currentEmitter->getParentBoneID() != -1) {
-                currentElement = document.NewElement("ParentBoneID");
-                currentElement->SetText(std::to_string(currentEmitter->getParentBoneID()).c_str());
-                emitterElement->InsertEndChild(currentElement);
-            }
-        }
+        it->second->serialize(document, EmittersNode);
     }
-    return true;
-}
-
-bool WorldSaver::addSky(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *skyNode, const World *world) {
-
-    if(world->sky == nullptr) {
-        return true;
-    }
-    //ImagesPath, Right, Left, Top, Bottom, Back, Front
-
-    tinyxml2::XMLElement *currentElement = document.NewElement("ImagesPath");
-    currentElement->SetText(world->sky->getPath().c_str());
-    skyNode->InsertEndChild(currentElement);
-
-    currentElement = document.NewElement("ID");
-    currentElement->SetText(world->sky->getWorldObjectID());
-    skyNode->InsertEndChild(currentElement);
-
-    currentElement = document.NewElement("Right");
-    currentElement->SetText(world->sky->getRight().c_str());
-    skyNode->InsertEndChild(currentElement);
-
-    currentElement = document.NewElement("Left");
-    currentElement->SetText(world->sky->getLeft().c_str());
-    skyNode->InsertEndChild(currentElement);
-
-    currentElement = document.NewElement("Top");
-    currentElement->SetText(world->sky->getTop().c_str());
-    skyNode->InsertEndChild(currentElement);
-
-    currentElement = document.NewElement("Bottom");
-    currentElement->SetText(world->sky->getDown().c_str());
-    skyNode->InsertEndChild(currentElement);
-
-    currentElement = document.NewElement("Back");
-    currentElement->SetText(world->sky->getBack().c_str());
-    skyNode->InsertEndChild(currentElement);
-
-    currentElement = document.NewElement("Front");
-    currentElement->SetText(world->sky->getFront().c_str());
-    skyNode->InsertEndChild(currentElement);
     return true;
 }
 
@@ -676,12 +291,8 @@ bool WorldSaver::fillLoadedAnimations(tinyxml2::XMLDocument &document, tinyxml2:
     for(size_t index = 0; index < world->loadedAnimations.size(); index++) {
         tinyxml2::XMLElement *animationElement = document.NewElement("LoadedAnimation");
         loadedAnimationsNode->InsertEndChild(animationElement);
-        tinyxml2::XMLElement *currentElement = document.NewElement("Name");
-        currentElement->SetText(world->loadedAnimations[index].getName().c_str());
-        animationElement->InsertEndChild(currentElement);
-        currentElement = document.NewElement("Index");
-        currentElement->SetText(std::to_string(index).c_str());
-        animationElement->InsertEndChild(currentElement);
+        XMLHelper::writeElement(document, animationElement, "Name", world->loadedAnimations[index].getName());
+        XMLHelper::writeElement(document, animationElement, "Index", std::to_string(index));
     }
     return true;
 
@@ -704,9 +315,7 @@ bool WorldSaver::fillOnloadActions(tinyxml2::XMLDocument &document, tinyxml2::XM
         tinyxml2::XMLElement *onloadActionNode= document.NewElement("OnloadAction");
         onloadActionsNode->InsertEndChild(onloadActionNode);
 
-        tinyxml2::XMLElement *actionNameNode = document.NewElement("ActionName");
-        actionNameNode->SetText((*it)->action->getName().c_str());
-        onloadActionNode->InsertEndChild(actionNameNode);
+        XMLHelper::writeElement(document, onloadActionNode, "ActionName", (*it)->action->getName());
 
 
         //now serialize the parameters, owned by the trigger instance
@@ -717,17 +326,8 @@ bool WorldSaver::fillOnloadActions(tinyxml2::XMLDocument &document, tinyxml2::XM
         }
         onloadActionNode->InsertEndChild(parametersNode);
 
-        tinyxml2::XMLElement* enabledNode = document.NewElement("Enabled");
-        if((*it)->enabled) {
-            enabledNode->SetText("True");
-        } else {
-            enabledNode->SetText("False");
-        }
-        onloadActionNode->InsertEndChild(enabledNode);
-
-        tinyxml2::XMLElement* indexNode = document.NewElement("Index");
-        indexNode->SetText(std::to_string(it - world->onLoadActions.begin()).c_str());
-        onloadActionNode->InsertEndChild(indexNode);
+        XMLHelper::writeElement(document, onloadActionNode, "Enabled", (*it)->enabled ? "True" : "False");
+        XMLHelper::writeElement(document, onloadActionNode, "Index", std::to_string(it - world->onLoadActions.begin()));
     }
     return true;
 }
@@ -755,16 +355,12 @@ bool WorldSaver::fillOnloadAnimations(tinyxml2::XMLDocument &document, tinyxml2:
         tinyxml2::XMLElement *onloadActionNode= document.NewElement("OnLoadAnimation");
         onloadAnimationsNode->InsertEndChild(onloadActionNode);
 
-        tinyxml2::XMLElement *modelIDNode = document.NewElement("ModelID");
-        modelIDNode->SetText(std::to_string(objectID).c_str());
-        onloadActionNode->InsertEndChild(modelIDNode);
+        XMLHelper::writeElement(document, onloadActionNode, "ModelID", objectID);
 
         // Name is the key we save and load by now. We used to save ID, but that is depending on the load order, so it was not safe.
         // Loader still supports ID based loading, but as backward compatibility, we don't wanna keep that around so we will not save it.
         if(loadedAnimationID < world->loadedAnimations.size()) {
-            tinyxml2::XMLElement *animationNameNode = document.NewElement("Name");
-            animationNameNode->SetText(world->loadedAnimations[loadedAnimationID].getName().c_str());
-            onloadActionNode->InsertEndChild(animationNameNode);
+            XMLHelper::writeElement(document, onloadActionNode, "Name", world->loadedAnimations[loadedAnimationID].getName());
         } else {
             std::cerr << "OnLoad animation index " << loadedAnimationID
                       << " is out of range, animation can't be saved by name, skipping." << std::endl;
@@ -794,15 +390,4 @@ bool WorldSaver::fillMaterials(tinyxml2::XMLDocument &document, tinyxml2::XMLEle
     return true;
 }
 
-void WorldSaver::serializeVec3(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentNode, const glm::vec3& vector){
-    tinyxml2::XMLElement *currentElement = document.NewElement("X");
-    currentElement->SetText(vector.x);
-    parentNode->InsertEndChild(currentElement);
-    currentElement = document.NewElement("Y");
-    currentElement->SetText(vector.y);
-    parentNode->InsertEndChild(currentElement);
-    currentElement = document.NewElement("Z");
-    currentElement->SetText(vector.z);
-    parentNode->InsertEndChild(currentElement);
-}
 

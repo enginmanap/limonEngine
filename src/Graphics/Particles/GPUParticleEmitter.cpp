@@ -7,6 +7,7 @@
 #include <utility>
 #include "ImGui/imgui.h"
 #include "GPUParticleEmitter.h"
+#include "../../XMLHelper.h"
 
 #include <glm/gtc/type_ptr.hpp>
 
@@ -350,4 +351,142 @@ float GPUParticleEmitter::calculateTimedColorShift(const long time, const long p
     float factor = (float)(spendTime - from.time) / (float)(to.time - from.time);
     glm::uvec4 result = glm::mix(from.colorMultiplier, to.colorMultiplier, factor);
     return packToFloat(result);
+}
+
+GPUParticleEmitter *GPUParticleEmitter::deserialize(tinyxml2::XMLElement *gpuEmitterNode, std::shared_ptr<AssetManager> assetManager) {
+    std::string maxCountStr;
+    if(!XMLHelper::readRequiredText(gpuEmitterNode, "MaxCount", maxCountStr, "GPU Particle emitter must have a maximum particle count.")) {
+        return nullptr;
+    }
+    long maxCount = std::stoul(maxCountStr);
+
+    std::string lifeTimeStr;
+    if(!XMLHelper::readRequiredText(gpuEmitterNode, "LifeTime", lifeTimeStr, "GPU Particle emitter must have a life time.")) {
+        return nullptr;
+    }
+    long lifeTime = std::stoul(lifeTimeStr);
+
+    std::string textureFile;
+    if(!XMLHelper::readRequiredText(gpuEmitterNode, "Texture", textureFile, "GPU Particle emitter must have a Texture.")) {
+        return nullptr;
+    }
+
+    std::string idStr;
+    if(!XMLHelper::readRequiredText(gpuEmitterNode, "ID", idStr, "GPU Particle emitter does not have ID. This is invalid!")) {
+        return nullptr;
+    }
+    long id = std::stoul(idStr);
+
+    bool continuousEmit = true;
+    std::string continuousEmitStr;
+    if(!XMLHelper::readOptionalText(gpuEmitterNode, "ContinuousEmitting", continuousEmitStr)) {
+        std::cerr << "GPU Particle emitter does not have Continuous emitting set. Assuming true" << std::endl;
+    } else if(continuousEmitStr == "False") {
+        continuousEmit = false;
+    } else if(continuousEmitStr != "True") {
+        std::cerr << "Continuous emit setting unknown, assuming true " << std::endl;
+    }
+
+    bool enabled = true;
+    std::string enabledStr;
+    if(!XMLHelper::readOptionalText(gpuEmitterNode, "Enabled", enabledStr)) {
+        std::cerr << "GPU Particle emitter does not have Enabled set. Assuming true" << std::endl;
+    } else if(enabledStr == "False") {
+        enabled = false;
+    } else if(enabledStr != "True") {
+        std::cerr << "Enabled setting unknown, assuming true " << std::endl;
+    }
+
+    std::string name;
+    if(!XMLHelper::readRequiredText(gpuEmitterNode, "Name", name, "GPU Particle emitter does not have Name. This is invalid!")) {
+        return nullptr;
+    }
+
+    glm::vec3 startPosition;
+    tinyxml2::XMLElement* startPositionEl = gpuEmitterNode->FirstChildElement("StartPosition");
+    if(startPositionEl == nullptr || !XMLHelper::readVec3(startPositionEl, startPosition)) {
+        std::cerr << "GPU Particle Emitter must have a position/direction." << std::endl;
+        return nullptr;
+    }
+
+    glm::vec3 maxStartDistances;
+    tinyxml2::XMLElement* maxStartDistancesEl = gpuEmitterNode->FirstChildElement("MaximumStartDistances");
+    if(maxStartDistancesEl == nullptr || !XMLHelper::readVec3(maxStartDistancesEl, maxStartDistances)) {
+        std::cerr << "GPU Particle Emitter must have a Maximum Start distance." << std::endl;
+        return nullptr;
+    }
+
+    glm::vec2 size(1.0f, 1.0f);
+    tinyxml2::XMLElement* sizeEl = gpuEmitterNode->FirstChildElement("Size");
+    size.x = XMLHelper::readFloatOrDefault(sizeEl, "X", 1.0f);
+    size.y = XMLHelper::readFloatOrDefault(sizeEl, "Y", 1.0f);
+
+    glm::vec3 gravity(0,0,0);
+    tinyxml2::XMLElement* gravityEl = gpuEmitterNode->FirstChildElement("Gravity");
+    if(gravityEl == nullptr) {
+        std::cout << "GPU Particle Emitter has no gravity." << std::endl;
+    }
+    gravity.x = XMLHelper::readFloatOrDefault(gravityEl, "X", gravity.x);
+    gravity.y = XMLHelper::readFloatOrDefault(gravityEl, "Y", gravity.y);
+    gravity.z = XMLHelper::readFloatOrDefault(gravityEl, "Z", gravity.z);
+
+    glm::vec3 speedMultiplier(1,1,1);
+    tinyxml2::XMLElement* speedMultiplierEl = gpuEmitterNode->FirstChildElement("SpeedMultiplier");
+    if(speedMultiplierEl == nullptr) {
+        std::cout << "GPU Particle Emitter has no speedMultiplier." << std::endl;
+    }
+    speedMultiplier.x = XMLHelper::readFloatOrDefault(speedMultiplierEl, "X", speedMultiplier.x);
+    speedMultiplier.y = XMLHelper::readFloatOrDefault(speedMultiplierEl, "Y", speedMultiplier.y);
+    speedMultiplier.z = XMLHelper::readFloatOrDefault(speedMultiplierEl, "Z", speedMultiplier.z);
+
+    glm::vec3 speedOffset(0,0,0);
+    tinyxml2::XMLElement* speedOffsetEl = gpuEmitterNode->FirstChildElement("SpeedOffset");
+    if(speedOffsetEl == nullptr) {
+        std::cout << "GPU Particle Emitter has no SpeedOffset." << std::endl;
+    } else {
+        speedOffset.x = XMLHelper::readFloatOrDefault(speedOffsetEl, "X", speedOffset.x);
+        speedOffset.y = XMLHelper::readFloatOrDefault(speedOffsetEl, "Y", speedOffset.y);
+        // looks up Z on the Y element, not speedOffsetEl, so it never actually reads - matches the loader this replaces
+        tinyxml2::XMLElement* yEl = speedOffsetEl->FirstChildElement("Y");
+        tinyxml2::XMLElement* zEl = yEl != nullptr ? yEl->FirstChildElement("Z") : nullptr;
+        if(zEl != nullptr && zEl->GetText() != nullptr) {
+            speedOffset.z = std::stof(zEl->GetText());
+        } else {
+            std::cerr << "GPU Particle Emitter SpeedOffset missing z." << std::endl;
+        }
+    }
+
+    std::vector<TimedColorMultiplier> multipliers;
+    tinyxml2::XMLElement* timedColorMultipliersEl = gpuEmitterNode->FirstChildElement("TimedColorMultipliers");
+    if (timedColorMultipliersEl == nullptr) {
+        std::cout << "GPU Particle Emitter has no Timed color shift." << std::endl;
+    } else {
+        tinyxml2::XMLElement* timedColorMultiplierElement = timedColorMultipliersEl->FirstChildElement("TimedColorMultiplier");
+        while(timedColorMultiplierElement != nullptr) {
+            TimedColorMultiplier timedColorMultiplier;
+            std::string timeStr;
+            if(!XMLHelper::readRequiredText(timedColorMultiplierElement, "Time", timeStr, "time can't be found for timed color multiplier, skipping!")) {
+                timedColorMultiplierElement = timedColorMultiplierElement->NextSiblingElement("TimedColorMultiplier");
+                continue;
+            }
+            timedColorMultiplier.time = std::atol(timeStr.c_str());
+            timedColorMultiplier.colorMultiplier.r = static_cast<unsigned>(XMLHelper::readFloatOrDefault(timedColorMultiplierElement, "R", 255.0f));
+            timedColorMultiplier.colorMultiplier.g = static_cast<unsigned>(XMLHelper::readFloatOrDefault(timedColorMultiplierElement, "G", 255.0f));
+            timedColorMultiplier.colorMultiplier.b = static_cast<unsigned>(XMLHelper::readFloatOrDefault(timedColorMultiplierElement, "B", 255.0f));
+            timedColorMultiplier.colorMultiplier.a = static_cast<unsigned>(XMLHelper::readFloatOrDefault(timedColorMultiplierElement, "A", 255.0f));
+            multipliers.emplace_back(timedColorMultiplier);
+            timedColorMultiplierElement = timedColorMultiplierElement->NextSiblingElement("TimedColorMultiplier");
+        }
+    }
+
+    GPUParticleEmitter* emitter = new GPUParticleEmitter(id, name, assetManager, textureFile, startPosition,
+                                                           maxStartDistances, size, maxCount, lifeTime, 0);
+    emitter->setGravity(gravity);
+    emitter->setSpeedMultiplier(speedMultiplier);
+    emitter->setSpeedOffset(speedOffset);
+    emitter->setTimedColorMultipliers(multipliers);
+    emitter->setContinuousEmit(continuousEmit);
+    emitter->setEnabled(enabled);
+
+    return emitter;
 }

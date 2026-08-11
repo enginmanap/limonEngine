@@ -7,6 +7,7 @@
 #include <glm/gtx/matrix_decompose.hpp>
 #include "ImGui/imgui.h"
 #include "GamePlay/APISerializer.h"
+#include "../XMLHelper.h"
 
 CameraRig::CameraRig(const CameraRig& other, uint32_t newObjectID, LimonAPI* limonAPI) :
         CameraRig(newObjectID, other.name,
@@ -56,4 +57,93 @@ void CameraRig::feedHeldAttachmentTransform() {
     glm::vec4 perspective;
     glm::decompose(parentWorldTransform, scale, orientation, position, skew, perspective);
     heldAttachment->setAttachmentTransform(position, orientation, scale);
+}
+
+void CameraRig::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *cameraRigsNode) const {
+    tinyxml2::XMLElement *cameraRigNode = document.NewElement("CameraRig");
+    cameraRigsNode->InsertEndChild(cameraRigNode);
+
+    XMLHelper::writeElement(document, cameraRigNode, "Type", getRigTypeName());
+    XMLHelper::writeElement(document, cameraRigNode, "ID", worldID);
+    XMLHelper::writeElement(document, cameraRigNode, "Name", name);
+
+    tinyxml2::XMLElement *parametersNode = document.NewElement("Parameters");
+    std::vector<LimonTypes::GenericParameter> rigParameters =
+        heldAttachment != nullptr ? heldAttachment->getParameters() : std::vector<LimonTypes::GenericParameter>();
+    for (size_t i = 0; i < rigParameters.size(); ++i) {
+        APISerializer::serializeParameterRequest(rigParameters[i], document, parametersNode, i);
+    }
+    cameraRigNode->InsertEndChild(parametersNode);
+
+    if(getParentBoneID() != -1) {
+        transformation.serializeLocal(document, cameraRigNode);
+    } else {
+        transformation.serialize(document, cameraRigNode);
+    }
+
+    if(getParentObject() != nullptr) {
+        const GameObject* parentGO = dynamic_cast<const GameObject*>(getParentObject());
+        if(parentGO != nullptr) {
+            XMLHelper::writeElement(document, cameraRigNode, "ParentID", parentGO->getWorldObjectID());
+        }
+        if(getParentBoneID() != -1) {
+            XMLHelper::writeElement(document, cameraRigNode, "ParentBoneID", getParentBoneID());
+        }
+    }
+}
+
+CameraRig *CameraRig::deserialize(tinyxml2::XMLElement *cameraRigNode, LimonAPI *limonAPI,
+                                   bool &hasParent, uint32_t &parentID, int32_t &parentBoneID) {
+    hasParent = false;
+
+    std::string rigTypeName, idStr;
+    if(!XMLHelper::readRequiredText(cameraRigNode, "Type", rigTypeName, "CameraRig entry missing Type or ID element, skipping.")
+       || !XMLHelper::readRequiredText(cameraRigNode, "ID", idStr, "CameraRig entry missing Type or ID element, skipping.")) {
+        return nullptr;
+    }
+    uint32_t rigID = std::stoul(idStr);
+
+    CameraExtensionInterface* heldAttachment = CameraExtensionInterface::createExtension(rigTypeName, limonAPI);
+    if(heldAttachment == nullptr) {
+        std::cerr << "Camera rig type '" << rigTypeName << "' not found. Is the correct plugin loaded? Skipping." << std::endl;
+        return nullptr;
+    }
+
+    std::vector<LimonTypes::GenericParameter> rigParameters;
+    tinyxml2::XMLElement* parametersNode = cameraRigNode->FirstChildElement("Parameters");
+    if(parametersNode != nullptr) {
+        tinyxml2::XMLElement* parameterNode = parametersNode->FirstChildElement("Parameter");
+        uint32_t index;
+        while(parameterNode != nullptr) {
+            std::shared_ptr<LimonTypes::GenericParameter> request = APISerializer::deserializeParameterRequest(parameterNode, index);
+            if(request != nullptr && index <= rigParameters.size()) {
+                rigParameters.insert(rigParameters.begin() + index, *request);
+            }
+            parameterNode = parameterNode->NextSiblingElement("Parameter");
+        }
+    }
+    heldAttachment->setParameters(rigParameters);
+
+    std::string rigName = rigTypeName + "_" + std::to_string(rigID);
+    XMLHelper::readOptionalText(cameraRigNode, "Name", rigName);
+
+    CameraRig* cameraRig = new CameraRig(rigID, rigName, heldAttachment);
+
+    tinyxml2::XMLElement* transformEl = cameraRigNode->FirstChildElement("Transformation");
+    if(transformEl != nullptr) {
+        cameraRig->getTransformation()->deserialize(transformEl);
+    }
+
+    tinyxml2::XMLElement* parentEl = cameraRigNode->FirstChildElement("ParentID");
+    if(parentEl != nullptr && parentEl->GetText() != nullptr) {
+        parentID = std::stoul(parentEl->GetText());
+        parentBoneID = -1;
+        tinyxml2::XMLElement* parentBoneIDEl = cameraRigNode->FirstChildElement("ParentBoneID");
+        if(parentBoneIDEl != nullptr && parentBoneIDEl->GetText() != nullptr) {
+            parentBoneID = std::stoi(parentBoneIDEl->GetText());
+        }
+        hasParent = true;
+    }
+
+    return cameraRig;
 }

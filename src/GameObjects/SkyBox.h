@@ -6,6 +6,7 @@
 #define LIMONENGINE_SKYBOX_H
 
 #include <string>
+#include <tinyxml2.h>
 
 #include "../Renderable.h"
 #include "../Assets/CubeMapAsset.h"
@@ -68,6 +69,9 @@ public:
     };
     /************Game Object methods **************/
 
+    void serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *skyNode) const; // only one sky, so no per-item wrapper element like the list types
+
+    static SkyBox *deserialize(tinyxml2::XMLElement *skyNode, std::shared_ptr<AssetManager> assetManager);
 };
 
 #endif //LIMONENGINE_SKYBOX_H

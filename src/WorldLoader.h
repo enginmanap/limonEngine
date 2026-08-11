@@ -24,6 +24,7 @@ class GraphicsInterface;
 class ALHelper;
 class InputHandler;
 class Model;
+class Attachable;
 
 class WorldLoader {
 public:
@@ -34,7 +35,18 @@ public:
         glm::vec3 aiGridStartPoint = glm::vec3(0,0,0);
     };
 
+    struct PendingAttachment {
+        Attachable* child;
+        uint32_t parentID;
+        int32_t parentBoneID;
+        const char* childTypeName; // just for the "not found" log line
+    };
+
 private:
+    // bone parent goes through setParentObject/addChild/setParentTransform (bone transforms are
+    // identity at load, attachTo's world->local math would be wrong), everything else uses attachTo.
+    // no ModelGroup branch here, only loadObjectsFromXMLV2 needs that.
+    static void resolvePendingAttachments(World *world, const std::vector<PendingAttachment> &pending);
 
     OptionsUtil::Options *options;
     GraphicsInterface* graphicsWrapper;
@@ -78,9 +90,6 @@ public:
                                                                        PhysicalRenderable *parentObject);
     static std::vector<std::unique_ptr<ObjectInformation>> loadObjectV2(std::shared_ptr<AssetManager> assetManager, tinyxml2::XMLElement *objectNode,
                                                                         std::unordered_map<std::string, std::shared_ptr<Sound>> &requiredSounds, LimonAPI *limonAPI);
-
-
-    static bool loadVec3(tinyxml2::XMLNode* vectorNode, glm::vec3& vector);
 };
 
 

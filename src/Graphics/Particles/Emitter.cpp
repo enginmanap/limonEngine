@@ -5,8 +5,18 @@
 #include <Assets/TextureAsset.h>
 
 #include <utility>
+#include <vector>
+#include <algorithm>
+#include <cfloat>
+#include <climits>
+#include <cmath>
 #include "ImGui/imgui.h"
 #include "Emitter.h"
+#include "../../XMLHelper.h"
+#include "../../ImGuiHelper.h"
+#include "../../limonAPI/util/Logger.h"
+#include "../../Utils/GLMConverter.h"
+#include <LinearMath/btConvexHullComputer.h>
 
 #include <glm/gtc/type_ptr.hpp>
 
@@ -327,4 +337,226 @@ float Emitter::calculateTimedColorShift(const long time, const long particleCrea
     float factor = (float)(spendTime - from.time) / (float)(to.time - from.time);
     glm::uvec4 result = glm::mix(from.colorMultiplier, to.colorMultiplier, factor);
     return packToFloat(result);
+}
+
+void Emitter::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *emittersNode) const {
+    tinyxml2::XMLElement *emitterElement = document.NewElement("Emitter");
+    emittersNode->InsertEndChild(emitterElement);
+
+    XMLHelper::writeElement(document, emitterElement, "ID", std::to_string(worldObjectID));
+    XMLHelper::writeElement(document, emitterElement, "Name", name);
+
+    if(getParentBoneID() != -1) {
+        transformation.serializeLocal(document, emitterElement);
+    } else {
+        transformation.serialize(document, emitterElement);
+    }
+
+    tinyxml2::XMLElement *gravityNode = document.NewElement("Gravity");
+    XMLHelper::writeVec3(document, gravityNode, gravity);
+    emitterElement->InsertEndChild(gravityNode);
+
+    tinyxml2::XMLElement *speedMultiplierNode = document.NewElement("SpeedMultiplier");
+    XMLHelper::writeVec3(document, speedMultiplierNode, speedMultiplier);
+    emitterElement->InsertEndChild(speedMultiplierNode);
+
+    tinyxml2::XMLElement *speedOffsetNode = document.NewElement("SpeedOffset");
+    XMLHelper::writeVec3(document, speedOffsetNode, speedOffset);
+    emitterElement->InsertEndChild(speedOffsetNode);
+
+    tinyxml2::XMLElement *sizeNode = document.NewElement("Size");
+    XMLHelper::writeElement(document, sizeNode, "X", size.x);
+    XMLHelper::writeElement(document, sizeNode, "Y", size.y);
+    emitterElement->InsertEndChild(sizeNode);
+
+    XMLHelper::writeElement(document, emitterElement, "MaxCount", std::to_string(maxCount));
+    XMLHelper::writeElement(document, emitterElement, "LifeTime", std::to_string(lifeTime));
+    XMLHelper::writeElement(document, emitterElement, "ContinuousEmitting", continuousEmit ? "True" : "False");
+    XMLHelper::writeElement(document, emitterElement, "Enabled", enabled ? "True" : "False");
+
+    tinyxml2::XMLElement *maxStartDistancesNode = document.NewElement("MaximumStartDistances");
+    XMLHelper::writeVec3(document, maxStartDistancesNode, maxStartDistances);
+    emitterElement->InsertEndChild(maxStartDistancesNode);
+
+    XMLHelper::writeElement(document, emitterElement, "Texture", texture->getName());
+
+    tinyxml2::XMLElement *timedColorMultipliersNode = document.NewElement("TimedColorMultipliers");
+    for (const TimedColorMultiplier& multiplier : timedColorMultipliers) {
+        tinyxml2::XMLElement *timedColorElement = document.NewElement("TimedColorMultiplier");
+        XMLHelper::writeElement(document, timedColorElement, "R", multiplier.colorMultiplier.x);
+        XMLHelper::writeElement(document, timedColorElement, "G", multiplier.colorMultiplier.y);
+        XMLHelper::writeElement(document, timedColorElement, "B", multiplier.colorMultiplier.z);
+        XMLHelper::writeElement(document, timedColorElement, "A", multiplier.colorMultiplier.w);
+        XMLHelper::writeElement(document, timedColorElement, "Time", std::to_string(multiplier.time));
+        timedColorMultipliersNode->InsertEndChild(timedColorElement);
+    }
+    emitterElement->InsertEndChild(timedColorMultipliersNode);
+
+    if(getParentObject() != nullptr) {
+        const GameObject* parentGO = dynamic_cast<const GameObject*>(getParentObject());
+        if(parentGO != nullptr) {
+            XMLHelper::writeElement(document, emitterElement, "ParentID", parentGO->getWorldObjectID());
+        }
+        if(getParentBoneID() != -1) {
+            XMLHelper::writeElement(document, emitterElement, "ParentBoneID", getParentBoneID());
+        }
+    }
+}
+
+Emitter *Emitter::deserialize(tinyxml2::XMLElement *emitterNode, std::shared_ptr<AssetManager> assetManager,
+                               bool &hasParent, uint32_t &parentID, int32_t &parentBoneID) {
+    hasParent = false;
+
+    std::string maxCountStr;
+    if(!XMLHelper::readRequiredText(emitterNode, "MaxCount", maxCountStr, "Particle emitter must have a maximum particle count.")) {
+        return nullptr;
+    }
+    long maxCount = std::stoul(maxCountStr);
+
+    std::string lifeTimeStr;
+    if(!XMLHelper::readRequiredText(emitterNode, "LifeTime", lifeTimeStr, "Particle emitter must have a life time.")) {
+        return nullptr;
+    }
+    long lifeTime = std::stoul(lifeTimeStr);
+
+    std::string textureFile;
+    if(!XMLHelper::readRequiredText(emitterNode, "Texture", textureFile, "Particle emitter must have a Texture.")) {
+        return nullptr;
+    }
+
+    std::string idStr;
+    if(!XMLHelper::readRequiredText(emitterNode, "ID", idStr, "Particle emitter does not have ID. This is invalid!")) {
+        return nullptr;
+    }
+    long id = std::stoul(idStr);
+
+    bool continuousEmit = true;
+    std::string continuousEmitStr;
+    if(!XMLHelper::readOptionalText(emitterNode, "ContinuousEmitting", continuousEmitStr)) {
+        std::cerr << "Particle emitter does not have Continuous emitting set. Assuming true" << std::endl;
+    } else if(continuousEmitStr == "False") {
+        continuousEmit = false;
+    } else if(continuousEmitStr != "True") {
+        std::cerr << "Continuous emit setting unknown, assuming true " << std::endl;
+    }
+
+    bool enabled = true;
+    std::string enabledStr;
+    if(!XMLHelper::readOptionalText(emitterNode, "Enabled", enabledStr)) {
+        std::cerr << "Particle emitter does not have Enabled set. Assuming true" << std::endl;
+    } else if(enabledStr == "False") {
+        enabled = false;
+    } else if(enabledStr != "True") {
+        std::cerr << "Enabled setting unknown, assuming true " << std::endl;
+    }
+
+    std::string name;
+    if(!XMLHelper::readRequiredText(emitterNode, "Name", name, "Particle emitter does not have Name. This is invalid!")) {
+        return nullptr;
+    }
+
+    glm::vec3 startPosition;
+    tinyxml2::XMLElement* emitterTransformationElement = emitterNode->FirstChildElement("Transformation");
+    if(emitterTransformationElement != nullptr) {
+        tinyxml2::XMLElement* translateEl = emitterTransformationElement->FirstChildElement("Translate");
+        if(translateEl == nullptr || !XMLHelper::readVec3(translateEl, startPosition)) {
+            std::cerr << "Emitter Transformation is missing Translate." << std::endl;
+            return nullptr;
+        }
+    } else {
+        tinyxml2::XMLElement* startPositionEl = emitterNode->FirstChildElement("StartPosition");
+        if (startPositionEl == nullptr) {
+            std::cerr << "Particle Emitter must have a position/direction." << std::endl;
+            return nullptr;
+        }
+        if(!XMLHelper::readVec3(startPositionEl, startPosition)) {
+            return nullptr;
+        }
+    }
+
+    glm::vec3 maxStartDistances;
+    tinyxml2::XMLElement* maxStartDistancesEl = emitterNode->FirstChildElement("MaximumStartDistances");
+    if(maxStartDistancesEl == nullptr || !XMLHelper::readVec3(maxStartDistancesEl, maxStartDistances)) {
+        std::cerr << "Particle Emitter must have a Maximum Start distance." << std::endl;
+        return nullptr;
+    }
+
+    glm::vec2 size(1.0f, 1.0f);
+    tinyxml2::XMLElement* sizeEl = emitterNode->FirstChildElement("Size");
+    size.x = XMLHelper::readFloatOrDefault(sizeEl, "X", 1.0f);
+    size.y = XMLHelper::readFloatOrDefault(sizeEl, "Y", 1.0f);
+
+    glm::vec3 gravity(0,0,0);
+    tinyxml2::XMLElement* gravityEl = emitterNode->FirstChildElement("Gravity");
+    if(gravityEl == nullptr) {
+        std::cout << "Particle Emitter has no gravity." << std::endl;
+    }
+    gravity.x = XMLHelper::readFloatOrDefault(gravityEl, "X", gravity.x);
+    gravity.y = XMLHelper::readFloatOrDefault(gravityEl, "Y", gravity.y);
+    gravity.z = XMLHelper::readFloatOrDefault(gravityEl, "Z", gravity.z);
+
+    glm::vec3 speedMultiplier(1,1,1);
+    tinyxml2::XMLElement* speedMultiplierEl = emitterNode->FirstChildElement("SpeedMultiplier");
+    if(speedMultiplierEl == nullptr) {
+        std::cout << "Particle Emitter has no speedMultiplier." << std::endl;
+    }
+    speedMultiplier.x = XMLHelper::readFloatOrDefault(speedMultiplierEl, "X", speedMultiplier.x);
+    speedMultiplier.y = XMLHelper::readFloatOrDefault(speedMultiplierEl, "Y", speedMultiplier.y);
+    speedMultiplier.z = XMLHelper::readFloatOrDefault(speedMultiplierEl, "Z", speedMultiplier.z);
+
+    glm::vec3 speedOffset(0,0,0);
+    tinyxml2::XMLElement* speedOffsetEl = emitterNode->FirstChildElement("SpeedOffset");
+    if(speedOffsetEl == nullptr) {
+        std::cout << "Particle Emitter has no gravity." << std::endl;
+    }
+    speedOffset.x = XMLHelper::readFloatOrDefault(speedOffsetEl, "X", speedOffset.x);
+    speedOffset.y = XMLHelper::readFloatOrDefault(speedOffsetEl, "Y", speedOffset.y);
+    speedOffset.z = XMLHelper::readFloatOrDefault(speedOffsetEl, "Z", speedOffset.z);
+
+    std::vector<TimedColorMultiplier> multipliers;
+    tinyxml2::XMLElement* timedColorMultipliersEl = emitterNode->FirstChildElement("TimedColorMultipliers");
+    if (timedColorMultipliersEl == nullptr) {
+        std::cout << "Particle Emitter has no Timed color shift." << std::endl;
+    } else {
+        tinyxml2::XMLElement* timedColorMultiplierElement = timedColorMultipliersEl->FirstChildElement("TimedColorMultiplier");
+        while(timedColorMultiplierElement != nullptr) {
+            TimedColorMultiplier timedColorMultiplier;
+            std::string timeStr;
+            if(!XMLHelper::readRequiredText(timedColorMultiplierElement, "Time", timeStr, "time can't be found for timed color multiplier, skipping!")) {
+                timedColorMultiplierElement = timedColorMultiplierElement->NextSiblingElement("TimedColorMultiplier");
+                continue;
+            }
+            timedColorMultiplier.time = std::atol(timeStr.c_str());
+            timedColorMultiplier.colorMultiplier.r = static_cast<unsigned>(XMLHelper::readFloatOrDefault(timedColorMultiplierElement, "R", 255.0f));
+            timedColorMultiplier.colorMultiplier.g = static_cast<unsigned>(XMLHelper::readFloatOrDefault(timedColorMultiplierElement, "G", 255.0f));
+            timedColorMultiplier.colorMultiplier.b = static_cast<unsigned>(XMLHelper::readFloatOrDefault(timedColorMultiplierElement, "B", 255.0f));
+            timedColorMultiplier.colorMultiplier.a = static_cast<unsigned>(XMLHelper::readFloatOrDefault(timedColorMultiplierElement, "A", 255.0f));
+            multipliers.emplace_back(timedColorMultiplier);
+            timedColorMultiplierElement = timedColorMultiplierElement->NextSiblingElement("TimedColorMultiplier");
+        }
+    }
+
+    Emitter* emitter = new Emitter(id, name, assetManager, textureFile, startPosition, maxStartDistances, size, maxCount, lifeTime);
+    if(emitterTransformationElement != nullptr) {
+        emitter->getTransformation()->deserialize(emitterTransformationElement);
+    }
+    emitter->setGravity(gravity);
+    emitter->setSpeedMultiplier(speedMultiplier);
+    emitter->setSpeedOffset(speedOffset);
+    emitter->setTimedColorMultipliers(multipliers);
+    emitter->setContinuousEmit(continuousEmit);
+    emitter->setEnabled(enabled);
+
+    tinyxml2::XMLElement* parentEl = emitterNode->FirstChildElement("ParentID");
+    if(parentEl != nullptr && parentEl->GetText() != nullptr) {
+        parentID = std::stoul(parentEl->GetText());
+        parentBoneID = -1;
+        tinyxml2::XMLElement* parentBoneIDEl = emitterNode->FirstChildElement("ParentBoneID");
+        if(parentBoneIDEl != nullptr && parentBoneIDEl->GetText() != nullptr) {
+            parentBoneID = std::stoi(parentBoneIDEl->GetText());
+        }
+        hasParent = true;
+    }
+
+    return emitter;
 }

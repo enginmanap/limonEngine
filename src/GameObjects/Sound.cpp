@@ -7,6 +7,7 @@
 #include "../ALHelper.h"
 #include "../Assets/SoundAsset.h"
 #include "../../libs/ImGui/imgui.h"
+#include "../XMLHelper.h"
 
 Sound::Sound(uint32_t worldID, std::shared_ptr<AssetManager> assetManager, const std::string &filename)
         : name(filename), worldID(worldID), assetManager(assetManager) {
@@ -226,4 +227,114 @@ ImGuiResult Sound::addImGuiEditorElements(const ImGuiRequest& request) {
     }
 
     return result;
+}
+
+void Sound::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *soundsNode) const {
+    if(temporary) {
+        return;
+    }
+
+    tinyxml2::XMLElement* soundElement = document.NewElement("Sound");
+    soundsNode->InsertEndChild(soundElement);
+
+    XMLHelper::writeElement(document, soundElement, "File", name);
+    XMLHelper::writeElement(document, soundElement, "ID", worldID);
+    XMLHelper::writeElement(document, soundElement, "Gain", gain);
+    XMLHelper::writeElement(document, soundElement, "ReferenceDistance", referenceDistance);
+    XMLHelper::writeElement(document, soundElement, "MaxDistance", maxDistance);
+    XMLHelper::writeElement(document, soundElement, "Looped", looped);
+    XMLHelper::writeElement(document, soundElement, "AutoPlay", autoPlay);
+    XMLHelper::writeElement(document, soundElement, "ListenerRelative", listenerRelative);
+
+    if(getParentBoneID() != -1) {
+        transformation.serializeLocal(document, soundElement);
+    } else {
+        transformation.serialize(document, soundElement);
+    }
+
+    if(getParentObject() != nullptr) {
+        const GameObject* parentGO = dynamic_cast<const GameObject*>(getParentObject());
+        if(parentGO != nullptr) {
+            XMLHelper::writeElement(document, soundElement, "ParentID", parentGO->getWorldObjectID());
+        }
+        if(getParentBoneID() != -1) {
+            XMLHelper::writeElement(document, soundElement, "ParentBoneID", getParentBoneID());
+        }
+    }
+}
+
+Sound *Sound::deserialize(tinyxml2::XMLElement *soundNode, std::shared_ptr<AssetManager> assetManager,
+                           bool &hasParent, uint32_t &parentID, int32_t &parentBoneID) {
+    hasParent = false;
+
+    std::string filePath;
+    if(!XMLHelper::readRequiredText(soundNode, "File", filePath, "Sound entry missing File element, skipping.")) {
+        return nullptr;
+    }
+
+    std::string idStr;
+    if(!XMLHelper::readRequiredText(soundNode, "ID", idStr, "Sound entry missing ID element, skipping.")) {
+        return nullptr;
+    }
+    uint32_t soundID = std::stoul(idStr);
+
+    Sound* sound = new Sound(soundID, assetManager, filePath);
+
+    tinyxml2::XMLElement* gainEl = soundNode->FirstChildElement("Gain");
+    if(gainEl != nullptr && gainEl->GetText() != nullptr) {
+        //Gain is now normalized 0..1. Levels saved before normalization stored it on a 0..1000+ scale;
+        //any value above the normalized max must be legacy, so migrate it on load.
+        float storedGain = std::stof(gainEl->GetText());
+        if(storedGain > 1.0f) {
+            storedGain = storedGain / 1000.0f;
+        }
+        sound->changeGain(storedGain);
+    }
+
+    tinyxml2::XMLElement* refDistEl = soundNode->FirstChildElement("ReferenceDistance");
+    if(refDistEl != nullptr && refDistEl->GetText() != nullptr) {
+        sound->setReferenceDistance(std::stof(refDistEl->GetText()));
+    }
+
+    tinyxml2::XMLElement* maxDistEl = soundNode->FirstChildElement("MaxDistance");
+    if(maxDistEl != nullptr && maxDistEl->GetText() != nullptr) {
+        sound->setMaxDistance(std::stof(maxDistEl->GetText()));
+    }
+
+    tinyxml2::XMLElement* loopedEl = soundNode->FirstChildElement("Looped");
+    if(loopedEl != nullptr && loopedEl->GetText() != nullptr) {
+        sound->setLoop(std::string(loopedEl->GetText()) == "true");
+    }
+
+    tinyxml2::XMLElement* autoPlayEl = soundNode->FirstChildElement("AutoPlay");
+    if(autoPlayEl != nullptr && autoPlayEl->GetText() != nullptr) {
+        sound->setAutoPlay(std::string(autoPlayEl->GetText()) == "true");
+    }
+
+    tinyxml2::XMLElement* listenerRelEl = soundNode->FirstChildElement("ListenerRelative");
+    bool listenerRelative = false;
+    if(listenerRelEl != nullptr && listenerRelEl->GetText() != nullptr) {
+        listenerRelative = std::string(listenerRelEl->GetText()) == "true";
+    }
+
+    tinyxml2::XMLElement* transformEl = soundNode->FirstChildElement("Transformation");
+    if(transformEl != nullptr) {
+        sound->getTransformation()->deserialize(transformEl);
+    }
+
+    glm::vec3 worldPos = glm::vec3(sound->getTransformation()->getWorldTransform()[3]);
+    sound->setWorldPosition(worldPos, listenerRelative);
+
+    tinyxml2::XMLElement* parentEl = soundNode->FirstChildElement("ParentID");
+    if(parentEl != nullptr && parentEl->GetText() != nullptr) {
+        parentID = std::stoul(parentEl->GetText());
+        parentBoneID = -1;
+        tinyxml2::XMLElement* parentBoneIDEl = soundNode->FirstChildElement("ParentBoneID");
+        if(parentBoneIDEl != nullptr && parentBoneIDEl->GetText() != nullptr) {
+            parentBoneID = std::stoi(parentBoneIDEl->GetText());
+        }
+        hasParent = true;
+    }
+
+    return sound;
 }

@@ -10,6 +10,7 @@
 #include <limonAPI/Graphics/GraphicsProgram.h>
 #include <random>
 #include <utility>
+#include <tinyxml2.h>
 #include <Renderable.h>
 #include "../../Assets/TextureAsset.h"
 #include "../../Attachable.h"
@@ -265,5 +266,10 @@ public:
         return result;
     }
 
+    void serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *emittersNode) const;
+
+    // parentID/parentBoneID come back unresolved for WorldLoader::resolvePendingAttachments
+    static Emitter *deserialize(tinyxml2::XMLElement *emitterNode, std::shared_ptr<AssetManager> assetManager,
+                                 bool &hasParent, uint32_t &parentID, int32_t &parentBoneID);
 };
 #endif //LIMONENGINE_EMITTER_H

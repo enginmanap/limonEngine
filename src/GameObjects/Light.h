@@ -7,6 +7,7 @@
 
 
 #include <glm/gtx/norm.hpp>
+#include <tinyxml2.h>
 #include "glm/glm.hpp"
 #include "GameObject.h"
 #include "../Attachable.h"
@@ -313,6 +314,14 @@ public:
     CameraAttachment::ProjectionParameters getProjection() const override {
         return CameraAttachment::ProjectionParameters{};
     }
+
+    void serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *lightsNode) const;
+
+    // lightID comes in pre-resolved - collision reassignment needs World::isIDUsed/getNextObjectID,
+    // which are private to World with WorldLoader as the friend, not us. parentID/parentBoneID are
+    // handed back unresolved for WorldLoader::resolvePendingAttachments to sort out.
+    static Light *deserialize(tinyxml2::XMLElement *lightNode, GraphicsInterface *graphicsWrapper, uint32_t lightID,
+                               bool &hasParent, uint32_t &parentID, int32_t &parentBoneID);
 };
 
 

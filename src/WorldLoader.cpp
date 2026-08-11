@@ -5,6 +5,7 @@
 #include <algorithm>
 
 #include "WorldLoader.h"
+#include "XMLHelper.h"
 #include "GameObjects/Model.h"
 #include "World.h"
 #include "GameObjects/SkyBox.h"
@@ -42,6 +43,29 @@ WorldLoader::WorldLoader(std::shared_ptr<AssetManager> assetManager, InputHandle
         inputHandler(inputHandler),
         profilerSystem(profilerSystem)
 {}
+
+void WorldLoader::resolvePendingAttachments(World *world, const std::vector<PendingAttachment> &pending) {
+    for(const PendingAttachment& pa : pending) {
+        Attachable* parent = world->findAttachableByID(pa.parentID);
+        if(parent != nullptr) {
+            if(pa.parentBoneID != -1) {
+                Model* parentModel = dynamic_cast<Model*>(parent);
+                if(parentModel != nullptr) {
+                    pa.child->setParentObject(parentModel, pa.parentBoneID);
+                    parentModel->addChild(pa.child);
+                    pa.child->getTransformation()->setParentTransform(
+                            parentModel->getAttachmentTransformForKnownBone(pa.parentBoneID));
+                } else {
+                    pa.child->attachTo(parent, pa.parentBoneID);
+                }
+            } else {
+                pa.child->attachTo(parent);
+            }
+        } else {
+            std::cerr << pa.childTypeName << " parent ID " << pa.parentID << " not found, attachment skipped." << std::endl;
+        }
+    }
+}
 
 World * WorldLoader::loadWorld(const std::string &worldFile, LimonAPI *limonAPI) const {
     World* newWorld = loadMapFromXML(worldFile, limonAPI);
@@ -81,12 +105,11 @@ World * WorldLoader::loadMapFromXML(const std::string &worldFileName, LimonAPI *
         return nullptr;
     }
 
-    tinyxml2::XMLElement* worldName =  worldNode->FirstChildElement("Name");
-    if (worldName == nullptr) {
-        std::cerr << "World must have a name." << std::endl;
+    std::string worldNameStr;
+    if(!XMLHelper::readRequiredText(worldNode, "Name", worldNameStr, "World must have a name.")) {
         return nullptr;
     }
-    std::cout << "read name as " << worldName->GetText() << std::endl;
+    std::cout << "read name as " << worldNameStr << std::endl;
 
     tinyxml2::XMLElement* saveVersionElement = worldNode->FirstChildElement("SaveVersion");
     int saveVersion = 1;
@@ -95,10 +118,7 @@ World * WorldLoader::loadMapFromXML(const std::string &worldFileName, LimonAPI *
     }
 
     std::string loadingImageStr;
-    tinyxml2::XMLElement* worldLoadingImage =  worldNode->FirstChildElement("LoadingImage");
-    if (worldLoadingImage != nullptr && worldLoadingImage->GetText() != nullptr) {
-        loadingImageStr = worldLoadingImage->GetText();
-    }
+    XMLHelper::readOptionalText(worldNode, "LoadingImage", loadingImageStr);
 
     tinyxml2::XMLElement* worldStartPlayer =  worldNode->FirstChildElement("Player");
     World::PlayerInfo startingPlayer;
@@ -116,11 +136,11 @@ World * WorldLoader::loadMapFromXML(const std::string &worldFileName, LimonAPI *
 
         tinyxml2::XMLElement* playerStartPosition =  worldStartPlayer->FirstChildElement("Position");
         if(playerStartPosition != nullptr) {
-            loadVec3(playerStartPosition, startingPlayer.position);
+            XMLHelper::readVec3(playerStartPosition, startingPlayer.position);
         }
         tinyxml2::XMLElement* playerStartOrientation =  worldStartPlayer->FirstChildElement("Orientation");
         if(playerStartPosition != nullptr) {
-            loadVec3(playerStartOrientation, startingPlayer.orientation);
+            XMLHelper::readVec3(playerStartOrientation, startingPlayer.orientation);
         }
 
         tinyxml2::XMLElement* playerExtension =  worldStartPlayer->FirstChildElement("ExtensionName");
@@ -153,7 +173,7 @@ World * WorldLoader::loadMapFromXML(const std::string &worldFileName, LimonAPI *
         }
     }
 
-    World* world = new World(std::string(worldName->GetText()), startingPlayer, inputHandler, assetManager, options, profilerSystem);
+    World* world = new World(worldNameStr, startingPlayer, inputHandler, assetManager, options, profilerSystem);
 
 
 
@@ -163,11 +183,10 @@ World * WorldLoader::loadMapFromXML(const std::string &worldFileName, LimonAPI *
 
     // Camera rigs are loaded later (loadCameraRigs), after objects exist, because a rig may attach to one.
 
-    tinyxml2::XMLElement* musicNameNode =  worldNode->FirstChildElement("Music");
-    if (musicNameNode == nullptr) {
+    std::string musicName;
+    if (!XMLHelper::readOptionalText(worldNode, "Music", musicName)) {
         std::cout << "No music found." << std::endl;
     } else {
-        std::string musicName = musicNameNode->GetText();
         std::cout << "reading music as as " << musicName << std::endl;
         //configure here but defer play() to World::loadAndChangeWorld (the "switch to this world" moment)
         world->music = std::make_unique<Sound>(world->getNextObjectID(), assetManager, musicName);
@@ -176,38 +195,29 @@ World * WorldLoader::loadMapFromXML(const std::string &worldFileName, LimonAPI *
         world->music->setWorldPosition(glm::vec3(0,0,0), true);
     }
 
-    tinyxml2::XMLElement* returnCustomWorld =  worldNode->FirstChildElement("QuitResponse");
-    if (returnCustomWorld == nullptr) {
+    std::string quitResponseStr;
+    if (!XMLHelper::readOptionalText(worldNode, "QuitResponse", quitResponseStr)) {
         std::cout << "Return custom world flag can't be read, assuming Quit." << std::endl;
     } else {
-        if(!strcmp(returnCustomWorld->GetText(),"LoadWorld")) {
+        if(quitResponseStr == "LoadWorld") {
             world->currentQuitResponse = World::QuitResponse::LOAD_WORLD;
-        } else if(!strcmp(returnCustomWorld->GetText(),"ReturnPrevious")) {
+        } else if(quitResponseStr == "ReturnPrevious") {
             world->currentQuitResponse = World::QuitResponse::RETURN_PREVIOUS;
-        } else if(!strcmp(returnCustomWorld->GetText(),"QuitGame")) {
+        } else if(quitResponseStr == "QuitGame") {
             world->currentQuitResponse = World::QuitResponse::QUIT_GAME;
         } else {
             std::cerr << "Return custom world flag found but value was unknown. Assuming Quit" << std::endl;
         }
     }
 
-    tinyxml2::XMLElement* quitWorldName =  worldNode->FirstChildElement("QuitWorldName");
-    if (quitWorldName != nullptr) {
-        if(quitWorldName->GetText() != nullptr) {
-            world->quitWorldName =quitWorldName->GetText();
-            strncpy(world->editor->quitWorldNameBuffer, world->quitWorldName.c_str(), sizeof(world->editor->quitWorldNameBuffer) - 1);
-        } else {
-            world->quitWorldName = "";
-            strncpy(world->editor->quitWorldNameBuffer, world->quitWorldName.c_str(), sizeof(world->editor->quitWorldNameBuffer) - 1);
-        }
-    }
+    XMLHelper::readOptionalText(worldNode, "QuitWorldName", world->quitWorldName);
+    strncpy(world->editor->quitWorldNameBuffer, world->quitWorldName.c_str(), sizeof(world->editor->quitWorldNameBuffer) - 1);
 
-    tinyxml2::XMLElement* soundDistanceModelEl = worldNode->FirstChildElement("SoundDistanceModel");
-    if(soundDistanceModelEl != nullptr && soundDistanceModelEl->GetText() != nullptr) {
-        std::string modelStr = soundDistanceModelEl->GetText();
-        if(modelStr == "InverseClamped") {
+    std::string soundDistanceModelStr;
+    if(XMLHelper::readOptionalText(worldNode, "SoundDistanceModel", soundDistanceModelStr)) {
+        if(soundDistanceModelStr == "InverseClamped") {
             world->soundDistanceModel = ALHelper::DistanceModel::INVERSE_CLAMPED;
-        } else if(modelStr == "ExponentClamped") {
+        } else if(soundDistanceModelStr == "ExponentClamped") {
             world->soundDistanceModel = ALHelper::DistanceModel::EXPONENT_CLAMPED;
         } else {
             world->soundDistanceModel = ALHelper::DistanceModel::LINEAR_CLAMPED;
@@ -258,7 +268,7 @@ World * WorldLoader::loadMapFromXML(const std::string &worldFileName, LimonAPI *
 
     loadOnLoadAnimations(worldNode, world);
     Uint64 endTime = SDL2Helper::getTicks();
-    std::cout << "World " << worldName->GetText() << " loaded in " << endTime - currentTime << "ms." << std::endl;
+    std::cout << "World " << worldNameStr << " loaded in " << endTime - currentTime << "ms." << std::endl;
     return world;
 }
 
@@ -990,69 +1000,11 @@ bool WorldLoader::loadSkymap(tinyxml2::XMLNode *skymapNode, World* world) const 
         return false;
     }
 
-    tinyxml2::XMLElement* imagesPath =  skyNode->FirstChildElement("ImagesPath");
-    if (imagesPath == nullptr) {
-        std::cerr << "Sky map must have the root path." << std::endl;
+    SkyBox* sky = SkyBox::deserialize(skyNode, assetManager);
+    if(sky == nullptr) {
         return false;
     }
-
-    std::string path, left, right, top, bottom, front, back;
-    path = imagesPath->GetText();
-
-    tinyxml2::XMLElement* leftNode =  skyNode->FirstChildElement("Left");
-    if (leftNode == nullptr) {
-        std::cerr << "Sky map must have left image name." << std::endl;
-        return false;
-    }
-    left = leftNode->GetText();
-
-    tinyxml2::XMLElement* rightNode =  skyNode->FirstChildElement("Right");
-    if (rightNode == nullptr) {
-        std::cerr << "Sky map must have right image name." << std::endl;
-        return false;
-    }
-    right = rightNode->GetText();
-
-    tinyxml2::XMLElement* topNode =  skyNode->FirstChildElement("Top");
-    if (topNode == nullptr) {
-        std::cerr << "Sky map must have top image name." << std::endl;
-        return false;
-    }
-    top = topNode->GetText();
-
-    tinyxml2::XMLElement* bottomNode =  skyNode->FirstChildElement("Bottom");
-    if (bottomNode == nullptr) {
-        std::cerr << "Sky map must have bottom image name." << std::endl;
-        return false;
-    }
-    bottom = bottomNode->GetText();
-
-    tinyxml2::XMLElement* backNode =  skyNode->FirstChildElement("Back");
-    if (backNode == nullptr) {
-        std::cerr << "Sky map must have back image name." << std::endl;
-        return false;
-    }
-    back = backNode->GetText();
-
-    tinyxml2::XMLElement* frontNode =  skyNode->FirstChildElement("Front");
-    if (frontNode == nullptr) {
-        std::cerr << "Sky map must have front image name." << std::endl;
-        return false;
-    }
-    front = frontNode->GetText();
-
-    int id;
-    tinyxml2::XMLElement* idNode =  skyNode->FirstChildElement("ID");
-    if (idNode == nullptr) {
-        std::cerr << "Sky map must have ID. Can't be loaded." << std::endl;
-        return false;
-    }
-    id = std::stoi(idNode->GetText());
-
-    world->setSky(
-            new SkyBox(id, assetManager, std::string(path), std::string(right), std::string(left),
-                       std::string(top),
-                       std::string(bottom), std::string(back), std::string(front)));
+    world->setSky(sky);
     return true;
 }
 
@@ -1070,37 +1022,16 @@ bool WorldLoader::loadLights(tinyxml2::XMLNode *lightsNode, World* world) const 
         return false;
     }
 
-    Light::LightTypes type;
-    glm::vec3 position;
-    glm::vec3 color;
-    Light *xmlLight;
-    tinyxml2::XMLElement* lightAttribute;
-    tinyxml2::XMLElement* lightAttributeAttribute;
-    float x,y,z;
-    uint32_t lightID;
     while(lightNode != nullptr) {
-        lightAttribute = lightNode->FirstChildElement("Type");
-        if (lightAttribute == nullptr) {
-            std::cerr << "Light must have a type." << std::endl;
-            return false;
-        }
-
-        std::string typeString = lightAttribute->GetText();
-        if (typeString == "POINT") {
-            type = Light::LightTypes::POINT;
-        } else if (typeString == "DIRECTIONAL") {
-            type = Light::LightTypes::DIRECTIONAL;
-        } else {
-            std::cerr << "Light type is not POINT or DIRECTIONAL. it is " << lightAttribute->GetText() << std::endl;
-            return false;
-        }
-
-        lightAttribute =  lightNode->FirstChildElement("ID");
-        if (lightAttribute == nullptr) {
+        // reassignment on collision is lights-only (legacy array-index IDs); needs isIDUsed/getNextObjectID,
+        // which are private to World with WorldLoader as friend, so it stays here instead of in Light::deserialize
+        uint32_t lightID;
+        tinyxml2::XMLElement* idEl = lightNode->FirstChildElement("ID");
+        if (idEl == nullptr) {
             lightID = world->getNextObjectID();
             std::cerr << "Light does not have ID. This is deprecated. Assigning " << lightID << ". Re-save the world to make this permanent." << std::endl;
         } else {
-            lightID = std::stoul(lightAttribute->GetText());
+            lightID = std::stoul(idEl->GetText());
             if (world->isIDUsed(lightID)) {
                 uint32_t newID = world->getNextObjectID();
                 std::cerr << "Light ID " << lightID << " is already in use. Assigning " << newID << ". Re-save the world to make this permanent." << std::endl;
@@ -1108,121 +1039,16 @@ bool WorldLoader::loadLights(tinyxml2::XMLNode *lightsNode, World* world) const 
             }
         }
 
-        tinyxml2::XMLElement* lightTransformationElement = lightNode->FirstChildElement("Transformation");
-        if(lightTransformationElement != nullptr) {
-            tinyxml2::XMLElement* translateEl = lightTransformationElement->FirstChildElement("Translate");
-            if(translateEl == nullptr || !loadVec3(translateEl, position)) {
-                std::cerr << "Light Transformation is missing Translate." << std::endl;
-                return false;
-            }
-        } else {
-            lightAttribute = lightNode->FirstChildElement("Position");
-            if (lightAttribute == nullptr) {
-                std::cerr << "Light must have a position/direction." << std::endl;
-                return false;
-            } else {
-                lightAttributeAttribute = lightAttribute->FirstChildElement("X");
-                if (lightAttributeAttribute != nullptr) {
-                    x = std::stof(lightAttributeAttribute->GetText());
-                } else {
-                    std::cerr << "Light position/direction missing x." << std::endl;
-                    return false;
-                }
-                lightAttributeAttribute = lightAttribute->FirstChildElement("Y");
-                if (lightAttributeAttribute != nullptr) {
-                    y = std::stof(lightAttributeAttribute->GetText());
-                } else {
-                    std::cerr << "Light position/direction missing y." << std::endl;
-                    return false;
-                }
-                lightAttributeAttribute = lightAttribute->FirstChildElement("Z");
-                if (lightAttributeAttribute != nullptr) {
-                    z = std::stof(lightAttributeAttribute->GetText());
-                } else {
-                    std::cerr << "Light position/direction missing z." << std::endl;
-                    return false;
-                }
-            }
-            position.x = x;
-            position.y = y;
-            position.z = z;
+        bool hasParent;
+        uint32_t parentID;
+        int32_t parentBoneID;
+        Light* xmlLight = Light::deserialize(lightNode, graphicsWrapper, lightID, hasParent, parentID, parentBoneID);
+        if(xmlLight == nullptr) {
+            return false;
         }
 
-        lightAttribute = lightNode->FirstChildElement("Color");
-        if (lightAttribute == nullptr) {
-            x = y = z = 1.0f;
-        } else {
-            lightAttributeAttribute = lightAttribute->FirstChildElement("R");
-            if (lightAttributeAttribute != nullptr) {
-                x = std::stof(lightAttributeAttribute->GetText());
-            } else {
-                x = 1.0f;
-            }
-            lightAttributeAttribute = lightAttribute->FirstChildElement("G");
-            if (lightAttributeAttribute != nullptr) {
-                y = std::stof(lightAttributeAttribute->GetText());
-            } else {
-                y = 1.0f;
-            }
-            lightAttributeAttribute = lightAttribute->FirstChildElement("B");
-            if (lightAttributeAttribute != nullptr) {
-                z = std::stof(lightAttributeAttribute->GetText());
-            } else {
-                z = 1.0f;
-            }
-        }
-        color.x = x;
-        color.y = y;
-        color.z = z;
-
-        xmlLight = new Light(graphicsWrapper, lightID, type, position, color);
-
-        if(lightTransformationElement != nullptr) {
-            xmlLight->getTransformation()->deserialize(lightTransformationElement);
-        }
-
-        glm::vec3 attenuation(1, 0.1f, 0.01f);
-        tinyxml2::XMLElement* lightAttenuation =  lightNode->FirstChildElement("Attenuation");
-        if(lightAttenuation != nullptr) {
-            if(loadVec3(lightAttenuation, attenuation)) {
-                xmlLight->setAttenuation(attenuation);
-            }
-        }
-
-        glm::vec3 ambientColor(1, 0.1f, 0.01f);
-        tinyxml2::XMLElement* lightAmbient =  lightNode->FirstChildElement("Ambient");
-        if(lightAmbient != nullptr) {
-            if(loadVec3(lightAmbient, ambientColor)) {
-                xmlLight->setAmbientColor(ambientColor);
-            }
-        }
-
-        tinyxml2::XMLElement* lightParentIDElement = lightNode->FirstChildElement("ParentID");
-        if(lightParentIDElement != nullptr && lightParentIDElement->GetText() != nullptr) {
-            uint32_t parentID = std::stoul(lightParentIDElement->GetText());
-            int32_t parentBoneID = -1;
-            tinyxml2::XMLElement* lightParentBoneIDElement = lightNode->FirstChildElement("ParentBoneID");
-            if(lightParentBoneIDElement != nullptr && lightParentBoneIDElement->GetText() != nullptr) {
-                parentBoneID = std::stoi(lightParentBoneIDElement->GetText());
-            }
-            Attachable* parent = world->findAttachableByID(parentID);
-            if(parent != nullptr) {
-                if(parentBoneID != -1) {
-                    Model* parentModel = dynamic_cast<Model*>(parent);
-                    if(parentModel != nullptr) {
-                        xmlLight->setParentObject(parentModel, parentBoneID);
-                        parentModel->addChild(xmlLight);
-                        xmlLight->getTransformation()->setParentTransform(
-                                parentModel->getAttachmentTransformForKnownBone(parentBoneID));
-                    } else {
-                        xmlLight->attachTo(parent, parentBoneID);
-                    }
-                } else {
-                    xmlLight->attachTo(parent);
-                }
-            } else {
-                std::cerr << "Light parent ID " << parentID << " not found, attachment skipped." << std::endl;
-            }
+        if(hasParent) {
+            resolvePendingAttachments(world, {{xmlLight, parentID, parentBoneID, "Light"}});
         }
 
         world->addLight(xmlLight);
@@ -1238,108 +1064,24 @@ bool WorldLoader::loadSounds(tinyxml2::XMLNode *worldNode, World *world) const {
         return true; // No sounds section — valid for all pre-feature world files.
     }
 
-    struct PendingSound { Sound* sound; uint32_t parentID; int32_t parentBoneID; };
-    std::vector<PendingSound> pendingAttachments;
+    std::vector<PendingAttachment> pendingAttachments;
 
     tinyxml2::XMLElement* soundNode = soundsListNode->FirstChildElement("Sound");
     while(soundNode != nullptr) {
-        tinyxml2::XMLElement* fileEl = soundNode->FirstChildElement("File");
-        if(fileEl == nullptr || fileEl->GetText() == nullptr) {
-            std::cerr << "Sound entry missing File element, skipping." << std::endl;
-            soundNode = soundNode->NextSiblingElement("Sound");
-            continue;
-        }
-        std::string filePath = fileEl->GetText();
-
-        tinyxml2::XMLElement* idEl = soundNode->FirstChildElement("ID");
-        if(idEl == nullptr || idEl->GetText() == nullptr) {
-            std::cerr << "Sound entry missing ID element, skipping." << std::endl;
-            soundNode = soundNode->NextSiblingElement("Sound");
-            continue;
-        }
-        uint32_t soundID = std::stoul(idEl->GetText());
-
-        Sound* sound = new Sound(soundID, assetManager, filePath);
-
-        tinyxml2::XMLElement* gainEl = soundNode->FirstChildElement("Gain");
-        if(gainEl != nullptr && gainEl->GetText() != nullptr) {
-            //Gain is now normalized 0..1. Levels saved before normalization stored it on a 0..1000+ scale;
-            //any value above the normalized max must be legacy, so migrate it on load.
-            float storedGain = std::stof(gainEl->GetText());
-            if(storedGain > 1.0f) {
-                storedGain = storedGain / 1000.0f;
+        bool hasParent;
+        uint32_t parentID;
+        int32_t parentBoneID;
+        Sound* sound = Sound::deserialize(soundNode, assetManager, hasParent, parentID, parentBoneID);
+        if(sound != nullptr) {
+            if(hasParent) {
+                pendingAttachments.push_back({sound, parentID, parentBoneID, "Sound"});
             }
-            sound->changeGain(storedGain);
+            world->addSound(sound);
         }
-
-        tinyxml2::XMLElement* refDistEl = soundNode->FirstChildElement("ReferenceDistance");
-        if(refDistEl != nullptr && refDistEl->GetText() != nullptr) {
-            sound->setReferenceDistance(std::stof(refDistEl->GetText()));
-        }
-
-        tinyxml2::XMLElement* maxDistEl = soundNode->FirstChildElement("MaxDistance");
-        if(maxDistEl != nullptr && maxDistEl->GetText() != nullptr) {
-            sound->setMaxDistance(std::stof(maxDistEl->GetText()));
-        }
-
-        tinyxml2::XMLElement* loopedEl = soundNode->FirstChildElement("Looped");
-        if(loopedEl != nullptr && loopedEl->GetText() != nullptr) {
-            sound->setLoop(std::string(loopedEl->GetText()) == "true");
-        }
-
-        tinyxml2::XMLElement* autoPlayEl = soundNode->FirstChildElement("AutoPlay");
-        if(autoPlayEl != nullptr && autoPlayEl->GetText() != nullptr) {
-            sound->setAutoPlay(std::string(autoPlayEl->GetText()) == "true");
-        }
-
-        tinyxml2::XMLElement* listenerRelEl = soundNode->FirstChildElement("ListenerRelative");
-        bool listenerRelative = false;
-        if(listenerRelEl != nullptr && listenerRelEl->GetText() != nullptr) {
-            listenerRelative = std::string(listenerRelEl->GetText()) == "true";
-        }
-
-        tinyxml2::XMLElement* transformEl = soundNode->FirstChildElement("Transformation");
-        if(transformEl != nullptr) {
-            sound->getTransformation()->deserialize(transformEl);
-        }
-
-        glm::vec3 worldPos = glm::vec3(sound->getTransformation()->getWorldTransform()[3]);
-        sound->setWorldPosition(worldPos, listenerRelative);
-
-        tinyxml2::XMLElement* parentEl = soundNode->FirstChildElement("ParentID");
-        if(parentEl != nullptr && parentEl->GetText() != nullptr) {
-            int32_t parentBoneID = -1;
-            tinyxml2::XMLElement* parentBoneIDEl = soundNode->FirstChildElement("ParentBoneID");
-            if(parentBoneIDEl != nullptr && parentBoneIDEl->GetText() != nullptr) {
-                parentBoneID = std::stoi(parentBoneIDEl->GetText());
-            }
-            pendingAttachments.push_back({sound, std::stoul(parentEl->GetText()), parentBoneID});
-        }
-
-        world->addSound(sound);
         soundNode = soundNode->NextSiblingElement("Sound");
     }
 
-    for(auto& ps : pendingAttachments) {
-        Attachable* parent = world->findAttachableByID(ps.parentID);
-        if(parent != nullptr) {
-            if(ps.parentBoneID != -1) {
-                Model* parentModel = dynamic_cast<Model*>(parent);
-                if(parentModel != nullptr) {
-                    ps.sound->setParentObject(parentModel, ps.parentBoneID);
-                    parentModel->addChild(ps.sound);
-                    ps.sound->getTransformation()->setParentTransform(
-                            parentModel->getAttachmentTransformForKnownBone(ps.parentBoneID));
-                } else {
-                    ps.sound->attachTo(parent, ps.parentBoneID);
-                }
-            } else {
-                ps.sound->attachTo(parent);
-            }
-        } else {
-            std::cerr << "Sound parent ID " << ps.parentID << " not found, attachment skipped." << std::endl;
-        }
-    }
+    resolvePendingAttachments(world, pendingAttachments);
 
     return true;
 }
@@ -1356,93 +1098,27 @@ bool WorldLoader::loadCameraRigs(tinyxml2::XMLNode *worldNode, World *world) con
         activeCameraRigID = std::stoul(activeIDNode->GetText());
     }
 
-    struct PendingCameraRig { CameraRig* rig; uint32_t parentID; int32_t parentBoneID; };
-    std::vector<PendingCameraRig> pendingAttachments;
+    std::vector<PendingAttachment> pendingAttachments;
 
     tinyxml2::XMLElement* cameraRigNode = cameraRigsListNode->FirstChildElement("CameraRig");
     while(cameraRigNode != nullptr) {
-        tinyxml2::XMLElement* typeEl = cameraRigNode->FirstChildElement("Type");
-        tinyxml2::XMLElement* idEl   = cameraRigNode->FirstChildElement("ID");
-        if(typeEl == nullptr || typeEl->GetText() == nullptr || idEl == nullptr || idEl->GetText() == nullptr) {
-            std::cerr << "CameraRig entry missing Type or ID element, skipping." << std::endl;
-            cameraRigNode = cameraRigNode->NextSiblingElement("CameraRig");
-            continue;
-        }
-        std::string rigTypeName = typeEl->GetText();
-        uint32_t rigID = std::stoul(idEl->GetText());
-
-        CameraExtensionInterface* heldAttachment = CameraExtensionInterface::createExtension(rigTypeName, world->apiInstance);
-        if(heldAttachment == nullptr) {
-            std::cerr << "Camera rig type '" << rigTypeName << "' not found. Is the correct plugin loaded? Skipping." << std::endl;
-            cameraRigNode = cameraRigNode->NextSiblingElement("CameraRig");
-            continue;
-        }
-
-        std::vector<LimonTypes::GenericParameter> rigParameters;
-        tinyxml2::XMLElement* parametersNode = cameraRigNode->FirstChildElement("Parameters");
-        if(parametersNode != nullptr) {
-            tinyxml2::XMLElement* parameterNode = parametersNode->FirstChildElement("Parameter");
-            uint32_t index;
-            while(parameterNode != nullptr) {
-                std::shared_ptr<LimonTypes::GenericParameter> request = APISerializer::deserializeParameterRequest(parameterNode, index);
-                if(request != nullptr && index <= rigParameters.size()) {
-                    rigParameters.insert(rigParameters.begin() + index, *request);
-                }
-                parameterNode = parameterNode->NextSiblingElement("Parameter");
+        bool hasParent;
+        uint32_t parentID;
+        int32_t parentBoneID;
+        CameraRig* rig = CameraRig::deserialize(cameraRigNode, world->apiInstance, hasParent, parentID, parentBoneID);
+        if(rig != nullptr) {
+            if(hasParent) {
+                pendingAttachments.push_back({rig, parentID, parentBoneID, "CameraRig"});
             }
-        }
-        heldAttachment->setParameters(rigParameters);
-
-        std::string rigName = rigTypeName + "_" + std::to_string(rigID);
-        tinyxml2::XMLElement* nameEl = cameraRigNode->FirstChildElement("Name");
-        if(nameEl != nullptr && nameEl->GetText() != nullptr) {
-            rigName = nameEl->GetText();
-        }
-
-        std::unique_ptr<CameraRig> cameraRig(new CameraRig(rigID, rigName, heldAttachment));
-
-        tinyxml2::XMLElement* transformEl = cameraRigNode->FirstChildElement("Transformation");
-        if(transformEl != nullptr) {
-            cameraRig->getTransformation()->deserialize(transformEl);
-        }
-
-        tinyxml2::XMLElement* parentEl = cameraRigNode->FirstChildElement("ParentID");
-        if(parentEl != nullptr && parentEl->GetText() != nullptr) {
-            int32_t parentBoneID = -1;
-            tinyxml2::XMLElement* parentBoneIDEl = cameraRigNode->FirstChildElement("ParentBoneID");
-            if(parentBoneIDEl != nullptr && parentBoneIDEl->GetText() != nullptr) {
-                parentBoneID = std::stoi(parentBoneIDEl->GetText());
+            if(rig->getWorldObjectID() == activeCameraRigID) {
+                world->activeCameraRig = rig; // afterLoadFinished activates it once players exist
             }
-            pendingAttachments.push_back({cameraRig.get(), std::stoul(parentEl->GetText()), parentBoneID});
+            world->addCameraRig(std::unique_ptr<CameraRig>(rig));
         }
-
-        if(rigID == activeCameraRigID) {
-            world->activeCameraRig = cameraRig.get(); // afterLoadFinished activates it once players exist
-        }
-        world->addCameraRig(std::move(cameraRig));
         cameraRigNode = cameraRigNode->NextSiblingElement("CameraRig");
     }
 
-    for(auto& pca : pendingAttachments) {
-        Attachable* parent = world->findAttachableByID(pca.parentID);
-        if(parent != nullptr) {
-            if(pca.parentBoneID != -1) {
-                Model* parentModel = dynamic_cast<Model*>(parent);
-                if(parentModel != nullptr) {
-                    pca.rig->setParentObject(parentModel, pca.parentBoneID);
-                    parentModel->addChild(pca.rig);
-                    pca.rig->getTransformation()->setParentTransform(
-                            parentModel->getAttachmentTransformForKnownBone(pca.parentBoneID));
-                } else {
-                    pca.rig->attachTo(parent, pca.parentBoneID);
-                }
-            } else {
-                pca.rig->attachTo(parent);
-            }
-        } else {
-            std::cerr << "CameraRig parent ID " << pca.parentID << " not found, attachment skipped." << std::endl;
-        }
-    }
+    resolvePendingAttachments(world, pendingAttachments);
 
     return true;
 }
@@ -1462,335 +1138,17 @@ bool WorldLoader::loadParticleEmitters(tinyxml2::XMLNode *EmittersNode, World* w
         return false;
     }
 
-    long id;
-    std::string name;
-    glm::vec2 size;
-    long maxCount;
-    long lifeTime;
-    glm::vec3 startPosition;
-    glm::vec3 maxStartDistances;
-    std::string textureFile;
-
-    tinyxml2::XMLElement* emitterAttributeElement;
-    tinyxml2::XMLElement* emitterAttributeAttributeElement;
-
     while(EmitterNode != nullptr) {
-        emitterAttributeElement = EmitterNode->FirstChildElement("MaxCount");
-        if (emitterAttributeElement == nullptr || emitterAttributeElement->GetText() == nullptr) {
-            std::cerr << "Particle emitter must have a maximum particle count." << std::endl;
-            return false;
+        bool hasParent;
+        uint32_t parentID;
+        int32_t parentBoneID;
+        Emitter* emitter = Emitter::deserialize(EmitterNode, assetManager, hasParent, parentID, parentBoneID);
+        if(emitter == nullptr) {
+            return false; // one malformed entry kills the whole list, not just itself
         }
-        std::string maxCountString = emitterAttributeElement->GetText();
-        maxCount = std::stoul(maxCountString);
-
-        emitterAttributeElement = EmitterNode->FirstChildElement("LifeTime");
-        if (emitterAttributeElement == nullptr || emitterAttributeElement->GetText() == nullptr) {
-            std::cerr << "Particle emitter must have a life time." << std::endl;
-            return false;
-        }
-        std::string lifeTimeString = emitterAttributeElement->GetText();
-        lifeTime = std::stoul(lifeTimeString);
-
-
-        emitterAttributeElement = EmitterNode->FirstChildElement("Texture");
-        if (emitterAttributeElement == nullptr || emitterAttributeElement->GetText() == nullptr) {
-            std::cerr << "Particle emitter must have a Texture." << std::endl;
-            return false;
-        }
-        textureFile = emitterAttributeElement->GetText();
-
-
-        emitterAttributeElement =  EmitterNode->FirstChildElement("ID");
-        if (emitterAttributeElement == nullptr || emitterAttributeElement->GetText() == nullptr) {
-            std::cerr << "Particle emitter does not have ID. This is invalid!" << std::endl;
-            return false;
-        } else {
-            id = std::stoul(emitterAttributeElement->GetText());
-        }
-
-        bool continuousEmit = true;
-        emitterAttributeElement =  EmitterNode->FirstChildElement("ContinuousEmitting");
-        if (emitterAttributeElement == nullptr || emitterAttributeElement->GetText() == nullptr) {
-            std::cerr << "Particle emitter does not have Continuous emitting set. Assuming true" << std::endl;
-        } else {
-            if(std::string(emitterAttributeElement->GetText()) == "False") {
-                continuousEmit = false;
-            } else if(std::string(emitterAttributeElement->GetText()) != "True") {
-                std::cerr << "Continuous emit setting unknown, assuming true " << std::endl;
-            }
-        }
-
-        bool enabled = true;
-        emitterAttributeElement =  EmitterNode->FirstChildElement("Enabled");
-        if (emitterAttributeElement == nullptr || emitterAttributeElement->GetText() == nullptr) {
-            std::cerr << "Particle emitter does not have Enabled set. Assuming true" << std::endl;
-        } else {
-            if(std::string(emitterAttributeElement->GetText()) == "False") {
-                enabled = false;
-            } else if(std::string(emitterAttributeElement->GetText()) != "True") {
-                std::cerr << "Enabled setting unknown, assuming true " << std::endl;
-            }
-        }
-
-        emitterAttributeElement =  EmitterNode->FirstChildElement("Name");
-        if (emitterAttributeElement == nullptr || emitterAttributeElement->GetText() == nullptr) {
-            std::cerr << "Particle emitter does not have Name. This is invalid!" << std::endl;
-            return false;
-        } else {
-            name = emitterAttributeElement->GetText();
-        }
-
-        tinyxml2::XMLElement* emitterTransformationElement = EmitterNode->FirstChildElement("Transformation");
-        if(emitterTransformationElement != nullptr) {
-            tinyxml2::XMLElement* translateEl = emitterTransformationElement->FirstChildElement("Translate");
-            if(translateEl == nullptr || !loadVec3(translateEl, startPosition)) {
-                std::cerr << "Emitter Transformation is missing Translate." << std::endl;
-                return false;
-            }
-        } else {
-            emitterAttributeElement = EmitterNode->FirstChildElement("StartPosition");
-            if (emitterAttributeElement == nullptr) {
-                std::cerr << "Particle Emitter must have a position/direction." << std::endl;
-                return false;
-            } else {
-                emitterAttributeAttributeElement = emitterAttributeElement->FirstChildElement("X");
-                if (emitterAttributeAttributeElement != nullptr) {
-                    startPosition.x = std::stof(emitterAttributeAttributeElement->GetText());
-                } else {
-                    std::cerr << "Particle Emitter position/direction missing x." << std::endl;
-                    return false;
-                }
-                emitterAttributeAttributeElement = emitterAttributeElement->FirstChildElement("Y");
-                if (emitterAttributeAttributeElement != nullptr) {
-                    startPosition.y = std::stof(emitterAttributeAttributeElement->GetText());
-                } else {
-                    std::cerr << "Particle Emitter position/direction missing y." << std::endl;
-                    return false;
-                }
-                emitterAttributeAttributeElement = emitterAttributeElement->FirstChildElement("Z");
-                if (emitterAttributeAttributeElement != nullptr) {
-                    startPosition.z = std::stof(emitterAttributeAttributeElement->GetText());
-                } else {
-                    std::cerr << "Particle Emitter position/direction missing z." << std::endl;
-                    return false;
-                }
-            }
-        }
-
-        emitterAttributeElement = EmitterNode->FirstChildElement("MaximumStartDistances");
-        if (emitterAttributeElement == nullptr) {
-            std::cerr << "Particle Emitter must have a Maximum Start distance." << std::endl;
-            return false;
-        } else {
-            emitterAttributeAttributeElement = emitterAttributeElement->FirstChildElement("X");
-            if (emitterAttributeAttributeElement != nullptr) {
-                maxStartDistances.x = std::stof(emitterAttributeAttributeElement->GetText());
-            } else {
-                std::cerr << "Particle Emitter Maximum Start distance missing x." << std::endl;
-                return false;
-            }
-            emitterAttributeAttributeElement = emitterAttributeElement->FirstChildElement("Y");
-            if (emitterAttributeAttributeElement != nullptr) {
-                maxStartDistances.y = std::stof(emitterAttributeAttributeElement->GetText());
-            } else {
-                std::cerr << "Particle Emitter Maximum Start distance missing y." << std::endl;
-                return false;
-            }
-            emitterAttributeAttributeElement = emitterAttributeElement->FirstChildElement("Z");
-            if (emitterAttributeAttributeElement != nullptr) {
-                maxStartDistances.z = std::stof(emitterAttributeAttributeElement->GetText());
-            } else {
-                std::cerr << "Particle Emitter Maximum Start distance missing z." << std::endl;
-                return false;
-            }
-        }
-
-        emitterAttributeElement = EmitterNode->FirstChildElement("Size");
-        if (emitterAttributeElement == nullptr) {
-        } else {
-            emitterAttributeAttributeElement = emitterAttributeElement->FirstChildElement("X");
-            if (emitterAttributeAttributeElement != nullptr) {
-                size.x = std::stof(emitterAttributeAttributeElement->GetText());
-            } else {
-                size.x = 1.0f;
-            }
-            emitterAttributeAttributeElement = emitterAttributeElement->FirstChildElement("Y");
-            if (emitterAttributeAttributeElement != nullptr) {
-                size.y = std::stof(emitterAttributeAttributeElement->GetText());
-            } else {
-                size.y = 1.0f;
-            }
-        }
-
-        glm::vec3 gravity = glm::vec3(0,0,0);
-        emitterAttributeElement = EmitterNode->FirstChildElement("Gravity");
-        if (emitterAttributeElement == nullptr) {
-            std::cout << "Particle Emitter has no gravity." << std::endl;
-        } else {
-            emitterAttributeAttributeElement = emitterAttributeElement->FirstChildElement("X");
-            if (emitterAttributeAttributeElement != nullptr) {
-
-                gravity.x = std::stof(emitterAttributeAttributeElement->GetText());
-            } else {
-                std::cerr << "Particle Emitter gravity missing x." << std::endl;
-            }
-            emitterAttributeAttributeElement = emitterAttributeElement->FirstChildElement("Y");
-            if (emitterAttributeAttributeElement != nullptr) {
-                gravity.y = std::stof(emitterAttributeAttributeElement->GetText());
-            } else {
-                std::cerr << "Particle Emitter gravity missing y." << std::endl;
-            }
-            emitterAttributeAttributeElement = emitterAttributeElement->FirstChildElement("Z");
-            if (emitterAttributeAttributeElement != nullptr) {
-                gravity.z = std::stof(emitterAttributeAttributeElement->GetText());
-            } else {
-                std::cerr << "Particle Emitter gravity missing z." << std::endl;
-            }
-        }
-
-        glm::vec3 speedMultiplier = glm::vec3(1,1,1);
-        emitterAttributeElement = EmitterNode->FirstChildElement("SpeedMultiplier");
-        if (emitterAttributeElement == nullptr) {
-            std::cout << "Particle Emitter has no speedMultiplier." << std::endl;
-        } else {
-            emitterAttributeAttributeElement = emitterAttributeElement->FirstChildElement("X");
-            if (emitterAttributeAttributeElement != nullptr) {
-
-                speedMultiplier.x = std::stof(emitterAttributeAttributeElement->GetText());
-            } else {
-                std::cerr << "Particle Emitter speedMultiplier missing x." << std::endl;
-            }
-            emitterAttributeAttributeElement = emitterAttributeElement->FirstChildElement("Y");
-            if (emitterAttributeAttributeElement != nullptr) {
-                speedMultiplier.y = std::stof(emitterAttributeAttributeElement->GetText());
-            } else {
-                std::cerr << "Particle Emitter speedMultiplier missing y." << std::endl;
-            }
-            emitterAttributeAttributeElement = emitterAttributeElement->FirstChildElement("Z");
-            if (emitterAttributeAttributeElement != nullptr) {
-                speedMultiplier.z = std::stof(emitterAttributeAttributeElement->GetText());
-            } else {
-                std::cerr << "Particle Emitter speedMultiplier missing z." << std::endl;
-            }
-        }
-
-        glm::vec3 speedOffset = glm::vec3(0,0,0);
-        emitterAttributeElement = EmitterNode->FirstChildElement("SpeedOffset");
-        if (emitterAttributeElement == nullptr) {
-            std::cout << "Particle Emitter has no gravity." << std::endl;
-        } else {
-            emitterAttributeAttributeElement = emitterAttributeElement->FirstChildElement("X");
-            if (emitterAttributeAttributeElement != nullptr) {
-
-                speedOffset.x = std::stof(emitterAttributeAttributeElement->GetText());
-            } else {
-                std::cerr << "Particle Emitter speedOffset missing x." << std::endl;
-            }
-            emitterAttributeAttributeElement = emitterAttributeElement->FirstChildElement("Y");
-            if (emitterAttributeAttributeElement != nullptr) {
-                speedOffset.y = std::stof(emitterAttributeAttributeElement->GetText());
-            } else {
-                std::cerr << "Particle Emitter speedOffset missing y." << std::endl;
-            }
-            emitterAttributeAttributeElement = emitterAttributeElement->FirstChildElement("Z");
-            if (emitterAttributeAttributeElement != nullptr) {
-                speedOffset.z = std::stof(emitterAttributeAttributeElement->GetText());
-            } else {
-                std::cerr << "Particle Emitter speedOffset missing z." << std::endl;
-            }
-        }
-
-        std::vector<Emitter::TimedColorMultiplier> multipliers;
-        emitterAttributeElement = EmitterNode->FirstChildElement("TimedColorMultipliers");
-        if (emitterAttributeElement == nullptr) {
-            std::cout << "Particle Emitter has no Timed color shift." << std::endl;
-        } else {
-            tinyxml2::XMLElement* timedColorMultiplierElement = emitterAttributeElement->FirstChildElement("TimedColorMultiplier");
-            while(timedColorMultiplierElement != nullptr) {
-                Emitter::TimedColorMultiplier timedColorMultiplier;
-
-                tinyxml2::XMLElement* colorMultiplierComponentElement = timedColorMultiplierElement->FirstChildElement("Time");
-                if(colorMultiplierComponentElement == nullptr || colorMultiplierComponentElement->GetText() == nullptr) {
-                    std::cerr << "time can't be found for timed color multiplier, skipping!" << std::endl;
-                } else {
-                    timedColorMultiplier.time = std::atol(colorMultiplierComponentElement->GetText());
-
-                    colorMultiplierComponentElement = timedColorMultiplierElement->FirstChildElement("R");
-                    if(colorMultiplierComponentElement == nullptr || colorMultiplierComponentElement->GetText() == nullptr) {
-                        std::cerr << "color R can't be found for timed color multiplier, assuming 255" << std::endl;
-                    } else {
-                        timedColorMultiplier.colorMultiplier.r = std::atoi(colorMultiplierComponentElement->GetText());
-                    }
-
-                    colorMultiplierComponentElement = timedColorMultiplierElement->FirstChildElement("G");
-                    if(colorMultiplierComponentElement == nullptr || colorMultiplierComponentElement->GetText() == nullptr) {
-                        std::cerr << "color G can't be found for timed color multiplier, assuming 255" << std::endl;
-                    } else {
-                        timedColorMultiplier.colorMultiplier.g = std::atoi(colorMultiplierComponentElement->GetText());
-                    }
-
-                    colorMultiplierComponentElement = timedColorMultiplierElement->FirstChildElement("B");
-                    if(colorMultiplierComponentElement == nullptr || colorMultiplierComponentElement->GetText() == nullptr) {
-                        std::cerr << "color B can't be found for timed color multiplier, assuming 255" << std::endl;
-                    } else {
-                        timedColorMultiplier.colorMultiplier.b = std::atoi(colorMultiplierComponentElement->GetText());
-                    }
-
-                    colorMultiplierComponentElement = timedColorMultiplierElement->FirstChildElement("A");
-                    if(colorMultiplierComponentElement == nullptr || colorMultiplierComponentElement->GetText() == nullptr) {
-                        std::cerr << "color A can't be found for timed color multiplier, assuming 255" << std::endl;
-                    } else {
-                        timedColorMultiplier.colorMultiplier.a = std::atoi(colorMultiplierComponentElement->GetText());
-                    }
-
-                    multipliers.emplace_back(timedColorMultiplier);
-                }
-
-                timedColorMultiplierElement = timedColorMultiplierElement->NextSiblingElement("TimedColorMultiplier");
-            }
-
-        }
-
-        std::shared_ptr<Emitter> emitter = std::make_shared<Emitter>(id, name, this->assetManager, textureFile,
-                                                                     startPosition, maxStartDistances, size, maxCount,
-                                                                     lifeTime);
-        if(emitterTransformationElement != nullptr) {
-            emitter->getTransformation()->deserialize(emitterTransformationElement);
-        }
-        emitter->setGravity(gravity);
-        emitter->setSpeedMultiplier(speedMultiplier);
-        emitter->setSpeedOffset(speedOffset);
-        emitter->setTimedColorMultipliers(multipliers);
-        emitter->setContinuousEmit(continuousEmit);
-        emitter->setEnabled(enabled);
-        world->emitters[emitter->getWorldObjectID()] = emitter;
-
-        emitterAttributeElement = EmitterNode->FirstChildElement("ParentID");
-        if(emitterAttributeElement != nullptr && emitterAttributeElement->GetText() != nullptr) {
-            uint32_t parentID = std::stoul(emitterAttributeElement->GetText());
-            int32_t parentBoneID = -1;
-            tinyxml2::XMLElement* emitterParentBoneIDElement = EmitterNode->FirstChildElement("ParentBoneID");
-            if(emitterParentBoneIDElement != nullptr && emitterParentBoneIDElement->GetText() != nullptr) {
-                parentBoneID = std::stoi(emitterParentBoneIDElement->GetText());
-            }
-            Attachable* parent = world->findAttachableByID(parentID);
-            if(parent != nullptr) {
-                if(parentBoneID != -1) {
-                    Model* parentModel = dynamic_cast<Model*>(parent);
-                    if(parentModel != nullptr) {
-                        emitter->setParentObject(parentModel, parentBoneID);
-                        parentModel->addChild(emitter.get());
-                        emitter->getTransformation()->setParentTransform(
-                                parentModel->getAttachmentTransformForKnownBone(parentBoneID));
-                    } else {
-                        emitter->attachTo(parent, parentBoneID);
-                    }
-                } else {
-                    emitter->attachTo(parent);
-                }
-            } else {
-                std::cerr << "Emitter parent ID " << parentID << " not found, attachment skipped." << std::endl;
-            }
+        world->emitters[emitter->getWorldObjectID()] = std::shared_ptr<Emitter>(emitter);
+        if(hasParent) {
+            resolvePendingAttachments(world, {{emitter, parentID, parentBoneID, "Emitter"}});
         }
 
         EmitterNode =  EmitterNode->NextSiblingElement("Emitter");
@@ -1812,295 +1170,12 @@ bool WorldLoader::loadGPUParticleEmitters(tinyxml2::XMLNode *GPUEmittersNode, Wo
         return false;
     }
 
-    long id;
-    std::string name;
-    glm::vec2 size;
-    long maxCount;
-    long lifeTime;
-    glm::vec3 startPosition;
-    glm::vec3 maxStartDistances;
-    std::string textureFile;
-
-    tinyxml2::XMLElement* emitterAttributeElement;
-    tinyxml2::XMLElement* emitterAttributeAttributeElement;
-
     while(gpuEmitterNode != nullptr) {
-        emitterAttributeElement = gpuEmitterNode->FirstChildElement("MaxCount");
-        if (emitterAttributeElement == nullptr || emitterAttributeElement->GetText() == nullptr) {
-            std::cerr << "GPU Particle emitter must have a maximum particle count." << std::endl;
-            return false;
+        GPUParticleEmitter* emitter = GPUParticleEmitter::deserialize(gpuEmitterNode, assetManager);
+        if(emitter == nullptr) {
+            return false; // one malformed entry kills the whole list, not just itself
         }
-        std::string maxCountString = emitterAttributeElement->GetText();
-        maxCount = std::stoul(maxCountString);
-
-        emitterAttributeElement = gpuEmitterNode->FirstChildElement("LifeTime");
-        if (emitterAttributeElement == nullptr || emitterAttributeElement->GetText() == nullptr) {
-            std::cerr << "GPU Particle emitter must have a life time." << std::endl;
-            return false;
-        }
-        std::string lifeTimeString = emitterAttributeElement->GetText();
-        lifeTime = std::stoul(lifeTimeString);
-
-
-        emitterAttributeElement = gpuEmitterNode->FirstChildElement("Texture");
-        if (emitterAttributeElement == nullptr || emitterAttributeElement->GetText() == nullptr) {
-            std::cerr << "GPU Particle emitter must have a Texture." << std::endl;
-            return false;
-        }
-        textureFile = emitterAttributeElement->GetText();
-
-
-        emitterAttributeElement =  gpuEmitterNode->FirstChildElement("ID");
-        if (emitterAttributeElement == nullptr || emitterAttributeElement->GetText() == nullptr) {
-            std::cerr << "GPU Particle emitter does not have ID. This is invalid!" << std::endl;
-            return false;
-        } else {
-            id = std::stoul(emitterAttributeElement->GetText());
-        }
-
-        bool continuousEmit = true;
-        emitterAttributeElement =  gpuEmitterNode->FirstChildElement("ContinuousEmitting");
-        if (emitterAttributeElement == nullptr || emitterAttributeElement->GetText() == nullptr) {
-            std::cerr << "GPU Particle emitter does not have Continuous emitting set. Assuming true" << std::endl;
-        } else {
-            if(std::string(emitterAttributeElement->GetText()) == "False") {
-                continuousEmit = false;
-            } else if(std::string(emitterAttributeElement->GetText()) != "True") {
-                std::cerr << "Continuous emit setting unknown, assuming true " << std::endl;
-            }
-        }
-
-        bool enabled = true;
-        emitterAttributeElement =  gpuEmitterNode->FirstChildElement("Enabled");
-        if (emitterAttributeElement == nullptr || emitterAttributeElement->GetText() == nullptr) {
-            std::cerr << "GPU Particle emitter does not have Enabled set. Assuming true" << std::endl;
-        } else {
-            if(std::string(emitterAttributeElement->GetText()) == "False") {
-                enabled = false;
-            } else if(std::string(emitterAttributeElement->GetText()) != "True") {
-                std::cerr << "Enabled setting unknown, assuming true " << std::endl;
-            }
-        }
-
-        emitterAttributeElement =  gpuEmitterNode->FirstChildElement("Name");
-        if (emitterAttributeElement == nullptr || emitterAttributeElement->GetText() == nullptr) {
-            std::cerr << "GPU Particle emitter does not have Name. This is invalid!" << std::endl;
-            return false;
-        } else {
-            name = emitterAttributeElement->GetText();
-        }
-
-        emitterAttributeElement = gpuEmitterNode->FirstChildElement("StartPosition");
-        if (emitterAttributeElement == nullptr) {
-            std::cerr << "GPU Particle Emitter must have a position/direction." << std::endl;
-            return false;
-        } else {
-            emitterAttributeAttributeElement = emitterAttributeElement->FirstChildElement("X");
-            if (emitterAttributeAttributeElement != nullptr) {
-                startPosition.x = std::stof(emitterAttributeAttributeElement->GetText());
-            } else {
-                std::cerr << "GPU Particle Emitter position/direction missing x." << std::endl;
-                return false;
-            }
-            emitterAttributeAttributeElement = emitterAttributeElement->FirstChildElement("Y");
-            if (emitterAttributeAttributeElement != nullptr) {
-                startPosition.y = std::stof(emitterAttributeAttributeElement->GetText());
-            } else {
-                std::cerr << "GPU Particle Emitter position/direction missing y." << std::endl;
-                return false;
-            }
-            emitterAttributeAttributeElement = emitterAttributeElement->FirstChildElement("Z");
-            if (emitterAttributeAttributeElement != nullptr) {
-                startPosition.z = std::stof(emitterAttributeAttributeElement->GetText());
-            } else {
-                std::cerr << "GPU Particle Emitter position/direction missing z." << std::endl;
-                return false;
-            }
-        }
-
-        emitterAttributeElement = gpuEmitterNode->FirstChildElement("MaximumStartDistances");
-        if (emitterAttributeElement == nullptr) {
-            std::cerr << "GPU Particle Emitter must have a Maximum Start distance." << std::endl;
-            return false;
-        } else {
-            emitterAttributeAttributeElement = emitterAttributeElement->FirstChildElement("X");
-            if (emitterAttributeAttributeElement != nullptr) {
-                maxStartDistances.x = std::stof(emitterAttributeAttributeElement->GetText());
-            } else {
-                std::cerr << "GPU Particle Emitter Maximum Start distance missing x." << std::endl;
-                return false;
-            }
-            emitterAttributeAttributeElement = emitterAttributeElement->FirstChildElement("Y");
-            if (emitterAttributeAttributeElement != nullptr) {
-                maxStartDistances.y = std::stof(emitterAttributeAttributeElement->GetText());
-            } else {
-                std::cerr << "GPU Particle Emitter Maximum Start distance missing y." << std::endl;
-                return false;
-            }
-            emitterAttributeAttributeElement = emitterAttributeElement->FirstChildElement("Z");
-            if (emitterAttributeAttributeElement != nullptr) {
-                maxStartDistances.z = std::stof(emitterAttributeAttributeElement->GetText());
-            } else {
-                std::cerr << "GPU Particle Emitter Maximum Start distance missing z." << std::endl;
-                return false;
-            }
-        }
-
-        emitterAttributeElement = gpuEmitterNode->FirstChildElement("Size");
-        if (emitterAttributeElement == nullptr) {
-        } else {
-            emitterAttributeAttributeElement = emitterAttributeElement->FirstChildElement("X");
-            if (emitterAttributeAttributeElement != nullptr) {
-                size.x = std::stof(emitterAttributeAttributeElement->GetText());
-            } else {
-                size.x = 1.0f;
-            }
-            emitterAttributeAttributeElement = emitterAttributeElement->FirstChildElement("Y");
-            if (emitterAttributeAttributeElement != nullptr) {
-                size.y = std::stof(emitterAttributeAttributeElement->GetText());
-            } else {
-                size.y = 1.0f;
-            }
-        }
-
-        glm::vec3 gravity = glm::vec3(0,0,0);
-        emitterAttributeElement = gpuEmitterNode->FirstChildElement("Gravity");
-        if (emitterAttributeElement == nullptr) {
-            std::cout << "GPU Particle Emitter has no gravity." << std::endl;
-        } else {
-            emitterAttributeAttributeElement = emitterAttributeElement->FirstChildElement("X");
-            if (emitterAttributeAttributeElement != nullptr) {
-
-                gravity.x = std::stof(emitterAttributeAttributeElement->GetText());
-            } else {
-                std::cerr << "GPU Particle Emitter gravity missing x." << std::endl;
-            }
-            emitterAttributeAttributeElement = emitterAttributeElement->FirstChildElement("Y");
-            if (emitterAttributeAttributeElement != nullptr) {
-                gravity.y = std::stof(emitterAttributeAttributeElement->GetText());
-            } else {
-                std::cerr << "GPU Particle Emitter gravity missing y." << std::endl;
-            }
-            emitterAttributeAttributeElement = emitterAttributeElement->FirstChildElement("Z");
-            if (emitterAttributeAttributeElement != nullptr) {
-                gravity.z = std::stof(emitterAttributeAttributeElement->GetText());
-            } else {
-                std::cerr << "GPU Particle Emitter gravity missing z." << std::endl;
-            }
-        }
-
-        glm::vec3 speedMultiplier = glm::vec3(1,1,1);
-        emitterAttributeElement = gpuEmitterNode->FirstChildElement("SpeedMultiplier");
-        if (emitterAttributeElement == nullptr) {
-            std::cout << "GPU Particle Emitter has no speedMultiplier." << std::endl;
-        } else {
-            emitterAttributeAttributeElement = emitterAttributeElement->FirstChildElement("X");
-            if (emitterAttributeAttributeElement != nullptr) {
-
-                speedMultiplier.x = std::stof(emitterAttributeAttributeElement->GetText());
-            } else {
-                std::cerr << "GPU Particle Emitter speedMultiplier missing x." << std::endl;
-            }
-            emitterAttributeAttributeElement = emitterAttributeElement->FirstChildElement("Y");
-            if (emitterAttributeAttributeElement != nullptr) {
-                speedMultiplier.y = std::stof(emitterAttributeAttributeElement->GetText());
-            } else {
-                std::cerr << "GPU Particle Emitter speedMultiplier missing y." << std::endl;
-            }
-            emitterAttributeAttributeElement = emitterAttributeElement->FirstChildElement("Z");
-            if (emitterAttributeAttributeElement != nullptr) {
-                speedMultiplier.z = std::stof(emitterAttributeAttributeElement->GetText());
-            } else {
-                std::cerr << "GPU Particle Emitter speedMultiplier missing z." << std::endl;
-            }
-        }
-
-        glm::vec3 speedOffset = glm::vec3(0,0,0);
-        emitterAttributeElement = gpuEmitterNode->FirstChildElement("SpeedOffset");
-        if (emitterAttributeElement == nullptr) {
-            std::cout << "GPU Particle Emitter has no SpeedOffset." << std::endl;
-        } else {
-            emitterAttributeAttributeElement = emitterAttributeElement->FirstChildElement("X");
-            if (emitterAttributeAttributeElement != nullptr) {
-
-                speedOffset.x = std::stof(emitterAttributeAttributeElement->GetText());
-            } else {
-                std::cerr << "GPU Particle Emitter SpeedOffset missing x." << std::endl;
-            }
-            emitterAttributeAttributeElement = emitterAttributeElement->FirstChildElement("Y");
-            if (emitterAttributeAttributeElement != nullptr) {
-                speedOffset.y = std::stof(emitterAttributeAttributeElement->GetText());
-            } else {
-                std::cerr << "GPU Particle Emitter SpeedOffset missing y." << std::endl;
-            }
-            emitterAttributeAttributeElement = emitterAttributeAttributeElement->FirstChildElement("Z");
-            if (emitterAttributeAttributeElement != nullptr) {
-                speedOffset.z = std::stof(emitterAttributeAttributeElement->GetText());
-            } else {
-                std::cerr << "GPU Particle Emitter SpeedOffset missing z." << std::endl;
-            }
-        }
-
-        std::vector<GPUParticleEmitter::TimedColorMultiplier> multipliers;
-        emitterAttributeElement = gpuEmitterNode->FirstChildElement("TimedColorMultipliers");
-        if (emitterAttributeElement == nullptr) {
-            std::cout << "GPU Particle Emitter has no Timed color shift." << std::endl;
-        } else {
-            tinyxml2::XMLElement* timedColorMultiplierElement = emitterAttributeElement->FirstChildElement("TimedColorMultiplier");
-            while(timedColorMultiplierElement != nullptr) {
-                GPUParticleEmitter::TimedColorMultiplier timedColorMultiplier;
-
-                tinyxml2::XMLElement* colorMultiplierComponentElement = timedColorMultiplierElement->FirstChildElement("Time");
-                if(colorMultiplierComponentElement == nullptr || colorMultiplierComponentElement->GetText() == nullptr) {
-                    std::cerr << "time can't be found for timed color multiplier, skipping!" << std::endl;
-                } else {
-                    timedColorMultiplier.time = std::atol(colorMultiplierComponentElement->GetText());
-
-                    colorMultiplierComponentElement = timedColorMultiplierElement->FirstChildElement("R");
-                    if(colorMultiplierComponentElement == nullptr || colorMultiplierComponentElement->GetText() == nullptr) {
-                        std::cerr << "color R can't be found for timed color multiplier, assuming 255" << std::endl;
-                    } else {
-                        timedColorMultiplier.colorMultiplier.r = std::atoi(colorMultiplierComponentElement->GetText());
-                    }
-
-                    colorMultiplierComponentElement = timedColorMultiplierElement->FirstChildElement("G");
-                    if(colorMultiplierComponentElement == nullptr || colorMultiplierComponentElement->GetText() == nullptr) {
-                        std::cerr << "color G can't be found for timed color multiplier, assuming 255" << std::endl;
-                    } else {
-                        timedColorMultiplier.colorMultiplier.g = std::atoi(colorMultiplierComponentElement->GetText());
-                    }
-
-                    colorMultiplierComponentElement = timedColorMultiplierElement->FirstChildElement("B");
-                    if(colorMultiplierComponentElement == nullptr || colorMultiplierComponentElement->GetText() == nullptr) {
-                        std::cerr << "color B can't be found for timed color multiplier, assuming 255" << std::endl;
-                    } else {
-                        timedColorMultiplier.colorMultiplier.b = std::atoi(colorMultiplierComponentElement->GetText());
-                    }
-
-                    colorMultiplierComponentElement = timedColorMultiplierElement->FirstChildElement("A");
-                    if(colorMultiplierComponentElement == nullptr || colorMultiplierComponentElement->GetText() == nullptr) {
-                        std::cerr << "color A can't be found for timed color multiplier, assuming 255" << std::endl;
-                    } else {
-                        timedColorMultiplier.colorMultiplier.a = std::atoi(colorMultiplierComponentElement->GetText());
-                    }
-
-                    multipliers.emplace_back(timedColorMultiplier);
-                }
-
-                timedColorMultiplierElement = timedColorMultiplierElement->NextSiblingElement("TimedColorMultiplier");
-            }
-        }
-
-        std::shared_ptr<GPUParticleEmitter> emitter = std::make_shared<GPUParticleEmitter>(id, name, this->assetManager, textureFile,
-                                                                     startPosition, maxStartDistances, size, maxCount,
-                                                                     lifeTime, 0);
-        emitter->setGravity(gravity);
-        emitter->setSpeedMultiplier(speedMultiplier);
-        emitter->setSpeedOffset(speedOffset);
-        emitter->setTimedColorMultipliers(multipliers);
-        emitter->setContinuousEmit(continuousEmit);
-        emitter->setEnabled(enabled);
-        world->gpuParticleEmitters[emitter->getWorldObjectID()] = emitter;
+        world->gpuParticleEmitters[emitter->getWorldObjectID()] = std::shared_ptr<GPUParticleEmitter>(emitter);
         gpuEmitterNode =  gpuEmitterNode->NextSiblingElement("GPUEmitter");
     }
     return true;
@@ -2120,21 +1195,17 @@ bool WorldLoader::loadAnimations(tinyxml2::XMLNode *worldNode, World *world) con
         return false;
     }
 
-    tinyxml2::XMLElement* animationAttribute;
     while(loadedAnimationNode != nullptr) {
-        animationAttribute = loadedAnimationNode->FirstChildElement("Name");
-        if (animationAttribute == nullptr) {
-            std::cerr << "Animation must have a name." << std::endl;
+        std::string name;
+        if(!XMLHelper::readRequiredText(loadedAnimationNode, "Name", name, "Animation must have a name.")) {
             return false;
         }
-        std::string name = animationAttribute->GetText();
 
-        animationAttribute = loadedAnimationNode->FirstChildElement("Index");
-        if (animationAttribute == nullptr) {
-            std::cerr << "Animation must have a name." << std::endl;
+        std::string indexStr;
+        if(!XMLHelper::readRequiredText(loadedAnimationNode, "Index", indexStr, "Animation must have a name.")) {
             return false;
         }
-        uint32_t index = std::stoi(animationAttribute->GetText());
+        uint32_t index = std::stoi(indexStr);
 
         AnimationCustom* animation = AnimationLoader::loadAnimation("./Data/Animations/"+ std::string(name) +".xml");
         if(animation == nullptr) {
@@ -2179,24 +1250,7 @@ bool WorldLoader::loadTriggers(tinyxml2::XMLNode *worldNode, World *world) const
             if(triggerParentBoneIDElement != nullptr && triggerParentBoneIDElement->GetText() != nullptr) {
                 parentBoneID = std::stoi(triggerParentBoneIDElement->GetText());
             }
-            Attachable* parent = world->findAttachableByID(parentID);
-            if(parent != nullptr) {
-                if(parentBoneID != -1) {
-                    Model* parentModel = dynamic_cast<Model*>(parent);
-                    if(parentModel != nullptr) {
-                        triggerObject->setParentObject(parentModel, parentBoneID);
-                        parentModel->addChild(triggerObject);
-                        triggerObject->getTransformation()->setParentTransform(
-                                parentModel->getAttachmentTransformForKnownBone(parentBoneID));
-                    } else {
-                        triggerObject->attachTo(parent, parentBoneID);
-                    }
-                } else {
-                    triggerObject->attachTo(parent);
-                }
-            } else {
-                std::cerr << "Trigger parent ID " << parentID << " not found, attachment skipped." << std::endl;
-            }
+            resolvePendingAttachments(world, {{triggerObject, parentID, parentBoneID, "Trigger"}});
         }
 
         triggerNode = triggerNode->NextSiblingElement("Trigger");
@@ -2410,34 +1464,6 @@ bool WorldLoader::loadMaterials(tinyxml2::XMLNode *worldNode, World *world) cons
          material->loadGPUSide(world->assetManager.get());
          material = world->assetManager->getMaterialRegistry().registerMaterial(material);
          world->addPendingMaterialOverride(material);
-    }
-    return true;
-}
-
-bool WorldLoader::loadVec3(tinyxml2::XMLNode *vectorNode, glm::vec3& vector) {
-    if(vectorNode == nullptr) {
-        return false;
-    }
-    tinyxml2::XMLElement *vectorAttributeNode = vectorNode->FirstChildElement("X");
-    if (vectorAttributeNode != nullptr) {
-        vector.x = std::stof(vectorAttributeNode->GetText());
-    } else {
-        std::cerr << "Vector is missing x." << std::endl;
-        return false;
-    }
-    vectorAttributeNode = vectorNode->FirstChildElement("Y");
-    if (vectorAttributeNode != nullptr) {
-        vector.y = std::stof(vectorAttributeNode->GetText());
-    } else {
-        std::cerr << "Vector is missing y." << std::endl;
-        return false;
-    }
-    vectorAttributeNode = vectorNode->FirstChildElement("Z");
-    if (vectorAttributeNode != nullptr) {
-        vector.z = std::stof(vectorAttributeNode->GetText());
-    } else {
-        std::cerr << "Vector is missing z." << std::endl;
-        return false;
     }
     return true;
 }

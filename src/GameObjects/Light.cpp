@@ -4,6 +4,7 @@
 
 #include <glm/ext.hpp>
 #include "Light.h"
+#include "../XMLHelper.h"
 
 
 void Light::setPosition(glm::vec3 position, const Camera* playerCamera) {
@@ -141,4 +142,123 @@ ImGuiResult Light::addImGuiEditorElements(const ImGuiRequest &request) {
     }
 
     return result;
+}
+
+void Light::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *lightsNode) const {
+    tinyxml2::XMLElement *lightElement = document.NewElement("Light");
+    lightsNode->InsertEndChild(lightElement);
+
+    const char* typeStr = "NONE";
+    switch(lightType) {
+        case LightTypes::NONE:        typeStr = "NONE";        break;
+        case LightTypes::DIRECTIONAL: typeStr = "DIRECTIONAL"; break;
+        case LightTypes::POINT:       typeStr = "POINT";       break;
+    }
+    XMLHelper::writeElement(document, lightElement, "Type", typeStr);
+    XMLHelper::writeElement(document, lightElement, "ID", objectID);
+
+    if(getParentBoneID() != -1) {
+        attachTransformation.serializeLocal(document, lightElement);
+    } else {
+        attachTransformation.serialize(document, lightElement);
+    }
+
+    tinyxml2::XMLElement *colorNode = document.NewElement("Color");
+    XMLHelper::writeElement(document, colorNode, "R", color.r);
+    XMLHelper::writeElement(document, colorNode, "G", color.g);
+    XMLHelper::writeElement(document, colorNode, "B", color.b);
+    lightElement->InsertEndChild(colorNode);
+
+    tinyxml2::XMLElement *attenuationNode = document.NewElement("Attenuation");
+    XMLHelper::writeVec3(document, attenuationNode, attenuation);
+    lightElement->InsertEndChild(attenuationNode);
+
+    tinyxml2::XMLElement *ambientNode = document.NewElement("Ambient");
+    XMLHelper::writeVec3(document, ambientNode, ambientColor);
+    lightElement->InsertEndChild(ambientNode);
+
+    if(getParentObject() != nullptr) {
+        const GameObject* parentGO = dynamic_cast<const GameObject*>(getParentObject());
+        if(parentGO != nullptr) {
+            XMLHelper::writeElement(document, lightElement, "ParentID", parentGO->getWorldObjectID());
+        }
+        if(getParentBoneID() != -1) {
+            XMLHelper::writeElement(document, lightElement, "ParentBoneID", getParentBoneID());
+        }
+    }
+}
+
+Light *Light::deserialize(tinyxml2::XMLElement *lightNode, GraphicsInterface *graphicsWrapper, uint32_t lightID,
+                           bool &hasParent, uint32_t &parentID, int32_t &parentBoneID) {
+    hasParent = false;
+
+    std::string typeStr;
+    if(!XMLHelper::readRequiredText(lightNode, "Type", typeStr, "Light must have a type.")) {
+        return nullptr;
+    }
+    LightTypes type;
+    if (typeStr == "POINT") {
+        type = LightTypes::POINT;
+    } else if (typeStr == "DIRECTIONAL") {
+        type = LightTypes::DIRECTIONAL;
+    } else {
+        std::cerr << "Light type is not POINT or DIRECTIONAL. it is " << typeStr << std::endl;
+        return nullptr;
+    }
+
+    glm::vec3 position;
+    tinyxml2::XMLElement* lightTransformationElement = lightNode->FirstChildElement("Transformation");
+    if(lightTransformationElement != nullptr) {
+        tinyxml2::XMLElement* translateEl = lightTransformationElement->FirstChildElement("Translate");
+        if(translateEl == nullptr || !XMLHelper::readVec3(translateEl, position)) {
+            std::cerr << "Light Transformation is missing Translate." << std::endl;
+            return nullptr;
+        }
+    } else {
+        tinyxml2::XMLElement* positionEl = lightNode->FirstChildElement("Position");
+        if (positionEl == nullptr) {
+            std::cerr << "Light must have a position/direction." << std::endl;
+            return nullptr;
+        }
+        if(!XMLHelper::readVec3(positionEl, position)) {
+            return nullptr;
+        }
+    }
+
+    glm::vec3 color;
+    tinyxml2::XMLElement* colorEl = lightNode->FirstChildElement("Color");
+    color.r = XMLHelper::readFloatOrDefault(colorEl, "R", 1.0f);
+    color.g = XMLHelper::readFloatOrDefault(colorEl, "G", 1.0f);
+    color.b = XMLHelper::readFloatOrDefault(colorEl, "B", 1.0f);
+
+    Light* light = new Light(graphicsWrapper, lightID, type, position, color);
+
+    if(lightTransformationElement != nullptr) {
+        light->getTransformation()->deserialize(lightTransformationElement);
+    }
+
+    glm::vec3 attenuation(1, 0.1f, 0.01f);
+    tinyxml2::XMLElement* attenuationEl = lightNode->FirstChildElement("Attenuation");
+    if(attenuationEl != nullptr && XMLHelper::readVec3(attenuationEl, attenuation)) {
+        light->setAttenuation(attenuation);
+    }
+
+    glm::vec3 ambientColor(1, 0.1f, 0.01f);
+    tinyxml2::XMLElement* ambientEl = lightNode->FirstChildElement("Ambient");
+    if(ambientEl != nullptr && XMLHelper::readVec3(ambientEl, ambientColor)) {
+        light->setAmbientColor(ambientColor);
+    }
+
+    tinyxml2::XMLElement* parentEl = lightNode->FirstChildElement("ParentID");
+    if(parentEl != nullptr && parentEl->GetText() != nullptr) {
+        parentID = std::stoul(parentEl->GetText());
+        parentBoneID = -1;
+        tinyxml2::XMLElement* parentBoneIDEl = lightNode->FirstChildElement("ParentBoneID");
+        if(parentBoneIDEl != nullptr && parentBoneIDEl->GetText() != nullptr) {
+            parentBoneID = std::stoi(parentBoneIDEl->GetText());
+        }
+        hasParent = true;
+    }
+
+    return light;
 }
