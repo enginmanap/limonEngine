@@ -10,7 +10,7 @@ out VS_FS {
 } to_fs;
 
 uniform sampler2D positions;
-uniform float size;
+uniform vec3 size;
 
 vec4 unpackFloat(float value) {
     uint rgba = floatBitsToUint(value);
@@ -27,7 +27,8 @@ void main(){
     to_fs.colorMultiplier = unpackFloat(worldPosition.w);
     worldPosition.w = 1.0;
     vec4 cameraCenterPosition = playerTransforms.cameraProjection * worldPosition;
-    cameraCenterPosition.xyz = cameraCenterPosition.xyz + (position.xyz * size);
+    //position.z is always 0 for this quad, so only x/y need the (previously scalar, now per-axis) size scale.
+    cameraCenterPosition.xyz = cameraCenterPosition.xyz + vec3(position.xy * size.xy, 0.0);
 
     gl_Position = cameraCenterPosition;
 }

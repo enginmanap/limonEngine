@@ -91,9 +91,11 @@ void Emitter::addRandomParticle(const glm::vec3 &startPosition, const glm::vec3 
     glm::vec4 position = glm::vec4(startPosition, 0) +
                          glm::vec4(x, y, z, 1);
     positions.emplace_back(position);
+    //meters/second in, divided down here since speeds[] itself is meters/tick
     glm::vec3 speed = glm::vec3(randomSpeedDistribution(randomFloatGenerator) * speedMultiplier.x + speedOffset.x,
                                 randomSpeedDistribution(randomFloatGenerator) * speedMultiplier.y + speedOffset.y,
-                                randomSpeedDistribution(randomFloatGenerator) * speedMultiplier.z + speedOffset.z);
+                                randomSpeedDistribution(randomFloatGenerator) * speedMultiplier.z + speedOffset.z)
+                      / (float) TICK_PER_SECOND;
     speeds.emplace_back(speed);
     creationTime.emplace_back(time);
     //std::cout << "Add particle with position " << position.x << ", " <<position.y << ", " <<position.z << std::endl;
@@ -135,37 +137,41 @@ ImGuiResult Emitter::addImGuiEditorElements(const ImGuiRequest &request) {
         //true means transformation changed, activate rigid body
     }
 
+    if(parentObject != nullptr) {
+        const glm::vec3 worldPosition(this->transformation.getWorldTransform()[3]);
+        ImGui::Text("World Position X: %.3f", worldPosition.x);
+        ImGui::Text("World Position Y: %.3f", worldPosition.y);
+        ImGui::Text("World Position Z: %.3f", worldPosition.z);
+        ImGui::NewLine();
+    }
+
     if(ImGui::Checkbox("Enabled##ParticleEmitter", &enabled)) {
         lastSetupTime = 0;//sets up creation
     }
-    float startPositionValues[3];
-    startPositionValues[0] = transformation.getTranslate().x;
-    startPositionValues[1] = transformation.getTranslate().y;
-    startPositionValues[2] = transformation.getTranslate().z;
-    if(ImGui::InputFloat3("Start Position##ParticleEmitter", startPositionValues)) {
-        transformation.setTranslate(glm::vec3(startPositionValues[0], startPositionValues[1], startPositionValues[2]));
-    }
+
+    ImGui::Text("Active Particles: %ld / %ld", currentCount, maxCount);
 
     float startDistanceValues[3];
     startDistanceValues[0] = maxStartDistances.x;
     startDistanceValues[1] = maxStartDistances.y;
     startDistanceValues[2] = maxStartDistances.z;
-    if(ImGui::InputFloat3("Maximum Start Distances##ParticleEmitter", startDistanceValues)) {
+    if(ImGui::DragFloat3("Maximum Start Distances##ParticleEmitter", startDistanceValues, 0.05f, 0.0f, FLT_MAX)) {
         maxStartDistances.x = startDistanceValues[0];
         maxStartDistances.y = startDistanceValues[1];
         maxStartDistances.z = startDistanceValues[2];
     }
+    ImGui::SameLine();
+    ImGuiHelper::ShowHelpMarker("Half-extent of the box particles randomly spawn within, centered on the emitter.");
 
-    uint32_t maxCountTemp = maxCount;
-    if(ImGui::InputScalar("Maximum particle count##ParticleEmitter", ImGuiDataType_U32, &maxCountTemp)) {
+    int maxCountTemp = (int) maxCount;
+    if(ImGui::DragInt("Maximum particle count##ParticleEmitter", &maxCountTemp, 1, 1, INT_MAX)) {
+        maxCount = maxCountTemp;
         particleDataTexture = std::make_shared<Texture>(this->graphicsWrapper,
                                                         GraphicsInterface::TextureTypes::T2D,
                                                         GraphicsInterface::InternalFormatTypes::RGBA32F,
-                                                        GraphicsInterface::FormatTypes::RGB,
+                                                        GraphicsInterface::FormatTypes::RGBA,
                                                         GraphicsInterface::DataTypes::FLOAT,
                                                         maxCount, 1);
-
-        maxCount = maxCountTemp;
         perMsParticleCount = (float) maxCount / lifeTime;
         currentCount = 0;
         positions.clear();
@@ -173,106 +179,122 @@ ImGuiResult Emitter::addImGuiEditorElements(const ImGuiRequest &request) {
         creationTime.clear();
     }
 
-    uint32_t lifeTimeTemp = lifeTime;
-    if(ImGui::InputScalar("Life time##ParticleEmitter", ImGuiDataType_U32, &lifeTimeTemp)) {
+    int lifeTimeTemp = (int) lifeTime;
+    if(ImGui::DragInt("Life time##ParticleEmitter", &lifeTimeTemp, 10, 1, INT_MAX)) {
         lifeTime = lifeTimeTemp;
+        perMsParticleCount = (float) maxCount / lifeTime;
         lastSetupTime = 0;//sets up creation
     }
 
-    ImGui::DragFloat("Particle per ms##ParticleEmitter", &perMsParticleCount, 0.01);
+    ImGui::Text("Particles per ms: %.3f (Maximum particle count / Life time)", perMsParticleCount);
 
     if(ImGui::Checkbox("Continuous Emitting##ParticleEmitter", &continuousEmit)) {
         lastSetupTime = 0;//sets up creation
     }
 
-    float* sizeValues = glm::value_ptr(size);
-    if(ImGui::InputFloat2("Size##ParticleEmitter", sizeValues)) {
-        size.x = sizeValues[0];
-        size.y = sizeValues[1];
-    }
+    ImGui::DragFloat2("Size##ParticleEmitter", glm::value_ptr(size), 0.01f, 0.01f, FLT_MAX);
 
     float speedOffsetValues[3];
     speedOffsetValues[0] = speedOffset.x;
     speedOffsetValues[1] = speedOffset.y;
     speedOffsetValues[2] = speedOffset.z;
-    if(ImGui::InputFloat3("Speed Offset##ParticleEmitter", speedOffsetValues)) {
+    if(ImGui::DragFloat3("Speed Offset##ParticleEmitter", speedOffsetValues, 0.01f)) {
         speedOffset = glm::vec3(speedOffsetValues[0], speedOffsetValues[1], speedOffsetValues[2]);
     }
+    ImGui::SameLine();
+    ImGuiHelper::ShowHelpMarker("Constant per-axis launch velocity in meters/second (1 world unit = 1 meter), added on top of Speed Multiplier's random spread. See the green arrows in the viewport.");
 
     float speedMultiplierValues[3];
     speedMultiplierValues[0] = speedMultiplier.x;
     speedMultiplierValues[1] = speedMultiplier.y;
     speedMultiplierValues[2] = speedMultiplier.z;
-    if(ImGui::InputFloat3("Speed multiplier##ParticleEmitter", speedMultiplierValues)) {
+    if(ImGui::DragFloat3("Speed multiplier##ParticleEmitter", speedMultiplierValues, 0.01f)) {
         speedMultiplier = glm::vec3(speedMultiplierValues[0], speedMultiplierValues[1], speedMultiplierValues[2]);
     }
+    ImGui::SameLine();
+    ImGuiHelper::ShowHelpMarker("Scales a random per-axis launch velocity in [-1, 1] meters/second before Speed Offset is added -- this is the spread between the min/max green arrows in the viewport.");
 
     float gravityValues[3];
     gravityValues[0] = gravity.x;
     gravityValues[1] = gravity.y;
     gravityValues[2] = gravity.z;
-    if(ImGui::InputFloat3("Gravity##ParticleEmitter", gravityValues)) {
+    if(ImGui::DragFloat3("Gravity##ParticleEmitter", gravityValues, 0.01f)) {
         gravity = glm::vec3(gravityValues[0], gravityValues[1], gravityValues[2]);
     }
-    static int listbox_item_current = -1;
-    ImGui::ListBox("ColorMultipliers##ParticleEmitter", &listbox_item_current, Emitter::getNameForTimedColorMultiplier,
-                   static_cast<void *>(&this->timedColorMultipliers), this->timedColorMultipliers.size(), 10);
-    
-    if(listbox_item_current != -1) {
+    ImGui::SameLine();
+    ImGuiHelper::ShowHelpMarker("Per-axis acceleration in meters/second^2 (e.g. -9.8 for Earth-like gravity on Y).");
+
+    ImGui::NewLine();
+    ImGui::Text("Color Multipliers Over Particle Age");
+    ImGui::SameLine();
+    ImGuiHelper::ShowHelpMarker("Multiplies the sprite's color over each particle's own lifetime -- every particle replays this timeline from its own spawn, not the emitter's age or world clock.");
+
+    static int selectedColorMultiplierIndex = -1;
+    if(selectedColorMultiplierIndex >= (int)timedColorMultipliers.size()) {
+        selectedColorMultiplierIndex = -1;
+    }
+    for (size_t i = 0; i < timedColorMultipliers.size(); ++i) {
+        const TimedColorMultiplier& multiplier = timedColorMultipliers[i];
+        ImVec4 previewColor(multiplier.colorMultiplier.x / 255.0f, multiplier.colorMultiplier.y / 255.0f,
+                            multiplier.colorMultiplier.z / 255.0f, multiplier.colorMultiplier.w / 255.0f);
+        ImGui::ColorButton(("##ColorPreview" + std::to_string(i) + "ParticleEmitter").c_str(), previewColor,
+                           ImGuiColorEditFlags_NoTooltip, ImVec2(20.0f, 20.0f));
+        ImGui::SameLine();
+        std::string label = "Age: " + std::to_string(multiplier.time) + " ms##ParticleEmitter" + std::to_string(i);
+        if(ImGui::Selectable(label.c_str(), selectedColorMultiplierIndex == (int)i)) {
+            selectedColorMultiplierIndex = (int)i;
+        }
+    }
+
+    if(selectedColorMultiplierIndex != -1) {
         ImGui::Indent( 16.0f );
-        TimedColorMultiplier& multiplier = timedColorMultipliers[listbox_item_current];
-        int colorValues[4];
-        colorValues[0] = multiplier.colorMultiplier.x;
-        colorValues[1] = multiplier.colorMultiplier.y;
-        colorValues[2] = multiplier.colorMultiplier.z;
-        colorValues[3] = multiplier.colorMultiplier.w;
-        if(ImGui::DragInt4(("ColorMultiplier##" + std::to_string(listbox_item_current) + "ParticleEmitter").c_str(), colorValues, 1, 0, 255)) {
-            for (int i = 0; i < 4; ++i) {
-                if(colorValues[i] > 255) {
-                    colorValues[i] = 255;
-                } else if(colorValues[i] < 0) {
-                    colorValues[i] = 0;
-                }
-            }
-            multiplier.colorMultiplier.x = colorValues[0];
-            multiplier.colorMultiplier.y = colorValues[1];
-            multiplier.colorMultiplier.z = colorValues[2];
-            multiplier.colorMultiplier.w = colorValues[3];
+        TimedColorMultiplier& multiplier = timedColorMultipliers[selectedColorMultiplierIndex];
+        float colorValues[4];
+        colorValues[0] = multiplier.colorMultiplier.x / 255.0f;
+        colorValues[1] = multiplier.colorMultiplier.y / 255.0f;
+        colorValues[2] = multiplier.colorMultiplier.z / 255.0f;
+        colorValues[3] = multiplier.colorMultiplier.w / 255.0f;
+        if(ImGui::ColorEdit4(("Color##" + std::to_string(selectedColorMultiplierIndex) + "ParticleEmitter").c_str(), colorValues)) {
+            multiplier.colorMultiplier.x = (unsigned int) std::lround(colorValues[0] * 255.0f);
+            multiplier.colorMultiplier.y = (unsigned int) std::lround(colorValues[1] * 255.0f);
+            multiplier.colorMultiplier.z = (unsigned int) std::lround(colorValues[2] * 255.0f);
+            multiplier.colorMultiplier.w = (unsigned int) std::lround(colorValues[3] * 255.0f);
         }
         int minTime, maxTime;
-        if(listbox_item_current == 0) {
+        if(selectedColorMultiplierIndex == 0) {
             minTime = 0;
         } else {
-            minTime = timedColorMultipliers[listbox_item_current-1].time +1;
+            minTime = timedColorMultipliers[selectedColorMultiplierIndex-1].time +1;
         }
 
-        if((size_t)listbox_item_current == timedColorMultipliers.size()-1) {
+        if((size_t)selectedColorMultiplierIndex == timedColorMultipliers.size()-1) {
             maxTime = lifeTime;
         } else {
-            maxTime = timedColorMultipliers[listbox_item_current+1].time -1;
+            maxTime = timedColorMultipliers[selectedColorMultiplierIndex+1].time -1;
         }
 
-        //ImGui::SameLine();
         int time = multiplier.time;
-        if(ImGui::DragInt(("Time##" + std::to_string(listbox_item_current) + "ParticleEmitter").c_str(), &time, 10, minTime, maxTime)) {
+        if(ImGui::DragInt(("Particle Age (ms)##" + std::to_string(selectedColorMultiplierIndex) + "ParticleEmitter").c_str(), &time, 10, minTime, maxTime)) {
             if(time > maxTime) {
                 time = maxTime;
             } else if(time < minTime) {
                 time = minTime;
-                time = minTime;
             }
             multiplier.time = time;
         }
-        if(ImGui::Button(("Remove Timed Color Shift##" + std::to_string(listbox_item_current) + "ParticleEmitter").c_str())) {
-            timedColorMultipliers.erase(timedColorMultipliers.begin()+listbox_item_current);
+        ImGui::SameLine();
+        ImGuiHelper::ShowHelpMarker("Milliseconds since this particle was created -- each particle replays this timeline from its own spawn, not the emitter's age or world clock.");
+
+        if(ImGui::Button(("Remove Timed Color Shift##" + std::to_string(selectedColorMultiplierIndex) + "ParticleEmitter").c_str())) {
+            timedColorMultipliers.erase(timedColorMultipliers.begin()+selectedColorMultiplierIndex);
+            selectedColorMultiplierIndex = -1;
         }
-        //At this point, the multiplier is invalid because of the removal, must verify
         ImGui::Unindent( 16.0f );
     }
 
-    if(ImGui::Button(("Add Timed Color Shift##" + std::to_string(listbox_item_current) + "ParticleEmitter").c_str())) {
+    if(ImGui::Button(("Add Timed Color Shift##" + std::to_string(selectedColorMultiplierIndex) + "ParticleEmitter").c_str())) {
         TimedColorMultiplier multiplier;
-        if(listbox_item_current < 0) {
+        if(selectedColorMultiplierIndex < 0) {
             if(timedColorMultipliers.empty()) {
                 multiplier.time = 0;
             } else {
@@ -281,9 +303,9 @@ ImGuiResult Emitter::addImGuiEditorElements(const ImGuiRequest &request) {
             }
             timedColorMultipliers.emplace_back(multiplier);
         } else {
-            multiplier.colorMultiplier = timedColorMultipliers[listbox_item_current].colorMultiplier;
-            multiplier.time            = timedColorMultipliers[listbox_item_current].time +1;
-            timedColorMultipliers.insert(timedColorMultipliers.begin() + listbox_item_current+1, multiplier);
+            multiplier.colorMultiplier = timedColorMultipliers[selectedColorMultiplierIndex].colorMultiplier;
+            multiplier.time            = timedColorMultipliers[selectedColorMultiplierIndex].time +1;
+            timedColorMultipliers.insert(timedColorMultipliers.begin() + selectedColorMultiplierIndex+1, multiplier);
         }
     }
 
@@ -294,21 +316,188 @@ ImGuiResult Emitter::addImGuiEditorElements(const ImGuiRequest &request) {
     return imGuiResult;
 }
 
- bool Emitter::getNameForTimedColorMultiplier(void* data, int index, const char** outText) {
-    std::vector<TimedColorMultiplier> multipliers = *static_cast<std::vector<TimedColorMultiplier>*>(data);
-    if(index < 0 || (uint32_t)index >= multipliers.size()) {
-        return false;
+void Emitter::drawDebugLine(Logger *logger, uint32_t &bufferId, const glm::vec3 &from, const glm::vec3 &to, const glm::vec3 &color) const {
+    //first segment creates the buffer; every later segment appends to the same one.
+    if(bufferId == 0) {
+        bufferId = logger->drawLine(from, to, color, color, true);
+    } else {
+        logger->drawLine(bufferId, from, to, color, color, true);
     }
-    auto it = multipliers.begin();
-    for (int i = 0; i < index; ++i) {
-        it++;
-    }
-     char tempTextBuffer[128] = {0};//used for editor text buffer
+}
 
-    std::string timeString = std::to_string(it->time);
-    std::copy(timeString.begin(), timeString.end(), tempTextBuffer);
-    *outText = tempTextBuffer;
-    return true;
+void Emitter::drawDebugBox(Logger *logger, uint32_t &bufferId, const glm::vec3 &boxMin, const glm::vec3 &boxMax, const glm::vec3 &color) const {
+    glm::vec3 corners[8];
+    for (int i = 0; i < 8; ++i) {
+        corners[i] = glm::vec3((i & 1) ? boxMax.x : boxMin.x,
+                               (i & 2) ? boxMax.y : boxMin.y,
+                               (i & 4) ? boxMax.z : boxMin.z);
+    }
+    //edges connect corners that differ in exactly one bit
+    static const int edgePairs[12][2] = {{0,1},{0,2},{0,4},{1,3},{1,5},{2,3},
+                                         {2,6},{3,7},{4,5},{4,6},{5,7},{6,7}};
+    for (int edgeIndex = 0; edgeIndex < 12; ++edgeIndex) {
+        drawDebugLine(logger, bufferId, corners[edgePairs[edgeIndex][0]], corners[edgePairs[edgeIndex][1]], color);
+    }
+}
+
+void Emitter::drawDebugArrow(Logger *logger, uint32_t &bufferId, const glm::vec3 &from, const glm::vec3 &to, const glm::vec3 &color) const {
+    drawDebugLine(logger, bufferId, from, to, color);
+    glm::vec3 direction = to - from;
+    float length = glm::length(direction);
+    if(length < 1e-5f) {
+        return;//zero vector, nothing to put an arrowhead on
+    }
+    direction /= length;
+    glm::vec3 helperAxis = (std::abs(direction.y) < 0.99f) ? glm::vec3(0,1,0) : glm::vec3(1,0,0);
+    glm::vec3 perpendicular = glm::normalize(glm::cross(direction, helperAxis));
+    const float headLength = glm::min(length * 0.25f, 0.3f);
+    const float headWidth = headLength * 0.5f;
+    glm::vec3 headBase = to - direction * headLength;
+    drawDebugLine(logger, bufferId, to, headBase + perpendicular * headWidth, color);
+    drawDebugLine(logger, bufferId, to, headBase - perpendicular * headWidth, color);
+}
+
+float Emitter::trajectoryDisplacement(float v0, float gravityAxis, float k, float ticksPerSecond) {
+    return v0 * k / ticksPerSecond + gravityAxis * k * (k - 1.0f) / (2.0f * ticksPerSecond * ticksPerSecond);
+}
+
+void Emitter::trajectoryRangeAtAge(float v0Min, float v0Max, float gravityAxis, float k, float ticksPerSecond, float &outMin, float &outMax) {
+    float atV0Min = trajectoryDisplacement(v0Min, gravityAxis, k, ticksPerSecond);
+    float atV0Max = trajectoryDisplacement(v0Max, gravityAxis, k, ticksPerSecond);
+    outMin = glm::min(atV0Min, atV0Max);
+    outMax = glm::max(atV0Min, atV0Max);
+}
+
+float Emitter::expectedTrajectorySpeed(float k, float ticksPerSecond) const {
+    return glm::length(speedOffset + gravity * (k / ticksPerSecond));
+}
+
+float Emitter::ageAtArcLength(const std::vector<float> &cumulativeArcLength, int integrationSamples, float stepCount, float targetArcLength) {
+    int i = 0;
+    while(i < integrationSamples && cumulativeArcLength[i + 1] < targetArcLength) {
+        ++i;
+    }
+    float segmentStart = cumulativeArcLength[i];
+    float segmentEnd = cumulativeArcLength[i + 1];
+    float t = (segmentEnd > segmentStart) ? (targetArcLength - segmentStart) / (segmentEnd - segmentStart) : 0.0f;
+    float kStart = stepCount * (float) i / (float) integrationSamples;
+    float kEnd = stepCount * (float) (i + 1) / (float) integrationSamples;
+    return kStart + t * (kEnd - kStart);
+}
+
+void Emitter::renderDebugVisualization(Logger *logger, uint32_t &bufferId) const {
+    if(bufferId != 0) {
+        logger->clearLineBuffer(bufferId);
+        bufferId = 0;
+    }
+
+    const glm::vec3 worldPosition(this->transformation.getWorldTransform()[3]);
+    const glm::vec3 positionMarkerColor(1.0f, 1.0f, 0.0f);//yellow
+    const glm::vec3 spawnBoxColor(0.0f, 1.0f, 1.0f);//cyan
+    const glm::vec3 velocityColor(0.0f, 1.0f, 0.0f);//green
+    const glm::vec3 trajectoryHullColor(1.0f, 0.5f, 0.0f);//orange
+
+    //1) where the emitter is
+    const float markerHalfSize = 0.15f;
+    drawDebugLine(logger, bufferId, worldPosition - glm::vec3(markerHalfSize, 0, 0), worldPosition + glm::vec3(markerHalfSize, 0, 0), positionMarkerColor);
+    drawDebugLine(logger, bufferId, worldPosition - glm::vec3(0, markerHalfSize, 0), worldPosition + glm::vec3(0, markerHalfSize, 0), positionMarkerColor);
+    drawDebugLine(logger, bufferId, worldPosition - glm::vec3(0, 0, markerHalfSize), worldPosition + glm::vec3(0, 0, markerHalfSize), positionMarkerColor);
+
+    //2) where particles spawn. addRandomParticle never rotates this offset by the emitter's orientation
+    const glm::vec3 spawnBoxMin = worldPosition - maxStartDistances;
+    const glm::vec3 spawnBoxMax = worldPosition + maxStartDistances;
+    drawDebugBox(logger, bufferId, spawnBoxMin, spawnBoxMax, spawnBoxColor);
+
+    //3) which way they start moving: min/average/max. 1 world unit = 1 meter, so the raw vector already reads as meters covered in one second
+    const glm::vec3 velocityMin = speedOffset - speedMultiplier;
+    const glm::vec3 velocityAvg = speedOffset;
+    const glm::vec3 velocityMax = speedOffset + speedMultiplier;
+    drawDebugArrow(logger, bufferId, worldPosition, worldPosition + velocityMin, velocityColor);
+    drawDebugArrow(logger, bufferId, worldPosition, worldPosition + velocityAvg, velocityColor);
+    drawDebugArrow(logger, bufferId, worldPosition, worldPosition + velocityMax, velocityColor);
+
+    //4) volume particles sweep through after spawn: convex hull of sampled per-age boxes, not a single AABB,
+    //since a particle can't sit at every axis' extreme at once. N assumes World::play's locked timestep.
+    const float ticksPerSecond = (float) TICK_PER_SECOND;
+    const float stepCount = std::round((float) lifeTime * ticksPerSecond / 1000.0f);
+    if(stepCount > 0.0f) {
+        //cumulative arc length of the mean trajectory, used only to bias slice placement toward where it moves fastest
+        const int integrationSamples = (int) glm::clamp(stepCount, 1.0f, 512.0f);
+        std::vector<float> cumulativeArcLength(integrationSamples + 1, 0.0f);
+        for (int i = 1; i <= integrationSamples; ++i) {
+            const float kPrev = stepCount * (float) (i - 1) / (float) integrationSamples;
+            const float kCurr = stepCount * (float) i / (float) integrationSamples;
+            cumulativeArcLength[i] = cumulativeArcLength[i - 1] + expectedTrajectorySpeed((kPrev + kCurr) * 0.5f, ticksPerSecond) * (kCurr - kPrev) / ticksPerSecond;
+        }
+        const float totalArcLength = cumulativeArcLength[integrationSamples];
+
+        const int hullSliceCount = 8;
+        std::vector<float> sliceAges;
+        sliceAges.reserve(hullSliceCount + 3);
+        for (int i = 0; i < hullSliceCount; ++i) {
+            if(totalArcLength > 1e-6f) {
+                const float targetArcLength = totalArcLength * (float) i / (float) (hullSliceCount - 1);
+                sliceAges.push_back(ageAtArcLength(cumulativeArcLength, integrationSamples, stepCount, targetArcLength));
+            } else {
+                //expected trajectory barely moves (near-zero speedOffset and gravity): fall back to even spacing
+                sliceAges.push_back(stepCount * (float) i / (float) (hullSliceCount - 1));
+            }
+        }
+
+        //only forced in if the turning point actually falls within the particle's life
+        for (int axis = 0; axis < 3; ++axis) {
+            const float gravityAxis = gravity[axis];
+            if(std::abs(gravityAxis) > 1e-6f) {
+                const float turningAge = 0.5f - speedOffset[axis] * ticksPerSecond / gravityAxis;
+                if(turningAge > 0.0f && turningAge < stepCount) {
+                    sliceAges.push_back(turningAge);
+                }
+            }
+        }
+        std::sort(sliceAges.begin(), sliceAges.end());
+
+        //merges ages within 1% of stepCount of each other (e.g. a forced turning point landing next to a sample)
+        const float ageMergeTolerance = stepCount * 0.01f;
+        std::vector<float> dedupedSliceAges;
+        dedupedSliceAges.reserve(sliceAges.size());
+        for (size_t i = 0; i < sliceAges.size(); ++i) {
+            if(dedupedSliceAges.empty() || (sliceAges[i] - dedupedSliceAges.back()) >= ageMergeTolerance) {
+                dedupedSliceAges.push_back(sliceAges[i]);
+            }
+        }
+
+        //8 corners per slice age, the exact extremes of that age's box, all fed into one hull
+        std::vector<glm::vec3> hullPoints;
+        hullPoints.reserve(dedupedSliceAges.size() * 8);
+        for (size_t sliceIndex = 0; sliceIndex < dedupedSliceAges.size(); ++sliceIndex) {
+            const float age = dedupedSliceAges[sliceIndex];
+            glm::vec3 sliceMin, sliceMax;
+            for (int axis = 0; axis < 3; ++axis) {
+                float rangeMin, rangeMax;
+                trajectoryRangeAtAge(velocityMin[axis], velocityMax[axis], gravity[axis], age, ticksPerSecond, rangeMin, rangeMax);
+                sliceMin[axis] = spawnBoxMin[axis] + rangeMin;
+                sliceMax[axis] = spawnBoxMax[axis] + rangeMax;
+            }
+            for (int corner = 0; corner < 8; ++corner) {
+                hullPoints.emplace_back((corner & 1) ? sliceMax.x : sliceMin.x,
+                                        (corner & 2) ? sliceMax.y : sliceMin.y,
+                                        (corner & 4) ? sliceMax.z : sliceMin.z);
+            }
+        }
+
+        btConvexHullComputer hullComputer;
+        hullComputer.compute(glm::value_ptr(hullPoints[0]), sizeof(glm::vec3), (int) hullPoints.size(), 0.0f, 0.0f);
+        const btConvexHullComputer::Edge* edgeArrayBase = &hullComputer.edges[0];
+        for (int i = 0; i < hullComputer.edges.size(); ++i) {
+            const btConvexHullComputer::Edge &edge = hullComputer.edges[i];
+            const int reverseIndex = (int) (edge.getReverseEdge() - edgeArrayBase);
+            if(i < reverseIndex) {//draw each undirected edge exactly once
+                const glm::vec3 from = GLMConverter::BltToGLM(hullComputer.vertices[edge.getSourceVertex()]);
+                const glm::vec3 to = GLMConverter::BltToGLM(hullComputer.vertices[edge.getTargetVertex()]);
+                drawDebugLine(logger, bufferId, from, to, trajectoryHullColor);
+            }
+        }
+    }
 }
 
 float Emitter::calculateTimedColorShift(const long time, const long particleCreateTime) {

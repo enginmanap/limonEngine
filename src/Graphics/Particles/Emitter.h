@@ -10,10 +10,13 @@
 #include <limonAPI/Graphics/GraphicsProgram.h>
 #include <random>
 #include <utility>
+#include <vector>
 #include <tinyxml2.h>
 #include <Renderable.h>
 #include "../../Assets/TextureAsset.h"
 #include "../../Attachable.h"
+
+class Logger;
 
 class Emitter : public Renderable, public GameObject, public Attachable {
 public:
@@ -21,7 +24,7 @@ public:
         glm::uvec4 colorMultiplier = glm::uvec4(255,255,255,255);
         long time;
     };
-    ~Emitter() {
+    ~Emitter() override {
         if(parentObject != nullptr) {
             detach();
         }
@@ -70,7 +73,20 @@ private:
 
     float calculateTimedColorShift(const long time, const long particleCreateTime);
 
-    static bool getNameForTimedColorMultiplier(void *data, int index, const char **outText);
+    void drawDebugLine(Logger *logger, uint32_t &bufferId, const glm::vec3 &from, const glm::vec3 &to, const glm::vec3 &color) const;
+
+    void drawDebugBox(Logger *logger, uint32_t &bufferId, const glm::vec3 &boxMin, const glm::vec3 &boxMax, const glm::vec3 &color) const;
+
+    void drawDebugArrow(Logger *logger, uint32_t &bufferId, const glm::vec3 &from, const glm::vec3 &to, const glm::vec3 &color) const;
+
+    //must mirror setupForTime's own accumulation, or the two silently diverge
+    static float trajectoryDisplacement(float v0, float gravityAxis, float k, float ticksPerSecond);
+
+    static void trajectoryRangeAtAge(float v0Min, float v0Max, float gravityAxis, float k, float ticksPerSecond, float &outMin, float &outMax);
+
+    float expectedTrajectorySpeed(float k, float ticksPerSecond) const;
+
+    static float ageAtArcLength(const std::vector<float> &cumulativeArcLength, int integrationSamples, float stepCount, float targetArcLength);
 
 public:
     Emitter(long worldObjectId, std::string name, std::shared_ptr<AssetManager> assetManager,
@@ -117,7 +133,8 @@ public:
             float colorShift = calculateTimedColorShift(time, creationTime[i]);
             positions[i].w = colorShift;
             positions[i] = positions[i] + glm::vec4(speeds[i], 0);
-            speeds[i] +=(gravity/60.0f);
+            //gravity needs /(T*T), not /T: two integration steps (accel to velocity to position), vs Speed Offset/Multiplier's one
+            speeds[i] +=(gravity/((float)TICK_PER_SECOND*(float)TICK_PER_SECOND));
             if(!removalSet && ((time - this->creationTime[i]) > lifeTime )) {
                 removalStart = i;
                 removalSet = true;
@@ -152,7 +169,7 @@ public:
         graphicsWrapper->attachTexture((int) texture->getTextureID(), graphicsWrapper->getMaxTextureImageUnits() - 4);
         renderProgram->setUniform("positions", graphicsWrapper->getMaxTextureImageUnits() - 5);
         graphicsWrapper->attachTexture((int) particleDataTexture->getTextureID(), graphicsWrapper->getMaxTextureImageUnits() - 5);
-        renderProgram->setUniform("size", size.x);
+        renderProgram->setUniform("size", glm::vec3(size.x, size.y, 1.0f));
         graphicsWrapper->renderInstanced(renderProgram->getID(), vao, ebo, 3 * 2, currentCount);
     }
 
@@ -240,6 +257,9 @@ public:
     }
 
     ImGuiResult addImGuiEditorElements(const ImGuiRequest &request [[gnu::unused]]) override;
+
+    //bufferId is owned by the caller (Editor), not this object, so it can be cleared on deselect
+    void renderDebugVisualization(Logger *logger, uint32_t &bufferId) const;
 
     static float packToFloat(glm::uvec4 vec) {
         uint8_t values[4];

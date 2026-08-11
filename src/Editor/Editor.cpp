@@ -3,6 +3,7 @@
 //
 
 #include <cmath>
+#include <climits>
 #include <Assets/Animations/AnimationLoader.h>
 #include "Editor.h"
 #include "PreviewRenderer.h"
@@ -969,7 +970,7 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
             ImGui::Unindent( 16.0f );
         }
         if (ImGui::CollapsingHeader("Add Particle Emitter ##The header")) {
-            this->addParticleEmitterEditor();
+            this->addParticleEmitterEditor(newObjectPosition);
         }
 
         if (ImGui::CollapsingHeader("Custom Animations")) {
@@ -1489,6 +1490,12 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
             ImGuiResult objectEditorResult = this->pickedObject->addImGuiEditorElements(*this->request);
             this->request->alteredMaterial = nullptr;
             this->request->materialSelectedInList = nullptr;
+            Emitter* pickedEmitter = dynamic_cast<Emitter*>(this->pickedObject);
+            if(pickedEmitter != nullptr) {
+                pickedEmitter->renderDebugVisualization(world->options->getLogger(), this->particleEmitterDebugLineBufferId);
+            } else {
+                clearParticleEmitterDebugBuffer();
+            }
             if (objectEditorResult.selectedMeshMaterial != nullptr) {
                 //the list is drawn before this, so it picks this up next frame
                 selectedMeshMaterial = objectEditorResult.selectedMeshMaterial;
@@ -1864,104 +1871,6 @@ bool Editor::buildFilteredVisibleIDs(PhysicalRenderable *physicalRenderable, con
         return true;
     }
     return false;
-}
-
-void Editor::buildCopyIDRemap(Attachable* source, bool recursive, std::unordered_map<uint32_t, uint32_t>& idRemap) {
-    GameObject* sourceGameObject = dynamic_cast<GameObject*>(source);
-    if (sourceGameObject == nullptr) {
-        std::cerr << "Editor::buildCopyIDRemap: an Attachable that isn't a GameObject can't be copied, skipping." << std::endl;
-        return;
-    }
-    idRemap[sourceGameObject->getWorldObjectID()] = world->getNextObjectID();
-    if (recursive) {
-        for (Attachable* child : source->getChildren()) {
-            buildCopyIDRemap(child, true, idRemap);
-        }
-    }
-}
-
-Attachable* Editor::copyAttachableRecursive(Attachable* source, Attachable* newParent, bool recursive,
-                                            const std::unordered_map<uint32_t, uint32_t>& idRemap) {
-    GameObject* sourceGameObject = dynamic_cast<GameObject*>(source);
-    if (sourceGameObject == nullptr) {
-        return nullptr; // already warned by buildCopyIDRemap
-    }
-    uint32_t newObjectID = idRemap.at(sourceGameObject->getWorldObjectID());
-    Attachable* newObj = source->clone(newObjectID, world->apiInstance, idRemap);
-    if (newObj == nullptr) {
-        std::cerr << "Editor::copyAttachable: copying is not supported for object " << sourceGameObject->getWorldObjectID()
-                   << " (" << sourceGameObject->getName() << "), skipping." << std::endl;
-        world->unusedIDs.push(newObjectID);
-        return nullptr;
-    }
-
-    // World registration is inherently type-specific — World stores each type in a different
-    // container — this mirrors the exact call shape Editor already uses when creating each type
-    // from scratch (see the "Add Object" panel handlers for Model/Light/Sound/CameraRig/Emitter,
-    // and the trigger-add handler for TriggerObject).
-    if (Model* newModel = dynamic_cast<Model*>(newObj)) {
-        Model* sourceModel = dynamic_cast<Model*>(source);
-        if (sourceModel->getAI() != nullptr) {
-            uint32_t newAIID = world->getNextObjectID();
-            ActorInterface* newActor = ActorInterface::createActor(sourceModel->getAI()->getName(), newAIID, world->apiInstance);
-            if (newActor != nullptr) {
-                std::vector<LimonTypes::GenericParameter> aiParameters = sourceModel->getAI()->getParameters();
-                APISerializer::remapObjectReferenceParameters(aiParameters, idRemap);
-                newActor->setParameters(aiParameters);
-                newActor->setModel(newModel->getWorldObjectID());
-                newModel->attachAI(newActor);
-                world->addActor(newActor);
-            } else {
-                world->unusedIDs.push(newAIID);
-            }
-        }
-
-        world->addModelToWorld(newModel);
-        newModel->getRigidBody()->activate();
-
-        if (world->onLoadAnimations.find(sourceModel) != world->onLoadAnimations.end() &&
-                world->activeAnimations.find(sourceModel) != world->activeAnimations.end()) {
-            world->apiAccessor->addAnimationToObject(newModel->getWorldObjectID(),
-                                                     world->activeAnimations[sourceModel]->animationIndex, true, true);
-        }
-    } else if (Light* newLight = dynamic_cast<Light*>(newObj)) {
-        world->addLight(newLight);
-    } else if (CameraRig* newRig = dynamic_cast<CameraRig*>(newObj)) {
-        world->addCameraRig(std::unique_ptr<CameraRig>(newRig));
-    } else if (Sound* newSound = dynamic_cast<Sound*>(newObj)) {
-        world->addSound(newSound);
-    } else if (Emitter* newEmitter = dynamic_cast<Emitter*>(newObj)) {
-        world->emitters[newEmitter->getWorldObjectID()] = std::shared_ptr<Emitter>(newEmitter);
-    } else if (GPUParticleEmitter* newGPUEmitter = dynamic_cast<GPUParticleEmitter*>(newObj)) {
-        world->gpuParticleEmitters[newGPUEmitter->getWorldObjectID()] = std::shared_ptr<GPUParticleEmitter>(newGPUEmitter);
-    } else if (TriggerObject* newTrigger = dynamic_cast<TriggerObject*>(newObj)) {
-        world->triggers[newTrigger->getWorldObjectID()] = newTrigger;
-        world->dynamicsWorld->addCollisionObject(newTrigger->getGhostObject(),
-                                                 World::CollisionTypes::COLLIDE_TRIGGER_VOLUME | World::CollisionTypes::COLLIDE_EVERYTHING,
-                                                 World::CollisionTypes::COLLIDE_PLAYER | World::CollisionTypes::COLLIDE_EVERYTHING);
-    } else {
-        std::cerr << "Editor::copyAttachable: object " << sourceGameObject->getName() << " has clone() but no registration path in the editor, it will leak." << std::endl;
-    }
-
-    if (newParent != nullptr) {
-        //newObj currently sits at source's world position (from clone()); attachTo derives the local
-        //offset from that, keeping the same world position under newParent.
-        newObj->attachTo(newParent, source->getParentBoneID());
-    }
-
-    if (recursive) {
-        for (Attachable* child : source->getChildren()) {
-            copyAttachableRecursive(child, newObj, true, idRemap);
-        }
-    }
-
-    return newObj;
-}
-
-Attachable* Editor::copyAttachable(Attachable* source, bool recursive) {
-    std::unordered_map<uint32_t, uint32_t> idRemap;
-    buildCopyIDRemap(source, recursive, idRemap);
-    return copyAttachableRecursive(source, nullptr, recursive, idRemap);
 }
 
 void Editor::buildCopyIDRemap(Attachable* source, bool recursive, std::unordered_map<uint32_t, uint32_t>& idRemap) {
@@ -2792,7 +2701,7 @@ void Editor::addGUILayerControls() {
     }
 }
 
-void Editor::addParticleEmitterEditor() {
+void Editor::addParticleEmitterEditor(const glm::vec3 &newObjectPosition) {
     /**
      * For a new GUI Image we need only name and filename
      */
@@ -2808,16 +2717,15 @@ void Editor::addParticleEmitterEditor() {
                                       &selectedAsset, ImGuiHelper::PreviewMode::Preview);
     static char particleEmitterName[32] = {0};
     ImGui::InputText("Particle Emitter Name", particleEmitterName, sizeof(particleEmitterName), ImGuiInputTextFlags_CharsNoBlank);
-    static glm::vec3 startPosition;
-    ImGui::InputFloat3("Particle Emitter Position", glm::value_ptr(startPosition));
-    static float startSphereR;
-    ImGui::InputFloat("Particle Emitter radius", &startSphereR);
-    static int maxCount;
-    ImGui::InputInt("Maximum particle count", &maxCount);
-    static int lifeTime;
-    ImGui::InputInt("Particle life time", &lifeTime);
-    static glm::vec2 size;
-    ImGui::InputFloat2("Particle size", glm::value_ptr(size));
+    //defaults matched to Model/Light/Sound/TriggerObject: spawn at newObjectPosition, reposition afterward via the gizmo.
+    static float startSphereR = 1.0f;
+    ImGui::DragFloat("Particle Emitter radius", &startSphereR, 0.1f, 0.0f, FLT_MAX);
+    static int maxCount = 100;
+    ImGui::DragInt("Maximum particle count", &maxCount, 1, 1, INT_MAX);
+    static int lifeTime = 2000;
+    ImGui::DragInt("Particle life time", &lifeTime, 10, 1, INT_MAX);
+    static glm::vec2 size = glm::vec2(1.0f, 1.0f);
+    ImGui::DragFloat2("Particle size", glm::value_ptr(size), 0.01f, 0.01f, FLT_MAX);
 
     if(selectedAsset == nullptr) {
         ImGui::Button("Add Particle Emitter");
@@ -2830,7 +2738,7 @@ void Editor::addParticleEmitterEditor() {
     } else {
         if (ImGui::Button("Add Particle Emitter")) {
             std::shared_ptr<Emitter> newEmitter = std::make_shared<Emitter>(world->getNextObjectID(), particleEmitterName, world->assetManager, selectedAsset->fullPath,
-                                                                            startPosition, glm::vec3(startSphereR, startSphereR, startSphereR), size, maxCount,
+                                                                            newObjectPosition, glm::vec3(startSphereR, startSphereR, startSphereR), size, maxCount,
                                                                             lifeTime);
             world->emitters[newEmitter->getWorldObjectID()] = (newEmitter);
         }
@@ -3261,5 +3169,16 @@ void Editor::update(InputHandler &inputHandler) {
             world->handleQuitRequest();
             return;
         }
+    }
+}
+
+void Editor::onEditorDisabled() {
+    clearParticleEmitterDebugBuffer();
+}
+
+void Editor::clearParticleEmitterDebugBuffer() {
+    if(particleEmitterDebugLineBufferId != 0) {
+        world->options->getLogger()->clearLineBuffer(particleEmitterDebugLineBufferId);
+        particleEmitterDebugLineBufferId = 0;
     }
 }

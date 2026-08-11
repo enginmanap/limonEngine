@@ -93,6 +93,11 @@ class Editor {
     //the panel is going away for another reason. The alteration stands, we just let go of it
     void releaseAlteredMaterialEdit();
 
+    //owns the Logger line buffer previewing a picked Emitter's spawn volume/velocity/despawn extents
+    uint32_t particleEmitterDebugLineBufferId = 0;
+
+    void clearParticleEmitterDebugBuffer();
+
 public:
     bool showNodeGraph = false;
     PipelineExtension *pipelineExtension = nullptr;
@@ -134,12 +139,15 @@ public:
     void addGUIButtonControls();
     void addGUIAnimationControls();
     void addGUILayerControls();
-    void addParticleEmitterEditor();
+    void addParticleEmitterEditor(const glm::vec3 &newObjectPosition);
     void addSkyBoxControls();
     void drawNodeEditor();
     void createNodeGraph();
 
     void update(InputHandler &inputHandler);
+
+    //called by World::switchPlayer when leaving editor mode
+    void onEditorDisabled();
 
 private:
     // Allows copying asseet trees (if recursive), uses clone method from attachable

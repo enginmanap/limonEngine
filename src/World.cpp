@@ -1373,6 +1373,7 @@ void World::switchPlayer(Player *targetPlayer, InputHandler &inputHandler) {
         for (auto objectIt = disconnectedModels.begin(); objectIt != disconnectedModels.end(); ++objectIt) {
             apiAccessor->disconnectObjectFromPhysics(*objectIt);
         }
+        editor->onEditorDisabled();
     }
 
     currentPlayersSettings = &(targetPlayer->getWorldSettings());
