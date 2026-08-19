@@ -348,15 +348,20 @@ ALHelper::PlayingSound::~PlayingSound() {
     if(source != 0) { //if 0 it means requested and removed before start playing
         alSourceStop(source);
         ALenum error;
-        ALint val;
+        ALint val = 0;
         ALuint tempBuffers[NUM_BUFFERS];
 
         alGetSourcei(source, AL_BUFFERS_PROCESSED, &val);
-
-
-        alSourceUnqueueBuffers(source, val, tempBuffers);
         if ((error = alGetError()) != AL_NO_ERROR) {
-            std::cerr << "Error sound source unqueue before delete! " << alGetString(error) << std::endl;
+            std::cerr << "Error querying processed buffers before delete! " << alGetString(error) << std::endl;
+            val = 0; //don't trust it, nothing to unqueue safely
+        }
+
+        if (val > 0) {
+            alSourceUnqueueBuffers(source, val, tempBuffers);
+            if ((error = alGetError()) != AL_NO_ERROR) {
+                std::cerr << "Error sound source unqueue before delete! " << alGetString(error) << std::endl;
+            }
         }
 
         alDeleteBuffers(NUM_BUFFERS, buffers);
@@ -376,6 +381,9 @@ ALHelper::~ALHelper() {
     this->running = false;
     this->paused = false;
     delete soundThread;
+
+    playingSounds.clear(); //must run while ctx is still current
+    playRequests.clear();
 
     dev = alcGetContextsDevice(ctx);
     alcMakeContextCurrent(NULL);
