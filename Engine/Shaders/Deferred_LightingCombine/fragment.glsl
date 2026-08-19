@@ -53,7 +53,7 @@ void main()
     vec3 normal = unpackNormal(texture(pre_gNormalMap, from_vs.textureCoordinates).xy);
     vec4 albedoSpec = texture(pre_gAlbedoSpecMap, from_vs.textureCoordinates);
     vec3 albedo = albedoSpec.rgb;
-    int materialIndex = int(albedoSpec.a * 255.0);
+    int materialIndex = int(albedoSpec.a * 255.0 + 0.5);//8 bit round trip, truncating here lands us on the previous material
 
     // Retrieve material information from constant buffer
     float shininess = AllMaterialsArray.materials[materialIndex].shininess;
