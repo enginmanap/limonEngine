@@ -87,6 +87,7 @@ namespace OptionsUtil {
                 if (!isSet) {
                     std::cerr << "Option " << value->description << " is not set" << std::endl;
                 }
+                longValues->clear();//we reuse the cached vector, without this every call appends another copy of the same values
                 for(long i=1; i < value->value.longValues[0];++i) {
                     longValues->emplace_back(value->value.longValues[i]);
                 }
@@ -98,6 +99,7 @@ namespace OptionsUtil {
                 if (!isSet) {
                     return defaultValue;
                 }
+                longValues->clear();
                 for(long i=1; i < value->value.longValues[0];++i) {
                     longValues->emplace_back(value->value.longValues[i]);
                 }
@@ -122,6 +124,7 @@ namespace OptionsUtil {
                 if (!isSet) {
                     std::cerr << "Option " << value->description << " is not set" << std::endl;
                 }
+                floatValues->clear();
                 for(long i=1; i < value->value.floatValues[0];++i) {
                     floatValues->emplace_back(value->value.floatValues[i]);
                 }
@@ -133,6 +136,7 @@ namespace OptionsUtil {
                 if (!isSet) {
                     return defaultValue;
                 }
+                floatValues->clear();
                 for(long i=1; i < value->value.floatValues[0];++i) {
                     floatValues->emplace_back(value->value.floatValues[i]);
                 }
