@@ -3155,7 +3155,7 @@ void Editor::loadNodeGraphFile(const std::string &fileName) {
         }
         return;
     }
-
+    pipelineExtension->setNodeGraphValid(true);//reconcile should decide if invalid
     reconcileNodeTypes(newNodeGraph, this->pipelineExtension, nodeTypeVector);
 
     delete this->nodeGraph;
