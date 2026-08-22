@@ -26,8 +26,11 @@
 
 
 class MeshAsset {
+public:
+    static constexpr uint32_t LOD_LEVEL_COUNT = 4;
+private:
     uint32_t vao, ebo;
-    uint32_t triangleCount[4], offsets[4], vertexCount;
+    uint32_t triangleCount[LOD_LEVEL_COUNT], offsets[LOD_LEVEL_COUNT], vertexCount;
     glm::vec4 minAABB, maxAABB;
 
     std::vector<glm::vec3> vertices;
@@ -77,13 +80,21 @@ public:
      */
     void loadGPUPart(AssetManager *assetManager);
 
-    // always returns 4 elements
+    // always returns LOD_LEVEL_COUNT elements
     const uint32_t *getTriangleCount() const {
         return triangleCount;
     }
 
     const uint32_t *getOffsets() const{
         return offsets;
+    }
+
+    uint32_t getSimplestLodLevel(uint32_t requestedLodLevel) const {
+        uint32_t lodLevel = requestedLodLevel < LOD_LEVEL_COUNT ? requestedLodLevel : LOD_LEVEL_COUNT - 1;
+        while (lodLevel > 0 && triangleCount[lodLevel] == 0) {//simplification can bottom out at zero triangles
+            lodLevel--;
+        }
+        return lodLevel;
     }
 
     uint32_t getVao() const { return vao; }

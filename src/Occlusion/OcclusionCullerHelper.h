@@ -95,7 +95,7 @@ public:
             //sdocSet(sdocInstance, SDOC_BeforeQueryTreatTrueAsCulled, 0);
             //unsigned int debugPrintActiveOccluder = 0;
             //sdocSync(sdocInstance, SDOC_SetPrintLogInGame, &debugPrintActiveOccluder); // Print to console
-            sdocSync(sdocInstance, SDOC_RenderMode, SDOC_RenderMode_Full);
+            sdocSet(sdocInstance, SDOC_RenderMode, SDOC_RenderMode_Full);
         }
 
         extractForOpenGL(cameraMatrix, projectionMatrix);
@@ -125,20 +125,23 @@ public:
         }
     }
 
-    void renderOccluder(const Model* model) {
+    void renderOccluder(const Model* model, uint32_t requestedLodLevel) {
         for (size_t i = 0; i < model->getMeshMetaData().size(); ++i) {
-            renderOccluder(model->getMeshMetaData()[i], model->getTransformation()->getWorldTransform());
+            renderOccluder(model->getMeshMetaData()[i], model->getTransformation()->getWorldTransform(), requestedLodLevel);
         }
     }
 
-    void renderOccluder(const Model::MeshMeta* meshMeta, const glm::mat4 &modelMatrix) {
+    void renderOccluder(const Model::MeshMeta* meshMeta, const glm::mat4 &modelMatrix, uint32_t requestedLodLevel) {
+        uint32_t lodLevel = meshMeta->mesh->getSimplestLodLevel(requestedLodLevel);
         const uint32_t *triangleCounts = meshMeta->mesh->getTriangleCount();
-        size_t vertCount = meshMeta->mesh->getVertices().size();
-        size_t idxCount = triangleCounts[0] * 3;//first LOD
+        const uint32_t *offsets = meshMeta->mesh->getOffsets();
+        size_t vertCount = meshMeta->mesh->getVertices().size();//lod indices still address the full vertex buffer
+        size_t idxCount = triangleCounts[lodLevel] * 3;
 
         sdocRenderOccluder(sdocInstance,
             &(meshMeta->mesh->getVertices().data()->x),
-            (const unsigned short *)&(meshMeta->mesh->getFaces().data()->x),
+            //offsets are in index units, so cast before adding
+            (const unsigned short *)&(meshMeta->mesh->getFaces().data()->x) + offsets[lodLevel],
             vertCount,
             idxCount,
             glm::value_ptr(modelMatrix),

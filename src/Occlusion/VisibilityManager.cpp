@@ -259,6 +259,8 @@ void VisibilityManager::fillVisibleObjectPerCamera(const VisibilityRequest* visi
     PROFILE_VISIBILITY("fillVisibleObjectPerCamera");
     ZoneNameV(___tracy_scoped_zone, visibilityRequest->camera->getName().c_str(), visibilityRequest->camera->getName().size());
     std::vector<long> lodDistances = visibilityRequest->lodDistancesOption.get();
+    //occluders want the cheapest geometry we have, getLodLevel never goes past this either
+    uint32_t occluderLodLevel = lodDistances.empty() ? 0 : static_cast<uint32_t>(lodDistances.size() - 1);
     float skipRenderDistance = 0, skipRenderSize = 0, maxSkipRenderSize = 0;
     float objectAverageDepth;
     float objectScreenSize;
@@ -349,7 +351,7 @@ void VisibilityManager::fillVisibleObjectPerCamera(const VisibilityRequest* visi
                                 }
                                 occluderCounter += meshMetas.size();
                                 if (runOcclusion) {
-                                    visibilityRequest->occlusionCuller.renderOccluder(currentModel);
+                                    visibilityRequest->occlusionCuller.renderOccluder(currentModel, occluderLodLevel);
                                     //std::cout << currentModel->getName() << ":" << " is occluder " << std::endl;
                                 }
                                 for (auto& meshMeta:meshMetas) {
@@ -380,7 +382,7 @@ void VisibilityManager::fillVisibleObjectPerCamera(const VisibilityRequest* visi
                                         }
                                         occluderCounter++;
                                         if (runOcclusion) {
-                                            visibilityRequest->occlusionCuller.renderOccluder(meshMeta, currentModel->getTransformation()->getWorldTransform());
+                                            visibilityRequest->occlusionCuller.renderOccluder(meshMeta, currentModel->getTransformation()->getWorldTransform(), occluderLodLevel);
                                         }
                                         visibilityEntry.second.addMeshMaterial(meshMeta->material, meshMeta->mesh, currentModel, lod, objectAverageDepth);
                                     } else {
