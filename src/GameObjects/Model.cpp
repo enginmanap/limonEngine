@@ -521,7 +521,8 @@ ImGuiResult Model::addImGuiEditorElements(const ImGuiRequest &request) {
         if(ImGui::BeginListBox("Meshes##ModelObject")) {
             for (size_t i = 0; i < meshMetaData.size(); ++i) {
                 isSelected = selectedIndex == static_cast<int32_t>(i);
-                if (ImGui::Selectable((meshMetaData[i]->mesh->getName() + " -> " + meshMetaData[i]->material->getName()).c_str(), isSelected)) {
+                //assimp keeps the source name on both halves of a split mesh, so only the index keeps the ids apart
+                if (ImGui::Selectable((meshMetaData[i]->mesh->getName() + " -> " + meshMetaData[i]->material->getName() + "##meshMaterial" + std::to_string(i)).c_str(), isSelected)) {
                     if (selectedIndex != static_cast<int32_t>(i)) { //means selection changed, trigger material change on main window
                         result.selectedMeshMaterial = meshMetaData[i]->material;
                     }

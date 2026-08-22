@@ -6,6 +6,8 @@
 #include <unordered_set>
 #include <limits>
 
+#include <assimp/config.h>
+
 #include "ModelAsset.h"
 #include "../Utils/GLMUtils.h"
 #include "Animations/AnimationAssimp.h"
@@ -50,6 +52,7 @@ void ModelAsset::loadCPUPart() {
     const aiScene *scene;
     Assimp::Importer assimpImporter;
     assimpImporter.SetPropertyBool("AI_CONFIG_IMPORT_FBX_EMBEDDED_TEXTURES_LEGACY_NAMING", true);
+    assimpImporter.SetPropertyInteger(AI_CONFIG_PP_SLM_VERTEX_LIMIT, 65536);//faces are u16vec3, a bigger submesh wraps its indices and scrambles the mesh
     unsigned int flags = (aiProcess_GlobalScale|aiProcess_GenBoundingBoxes | aiProcess_FlipUVs | aiProcessPreset_TargetRealtime_MaxQuality);
 #ifdef ASSIMP_VALIDATE_WORKAROUND
     flags = flags & ~aiProcess_FindInvalidData;
