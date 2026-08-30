@@ -21,6 +21,6 @@ void main(void) {
 
     calculateWorldPositionAndNormal(position, normal, boneIDs, boneWeights, to_fs.fragPos, to_fs.normal);
 
-    to_fs.materialIndex = int(instance.models[gl_InstanceID].y);
+    to_fs.materialIndex = int(getModelIndexEntry().y);
     gl_Position = playerTransforms.cameraProjection * vec4(to_fs.fragPos, 1.0);
 }

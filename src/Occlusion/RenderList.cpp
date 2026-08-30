@@ -59,9 +59,39 @@ void RenderList::removeModelFromAll(uint32_t modelId) {
     }
 }
 
+/**
+ * Uploads the batch model indexes, and renders the batch
+ *
+ * Sharing AnimationState and Material state as minor optimisation, so next batch don't need to
+ * set them again if no change
+ */
+void RenderList::processRenderBatch(GraphicsInterface *graphicsWrapper, const std::shared_ptr<GraphicsProgram> &renderProgram, bool forceNotAnimated,
+                            bool &lastAnimationState, std::shared_ptr<const Material> &lastMaterial) const {
+    if (pendingDraws.empty()) {
+        return;
+    }
+    graphicsWrapper->setModelIndexesUBO(batchIndices);
+    for (const PendingDraw &pendingDraw : pendingDraws) {
+        if (!forceNotAnimated && lastAnimationState != pendingDraw.isAnimated) {
+            renderProgram->setUniform("isAnimated", pendingDraw.isAnimated);
+            lastAnimationState = pendingDraw.isAnimated;
+        }
+        if (renderProgram->isMaterialRequired() && lastMaterial != pendingDraw.material) {
+            pendingDraw.material->activateTextures(graphicsWrapper);
+        }
+        lastMaterial = pendingDraw.material;
+        renderProgram->setUniform("modelIndexOffset", (int)pendingDraw.indexOffset);
+        graphicsWrapper->renderInstanced(renderProgram->getID(), pendingDraw.mesh->getVao(), pendingDraw.mesh->getEbo(),
+                                         pendingDraw.mesh->getTriangleCount()[pendingDraw.lod] * 3,
+                                         pendingDraw.mesh->getOffsets()[pendingDraw.lod], pendingDraw.instanceCount);
+    }
+    pendingDraws.clear();
+    batchIndices.clear();
+}
+
 void RenderList::render(GraphicsInterface *graphicsWrapper, const std::shared_ptr<GraphicsProgram> &renderProgram, bool forceNotAnimated) const {
    bool lastAnimationState = false;
-   auto renderListIterator = this->getIterator();
+   RenderListIterator renderListIterator = this->getIterator();
     if (renderListIterator.isEnd()) {
         return;
     }
@@ -72,23 +102,45 @@ void RenderList::render(GraphicsInterface *graphicsWrapper, const std::shared_pt
        lastAnimationState = renderListIterator.get().isAnimated;
    }
 
-   //now render all of the meshes
+   const uint32_t batchCapacity = graphicsWrapper->getModelIndexBatchCapacity();
+   std::shared_ptr<const Material> lastMaterial = nullptr;
+   batchIndices.clear();
+   pendingDraws.clear();
+
+   // instead of rendering each list separately, and updating the model indice ubo after each render, we combine the ubo write.
+   // otherwise the ubo write creates a flush/block.
    for (; !renderListIterator.isEnd(); ++renderListIterator) {
-       if (renderListIterator.get().indices.empty()) {
+       const PerMeshRenderInformation& meshRenderInformation = renderListIterator.get();
+       if (meshRenderInformation.indices.empty()) {
            std::cerr << "Empty meshInfo" << std::endl;
            continue;
        }
-       if (!forceNotAnimated && lastAnimationState != renderListIterator.get().isAnimated) {
-           renderProgram->setUniform("isAnimated", renderListIterator.get().isAnimated);
-           lastAnimationState = renderListIterator.get().isAnimated;
-       }
-       if (renderProgram->isMaterialRequired() && renderListIterator.isMaterialChanged()) {
-           renderListIterator.getMaterial()->activateTextures(graphicsWrapper);
-       }
+       uint32_t consumedInstanceCount = 0;
+       while (consumedInstanceCount < meshRenderInformation.indices.size()) {
+           uint32_t remainingInstanceCount = (uint32_t)meshRenderInformation.indices.size() - consumedInstanceCount;
+           uint32_t freeSlotCount = batchCapacity - (uint32_t)batchIndices.size();
+           if (remainingInstanceCount > freeSlotCount && !batchIndices.empty()) {
+               // This model indice list doesn't fit the buffer anymore, so process and empty the buffer so it would fit
+               processRenderBatch(graphicsWrapper, renderProgram, forceNotAnimated, lastAnimationState, lastMaterial);
+               freeSlotCount = batchCapacity;
+           }
+           //If the model indice count is more than the buffer itself, this part would split model indices so it will fit
+           uint32_t sliceInstanceCount = std::min(remainingInstanceCount, freeSlotCount);
+           PendingDraw pendingDraw;
+           pendingDraw.mesh = renderListIterator.getMesh();
+           pendingDraw.material = renderListIterator.getMaterial();
+           pendingDraw.lod = meshRenderInformation.lod;
+           pendingDraw.indexOffset = (uint32_t)batchIndices.size();
+           pendingDraw.instanceCount = sliceInstanceCount;
+           pendingDraw.isAnimated = meshRenderInformation.isAnimated;
+           pendingDraws.emplace_back(pendingDraw);
 
-       graphicsWrapper->setModelIndexesUBO(renderListIterator.get().indices);
-       graphicsWrapper->renderInstanced(renderProgram->getID(), renderListIterator.getMesh()->getVao(), renderListIterator.getMesh()->getEbo(), renderListIterator.getMesh()->getTriangleCount()[renderListIterator.get().lod] * 3, renderListIterator.getMesh()->getOffsets()[renderListIterator.get().lod], renderListIterator.get().indices.size());
+           batchIndices.insert(batchIndices.end(), meshRenderInformation.indices.begin() + consumedInstanceCount,
+                               meshRenderInformation.indices.begin() + consumedInstanceCount + sliceInstanceCount);
+           consumedInstanceCount += sliceInstanceCount;
+       }
    }
+   processRenderBatch(graphicsWrapper, renderProgram, forceNotAnimated, lastAnimationState, lastMaterial);
 }
 
 void RenderList::cleanUpEmptyRenderLists() {

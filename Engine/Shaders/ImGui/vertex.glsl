@@ -35,7 +35,7 @@ vec4 renderModel() {
 
     calculateWorldPositionAndNormal(position, normal, boneIDs, boneWeights, to_fs.fragPos, to_fs.normal);
 
-    to_fs.materialIndex = int(instance.models[gl_InstanceID].y);
+    to_fs.materialIndex = int(getModelIndexEntry().y);
     vec3 temp = (playerTransforms.position - vec3(position));
     if(sqrt(dot(temp, temp)) > 10.0) {
         to_fs.depthMapLayer = 1;

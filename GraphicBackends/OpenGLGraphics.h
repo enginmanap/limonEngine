@@ -220,6 +220,8 @@ private:
     const uint32_t playerUniformSize = 6 * sizeof(glm::mat4) + 3 * sizeof(glm::vec4);
     int32_t materialUniformSize = 2 * sizeof(glm::vec3) + sizeof(float) + sizeof(GLuint);
     int32_t modelUniformSize = sizeof(glm::mat4);
+    //Set here so checks before initialize don't get garbage. Real value will set after initialization
+    uint32_t modelIndexBatchCapacity = NR_MAX_MODELS;
 
     GLuint allModelTransformsTexture;
 
@@ -474,6 +476,10 @@ public:
 
     int getMaxTextureImageUnits() const override {
         return maxTextureImageUnits;
+    }
+
+    uint32_t getModelIndexBatchCapacity() const override {
+        return modelIndexBatchCapacity;
     }
 
     void setMaterial(const Material& material) override;

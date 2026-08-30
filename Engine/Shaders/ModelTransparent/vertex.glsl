@@ -28,6 +28,6 @@ void main(void)
             to_fs.fragPosLightSpace[i] = LightSources.lights[i].shadowMatrices[0] * vec4(to_fs.fragPos, 1.0);
         }
     }
-    to_fs.materialIndex = int(instance.models[gl_InstanceID].y);
+    to_fs.materialIndex = int(getModelIndexEntry().y);
     gl_Position = playerTransforms.cameraProjection * vec4(to_fs.fragPos, 1.0);
 }

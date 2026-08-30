@@ -299,7 +299,7 @@ void OpenGLGraphics::attachModelIndicesUBO(const uint32_t programID) {
         glBindBuffer(GL_UNIFORM_BUFFER, allModelIndexesUBOLocation);
         glUniformBlockBinding(programID, uniformIndex, allModelIndexesAttachPoint);
         glBindBufferRange(GL_UNIFORM_BUFFER, allModelIndexesAttachPoint, allModelIndexesUBOLocation, 0,
-                          sizeof(uint32_t) * NR_MAX_MODELS);
+                          sizeof(glm::uvec4) * modelIndexBatchCapacity);
         glBindBuffer(GL_UNIFORM_BUFFER, 0);
     }
     checkErrors("attachModelIndicesUBO");
@@ -353,7 +353,10 @@ OpenGLGraphics::ContextInformation OpenGLGraphics::getContextInformation() {
     contextInformation.SDL_GL_CONTEXT_PROFILE_MASK = 1;
     contextInformation.SDL_GL_CONTEXT_FLAGS = 1;
     contextInformation.shaderHeader = "#version 330\n"
-                                      "#extension GL_ARB_texture_cube_map_array : enable";
+                                      "#extension GL_ARB_texture_cube_map_array : enable\n"
+                                      //FIXME: SDL2Helper and shader compiler uses this information. When shader compiler
+                                      // gets it, it is actual number, but when SDL2Helper gets it, it is invalid garbage
+                                      "#define NR_MODEL_INDEX_BATCH " + std::to_string(modelIndexBatchCapacity);
     return contextInformation;
 }
 
@@ -482,6 +485,13 @@ bool OpenGLGraphics::createGraphicsBackend() {
         std::cerr << "Maximum number of models is set higher than supported texture size. This will cause errors, black screens or crashing." << std::endl;
     }
 
+    GLint maxUniformBlockSize = 0;
+    glGetIntegerv(GL_MAX_UNIFORM_BLOCK_SIZE, &maxUniformBlockSize);
+    // this variable is the max mesh information we would push before running a render loop and clear it up.
+    // Between batches, we need to update the UBO, so there is a write, which force flushes the reads(Previous render) and block    modelIndexBatchCapacity = std::min((uint32_t)NR_MAX_MODELS, (uint32_t)(maxUniformBlockSize / sizeof(glm::uvec4)));
+
+    std::cout << "Uniform maxUniformBlockSize is " << maxUniformBlockSize << ", model index batch capacity is " << modelIndexBatchCapacity << std::endl;
+
     //create the Light Uniform Buffer Object for later usage
     glGenBuffers(1, &lightUBOLocation);
     glBindBuffer(GL_UNIFORM_BUFFER, lightUBOLocation);
@@ -520,7 +530,7 @@ bool OpenGLGraphics::createGraphicsBackend() {
     //create model index uniform buffer object
     glGenBuffers(1, &allModelIndexesUBOLocation);
     glBindBuffer(GL_UNIFORM_BUFFER, allModelIndexesUBOLocation);
-    glBufferData(GL_UNIFORM_BUFFER, sizeof(uint32_t) * NR_MAX_MODELS, nullptr, GL_DYNAMIC_DRAW);
+    glBufferData(GL_UNIFORM_BUFFER, sizeof(glm::uvec4) * modelIndexBatchCapacity, nullptr, GL_DYNAMIC_DRAW);
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
     frustumPlanes.resize(6);
@@ -995,6 +1005,7 @@ OpenGLGraphics::~OpenGLGraphics() {
     deleteBuffer(1, lightUBOLocation);
     deleteBuffer(1, playerUBOLocation);
     deleteBuffer(1, allMaterialsUBOLocation);
+    deleteBuffer(1, allModelIndexesUBOLocation);
     glDeleteFramebuffers(1, &combineFrameBuffer);
 }
 
@@ -1624,6 +1635,12 @@ void OpenGLGraphics::setModelIndexesUBO(const std::vector<glm::uvec4> &modelIndi
      * we can upload the array as is and calculate the vector component in shader, but since we are GPU bound I am
      * choosing to pad it in CPU instead.
      */
+    if (modelIndicesList.size() > modelIndexBatchCapacity) {
+        // We expect the RenderList to obey this limit. If it doesn't it means there is a bug.
+        std::cerr << "Model index batch of " << modelIndicesList.size() << " does not fit in the "
+                  << modelIndexBatchCapacity << " slot index buffer. Not uploading." << std::endl;
+        return;
+    }
 
     glBindBuffer(GL_UNIFORM_BUFFER, allModelIndexesUBOLocation);
     glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::uvec4) * modelIndicesList.size(), modelIndicesList.data());

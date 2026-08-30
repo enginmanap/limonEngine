@@ -195,6 +195,8 @@ public:
     virtual void setModel(const uint32_t modelID, const glm::mat4 &worldTransform) = 0;
     virtual void setModelIndexesUBO(const std::vector<glm::uvec4> & modelIndicesList) = 0;
     virtual void attachModelIndicesUBO(const uint32_t programID) = 0;
+    //The batch size for model index buffer. If you push more than this limit, it will be dropped because driver can't handle it.
+    virtual uint32_t getModelIndexBatchCapacity() const = 0;
 
     virtual void renderInstanced(uint32_t program, uint32_t VAO, uint32_t EBO, uint32_t triangleCount,
                                  uint32_t instanceCount) = 0;

@@ -143,6 +143,28 @@ public:
         }
     };
 private:
+    /**
+     * This is a batch of renders we have to do. using this, we combine the model indice UBO writes to prevent
+     * blocking after each model/mesh.
+     *
+     * If a model has more instances to render than the batch size, it will have multiple batches (multiple drawcalls)
+     * Which is unavoidable because the batch size limit is set by driver.
+     */
+    struct PendingDraw {
+        std::shared_ptr<MeshAsset> mesh;
+        std::shared_ptr<const Material> material;
+        uint32_t lod = 0;
+        uint32_t indexOffset = 0;   //Passed to GPU as poor mans base index
+        uint32_t instanceCount = 0;
+        bool isAnimated = false;
+    };
+
+    mutable std::vector<glm::uvec4> batchIndices;   //scratch memory, class member so we don't allocate every frame.
+    mutable std::vector<PendingDraw> pendingDraws;
+
+    void processRenderBatch(GraphicsInterface* graphicsWrapper, const std::shared_ptr<GraphicsProgram> &renderProgram, bool forceNotAnimated,
+                    bool &lastAnimationState, std::shared_ptr<const Material> &lastMaterial) const;
+
     std::unordered_map<std::shared_ptr<const Material>, PerMaterialRenderInformation> perMaterialMeshMap; //Each mesh has its own render information
     std::unordered_map<std::shared_ptr<const Material>, float> maxDepthPerMaterial; //this map is created same time as meshes to render, but it is a pre transform container, as ordering by value not possible(or logical) in maps.
     mutable std::multimap<float, std::shared_ptr<const Material>> materialRenderPriorityMap; //this map is created after first two values are created. It is just a sorted container to use sorting of materials

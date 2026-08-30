@@ -1,14 +1,24 @@
 
-#define NR_MAX_MODELS 4096
 #define NR_BONE 128
 
 uniform sampler2D allModelTransformsTexture;
 uniform sampler2D allBoneTransformsTexture;
 uniform bool isAnimated;
 
+//NR_MODEL_INDEX_BATCH comes from shader header sent by backend.
 layout (std140) uniform ModelIndexBlock {
-    uvec4 models[NR_MAX_MODELS];
+    uvec4 models[NR_MODEL_INDEX_BATCH];
 } instance;
+
+uniform int modelIndexOffset;
+
+// We can't just assign the variable globally, GLSL doesn't allow it. So all shaders needs to get it through here.
+// GLSL doesn't have inline either, but it is almost guaranteed to inline.
+//
+// gl_InstanceID starts from 0 for each model, real difference is modelIndexOffset
+uvec4 getModelIndexEntry() {
+    return instance.models[gl_InstanceID + modelIndexOffset];
+}
 
 // Internal helper function
 mat4 _getMatrixFromRigTexture(uint rigIndex, uint boneIndex) {
@@ -26,7 +36,7 @@ void _processAnimation(in vec4 inPosition, in vec3 inNormal, in uvec4 boneIDs, i
     outNormal = inNormal;
 
     if (isAnimated) {
-        uint skeletonId = instance.models[gl_InstanceID].z;
+        uint skeletonId = getModelIndexEntry().z;
         mat4 boneTransform  = _getMatrixFromRigTexture(skeletonId, boneIDs[0]) * boneWeights[0];
              boneTransform += _getMatrixFromRigTexture(skeletonId, boneIDs[1]) * boneWeights[1];
              boneTransform += _getMatrixFromRigTexture(skeletonId, boneIDs[2]) * boneWeights[2];
@@ -44,7 +54,7 @@ void calculateWorldPositionAndNormal(in vec4 position, in vec3 normal, in uvec4 
     _processAnimation(position, normal, boneIDs, boneWeights, localPosition, localNormal);
 
     mat4 modelTransform;
-    int modelOffset = 4*int(instance.models[gl_InstanceID].x);
+    int modelOffset = 4*int(getModelIndexEntry().x);
     modelTransform[0] = texelFetch(allModelTransformsTexture, ivec2(modelOffset    , 0), 0);
     modelTransform[1] = texelFetch(allModelTransformsTexture, ivec2(modelOffset + 1, 0), 0);
     modelTransform[2] = texelFetch(allModelTransformsTexture, ivec2(modelOffset + 2, 0), 0);
