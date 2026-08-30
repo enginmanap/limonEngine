@@ -270,6 +270,7 @@ private:
     int32_t directionalLightIndex = -1;
     glm::vec3 lastLightUpdatePlayerPosition = glm::vec3(0,0,0);
     std::vector<Light *> activeLights; //this contains redundant pointers at most MAX_LIGHT elements, from lights array.
+    std::vector<Light *> pendingLightRemovals; //If user tries to remove a light, we wanna do it at frame start. This is the list to remove.
     std::vector<GUILayer *> guiLayers;
     std::unordered_map<uint32_t, ActorInterface*> actors;
     AIMovementGrid *grid = nullptr;
@@ -521,6 +522,8 @@ public:
 
 
     void updateActiveLights(bool forceUpdate = false);
+    // Removes the lights that were suppose to be removed, but was waiting for new frame
+    bool applyPendingLightRemovals();
     void uploadActiveLightsToGPU() const;
 
 

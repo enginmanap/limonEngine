@@ -50,6 +50,11 @@ public:
         inline SDL_Mutex* get() { return mutex; }
     };
 
+    /**
+     * Apparently a condition can wake randomly, and that is allowed. Meaning you can't use Condition
+     * as a way to determine if you should work, but as a way to check if you should work, through some other
+     * mean. Like a frame indicator etc.
+     */
     class Condition {
         SDL_Condition* condition;
     public:
@@ -65,6 +70,91 @@ public:
         }
         inline void signalWaiting() {
             SDL_BroadcastCondition(condition);
+        }
+    };
+
+    /**
+     * Since Semaphore keeps the count within, it does the check you are suppose to do with Condition itself.
+     * Therefore, you can use Semaphore as a signal to start working, unlike Condition
+     */
+    class Semaphore {
+        SDL_Semaphore* semaphore;
+    public:
+        explicit Semaphore(uint32_t initialValue = 0) : semaphore(SDL_CreateSemaphore(initialValue)) {}
+        ~Semaphore() { SDL_DestroySemaphore(semaphore); }
+        Semaphore(const Semaphore&) = delete;
+        Semaphore& operator=(const Semaphore&) = delete;
+
+        //Block until positive, then consume (1)
+        inline void wait() { SDL_WaitSemaphore(semaphore); }
+        //Increase the counter
+        inline void signal() { SDL_SignalSemaphore(semaphore); }
+        //Used to get the current value. Used to detect specific use case violations in Latch/Signal pair
+        inline uint32_t getValue() const { return SDL_GetSemaphoreValue(semaphore); }
+    };
+
+    /**
+     * This is a specialization of Semaphore.
+     *
+     * We know our visibility system is one signaller, one waiter. This pair allows us to catch if that assumption
+     * doesn't hold, by logging errors if it doesn't.
+     *
+     * If you need more than one of either/both, use Semaphore
+     */
+    class Latch {
+        Semaphore semaphore;
+        std::string name;
+    public:
+        explicit Latch(const std::string& latchName = "") : name(latchName) {}
+        Latch(const Latch&) = delete;
+        Latch& operator=(const Latch&) = delete;
+
+        void setName(const std::string& latchName) { name = latchName; }
+
+        /*
+         * Wrapper for signal of the Semaphore, that doesn't allow multiple signals
+         *
+         * Logs error if you try.
+         */
+        void signal() {
+            if (semaphore.getValue() != 0) {
+                std::cerr << "Latch " << name << " signalled again before its previous signal was consumed. "
+                          << "Dropping it; something is dispatching a turn nobody asked for." << std::endl;
+                return;
+            }
+            semaphore.signal();
+        }
+
+        void wait() { semaphore.wait(); }
+    };
+
+    /**
+     *
+     * Barrier with multiple arrivals.
+     *
+     * If we have some left over, then we log error, meaning something is wrong
+     */
+    class Barrier {
+        Semaphore semaphore;
+        std::string name;
+    public:
+        explicit Barrier(const std::string& barrierName = "") : name(barrierName) {}
+        Barrier(const Barrier&) = delete;
+        Barrier& operator=(const Barrier&) = delete;
+
+        //one worker reporting that its turn is finished
+        void arrive() { semaphore.signal(); }
+
+        //consumes exactly expectedArrivals, then reports anything left over
+        void waitForAll(size_t expectedArrivals) {
+            for (size_t i = 0; i < expectedArrivals; ++i) {
+                semaphore.wait();
+            }
+            uint32_t leftOver = semaphore.getValue();
+            if (leftOver != 0) {
+                std::cerr << "Barrier " << name << " had " << leftOver << " arrival(s) beyond the "
+                          << expectedArrivals << " dispatched. A worker ran a turn nobody started." << std::endl;
+            }
         }
     };
 

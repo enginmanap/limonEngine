@@ -302,7 +302,8 @@ void World::applyAudioVolumeOptionsIfChanged() {
          }
      }
 
-     updateActiveLights(false);
+     bool lightsRemoved = applyPendingLightRemovals();
+     updateActiveLights(lightsRemoved);
      for (size_t j = 0; j < activeLights.size(); ++j) {
          activeLights[j]->step(gameTime, playerCamera);
      }
@@ -960,6 +961,15 @@ World::~World() {
         }
         delete (*it);
     }
+
+    //If a light is removed this frame, the applyPendingLightRemovals won't run. We clear it.
+    for (std::vector<Light *>::iterator it = pendingLightRemovals.begin(); it != pendingLightRemovals.end(); ++it) {
+        for (Camera* camera : (*it)->getCameras()) {
+            visibilityManager->removeCamera(camera);
+        }
+        delete (*it);
+    }
+    pendingLightRemovals.clear();
 
     for (auto it = onLoadActions.begin(); it != onLoadActions.end(); ++it) {
         delete (*it)->action;
@@ -1706,6 +1716,26 @@ struct LightCloserToPlayer {
               glm::length2(b->getPosition() - playerPosition);
    }
 };
+/*
+ * Removing a light might happen as world unload, API call or Editor. Since Editor code runs in render stage,
+ * And render stage is intentionally separate from Simulation/culling, we don't directly remove but add to
+ * pending. This method runs in simulation step to finish the job,
+ */
+bool World::applyPendingLightRemovals() {
+    if (pendingLightRemovals.empty()) {
+        return false;
+    }
+    for (std::vector<Light *>::iterator lightIt = pendingLightRemovals.begin(); lightIt != pendingLightRemovals.end(); ++lightIt) {
+        Light* lightToRemove = *lightIt;
+        visibilityManager->removeCameras(lightToRemove->getCameras());
+        activeLights.erase(std::remove(activeLights.begin(), activeLights.end(), lightToRemove), activeLights.end());
+        unusedIDs.push(lightToRemove->getWorldObjectID());
+        delete lightToRemove;
+    }
+    pendingLightRemovals.clear();
+    return true;
+}
+
 void World::updateActiveLights(bool forceUpdate) {
     if(forceUpdate) {
         //force update means a light was removed, so if directional light exists, it is in wrong index now. find and update

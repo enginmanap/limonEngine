@@ -1196,20 +1196,23 @@ uint32_t WorldAPIAccessor::addLightAPI(uint32_t lightType, const LimonTypes::Vec
     return lightID;
 }
 
+/*
+  * Removes the light from access. Actual clean-up happens next simulation frame to prevent
+  * multi-threaded code to have dangling pointers
+ */
 bool WorldAPIAccessor::removeLightAPI(uint32_t lightID) {
     for (auto iterator = world->lights.begin(); iterator != world->lights.end(); ++iterator) {
         if ((*iterator)->getWorldObjectID() == lightID) {
-            world->unusedIDs.push(lightID);
-            world->visibilityManager->removeCameras((*iterator)->getCameras());
-            if ((*iterator)->getLightType() == Light::LightTypes::DIRECTIONAL) {
-                world->directionalLightIndex = -1;
-            }
-            world->activeLights.erase(
-                std::remove(world->activeLights.begin(), world->activeLights.end(), *iterator),
-                world->activeLights.end());
-            delete *iterator;
+            Light* lightToRemove = *iterator;
             world->lights.erase(iterator);
-            world->updateActiveLights(true);
+            world->directionalLightIndex = -1;//we don't know what index we deleted, rebuild
+            for (size_t lightIndex = 0; lightIndex < world->lights.size(); ++lightIndex) {
+                if (world->lights[lightIndex]->getLightType() == Light::LightTypes::DIRECTIONAL) {
+                    world->directionalLightIndex = (int32_t)lightIndex;
+                    break;
+                }
+            }
+            world->pendingLightRemovals.emplace_back(lightToRemove);
             return true;
         }
     }

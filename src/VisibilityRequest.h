@@ -60,8 +60,8 @@ public:
             }
         };
 
-        SDL2MultiThreading::Condition* wakeCondition = nullptr;
-        SDL2MultiThreading::Mutex blockMutex;
+        SDL2MultiThreading::Latch visibilityLatch; //Means we start the processing.
+        SDL2MultiThreading::Barrier* frameBarrier = nullptr; // Barrier that we have that we signal when we are done.
         const Camera* const camera;
         glm::vec3 playerPosition;
         const OptionsUtil::Options* options;
@@ -81,14 +81,11 @@ public:
         std::unordered_map<std::vector<uint64_t>, RenderList, uint64_vector_hasher>* visibility;
         mutable OcclusionCullerHelper occlusionCuller;
         mutable std::unordered_map<uint32_t, const std::vector<glm::mat4>*> changedBoneTransforms;
-        bool running = true;
-        bool started = false;
-        bool processingDone = false;
+        bool running = true; //non atomic because only used in between latch/barrier. But, must be checked before doing anything (because false means dangling pointers to camera and objects)
         bool cameraIsDirty = true; // cached by main thread before each signal; avoids Python GIL call from background thread
-        SDL2MultiThreading::SpinLock inProgressLock;
 
-        VisibilityRequest(Camera* camera, std::unordered_map<uint32_t, PhysicalRenderable *>* objects, std::unordered_map<std::vector<uint64_t>, RenderList, uint64_vector_hasher> * visibility, const glm::vec3& playerPosition, const OptionsUtil::Options* options, SDL2MultiThreading::Condition* wakeCondition) :
-                wakeCondition(wakeCondition), camera(camera), playerPosition(playerPosition), options(options),
+        VisibilityRequest(Camera* camera, std::unordered_map<uint32_t, PhysicalRenderable *>* objects, std::unordered_map<std::vector<uint64_t>, RenderList, uint64_vector_hasher> * visibility, const glm::vec3& playerPosition, const OptionsUtil::Options* options, SDL2MultiThreading::Barrier* frameBarrier, const std::string& cameraName) :
+                visibilityLatch(cameraName), frameBarrier(frameBarrier), camera(camera), playerPosition(playerPosition), options(options),
                 lodDistancesOption(options->getOption<std::vector<long>>(HASH("LOD_distanceList"))),
                 skipRenderDistanceOption(options->getOption<double>(HASH("LOD_skipRenderDistance"))),
                 skipRenderSizeOption(options->getOption<double>(HASH("LOD_skipRenderSize"))),
