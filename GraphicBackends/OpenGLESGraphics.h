@@ -363,6 +363,8 @@ public:
     explicit OpenGLESGraphics(OptionsUtil::Options *options);
 
     GraphicsInterface::ContextInformation getContextInformation() override;
+
+    std::string getShaderHeader() const override;
     bool getFallbackContextInformation(GraphicsInterface::ContextInformation& fallbackContext) override;
     bool verifyContext() override;
     bool createGraphicsBackend() override;

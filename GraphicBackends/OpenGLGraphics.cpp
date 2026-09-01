@@ -352,12 +352,13 @@ OpenGLGraphics::ContextInformation OpenGLGraphics::getContextInformation() {
     contextInformation.SDL_GL_CONTEXT_MINOR_VERSION = 3;
     contextInformation.SDL_GL_CONTEXT_PROFILE_MASK = 1;
     contextInformation.SDL_GL_CONTEXT_FLAGS = 1;
-    contextInformation.shaderHeader = "#version 330\n"
-                                      "#extension GL_ARB_texture_cube_map_array : enable\n"
-                                      //FIXME: SDL2Helper and shader compiler uses this information. When shader compiler
-                                      // gets it, it is actual number, but when SDL2Helper gets it, it is invalid garbage
-                                      "#define NR_MODEL_INDEX_BATCH " + std::to_string(modelIndexBatchCapacity);
     return contextInformation;
+}
+
+std::string OpenGLGraphics::getShaderHeader() const {
+    return "#version 330\n"
+           "#extension GL_ARB_texture_cube_map_array : enable\n"
+           "#define NR_MODEL_INDEX_BATCH " + std::to_string(modelIndexBatchCapacity);
 }
 
 bool OpenGLGraphics::createGraphicsBackend() {
@@ -1327,7 +1328,7 @@ uint32_t OpenGLGraphics::createTexture(int height, int width, TextureTypes type,
         case TextureTypes::TCUBE_MAP_ARRAY: {
             glTextureType = GL_TEXTURE_CUBE_MAP_ARRAY_ARB;
             glBindTexture(glTextureType, texture);
-            glTexImage3D(GL_TEXTURE_CUBE_MAP_ARRAY_ARB, 0, glInternalDataFormat, width,height, textureLayers, 0,glFormat, glDataType, nullptr);
+            glTexImage3D(GL_TEXTURE_CUBE_MAP_ARRAY_ARB, 0, glInternalDataFormat, width,height, textureLayers * 6, 0,glFormat, glDataType, nullptr);//depth counts cubes for cube arrays, GL wants layer-faces
             if(height != width) {
                 std::cerr << "Cubemaps require square textures, this will fail!" << std::endl;
             }
@@ -1433,7 +1434,7 @@ OpenGLGraphics::loadTextureData(uint32_t textureID, int height, int width, Textu
         case TextureTypes::TCUBE_MAP_ARRAY: {
             glTextureType = GL_TEXTURE_CUBE_MAP_ARRAY_ARB;
             glBindTexture(glTextureType, textureID);
-            glTexImage3D(GL_TEXTURE_CUBE_MAP_ARRAY_ARB, 0, glInternalDataFormat, width,height, depth, 0,glFormat, glDataType, data);
+            glTexImage3D(GL_TEXTURE_CUBE_MAP_ARRAY_ARB, 0, glInternalDataFormat, width,height, depth * 6, 0,glFormat, glDataType, data);//depth counts cubes for cube arrays, GL wants layer-faces
             std::cerr << "This method of loading texture data is not tested." << std::endl;
         }
             break;

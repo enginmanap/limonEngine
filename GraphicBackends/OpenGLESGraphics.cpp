@@ -352,21 +352,22 @@ OpenGLESGraphics::ContextInformation OpenGLESGraphics::getContextInformation() {
     contextInformation.SDL_GL_CONTEXT_MINOR_VERSION = 1;
     contextInformation.SDL_GL_CONTEXT_PROFILE_MASK = 4;
     contextInformation.SDL_GL_CONTEXT_FLAGS = 1;
-    contextInformation.shaderHeader = "#version 310 es\n"
-                                      "#extension GL_EXT_shader_io_blocks : enable\n"
-                                      "#extension GL_EXT_geometry_shader : enable\n"
-                                      "#extension GL_EXT_texture_cube_map_array : enable\n"
-                                      "precision highp float;\n"
-                                      "precision highp sampler2D;\n"
-                                      "precision highp sampler2DArray;\n"
-                                      "precision highp samplerCubeArray;\n"
-                                      "precision highp sampler2DArrayShadow;\n"
-                                      "precision highp samplerCubeArrayShadow;\n"
-                                      "precision highp int;\n"
-                                      //FIXME: SDL2Helper and shader compiler uses this information. When shader compiler
-                                      // gets it, it is actual number, but when SDL2Helper gets it, it is invalid garbage
-                                      "#define NR_MODEL_INDEX_BATCH " + std::to_string(modelIndexBatchCapacity);
     return contextInformation;
+}
+
+std::string OpenGLESGraphics::getShaderHeader() const {
+    return "#version 310 es\n"
+           "#extension GL_EXT_shader_io_blocks : enable\n"
+           "#extension GL_EXT_geometry_shader : enable\n"
+           "#extension GL_EXT_texture_cube_map_array : enable\n"
+           "precision highp float;\n"
+           "precision highp sampler2D;\n"
+           "precision highp sampler2DArray;\n"
+           "precision highp samplerCubeArray;\n"
+           "precision highp sampler2DArrayShadow;\n"
+           "precision highp samplerCubeArrayShadow;\n"
+           "precision highp int;\n"
+           "#define NR_MODEL_INDEX_BATCH " + std::to_string(modelIndexBatchCapacity);
 }
 
 bool OpenGLESGraphics::createGraphicsBackend() {
@@ -1804,6 +1805,7 @@ void OpenGLESGraphics::restoreLastState() {
 
 bool OpenGLESGraphics::getFallbackContextInformation(GraphicsInterface::ContextInformation& fallbackContext) {
     fallbackContext = getContextInformation();
+    //some drivers refuse an explicit 3.1 request but hand back 3.2 when asked for 3.0, verifyContext checks what we actually got
     fallbackContext.SDL_GL_CONTEXT_MAJOR_VERSION = 3;
     fallbackContext.SDL_GL_CONTEXT_MINOR_VERSION = 0;
     return true;

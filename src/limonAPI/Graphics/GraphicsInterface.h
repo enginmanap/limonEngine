@@ -93,12 +93,13 @@ public:
         int SDL_GL_CONTEXT_MINOR_VERSION = 3;
         int SDL_GL_CONTEXT_PROFILE_MASK = 1;
         int SDL_GL_CONTEXT_FLAGS = 1;
-        std::string shaderHeader;
     };
 
     virtual void getRenderTriangleAndLineCount(uint32_t& triangleCount, uint32_t& lineCount) = 0;
     explicit GraphicsInterface(OptionsUtil::Options *options [[gnu::unused]]) {};
     virtual ContextInformation getContextInformation() = 0;
+    //only valid after createGraphicsBackend, the header carries limits we can't know before there is a context
+    virtual std::string getShaderHeader() const = 0;
     virtual bool getFallbackContextInformation(ContextInformation& fallbackContext) = 0;
     virtual bool verifyContext() = 0;
     virtual bool createGraphicsBackend() = 0;
