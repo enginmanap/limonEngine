@@ -1617,20 +1617,14 @@ GameObject * World::getPointedObject(int collisionType, int filterMask,
 }
 
 void World::checkAndRunTimedEvents() {
-    while(!timedEvents.empty()) {
-        const auto& event = timedEvents.top();
-
-        // Check if the event should run
-        if ((event.useWallTime && event.callTime <= wallTime) ||
-            (!event.useWallTime && event.callTime <= gameTime)) {
-            // Run the event
-            event.run();
-            // Remove the event from the queue
-            timedEvents.pop();
-            } else {
-                // No more events to process
-                break;
-            }
+    //We have 2 queues, realtime and wall time, we need to check both.
+    while(!gameTimeEvents.empty() && gameTimeEvents.top().callTime <= gameTime) {
+        gameTimeEvents.top().run();
+        gameTimeEvents.pop();
+    }
+    while(!wallTimeEvents.empty() && wallTimeEvents.top().callTime <= wallTime) {
+        wallTimeEvents.top().run();
+        wallTimeEvents.pop();
     }
 }
 

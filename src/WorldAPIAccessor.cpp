@@ -863,17 +863,26 @@ long WorldAPIAccessor::addTimedEventAPI(uint64_t waitTime, bool useWallTime,
                                         std::function<void(const std::vector<LimonTypes::GenericParameter> &)> methodToCall,
                                         std::vector<LimonTypes::GenericParameter> parameters) {
     long handleId = world->timedEventHandleIndex++;
-    uint64_t callTime = useWallTime ? world->wallTime : world->gameTime;
-    callTime += waitTime;
-    world->timedEvents.emplace(handleId, callTime, useWallTime, std::move(methodToCall), std::move(parameters));
+    if(useWallTime) {
+        world->wallTimeEvents.emplace(handleId, world->wallTime + waitTime, std::move(methodToCall), std::move(parameters));
+    } else {
+        world->gameTimeEvents.emplace(handleId, world->gameTime + waitTime, std::move(methodToCall), std::move(parameters));
+    }
     return handleId;
 }
 
 bool WorldAPIAccessor::cancelTimedEventAPI(long handleId) {
-    std::vector<World::TimedEvent>& container = Container(world->timedEvents);
-    for(size_t i = 0; i < container.size(); ++i) {
-        if(container[i].handleId == handleId) {
-            container[i].active = false;
+    std::vector<World::TimedEvent>& gameTimeContainer = Container(world->gameTimeEvents);
+    for(size_t i = 0; i < gameTimeContainer.size(); ++i) {
+        if(gameTimeContainer[i].handleId == handleId) {
+            gameTimeContainer[i].active = false;
+            return true;
+        }
+    }
+    std::vector<World::TimedEvent>& wallTimeContainer = Container(world->wallTimeEvents);
+    for(size_t i = 0; i < wallTimeContainer.size(); ++i) {
+        if(wallTimeContainer[i].handleId == handleId) {
+            wallTimeContainer[i].active = false;
             return true;
         }
     }

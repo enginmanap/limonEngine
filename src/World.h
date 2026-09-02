@@ -158,13 +158,12 @@ private:
         uint64_t callTime;
         long handleId;
         bool active = true;
-        bool useWallTime = false;
         std::function<void(const std::vector<LimonTypes::GenericParameter>&)> methodToCall;
         std::vector<LimonTypes::GenericParameter> parameters;
 
-        TimedEvent(long handleId, uint64_t callTime, bool useWallTime, std::function<void(const std::vector<LimonTypes::GenericParameter>&)> methodToCall,
+        TimedEvent(long handleId, uint64_t callTime, std::function<void(const std::vector<LimonTypes::GenericParameter>&)> methodToCall,
                    std::vector<LimonTypes::GenericParameter> parameters) :
-                callTime(callTime), handleId(handleId), useWallTime(useWallTime), methodToCall(std::move(methodToCall)), parameters(std::move(parameters)) {}
+                callTime(callTime), handleId(handleId), methodToCall(std::move(methodToCall)), parameters(std::move(parameters)) {}
 
         bool operator>(const TimedEvent &timedEventRight) const {
             return callTime > timedEventRight.callTime;
@@ -254,7 +253,9 @@ private:
     OptionsUtil::Options::Option<double> soundVolumeOptions[(size_t)LimonTypes::AudioChannel::COUNT];
     float appliedChannelVolumes[(size_t)LimonTypes::AudioChannel::COUNT] = {-1.0f, -1.0f, -1.0f, -1.0f};
     void applyAudioVolumeOptionsIfChanged();
-    std::priority_queue<TimedEvent, std::vector<TimedEvent>, std::greater<>> timedEvents;
+    // Since walltime is way bigger than game time if game pauses/world changes, we can't use single queue.
+    std::priority_queue<TimedEvent, std::vector<TimedEvent>, std::greater<>> gameTimeEvents;
+    std::priority_queue<TimedEvent, std::vector<TimedEvent>, std::greater<>> wallTimeEvents;
     long timedEventHandleIndex = 1;//we don't need to keep them, just have them unique
 
 
