@@ -217,7 +217,8 @@ private:
     OptionsUtil::Options *options;
 
     const uint32_t lightUniformSize = (sizeof(glm::mat4) * 6) + (4 * sizeof(glm::vec4));
-    const uint32_t playerUniformSize = 6 * sizeof(glm::mat4) + 3 * sizeof(glm::vec4);
+    static constexpr uint32_t playerUniformSize = 5 * sizeof(glm::mat4) + 6 * sizeof(glm::vec4);
+    static constexpr uint32_t playerUboTimeOffset = 5 * sizeof(glm::mat4) + 5 * sizeof(glm::vec4) + sizeof(glm::vec2);
     int32_t materialUniformSize = 2 * sizeof(glm::vec3) + sizeof(float) + sizeof(GLuint);
     int32_t modelUniformSize = sizeof(glm::mat4);
     //Set here so checks before initialize don't get garbage. Real value will set after initialization
@@ -251,6 +252,7 @@ public:
     }
 
 private:
+
     inline bool checkErrors(const std::string &callerFunc __attribute((unused))) {
 #ifndef NDEBUG
         GLenum fbStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
@@ -467,7 +469,9 @@ public:
         checkErrors("removeLight");
     }
 
-    void setPlayerMatrices(const glm::vec3 &cameraPosition, const glm::mat4 &cameraMatrix, const glm::mat4 &cameraProjection, long currentTime) override;
+    void setPlayerMatrices(const glm::vec3 &cameraPosition, const glm::mat4 &cameraMatrix, const glm::mat4 &cameraProjection, uint32_t currentTimeMs) override;
+
+    void setCurrentTime(uint32_t currentTimeMs) override;
 
     void switchRenderStage(uint32_t width, uint32_t height, uint32_t frameBufferID, bool blendEnabled, bool depthTestEnabled, bool depthWriteEnabled, bool scissorEnabled,
                            bool clearColor, bool clearDepth, CullModes cullMode, std::map<uint32_t, std::shared_ptr<Texture>> &inputs, const std::string &name) override;

@@ -1649,30 +1649,44 @@ void OpenGLGraphics::setModelIndexesUBO(const std::vector<glm::uvec4> &modelIndi
     checkErrors("setModelIndexesUBO");
 }
 
-void OpenGLGraphics::setPlayerMatrices(const glm::vec3 &cameraPosition, const glm::mat4 &cameraTransform, const glm::mat4 &cameraProjection, long currentTime) {
+void OpenGLGraphics::setCurrentTime(uint32_t currentTimeMs) {
+    int32_t timeMs = (int32_t)currentTimeMs;
+    glBindBuffer(GL_UNIFORM_BUFFER, playerUBOLocation);
+    glBufferSubData(GL_UNIFORM_BUFFER, playerUboTimeOffset, sizeof(timeMs), &timeMs);
+    glBindBuffer(GL_UNIFORM_BUFFER, 0);
+    checkErrors("setCurrentTime");
+}
+
+void OpenGLGraphics::setPlayerMatrices(const glm::vec3 &cameraPosition, const glm::mat4 &cameraTransform, const glm::mat4 &cameraProjection, uint32_t currentTimeMs) {
     this->cameraMatrix = cameraTransform;
     // Projection is driven by the player camera (perspective or orthographic), so it can change per frame.
     this->perspectiveProjectionMatrix = cameraProjection;
     this->inverseProjection = glm::inverse(cameraProjection);
     this->cameraPosition= cameraPosition;
-    glm::vec3 cameraSpacePosition = glm::vec3(cameraMatrix * glm::vec4(cameraPosition, 1.0));
-    glm::mat4 inverseCameraMatrix = glm::inverse(cameraTransform);
-    glBindBuffer(GL_UNIFORM_BUFFER, playerUBOLocation);
-    glBufferSubData(GL_UNIFORM_BUFFER, 0 * sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(cameraMatrix));//changes with camera
-    glBufferSubData(GL_UNIFORM_BUFFER, 1 * sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(perspectiveProjectionMatrix));//changes with camera projection
     glm::mat4 viewMatrix = perspectiveProjectionMatrix * cameraMatrix;
-    glBufferSubData(GL_UNIFORM_BUFFER, 2 * sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(viewMatrix));//changes with camera
-    glBufferSubData(GL_UNIFORM_BUFFER, 3 * sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(inverseProjection));//changes with camera projection
-
-    glBufferSubData(GL_UNIFORM_BUFFER, 4 * sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(inverseCameraMatrix));//changes with camera
-    glBufferSubData(GL_UNIFORM_BUFFER, 5 * sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(glm::transpose(inverseCameraMatrix)));//changes with camera
-    //transpose inverse is used as mat3, but std140 pads it to mat43 so it looks like we are overriding 1 row
-    glBufferSubData(GL_UNIFORM_BUFFER, 5 * sizeof(glm::mat4) + 3 * sizeof(glm::vec4), sizeof(glm::vec3), glm::value_ptr(cameraPosition));//changes with camera
-    glBufferSubData(GL_UNIFORM_BUFFER, 5 * sizeof(glm::mat4) + 4 * sizeof(glm::vec4), sizeof(glm::vec3), glm::value_ptr(cameraSpacePosition));//changes with camera
-
+    glm::mat4 inverseCameraMatrix = glm::inverse(cameraTransform);
+    glm::vec3 cameraSpacePosition = glm::vec3(cameraMatrix * glm::vec4(cameraPosition, 1.0));
     glm::vec2 noiseScale(this->screenWidth / 4, this->screenHeight / 4);
-    glBufferSubData(GL_UNIFORM_BUFFER, 5 * sizeof(glm::mat4) + 5 * sizeof(glm::vec4), sizeof(glm::vec2), glm::value_ptr(noiseScale));//never changes
-    glBufferSubData(GL_UNIFORM_BUFFER, 5 * sizeof(glm::mat4) + 5 * sizeof(glm::vec4) + sizeof(glm::vec2), sizeof(GLfloat), &currentTime);
+    int32_t timeMs = (int32_t)currentTimeMs;
+    glm::mat4 transposeInverseCamera = glm::transpose(inverseCameraMatrix);
+
+    unsigned char block[playerUniformSize] = {};
+    memcpy(block + 0 * sizeof(glm::mat4), glm::value_ptr(cameraMatrix),                sizeof(glm::mat4));
+    memcpy(block + 1 * sizeof(glm::mat4), glm::value_ptr(perspectiveProjectionMatrix), sizeof(glm::mat4));
+    memcpy(block + 2 * sizeof(glm::mat4), glm::value_ptr(viewMatrix),                  sizeof(glm::mat4));
+    memcpy(block + 3 * sizeof(glm::mat4), glm::value_ptr(inverseProjection),           sizeof(glm::mat4));
+    memcpy(block + 4 * sizeof(glm::mat4), glm::value_ptr(inverseCameraMatrix),         sizeof(glm::mat4));
+    //we can't just copy the mat4, because shader has mat3. We can't convert and copy the mat3, because std140 assumes mat3 is 3x4. so, we do manually.
+    memcpy(block + 5 * sizeof(glm::mat4) + 0 * sizeof(glm::vec4), glm::value_ptr(transposeInverseCamera[0]), sizeof(glm::vec3));
+    memcpy(block + 5 * sizeof(glm::mat4) + 1 * sizeof(glm::vec4), glm::value_ptr(transposeInverseCamera[1]), sizeof(glm::vec3));
+    memcpy(block + 5 * sizeof(glm::mat4) + 2 * sizeof(glm::vec4), glm::value_ptr(transposeInverseCamera[2]), sizeof(glm::vec3));
+    memcpy(block + 5 * sizeof(glm::mat4) + 3 * sizeof(glm::vec4), glm::value_ptr(cameraPosition),            sizeof(glm::vec3));
+    memcpy(block + 5 * sizeof(glm::mat4) + 4 * sizeof(glm::vec4), glm::value_ptr(cameraSpacePosition),       sizeof(glm::vec3));
+    memcpy(block + 5 * sizeof(glm::mat4) + 5 * sizeof(glm::vec4), glm::value_ptr(noiseScale),                sizeof(glm::vec2));
+    memcpy(block + playerUboTimeOffset,                           &timeMs,                                   sizeof(timeMs));
+
+    glBindBuffer(GL_UNIFORM_BUFFER, playerUBOLocation);
+    glBufferSubData(GL_UNIFORM_BUFFER, 0, playerUniformSize, block);
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
     checkErrors("setPlayerMatrices");

@@ -258,6 +258,8 @@ void World::applyAudioVolumeOptionsIfChanged() {
          const glm::mat4& cameraMatrix = playerCamera->getCameraMatrix();
          graphicsWrapper->setPlayerMatrices(playerCamera->getPosition(), cameraMatrix, playerCamera->getProjectionMatrix(), gameTime);//this is required for any render
          alHelper->setListenerPositionAndOrientation(playerCamera->getPosition(), playerCamera->getCenter(), playerCamera->getUp());
+     } else {
+         graphicsWrapper->setCurrentTime(gameTime);//setPlayerMatrices pushes everything, this one pushes time only
      }
 
      if(currentPlayersSettings->worldSimulation) {

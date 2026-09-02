@@ -180,7 +180,10 @@ public:
 
     virtual void removeLight(const int i) = 0;
 
-    virtual void setPlayerMatrices(const glm::vec3 &cameraPosition, const glm::mat4 &cameraMatrix, const glm::mat4 &cameraProjection, long currentTime) = 0;
+    virtual void setPlayerMatrices(const glm::vec3 &cameraPosition, const glm::mat4 &cameraMatrix, const glm::mat4 &cameraProjection, uint32_t currentTimeMs) = 0;
+
+    //If we wanna update the time only (if player camera didn't move) we would use this one.
+    virtual void setCurrentTime(uint32_t currentTimeMs) = 0;
 
     virtual void switchRenderStage(uint32_t width, uint32_t height, uint32_t frameBufferID, bool blendEnabled, bool depthTestEnabled, bool depthWriteEnabled, bool scissorEnabled,
                                    bool clearColor, bool clearDepth, CullModes cullMode, std::map<uint32_t, std::shared_ptr<Texture>> &inputs, const std::string &name) = 0;
