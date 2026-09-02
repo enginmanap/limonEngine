@@ -67,10 +67,6 @@ bool GUIAnimation::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLEleme
     currentElement->SetText(this->name.c_str());
     guiButtonNode->InsertEndChild(currentElement);
 
-    currentElement = document.NewElement("CreationTime");
-    currentElement->SetText(std::to_string(creationTime).c_str());
-    guiButtonNode->InsertEndChild(currentElement);
-
     currentElement = document.NewElement("ImagePerFrame");
     currentElement->SetText(std::to_string(imagePerFrame).c_str());
     guiButtonNode->InsertEndChild(currentElement);
@@ -135,14 +131,6 @@ GUIAnimation *GUIAnimation::deserialize(tinyxml2::XMLElement *GUIRenderableNode,
 
         std::string name = GUIRenderableAttribute->GetText();
 
-        GUIRenderableAttribute = GUIRenderableNode->FirstChildElement("CreationTime");
-        if (GUIRenderableAttribute == nullptr) {
-            std::cerr << "GUI renderable must have a Creation time. Skipping" << std::endl;
-            return nullptr;
-        }
-
-        long creationTime = std::stol(GUIRenderableAttribute->GetText());
-
         GUIRenderableAttribute = GUIRenderableNode->FirstChildElement("ImagePerFrame");
         if (GUIRenderableAttribute == nullptr) {
             std::cerr << "GUI renderable must have frame speed. Skipping" << std::endl;
@@ -200,8 +188,9 @@ GUIAnimation *GUIAnimation::deserialize(tinyxml2::XMLElement *GUIRenderableNode,
         ));
 
         //now we have everything, create the GUI Button
+        //Saving creation time was a mistake, we start the animation from 0 (now)
         GUIAnimation* element = new GUIAnimation(id, assetManager, name,
-                                                 fileNames, creationTime, imagePerFrame, isLooped);
+                                                 fileNames, 0, imagePerFrame, isLooped);
         element->getTransformation()->setTranslate(tr.getTranslate());
         element->getTransformation()->setOrientation(tr.getOrientation());
         element->getTransformation()->setScale(tr.getScale());
@@ -231,10 +220,6 @@ ImGuiResult GUIAnimation::addImGuiEditorElements(const ImGuiRequest &request) {
 
 void GUIAnimation::setupForTime(long time) {
     float currentTime = (time - creationTime) / ((float)1000 / (float)imagePerFrame);
-    if(currentTime < 0) {
-        currentTime = 0;//why is this? Because it handles if
-        creationTime = time;
-    }
     uint32_t currentElement;
     if(looped) {
         currentElement = static_cast<uint32_t >(std::floor(currentTime)) % this->images.size();
