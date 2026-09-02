@@ -321,7 +321,7 @@ void World::applyAudioVolumeOptionsIfChanged() {
     for (unsigned int i = 0; i < guiLayers.size(); ++i) {
         guiLayers[i]->setupForTime(gameTime);
     }
-    debugOutputGUI->setupForTime(gameTime);
+    debugOutputGUI->setupForTime(wallTime);//logger is global, so no game time for it
 
     if(currentPlayersSettings->menuInteraction) {
         GUIButton* button = nullptr;
