@@ -232,18 +232,19 @@ void World::applyAudioVolumeOptionsIfChanged() {
   * @param inputHandler
   * @return
   */
- void World::play(Uint32 simulationTimeFrame, InputHandler &inputHandler, uint64_t wallTime) {
+ void World::play(InputHandler &inputHandler, uint32_t wallTimeMs) {
     PROFILE_SIMULATION("World::play");
      editor->update(inputHandler);
 
-     this->wallTime = wallTime;
+     this->wallTime = wallTimeMs;
      //Seperating physics step and visibility, because physics is used by camera, and camera is used by visibility
      if(currentPlayersSettings->worldSimulation) {
-         //every time we call this method, we increase the time only by simulationTimeframe
-         gameTime += simulationTimeFrame;
+         ++simulatedTicks;
+         //we used 1000 but that causes calculation to overflow around 20 hours. using ULL so calculation itself will be 64 bits, then 60*20 hours is like 2 months, so we don't care
+         gameTime = (uint32_t)(simulatedTicks * 1000ULL / TICK_PER_SECOND);
          {
              PROFILE_SIMULATION("World::play::PhysicsSimulation");
-             dynamicsWorld->stepSimulation(simulationTimeFrame / 1000.0f);
+             dynamicsWorld->stepSimulation(1.0f / TICK_PER_SECOND, 0);
          }
          currentPlayer->processPhysicsWorld(dynamicsWorld);
      }

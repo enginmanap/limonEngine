@@ -282,8 +282,9 @@ private:
     std::string quitWorldName;
     ALHelper::DistanceModel soundDistanceModel = ALHelper::DistanceModel::LINEAR_CLAMPED;
 
-    uint64_t gameTime = 0;
-    uint64_t wallTime = 0;
+    uint32_t simulatedTicks = 0; //Only increases when simulation is on.
+    uint32_t gameTime = 0;
+    uint32_t wallTime = 0;
     glm::vec3 worldAABBMin= glm::vec3(std::numeric_limits<float>::max());
     glm::vec3 worldAABBMax = glm::vec3(std::numeric_limits<float>::min());
 
@@ -486,7 +487,7 @@ private:
 public:
     ~World();
 
-    void play(Uint32, InputHandler &, uint64_t wallTime);
+    void play(InputHandler &, uint32_t wallTimeMs);
 
     void render();
 

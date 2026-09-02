@@ -102,6 +102,8 @@ public:
     Attachable* clone(uint32_t newObjectID, LimonAPI* limonAPI,
                       const std::unordered_map<uint32_t, uint32_t>& idRemap) const override;
 
+    // This method needs to be called every simulation step, because it accumulates the particle state.
+    // If we skip this through things like dirty flags, the simulation will not work properly
     void setupForTime(long time) override {
         if(lastSetupTime == 0) {
             lastSetupTime = time;//don't try to create massive amounts in first setup.

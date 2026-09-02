@@ -56,7 +56,8 @@ bool GameEngine::loadAndChangeWorld(const std::string &worldFile) {
     loadedWorlds[worldFile].second = apiInstance;
 
     returnWorldStack.push_back(currentWorld);
-    previousGameTime = SDL2Helper::getTicks();
+    simulationStartWallTime = SDL2Helper::getTicks();
+    ticksRun = 0;
     return true;
 }
 
@@ -107,7 +108,8 @@ bool GameEngine::returnOrLoadMap(const std::string &worldFile) {
     }
     currentWorld->setupForPlay(*inputHandler);
     returnWorldStack.push_back(currentWorld);
-    previousGameTime = SDL2Helper::getTicks();
+    simulationStartWallTime = SDL2Helper::getTicks();
+    ticksRun = 0;
     return true;
 }
 
@@ -134,7 +136,8 @@ bool GameEngine::LoadNewAndRemoveCurrent(const std::string &worldFile) {
         loadedWorlds[oldWorldName].first = temp;
         loadedWorlds[oldWorldName].second = tempAPI;
     }
-    previousGameTime = SDL2Helper::getTicks();
+    simulationStartWallTime = SDL2Helper::getTicks();
+    ticksRun = 0;
     return true;
 }
 
@@ -149,7 +152,8 @@ void GameEngine::returnPreviousMap() {
         currentWorld->setupForUnpause();
         currentWorld->setupForPlay(*inputHandler);
     }
-    previousGameTime = SDL2Helper::getTicks();
+    simulationStartWallTime = SDL2Helper::getTicks();
+    ticksRun = 0;
 }
 
 GameEngine::GameEngine() {
@@ -268,27 +272,33 @@ LimonAPI *GameEngine::getNewLimonAPI() {
 }
 
 void GameEngine::run() {
-    float worldUpdateTime = 1000 / TICK_PER_SECOND;//This value is used to update world on a locked Timestep
-
     graphicsWrapper->clearFrame();
-    previousGameTime = SDL2Helper::getTicks();
-    uint64_t currentGameTime, frameTime, accumulatedTime = 0;
+    simulationStartWallTime = SDL2Helper::getTicks();
+    ticksRun = 0;
     while (!worldQuit) {
         PROFILE_OVERALL("Frame");
-        currentGameTime = SDL2Helper::getTicks();
-        frameTime = currentGameTime - previousGameTime;
-        previousGameTime = currentGameTime;
-        accumulatedTime += frameTime;
-        if (accumulatedTime >= worldUpdateTime) {
+        // We send ticks run, instead of time. Then the world calculates the timestamp based on it, per
+        // simulation step. Passing time itself prevents lockstep
+        // Calculating it in 64 bits because otherwise it overflows within a day
+        uint64_t ticksDue = (SDL2Helper::getTicks() - simulationStartWallTime) * TICK_PER_SECOND / 1000;
+        uint64_t ticksToRun = ticksDue - ticksRun;
+        if (ticksToRun > (uint64_t)MAX_CATCHUP_TICKS) {
+            //hopelessly behind, drop the surplus rather than spiral trying to catch up
+            ticksRun = ticksDue - MAX_CATCHUP_TICKS;
+            ticksToRun = MAX_CATCHUP_TICKS;
+        }
+        while (ticksToRun > 0 && !worldQuit) {
+            --ticksToRun;
             //we don't need to check for input, if we won't update world state
             inputHandler->mapInput();
 
-            //FIXME this does not account for long operations/low framerate
-            currentWorld->play(worldUpdateTime, *inputHandler, SDL2Helper::getTicks());
-            accumulatedTime -= worldUpdateTime;
+            currentWorld->play(*inputHandler, (uint32_t)SDL2Helper::getTicks());
+            ++ticksRun;
 
+            bool worldSwitched = false;
             if (pendingSwitch.type != PendingSwitchType::NONE && !worldQuit) {
                 applyPendingSwitch();
+                worldSwitched = true;
             }
 
             // Process worlds that were queued for deletion during play().
@@ -306,6 +316,10 @@ void GameEngine::run() {
                 if (currentWorld != nullptr) {
                     scriptManager->setActiveSubInterpreter(currentWorld->getName());
                 }
+            }
+            if (worldSwitched) {
+                // If we switched worlds, we want ticksDue and ticksToRun to reset, so we quit inner while
+                break;
             }
         }
         graphicsWrapper->clearFrame();

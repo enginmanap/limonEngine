@@ -48,7 +48,9 @@ class GameEngine {
     struct PendingDelete { std::string name; World* world; LimonAPI* api; };
     std::vector<PendingDelete> pendingWorldDeletes;
     GUIImage* loadingImage = nullptr;
-    uint64_t previousGameTime = 0;
+    // we use 64 bit in the engine side to prevent overflow while calculating. After calculation 32bits is enough
+    uint64_t simulationStartWallTime = 0;
+    uint64_t ticksRun = 0;
 
     ScriptManager* scriptManager = nullptr;
 
