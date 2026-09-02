@@ -9,7 +9,7 @@
 #include "limonAPI/LimonConverter.h"
 #include "limonAPI/ProfileScope.h"
 
-void CowboyEnemyAI::play(long time, ActorInterface::ActorInformation &information) {
+void CowboyEnemyAI::play(uint32_t time, ActorInterface::ActorInformation &information) {
     // Zone name is per-instance (built in constructor from worldID) so each enemy
     // appears as a distinct entry in the profiler, e.g. "CowboyEnemyAI::play[3]".
     ProfileScope scope = limonAPI->profileScope(playZoneName);

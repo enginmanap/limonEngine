@@ -35,7 +35,7 @@ public:
 
     virtual void renderWithProgram(std::shared_ptr<GraphicsProgram> renderProgram, uint32_t lodLevel) = 0;
 
-    virtual void setupForTime(long time) = 0;
+    virtual void setupForTime(uint32_t time) = 0;
 
     virtual ~Renderable() {
         for (unsigned int i = 0; i < bufferObjects.size(); ++i) {

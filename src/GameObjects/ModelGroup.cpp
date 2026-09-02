@@ -44,7 +44,7 @@ bool ModelGroup::fillObjects(tinyxml2::XMLDocument &document, tinyxml2::XMLEleme
     return true;
 }
 
-void ModelGroup::setupForTime(long time) {
+void ModelGroup::setupForTime(uint32_t time) {
     std::cerr << "Model Groups setup for time used, it was not planned, nor tested." << std::endl;
     for (auto renderable = children.begin(); renderable != children.end(); ++renderable) {
         Renderable* r = dynamic_cast<Renderable*>(*renderable);

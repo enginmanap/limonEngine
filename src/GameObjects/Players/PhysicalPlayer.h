@@ -155,7 +155,7 @@ public:
         }
     }
 
-    void processInput(const InputStates &inputHandler, long time) override;
+    void processInput(const InputStates &inputHandler, uint32_t time) override;
 
     void interact(LimonAPI *limonAPI, std::vector<LimonTypes::GenericParameter> &interactionData) override;
 

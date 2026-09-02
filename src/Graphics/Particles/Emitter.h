@@ -38,7 +38,7 @@ private:
     std::shared_ptr<AssetManager> assetManager;
     std::vector<glm::vec4> positions;
     std::vector<glm::vec3> speeds;
-    std::vector<long> creationTime;
+    std::vector<uint32_t> creationTime;
 
     long worldObjectID;
     std::string name;
@@ -57,8 +57,8 @@ private:
 
     std::shared_ptr<TextureAsset> textureAsset;//it is the root asset for texture
     long currentCount = 0;
-    long lastSetupTime = 0;
-    long lastCreationTime = 0;
+    uint32_t lastSetupTime = 0;
+    uint32_t lastCreationTime = 0;
     std::shared_ptr<Texture> particleDataTexture;
 
     std::random_device randomDevice;
@@ -69,9 +69,9 @@ private:
 
     void setupVAO();
 
-    void addRandomParticle(const glm::vec3 &startPosition, const glm::vec3 &maxStartDistances, long time);
+    void addRandomParticle(const glm::vec3 &startPosition, const glm::vec3 &maxStartDistances, uint32_t time);
 
-    float calculateTimedColorShift(const long time, const long particleCreateTime);
+    float calculateTimedColorShift(const uint32_t time, const uint32_t particleCreateTime);
 
     void drawDebugLine(Logger *logger, uint32_t &bufferId, const glm::vec3 &from, const glm::vec3 &to, const glm::vec3 &color) const;
 
@@ -104,7 +104,7 @@ public:
 
     // This method needs to be called every simulation step, because it accumulates the particle state.
     // If we skip this through things like dirty flags, the simulation will not work properly
-    void setupForTime(long time) override {
+    void setupForTime(uint32_t time) override {
         if(lastSetupTime == 0) {
             lastSetupTime = time;//don't try to create massive amounts in first setup.
             lastCreationTime = time;

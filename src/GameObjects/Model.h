@@ -47,7 +47,7 @@ private:
     uint64_t animationBlendTime = 1000;
 
     bool animationLastFramePlayed = false;
-    long lastSetupTime = 0;
+    uint32_t lastSetupTime = 0;
     float animationTimeScale = 1.0f;
     std::string name;
     std::string flipAxes;
@@ -179,7 +179,7 @@ public:
 
     const std::vector<MeshMeta *> &getMeshMetaData() const { return meshMetaData; }
 
-    void setupForTime(long time) override;
+    void setupForTime(uint32_t time) override;
 
     void renderWithProgram(std::shared_ptr<GraphicsProgram> program, uint32_t lodLevel) override;
 

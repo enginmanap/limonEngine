@@ -36,9 +36,9 @@ public:
         Subsystem subsystem;
         Level level;
         std::string text;
-        long time;
+        uint32_t time;
 
-        LogLine(Subsystem subsystem, Level level, const std::string &text, long time) : subsystem(subsystem), level(level), text(text), time(time) {};
+        LogLine(Subsystem subsystem, Level level, const std::string &text, uint32_t time) : subsystem(subsystem), level(level), text(text), time(time) {};
     };
 
 private:

@@ -79,7 +79,7 @@ public:
                                    std::vector<std::unique_ptr<WorldLoader::ObjectInformation>> &childObjects, LimonAPI *limonAPI,
                                    ModelGroup *parentGroup = nullptr);
 
-    void setupForTime(long time) override;
+    void setupForTime(uint32_t time) override;
 
     ImGuiResult addImGuiEditorElements(const ImGuiRequest &request) override;
 

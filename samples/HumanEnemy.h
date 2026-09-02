@@ -12,21 +12,21 @@
 class HumanEnemy: public ActorInterface {
 
     const long PLAYER_SHOOT_TIMEOUT = 1000;
-    long playerPursuitStartTime = 0L;
+    uint32_t playerPursuitStartTime = 0;
     long playerPursuitTimeout = 500000L; //if not see player for this amount, return.
     bool returnToPositionAfterPursuit = false;
     glm::vec3 initialPosition;
     glm::vec3 lastWalkDirection;
     std::string currentAnimation;
     bool hitAnimationAwaiting = false;
-    long dieAnimationStartTime = 0;
-    long hitAnimationStartTime = 0;
-    long lastSetupTime;
-    long shootPlayerTimer = 0;
+    uint32_t dieAnimationStartTime = 0;
+    uint32_t hitAnimationStartTime = 0;
+    uint32_t lastSetupTime;
+    uint32_t shootPlayerTimer = 0;
     uint32_t hitPoints = 100;
 
     std::vector<glm::vec3> routeToRequest;
-    long routeGetTime = 0;
+    uint32_t routeGetTime = 0;
     bool routeRequested = false;
 
 public:
@@ -34,7 +34,7 @@ public:
         lastWalkDirection = this->getPosition();
     }
 
-    void play(long time, ActorInterface::ActorInformation &information) override;
+    void play(uint32_t time, ActorInterface::ActorInformation &information) override;
 
     bool interaction(std::vector<LimonTypes::GenericParameter> &interactionInformation) override;
 

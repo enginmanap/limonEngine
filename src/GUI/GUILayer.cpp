@@ -42,7 +42,7 @@ void GUILayer::renderTextWithProgram(std::shared_ptr<GraphicsProgram> renderProg
     }
 }
 
-void GUILayer::setupForTime(long time){
+void GUILayer::setupForTime(uint32_t time){
     for (auto it = guiElements.begin(); it != guiElements.end(); ++it) {
         it->first->setupForTime(time);
     }

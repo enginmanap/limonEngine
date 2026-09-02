@@ -13,7 +13,7 @@ class GUIAnimation : public GUIImageBase, public GameObject{
 
     uint32_t worldID;
     std::string name;
-    long creationTime;
+    uint32_t creationTime;
     uint32_t imagePerFrame;
     uint32_t duration;
     bool looped;
@@ -29,10 +29,10 @@ class GUIAnimation : public GUIImageBase, public GameObject{
 
 public:
     GUIAnimation(uint32_t worldID,  std::shared_ptr<AssetManager> assetManager, const std::string name,
-                     const std::vector<std::string> &imageFiles, long creationTime, uint32_t frameSpeed,
+                     const std::vector<std::string> &imageFiles, uint32_t creationTime, uint32_t frameSpeed,
                      bool isLooped);
 
-    void setupForTime(long time);
+    void setupForTime(uint32_t time);
 
 
     ~GUIAnimation();

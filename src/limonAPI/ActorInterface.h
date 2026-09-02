@@ -79,7 +79,7 @@ public:
 
     virtual std::string getName() const = 0;
 
-    virtual void play(long time, ActorInterface::ActorInformation &information) = 0;
+    virtual void play(uint32_t time, ActorInterface::ActorInformation &information) = 0;
 
     virtual bool interaction(std::vector<LimonTypes::GenericParameter> &interactionInformation) = 0;
 
@@ -153,7 +153,7 @@ ActorInterface* createActorT(uint32_t id, LimonAPI* limonAPI) {
 template<typename T>
 class ActorRegister : ActorInterface {
 
-    void play(long time [[gnu::unused]], ActorInterface::ActorInformation &information [[gnu::unused]]) override {};
+    void play(uint32_t time [[gnu::unused]], ActorInterface::ActorInformation &information [[gnu::unused]]) override {};
 
     bool interaction(std::vector<LimonTypes::GenericParameter> &interactionInformation [[gnu::unused]]) override {return false;};
 

@@ -17,7 +17,7 @@ public:
     EditorPlayer(OptionsUtil::Options *options, GUIRenderable *cursor, const glm::vec3 &position,
                  const glm::vec3 &lookDirection, InputHandler* inputHandler);
 
-    void processInput(const InputStates &inputState, long time) override;
+    void processInput(const InputStates &inputState, uint32_t time) override;
 
     bool prioritizesInput() const override { return captureInput; }
 };

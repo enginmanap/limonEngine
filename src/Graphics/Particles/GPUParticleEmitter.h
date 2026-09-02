@@ -25,9 +25,9 @@ public:
 private:
     struct ParticleData {
         glm::vec3 position;
-        long creationTime;
+        uint32_t creationTime;
         glm::vec3 speed;
-        long destroyTime;
+        uint32_t destroyTime;
         ParticleData() = default;
     };
     std::shared_ptr<AssetManager> assetManager;
@@ -60,16 +60,16 @@ private:
 
     void setupVAO();
 
-    ParticleData addRandomParticle(const glm::vec3 &startPosition, const glm::vec3 &maxStartDistances, long creationTime);
+    ParticleData addRandomParticle(const glm::vec3 &startPosition, const glm::vec3 &maxStartDistances, uint32_t creationTime);
 
-    float calculateTimedColorShift(const long time, const long particleCreateTime);
+    float calculateTimedColorShift(const uint32_t time, const uint32_t particleCreateTime);
 
     static bool getNameForTimedColorMultiplier(void *data, int index, const char **outText);
 
 public:
     GPUParticleEmitter(long worldObjectId, std::string name, std::shared_ptr<AssetManager> assetManager,
             const std::string &textureFile, glm::vec3 startPosition, glm::vec3 maxStartDistances, glm::vec2 size, long count,
-            long lifeTime, long startTime, float particlePerMs = -1);
+            long lifeTime, uint32_t startTime, float particlePerMs = -1);
 
     // Rebuilds GPU state from scratch via the normal constructor, then copies settings. Live particle
     // state is left at fresh-construction defaults (dirty=true triggers a fresh setupParticles), same
@@ -84,18 +84,18 @@ public:
     Transformation* getTransformation() override { return &transformation; }
     const Transformation* getTransformation() const override { return &transformation; }
 
-    void setupForTime(long time) override {
+    void setupForTime(uint32_t time) override {
         if(dirty) {
             setupParticles(time);
             dirty = false;
         }
     }
 
-    void setupParticles(long time) {
+    void setupParticles(uint32_t time) {
         std::vector<glm::vec4> temp;
         float particleBeforeTimeIncrease = perMsParticleCount;
         float timeLeftBeforeNextParticle = 0;
-        long startingTime = time;
+        uint32_t startingTime = time;
         const glm::vec3 worldPos(this->transformation.getWorldTransform()[3]);
         for(long currentCount = 0; currentCount < maxCount; ++ currentCount) {
             //there are 2 ways to reach max count, if we create 1 or more particles per ms, or not

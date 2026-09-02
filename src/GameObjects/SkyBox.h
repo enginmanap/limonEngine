@@ -45,7 +45,7 @@ public:
 
     void renderWithProgram(std::shared_ptr<GraphicsProgram> renderProgram, uint32_t lodLevel) override;
 
-    void setupForTime(long time [[gnu::unused]]) override {};
+    void setupForTime(uint32_t time [[gnu::unused]]) override {};
 
     void step(Camera* playerCamera) {
         viewMatrix = playerCamera->getProjectionMatrix() * glm::mat4(glm::mat3(playerCamera->getCameraMatrix()));

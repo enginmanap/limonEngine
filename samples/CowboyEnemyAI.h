@@ -57,15 +57,15 @@ class CowboyEnemyAI : public ActorInterface {
 
     std::vector<glm::vec3> routeToRequest;
 
-    long routeGetTime = 0;
+    uint32_t routeGetTime = 0;
     bool currentAnimationFinished;
 
     const float DETECTION_DISTANCE = 100;//too little because of testing
     const float MELEE_DISTANCE = 6;
     const float RUN_DISTANCE = 25;
 
-    long lastSetupTime;
-    long lastShootTime = 0;
+    uint32_t lastSetupTime;
+    uint32_t lastShootTime = 0;
     int shootingStage = 0;
     glm::vec3 lastWalkDirection = glm::vec3(0,0,0);
     bool routeRequested = false;
@@ -94,7 +94,7 @@ public:
         randomFloats = std::uniform_real_distribution<float>(0.0f, 1.0f); // generates random floats between 0.0 and 1.0
     };
 
-    void play(long time, ActorInterface::ActorInformation &information) override;
+    void play(uint32_t time, ActorInterface::ActorInformation &information) override;
 
     bool interaction(std::vector<LimonTypes::GenericParameter> &interactionInformation) override;
 

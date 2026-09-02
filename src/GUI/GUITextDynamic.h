@@ -13,7 +13,7 @@
 
 struct TextLine {
     std::string text;
-    long time;
+    uint32_t time;
     int extraLines = 0;
     bool renderedBefore = false;
 
@@ -27,12 +27,12 @@ class GUITextDynamic: public GUITextBase {
     int maxCharWidth;
     int totalExtraLines = 0;
     long logLineCount = 1;
-    long renderSetupTime = 0;
+    uint32_t renderSetupTime = 0;
     std::list<TextLine> textList;
     Logger* source = nullptr;
 
 
-    long duration = 5000;//default 5 second duration
+    uint32_t duration = 5000;//default 5 second duration
     bool wordWrap = true;
 
 
@@ -47,7 +47,7 @@ public:
 
     }
 
-    virtual void setupForTime(long time) {
+    virtual void setupForTime(uint32_t time) {
         renderSetupTime = time;
     };
 
@@ -55,7 +55,7 @@ public:
         this->source = logger;
     }
 
-    void setDuration(long duration) {
+    void setDuration(uint32_t duration) {
         this->duration = duration;
     }
 

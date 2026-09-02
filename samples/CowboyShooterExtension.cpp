@@ -10,7 +10,7 @@
 #include "limonAPI/LimonConverter.h"
 
 void CowboyShooterExtension::processInput(const InputStates &inputState, const PlayerExtensionInterface::PlayerInformation &playerInformation,
-                                          long time) {
+                                          uint32_t time) {
     this->lastInputTime = time;
 
     // Create and activate the third-person camera rig once, on the first tick. Doing it here (rather than in

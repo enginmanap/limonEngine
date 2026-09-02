@@ -73,7 +73,7 @@ Attachable* Emitter::clone(uint32_t newObjectID, LimonAPI* limonAPI [[gnu::unuse
     return new Emitter(*this, newObjectID);
 }
 
-void Emitter::addRandomParticle(const glm::vec3 &startPosition, const glm::vec3 &maxStartDistances, long time) {
+void Emitter::addRandomParticle(const glm::vec3 &startPosition, const glm::vec3 &maxStartDistances, uint32_t time) {
     float x = randomStartingPoints(randomFloatGenerator) * maxStartDistances.x;
     float y = randomStartingPoints(randomFloatGenerator) * maxStartDistances.y;
     float z = randomStartingPoints(randomFloatGenerator) * maxStartDistances.z;
@@ -500,7 +500,7 @@ void Emitter::renderDebugVisualization(Logger *logger, uint32_t &bufferId) const
     }
 }
 
-float Emitter::calculateTimedColorShift(const long time, const long particleCreateTime) {
+float Emitter::calculateTimedColorShift(const uint32_t time, const uint32_t particleCreateTime) {
     if(timedColorMultipliers.empty()) {
         return packToFloat(glm::uvec4 (255,255,255,255));
     }

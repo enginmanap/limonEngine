@@ -24,7 +24,7 @@ public:
     }
     void removeDamageIndicator(std::vector<LimonTypes::GenericParameter> parameters);
     void processInput(const InputStates &inputState, const PlayerExtensionInterface::PlayerInformation &playerInformation,
-                          long time) override;
+                          uint32_t time) override;
 
     void interact(std::vector<LimonTypes::GenericParameter> &interactionData) override;
 

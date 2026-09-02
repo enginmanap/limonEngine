@@ -94,7 +94,7 @@ Model::Model(uint32_t objectID,  std::shared_ptr<AssetManager> assetManager, con
     }
 }
 
-void Model::setupForTime(long time) {
+void Model::setupForTime(uint32_t time) {
     if(animated && !animationLastFramePlayed) {
         //check if we need to blend
         if(animationBlend) {

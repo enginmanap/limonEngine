@@ -56,7 +56,7 @@ public:
     }
 
     virtual void processInput(const InputStates &inputHandler, const PlayerExtensionInterface::PlayerInformation &playerInformation,
-                                  long time) = 0;
+                                  uint32_t time) = 0;
     virtual void interact(std::vector<LimonTypes::GenericParameter> &interactionData) = 0;
 
     virtual ~PlayerExtensionInterface() = default;
@@ -103,7 +103,7 @@ class PlayerExtensionRegister : PlayerExtensionInterface {
     }
 
     void processInput(const InputStates &inputHandler, const PlayerExtensionInterface::PlayerInformation &playerInformation,
-                          long time) override {}
+                          uint32_t time) override {}
     void interact(std::vector<LimonTypes::GenericParameter> &interactionData [[gnu::unused]]) override {}
 
 public:

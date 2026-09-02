@@ -44,7 +44,8 @@ void GUITextDynamic::renderWithProgram(std::shared_ptr<GraphicsProgram> program,
     }
 
     for(std::list<TextLine>::iterator lineIt = textList.begin(); lineIt != textList.end(); lineIt++, lineCount++) {
-        if(renderSetupTime - lineIt->time > duration) {//this is done here, because this way we don't iterate the list twice
+        //We stamp logs from actual time of call, not time of world iteration. This means it is bigger than the renderSetupTime for same frame, so - would wrap it because of unsignedness.
+        if(renderSetupTime > lineIt->time && renderSetupTime - lineIt->time > duration) {//this is done here, because this way we don't iterate the list twice
             std::list<TextLine>::iterator test = lineIt;
             lineIt++;
             totalExtraLines = totalExtraLines - test->extraLines;

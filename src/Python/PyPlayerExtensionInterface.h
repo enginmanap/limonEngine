@@ -22,7 +22,7 @@ public:
         pyObj = pybind11::none();
     }
 
-    void processInput(const InputStates& input, const PlayerInformation& playerInfo, long time) noexcept override {
+    void processInput(const InputStates& input, const PlayerInformation& playerInfo, uint32_t time) noexcept override {
         try {
             pyObj.attr("process_input")(input, playerInfo, time);
         } catch (const std::exception& e) {

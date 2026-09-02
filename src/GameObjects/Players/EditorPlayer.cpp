@@ -54,7 +54,7 @@ void EditorPlayer::rotateFree(float xChange, float yChange) {
     right = glm::normalize(glm::cross(center, up));
 }
 
-void EditorPlayer::processInput(const InputStates &inputState, long time [[gnu::unused]]) {
+void EditorPlayer::processInput(const InputStates &inputState, uint32_t time [[gnu::unused]]) {
     float xPosition, yPosition, xChange, yChange;
     bool hasMouseChange = inputState.getMouseChange(xPosition, yPosition, xChange, yChange);
 

@@ -163,7 +163,7 @@ public:
 
     void setPosition(glm::vec3 position, const Camera* playerCamera);
 
-    void step(long time [[gnu::unused]], Camera* playerCamera) {
+    void step(uint32_t time [[gnu::unused]], Camera* playerCamera) {
         if(lightType == LightTypes::DIRECTIONAL) {
             updateLightView(playerCamera);
         } else if(lightType == LightTypes::POINT && frustumChanged) {

@@ -501,7 +501,7 @@ ImGuiResult PhysicalPlayer::addImGuiEditorElements(const ImGuiRequest &request) 
     return imGuiResult;
 }
 
-void PhysicalPlayer::processInput(const InputStates &inputHandler, long time) {
+void PhysicalPlayer::processInput(const InputStates &inputHandler, uint32_t time) {
     Player::processInput(inputHandler, time);
     
     if(dead) {

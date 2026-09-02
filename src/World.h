@@ -182,7 +182,7 @@ private:
         uint32_t animationIndex;
         bool loop;
         bool originChange = false;
-        long startTime;
+        uint32_t startTime;
         Transformation originalTransformation;
         bool wasKinematic;
         bool wasPhysical = false;

@@ -44,8 +44,8 @@ class CowboyShooterExtension : public  PlayerExtensionInterface {
     uint32_t playerAttachedModelID;
     uint32_t playerAttachedPistolID;
     uint32_t playerAttachedRifleID;
-    long lastInputTime = 0;
-    long hitTime = 0;
+    uint32_t lastInputTime = 0;
+    uint32_t hitTime = 0;
 
     const LimonTypes::Vec4 removeOffset = LimonTypes::Vec4(0, 0, -50);
     const LimonTypes::Vec4 addOffset = LimonTypes::Vec4(0, 0, 50);
@@ -106,7 +106,7 @@ public:
     void removeDamageIndicator(std::vector<LimonTypes::GenericParameter> parameters);
     void removeMuzzleFlash(std::vector<LimonTypes::GenericParameter> parameters);
     void processInput(const InputStates &inputState, const PlayerExtensionInterface::PlayerInformation &playerInformation,
-                          long time) override;
+                          uint32_t time) override;
 
     void interact(std::vector<LimonTypes::GenericParameter> &interactionData) override;
 

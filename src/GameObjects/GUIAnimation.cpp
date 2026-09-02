@@ -11,7 +11,7 @@
 
 
 GUIAnimation::GUIAnimation(uint32_t worldID,  std::shared_ptr<AssetManager> assetManager, const std::string name,
-                           const std::vector<std::string> &imageFiles, long creationTime, uint32_t frameSpeed,
+                           const std::vector<std::string> &imageFiles, uint32_t creationTime, uint32_t frameSpeed,
                            bool isLooped)
         : GUIImageBase(
         assetManager->getGraphicsWrapper(), assetManager, imageFiles[0]), worldID(worldID), name(name), creationTime(creationTime), imagePerFrame(frameSpeed), looped(isLooped) {
@@ -218,7 +218,7 @@ ImGuiResult GUIAnimation::addImGuiEditorElements(const ImGuiRequest &request) {
     return result;
 }
 
-void GUIAnimation::setupForTime(long time) {
+void GUIAnimation::setupForTime(uint32_t time) {
     float currentTime = (time - creationTime) / ((float)1000 / (float)imagePerFrame);
     uint32_t currentElement;
     if(looped) {

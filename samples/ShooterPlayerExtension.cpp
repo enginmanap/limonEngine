@@ -18,7 +18,7 @@
 const glm::quat ShooterPlayerExtension::direction = glm::quat(0.0f, 0.0f, 1.0f, 0.0f);//this is used to reverse hit normal
 
 void ShooterPlayerExtension::processInput(const InputStates &inputState, const PlayerExtensionInterface::PlayerInformation &playerInformation,
-                                          long time [[gnu::unused]]) {
+                                          uint32_t time [[gnu::unused]]) {
 
     if(inputState.isSimulated()) {
         return;

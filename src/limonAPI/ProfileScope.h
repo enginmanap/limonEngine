@@ -8,7 +8,7 @@
  *
  * C++ usage — let the destructor close the zone automatically:
  *
- *   void MyActor::play(long time, ActorInformation& info) {
+ *   void MyActor::play(uint32_t time, ActorInformation& info) {
  *       ProfileScope scope = limonAPI->profileScope(playZoneName);
  *       // ... work ...
  *   }  // zone ends here

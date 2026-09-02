@@ -40,7 +40,7 @@ public:
         pyObj.attr("model_id") = this->modelID;
     }
 
-    void play(long time, ActorInterface::ActorInformation &information) noexcept override {
+    void play(uint32_t time, ActorInterface::ActorInformation &information) noexcept override {
         try {
             forwardModelID();
             pyObj.attr("play")(time, information);

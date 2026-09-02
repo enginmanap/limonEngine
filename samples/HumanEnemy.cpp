@@ -8,7 +8,7 @@
 #include "HumanEnemy.h"
 #include "CowboyEnemyAI.h"
 
-void HumanEnemy::play(long time, ActorInterface::ActorInformation &information) {
+void HumanEnemy::play(uint32_t time, ActorInterface::ActorInformation &information) {
     if(information.routeReady) {
         this->routeToRequest = information.routeToRequest;
         if(information.routeFound) {

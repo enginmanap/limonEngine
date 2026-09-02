@@ -42,7 +42,7 @@ public:
     void renderTextWithProgram(std::shared_ptr<GraphicsProgram> renderProgram);
     void renderImageWithProgram(std::shared_ptr<GraphicsProgram> renderProgram);
 
-    void setupForTime(long time);
+    void setupForTime(uint32_t time);
 
     bool serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *LayersListNode, OptionsUtil::Options *options);
 

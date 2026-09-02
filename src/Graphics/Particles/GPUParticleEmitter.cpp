@@ -15,7 +15,7 @@
 
 GPUParticleEmitter::GPUParticleEmitter(long worldObjectId, std::string name, std::shared_ptr<AssetManager> assetManager,
                  const std::string &textureFile, glm::vec3 startPosition, glm::vec3 maxStartDistances, glm::vec2 size, long count,
-                 long lifeTime, long startTime [[gnu::unused]], float particlePerMs) :
+                 long lifeTime, uint32_t startTime [[gnu::unused]], float particlePerMs) :
         Renderable(assetManager->getGraphicsWrapper()), assetManager(assetManager), worldObjectID(worldObjectId), name(std::move(name)), size(size),
         maxCount(count), lifeTime(lifeTime), maxStartDistances(maxStartDistances),
         randomFloatGenerator(randomDevice()), randomStartingPoints(-1.0f, 1.0f),
@@ -80,7 +80,7 @@ GPUParticleEmitter::~GPUParticleEmitter() {
 }
 
 GPUParticleEmitter::ParticleData
-GPUParticleEmitter::addRandomParticle(const glm::vec3 &startPosition, const glm::vec3 &maxStartDistances, long creationTime) {
+GPUParticleEmitter::addRandomParticle(const glm::vec3 &startPosition, const glm::vec3 &maxStartDistances, uint32_t creationTime) {
     float x = randomStartingPoints(randomFloatGenerator) * maxStartDistances.x;
     float y = randomStartingPoints(randomFloatGenerator) * maxStartDistances.y;
     float z = randomStartingPoints(randomFloatGenerator) * maxStartDistances.z;
@@ -325,7 +325,7 @@ ImGuiResult GPUParticleEmitter::addImGuiEditorElements(const ImGuiRequest &reque
     return true;
 }
 
-float GPUParticleEmitter::calculateTimedColorShift(const long time, const long particleCreateTime) {
+float GPUParticleEmitter::calculateTimedColorShift(const uint32_t time, const uint32_t particleCreateTime) {
     if(timedColorMultipliers.empty()) {
         return packToFloat(glm::uvec4 (255,255,255,255));
     }

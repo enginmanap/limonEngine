@@ -73,7 +73,7 @@ public:
 
     void rotate(float xPosition, float yPosition, float xChange, float yChange) override;
 
-    void processInput(const InputStates &inputHandler, long time) override {
+    void processInput(const InputStates &inputHandler, uint32_t time) override {
         Player::processInput(inputHandler, time);
 
         if(playerExtension != nullptr) {

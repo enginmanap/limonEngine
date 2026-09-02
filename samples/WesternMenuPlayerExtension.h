@@ -16,7 +16,7 @@ class WesternMenuPlayerExtension : public PlayerExtensionInterface {
 
     glm::vec3 direction;
     glm::vec3 addedPositionTillNow = glm::vec3(0,0,0);
-    long startTime = 0;
+    uint32_t startTime = 0;
     LimonTypes::Vec4 color = LimonTypes::Vec4(0.5f, 0.5f, 0.5f, 0);
     float speed;
 public:
@@ -27,7 +27,7 @@ public:
 
     }
     void processInput(const InputStates &inputState, const PlayerExtensionInterface::PlayerInformation &playerInformation,
-                          long time) override;
+                          uint32_t time) override;
 
     void interact(std::vector<LimonTypes::GenericParameter> &interactionData) override;
 
