@@ -447,8 +447,8 @@ bool ModelAsset::findNode(const std::string &nodeName, std::shared_ptr<BoneNode>
  * @param transformMatrixVector
  * @return returns true if both of the animations set their last frames. If any were looped, never returns true.
  */
-bool ModelAsset::getTransformBlended(std::string animationNameOld, long timeOld, bool loopedOld,
-                                     std::string animationNameNew, long timeNew, bool loopedNew,
+bool ModelAsset::getTransformBlended(std::string animationNameOld, float timeOld, bool loopedOld,
+                                     std::string animationNameNew, float timeNew, bool loopedNew,
                                                 float blendFactor,
                                                 std::vector<glm::mat4> &transformMatrix) const {
 
@@ -563,7 +563,7 @@ bool ModelAsset::getTransformBlended(std::string animationNameOld, long timeOld,
  *
  * @return if last frame of animation is played for not looped animation. Always false for looped ones.
  */
-bool ModelAsset::getTransform(long time, bool looped, std::string animationName, std::vector<glm::mat4> &transformMatrix) const {
+bool ModelAsset::getTransform(float time, bool looped, std::string animationName, std::vector<glm::mat4> &transformMatrix) const {
 /*
     for(auto it = animations.begin(); it != animations.end(); it++) {
         std::cout << "Animations name: " << it->first << " size " << animations.size() <<std::endl;
@@ -619,7 +619,7 @@ bool ModelAsset::getTransform(long time, bool looped, std::string animationName,
     return result;
 }
 
-void ModelAsset::getJointTransforms(long time, bool looped, const std::string &animationName, std::vector<glm::mat4> &outJointTransforms) const {
+void ModelAsset::getJointTransforms(float time, bool looped, const std::string &animationName, std::vector<glm::mat4> &outJointTransforms) const {
     if (animationName.empty()) {
         glm::mat4 parentTransform(1.0f);
         traverseAndSetBindPoseJointTransform(rootNode, parentTransform, outJointTransforms);

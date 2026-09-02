@@ -32,7 +32,7 @@ class AnimationCustom : public AnimationInterface {
 
 public:
     AnimationCustom(const std::string &animationName, std::shared_ptr<AnimationNode> animationNode, int duration)
-            : ticksPerSecond(60), duration(duration), name(animationName) {
+            : ticksPerSecond(TICK_PER_SECOND), duration(duration), name(animationName) {
             this->animationNode = animationNode;
     }
 

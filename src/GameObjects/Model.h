@@ -35,11 +35,12 @@ private:
     std::shared_ptr<AssetManager> assetManager;
     std::shared_ptr<ModelAsset> modelAsset;
     std::string animationName;
-    long animationTime = 0;
+    //float, not an integer type. animationTimeScale below can be 0.01, which truncates to a 0ms advance every tick
+    float animationTime = 0.0f;
     bool animationLooped = true;
 
     std::string animationNameOld;
-    long animationTimeOld = 0;
+    float animationTimeOld = 0.0f;
     bool animationLoopedOld = true;
 
     bool animationBlend = false;

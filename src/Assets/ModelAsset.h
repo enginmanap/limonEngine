@@ -179,10 +179,10 @@ public:
      *
      * @return if last frame of animation is played for not looped animation. Always true for looped ones.
      */
-    bool getTransform(long time, bool looped, std::string animationName, std::vector<glm::mat4> &transformMatrix) const; //this method takes vector to avoid copying it
+    bool getTransform(float time, bool looped, std::string animationName, std::vector<glm::mat4> &transformMatrix) const; //this method takes vector to avoid copying it
 
-    bool getTransformBlended(std::string animationName1, long time1, bool looped1,
-                                         std::string animationName2, long time2, bool looped2,
+    bool getTransformBlended(std::string animationName1, float time1, bool looped1,
+                                         std::string animationName2, float time2, bool looped2,
                                          float blendFactor, std::vector<glm::mat4> &transformMatrixVector) const;
 
     /**
@@ -197,7 +197,7 @@ public:
      * @param animationName name of animation to seek, or empty for bind pose.
      * @param outJointTransforms transform list for bones, pre-sized by the caller.
      */
-    void getJointTransforms(long time, bool looped, const std::string &animationName, std::vector<glm::mat4> &outJointTransforms) const;
+    void getJointTransforms(float time, bool looped, const std::string &animationName, std::vector<glm::mat4> &outJointTransforms) const;
 
     const glm::vec3 &getBoundingBoxMin() const { return boundingBoxMin; }
 
