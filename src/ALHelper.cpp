@@ -26,6 +26,7 @@ ALHelper::ALHelper() {
     if(!ctx) {
         throw("Audio context setup failed!");
     }
+    lastFadeSampleTime = (uint32_t)SDL2Helper::getTicks();
     soundThread = new SDL2MultiThreading::InternalThread("soundManager",
         [this]() { soundManager(); });
     soundThread->run();
@@ -33,6 +34,10 @@ ALHelper::ALHelper() {
 
 int ALHelper::soundManager() {
     while(running || paused) {
+        //we sample the deltaMs here so if sound is fading out and pause is called, it will not corrupt
+        uint32_t now = (uint32_t)SDL2Helper::getTicks();
+        float deltaMs = (float)(now - lastFadeSampleTime);
+        lastFadeSampleTime = now;
         if(paused && running) { //the first cycle after pause request
             for (auto iterator = playingSounds.begin(); iterator != playingSounds.end();++iterator) {
                 alSourcePause(iterator->second->source);
@@ -102,8 +107,9 @@ int ALHelper::soundManager() {
 
                     }
                 } else {
-                    if(temp->fadeDurationMs > 0.0f) {
-                        temp->fadeElapsedMs += 10.0f; //this loop ticks every SDL_Delay(10)
+                    // when world pauses, this thread doesn't pause, so we have to hold the sound
+                    if(temp->fadeDurationMs > 0.0f && !temp->paused) {
+                        temp->fadeElapsedMs += deltaMs;
                         float t = temp->fadeElapsedMs / temp->fadeDurationMs;
                         if(t >= 1.0f) {
                             t = 1.0f;

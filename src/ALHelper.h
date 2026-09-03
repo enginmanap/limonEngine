@@ -78,6 +78,8 @@ private:
     bool running = true;
     bool paused = false;
     bool resumed = false;
+    //This is the wall time previous sample time for fading
+    uint32_t lastFadeSampleTime = 0;
     uint32_t soundRequestID = 1;
     std::unordered_map<uint32_t, std::unique_ptr<PlayingSound>> playingSounds;
     std::vector<std::unique_ptr<PlayingSound>> playRequests;
