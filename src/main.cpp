@@ -406,7 +406,11 @@ int main(int argc, char *argv[]) {
         std::cout << PROGRAM_NAME + " only takes one parameter. First one is processed as Map file, rest discarded." << std::endl;
     }
 
+#ifdef __APPLE__
+    pthread_setname_np("Main thread");//MacOS don't have naming other threads, so the signature is different
+#else
     pthread_setname_np(pthread_self(), "Main thread");
+#endif
 
     GameEngine game;
 

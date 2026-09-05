@@ -6,8 +6,8 @@
 #define LIMONENGINE_GLMCONVERTER_H
 
 #include <btBulletDynamicsCommon.h>
-#include "../glm/gtx/quaternion.hpp"
-#include "../glm/glm.hpp"
+#include <glm/gtx/quaternion.hpp>
+#include <glm/glm.hpp>
 #include "limonAPI/LimonAPI.h"
 
 
