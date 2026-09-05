@@ -197,7 +197,7 @@ bool Material::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *
         materialRefractionIndexNode->SetText(this->getRefractionIndex());
         materialNode->InsertEndChild(materialRefractionIndexNode);
         tinyxml2::XMLElement *materialOriginalHashNode = document.NewElement("OriginalHash");
-        materialOriginalHashNode->SetText(this->getOriginalHash());
+        materialOriginalHashNode->SetText((uint64_t)(this->getOriginalHash()));
         materialNode->InsertEndChild(materialOriginalHashNode);
 
         //now the textures. They might or might not exist, we need to check

@@ -339,23 +339,26 @@ add_dependencies(LimonEngine OpenGLGraphicsBackend)
 # --- END OpenGL Backend ---
 
 # --- 2. OpenGLES Backend ---
-add_library(OpenGLESGraphicsBackend SHARED
-        ${GRAPHICS_BASE_SOURCES}
-        GraphicBackends/OpenGLESGraphics.cpp
-)
-disable_postfixes(OpenGLESGraphicsBackend)
-target_precompile_headers(OpenGLESGraphicsBackend PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src/stdafx.h)
+if(NOT APPLE)
+    #Apple don't have opengl es backends
+    add_library(OpenGLESGraphicsBackend SHARED
+            ${GRAPHICS_BASE_SOURCES}
+            GraphicBackends/OpenGLESGraphics.cpp
+    )
+    disable_postfixes(OpenGLESGraphicsBackend)
+    target_precompile_headers(OpenGLESGraphicsBackend PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src/stdafx.h)
 
-if(WIN32)
-    # On windows, WGL ES will resolve them ,nothing else needed.
-    TARGET_LINK_LIBRARIES(OpenGLESGraphicsBackend LimonAPI GLEW::GLEW ${OPENGL_LIBRARIES})
-else()
-    # Raspberry Pi / Linux needs native ES libraries
-    TARGET_LINK_LIBRARIES(OpenGLESGraphicsBackend LimonAPI GLEW::GLEW GLESv2 EGL)
+    if(WIN32)
+        # On windows, WGL ES will resolve them ,nothing else needed.
+        TARGET_LINK_LIBRARIES(OpenGLESGraphicsBackend LimonAPI GLEW::GLEW ${OPENGL_LIBRARIES})
+    else()
+        # Raspberry Pi / Linux needs native ES libraries
+        TARGET_LINK_LIBRARIES(OpenGLESGraphicsBackend LimonAPI GLEW::GLEW GLESv2 EGL)
+    endif()
+
+    set_target_properties(OpenGLESGraphicsBackend PROPERTIES VERSION ${PROJECT_VERSION} SOVERSION 1)
+    add_dependencies(LimonEngine OpenGLESGraphicsBackend)
 endif()
-
-set_target_properties(OpenGLESGraphicsBackend PROPERTIES VERSION ${PROJECT_VERSION} SOVERSION 1)
-add_dependencies(LimonEngine OpenGLESGraphicsBackend)
 # --- END OpenGLES Backend ---
 
 # Add the definition to all targets
