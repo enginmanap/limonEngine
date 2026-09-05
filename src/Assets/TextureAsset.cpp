@@ -99,7 +99,7 @@ void TextureAsset::loadCPUPart() {
     } else {
         //std::cout << "TextureAsset " << name[0] << " loaded from disk successfully." << std::endl;
     }
-    if (SDL_BYTESPERPIXEL(cpuSurface->format) == 4) {
+    if (SDL_BYTESPERPIXEL(cpuSurface->format) == 4 || SDL_BYTESPERPIXEL(cpuSurface->format) == 8) {
         if(cpuSurface->format != SDL_PIXELFORMAT_ABGR8888) {
             //if the internal format is not rgba32, convert to it.
             SDL_Surface* surfaceTemp = SDL_ConvertSurface(cpuSurface,
@@ -114,7 +114,7 @@ void TextureAsset::loadCPUPart() {
         textureMetaData.width = cpuSurface->w;
         textureMetaData.height = cpuSurface->h;
 
-    } else if (SDL_BYTESPERPIXEL(cpuSurface->format) == 3) {
+    } else if (SDL_BYTESPERPIXEL(cpuSurface->format) == 3 || SDL_BYTESPERPIXEL(cpuSurface->format) == 6) {
         if(cpuSurface->format != SDL_PIXELFORMAT_RGB24) {
             //if the internal format is not rgb24, convert to it.
             SDL_Surface* surfaceTemp = SDL_ConvertSurface(cpuSurface,
