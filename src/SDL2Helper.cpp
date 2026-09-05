@@ -52,7 +52,8 @@ void SDL2Helper::initWindow(const char* title, const GraphicsInterface::ContextI
 
     /* Create our window centered */
     window = SDL_CreateWindow(title,
-                              options->getScreenWidth(), options->getScreenHeight(), SDL_WINDOW_OPENGL);
+                              options->getScreenWidth(), options->getScreenHeight(),
+                              SDL_WINDOW_OPENGL | SDL_WINDOW_HIGH_PIXEL_DENSITY);
     if (!window) {
         std::cout << "SDL Error: " << SDL_GetError() << std::endl;
         //we don't quit if failed, because there is a fallback possibility

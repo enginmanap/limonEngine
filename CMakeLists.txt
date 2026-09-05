@@ -69,6 +69,11 @@ IF (WIN32)
 ELSEIF(APPLE)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wnon-virtual-dtor -pedantic")
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${SIMD_FLAGS}")
+    # MacOS seems to embed the dynlib path within the binary that tries to load it. That is something
+    # We don't want, so lets override
+    set(CMAKE_MACOSX_RPATH ON)
+    set(CMAKE_BUILD_WITH_INSTALL_RPATH ON)
+    set(CMAKE_INSTALL_RPATH "@executable_path;@loader_path;@executable_path/libs;@loader_path/libs")
 ELSE()
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wnon-virtual-dtor -pedantic ${SIMD_FLAGS}")
 ENDIF()
@@ -115,9 +120,16 @@ if (NOT LIBS_EXTERNAL_ASSIMP)
 endif()
 
 if (NOT LIBS_EXTERNAL_BULLET)
-    OPTION(USE_GRAPHICAL_BENCHMARK "Use Graphical Benchmark" OFF)
-    OPTION(ENABLE_VHACD "Use VHACD in BulletRobotics and pybullet" OFF)
-    OPTION(BUILD_EGL "Build OpenGL/EGL" OFF)
+    set(USE_GRAPHICAL_BENCHMARK OFF)
+    set(ENABLE_VHACD OFF)
+    set(BUILD_EGL OFF)
+    set(BUILD_BULLET2_DEMOS OFF)
+    set(BUILD_OPENGL3_DEMOS OFF)
+    set(BUILD_EXTRAS OFF)
+    set(BUILD_UNIT_TESTS OFF)
+    set(INSTALL_LIBS OFF)
+    set(INSTALL_EXTRA_LIBS OFF)
+    set(INSTALL_CMAKE_FILES OFF)
 endif()
 
 include(libs/CmakeLists.txt)
@@ -174,16 +186,6 @@ iF(LIBS_EXTERNAL_BULLET)
     INCLUDE_DIRECTORIES(SYSTEM ${BULLET_INCLUDE_DIRS})
     message("Bullet Include: ${BULLET_LIBRARIES}")
 ELSE ()
-    message("Using local Bullet")
-    # Set Bullet build options
-    set(BUILD_BULLET2_DEMOS OFF CACHE BOOL "Disable Bullet demos" FORCE)
-    set(BUILD_OPENGL3_DEMOS OFF CACHE BOOL "Disable OpenGL3 demos" FORCE)
-    set(BUILD_BULLET3 OFF CACHE BOOL "Disable Bullet3" FORCE)
-    set(BUILD_EXTRAS OFF CACHE BOOL "Disable Bullet extras" FORCE)
-    set(BUILD_UNIT_TESTS OFF CACHE BOOL "Disable unit tests" FORCE)
-    set(INSTALL_LIBS OFF CACHE BOOL "Disable installation" FORCE)
-    set(USE_GLUT OFF CACHE BOOL "Disable GLUT" FORCE)
-
     message("Using local Bullet from: ${CMAKE_SOURCE_DIR}/libs/bullet")
 ENDIF ()
 if (NOT BULLET_FOUND)
@@ -210,16 +212,21 @@ if (LIBS_EXTERNAL_ASSIMP)
         endif ()
         INCLUDE_DIRECTORIES(SYSTEM ${ASSIMP_INCLUDE_DIRS})
 
-        # TODO test on Apple
-        if (APPLE)
-            set(ASSIMP_LIBRARIES "/usr/local/lib/libassimp.5.dylib")
-        endif(APPLE)
+        # Prefer the imported target
+        if (TARGET assimp::assimp)
+            set(LIMON_ASSIMP_LIBRARY assimp::assimp)
+        else()
+            set(LIMON_ASSIMP_LIBRARY ${ASSIMP_LIBRARIES})
+        endif()
     else()
         message(STATUS "Using external Assimp")
         target_include_directories(LimonEngine PRIVATE "libs/assimp/include")
         target_include_directories(LimonEngine PRIVATE ${LIBS_ASSIMP_INCLUDE_DIR} ${LIBS_ASSIMP_CONFIG_DIR})
         target_link_directories(LimonEngine PRIVATE ${LIBS_ASSIMP_LIBRARY_DIR})
+        set(LIMON_ASSIMP_LIBRARY assimp)
     endif()
+else()
+    set(LIMON_ASSIMP_LIBRARY assimp)
 endif()
 
 
@@ -228,7 +235,7 @@ add_custom_target(copyData
         ${CMAKE_SOURCE_DIR}/Engine ${CMAKE_BINARY_DIR}/Engine)
 add_dependencies(LimonEngine copyData)
 
-TARGET_LINK_LIBRARIES(LimonEngine ProfilerSystemLib ImGui ImGuizmo OpenAL meshoptimizer nodeGraph assimp pybind11::embed SDOC.quic TracyClient TracyServer ${WINDOWS_SPECIFIC_LINK_LIBRARIES} ${TinyXML2_LIBRARIES} ${BULLET_LIBRARIES} SDL3::SDL3 ${FREETYPE_LIBRARIES} SDL3_image::SDL3_image)
+TARGET_LINK_LIBRARIES(LimonEngine ProfilerSystemLib ImGui ImGuizmo OpenAL meshoptimizer nodeGraph ${LIMON_ASSIMP_LIBRARY} pybind11::embed SDOC.quic TracyClient TracyServer ${WINDOWS_SPECIFIC_LINK_LIBRARIES} ${TinyXML2_LIBRARIES} ${BULLET_LIBRARIES} SDL3::SDL3 ${FREETYPE_LIBRARIES} SDL3_image::SDL3_image)
 
 # Optional: Wayland fullscreen viewport scaling fix (Linux/Pi only)
 if(UNIX AND NOT APPLE)
@@ -380,5 +387,29 @@ else()
     message(STATUS "Using existing Python bundle at ${PYTHON_BUNDLE_ZIP}")
 endif()
 
+IF(APPLE)
+    # dynlibs from homebrew is forcing the library paths to the homebrew. On a mac without
+    # homebrew, these would fail to load. We are trying to copy them to ./libs, and
+    # rewrite the load dir
+    find_program(DYLIBBUNDLER_EXECUTABLE dylibbundler)
+    IF(DYLIBBUNDLER_EXECUTABLE)
+        set(BUNDLE_TARGETS LimonEngine OpenGLGraphicsBackend customTriggers)
+        set(BUNDLE_FIX_ARGS "")
+        foreach(BUNDLE_TARGET ${BUNDLE_TARGETS})
+            list(APPEND BUNDLE_FIX_ARGS -x $<TARGET_FILE:${BUNDLE_TARGET}>)
+        endforeach()
+        add_custom_target(bundleMacDylibs
+                COMMAND ${DYLIBBUNDLER_EXECUTABLE} --bundle-deps --overwrite-files --create-dir
+                        ${BUNDLE_FIX_ARGS}
+                        --dest-dir ${CMAKE_BINARY_DIR}/libs
+                        --install-path @executable_path/libs
+                WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+                COMMENT "Copying third party dylibs into ./libs and rewriting their install names"
+                VERBATIM)
+        add_dependencies(bundleMacDylibs ${BUNDLE_TARGETS})
+    ELSE()
+        message(STATUS "dylibbundler not found -- run 'brew install dylibbundler' to enable the bundleMacDylibs target")
+    ENDIF()
+ENDIF()
 
 #cotire(LimonEngine)

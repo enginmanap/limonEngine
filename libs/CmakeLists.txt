@@ -52,18 +52,19 @@ if (NOT LIBS_EXTERNAL_BULLET)
 	)
 	include_directories(${BULLET_INCLUDE_DIRS})
 
-	# Define Bullet libraries to link against
+	# Only build what we currently use. May need to expand in the future.
 	set(BULLET_LIBRARIES
 		BulletDynamics
 		BulletCollision
-			#unused
-			Bullet3Common
-			BulletInverseDynamics
-			BulletSoftBody
-			#unused
 		LinearMath
+		#unused
+		#Bullet3Common
+		#BulletInverseDynamics
+		#BulletSoftBody
+		#unused
 	)
-	add_subdirectory("libs/bullet/")
+	# Only build what we listed, bu excluding all
+	add_subdirectory("libs/bullet/" EXCLUDE_FROM_ALL)
 
 endif()
 
