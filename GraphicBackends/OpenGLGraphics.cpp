@@ -1730,16 +1730,19 @@ void OpenGLGraphics::initGpuContext() {
 #endif
 }
 
-void OpenGLGraphics::beginGpuProfileZone(const char* name, bool active) {
-#ifdef TRACY_ENABLE
+void OpenGLGraphics::beginGpuProfileZone(const char* name [[gnu::unused]], bool active [[gnu::unused]]) {
+#if defined(TRACY_ENABLE) && !defined(__APPLE__) //Apple doesn't expose ARB_timer_query, tracy depends on it.
     if (!active) return;
-    // GpuCtxScope transient constructor: records glQueryCounter at begin
-    currentGpuZone = new tracy::GpuCtxScope(0, "", 0, "", 0, name, strlen(name), true);
+    currentGpuZone = new tracy::GpuCtxScope(TracyLine,
+                                            TracyFile, strlen(TracyFile),
+                                            TracyFunction, strlen(TracyFunction),
+                                            name, strlen(name),
+                                            active);
 #endif
 }
 
 void OpenGLGraphics::endGpuProfileZone() {
-#ifdef TRACY_ENABLE
+#if defined(TRACY_ENABLE) && !defined(__APPLE__)
     if (!currentGpuZone) return;
     // Destructor records glQueryCounter at end
     delete currentGpuZone;

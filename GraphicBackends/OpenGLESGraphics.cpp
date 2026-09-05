@@ -1859,7 +1859,11 @@ void OpenGLESGraphics::initGpuContext() {
 void OpenGLESGraphics::beginGpuProfileZone(const char* name, bool active) {
 #ifdef TRACY_ENABLE
     if (!active || !isTimerQuerySupported) return;
-    currentGpuZone = new tracy::GpuCtxScope(0, "", 0, "", 0, name, strlen(name), true);
+    currentGpuZone = new tracy::GpuCtxScope(TracyLine,
+                                            TracyFile, strlen(TracyFile),
+                                            TracyFunction, strlen(TracyFunction),
+                                            name, strlen(name),
+                                            active);
 #endif
 }
 
