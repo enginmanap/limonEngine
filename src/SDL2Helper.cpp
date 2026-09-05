@@ -3,6 +3,7 @@
 //
 
 #include <SDL3/SDL.h>
+#include <cmath>
 #include <memory>
 #ifdef _WIN32
 #include <windows.h>
@@ -50,18 +51,71 @@ void SDL2Helper::initWindow(const char* title, const GraphicsInterface::ContextI
 
     SDL_SetHint(SDL_HINT_VIDEO_WAYLAND_MODE_SCALING, "aspect");
 
-    /* Create our window centered */
+
+    /*
+     * We want to have a window, and a back buffer, at the pixel count that is set in the options.
+     * Problem is, SDL doesn't have pixes, it has points, and points can be some ratio of pixels.
+     * We need to convert the points to pixel.
+     */
+    const float pixelDensity = getDisplayPixelDensity();
     window = SDL_CreateWindow(title,
-                              options->getScreenWidth(), options->getScreenHeight(),
+                              (int)std::lround(options->getScreenWidth()  / pixelDensity),
+                              (int)std::lround(options->getScreenHeight() / pixelDensity),
                               SDL_WINDOW_OPENGL | SDL_WINDOW_HIGH_PIXEL_DENSITY);
     if (!window) {
         std::cout << "SDL Error: " << SDL_GetError() << std::endl;
         //we don't quit if failed, because there is a fallback possibility
+    } else {
+        verifyDrawableMatchesRequestedResolution();
     }
 
     OptionsUtil::Options::Option<bool> fullScreenOption = options->getOption<bool>(HASH("display_fullScreen"));
     bool fullScreen = fullScreenOption.getOrDefault(false);
     setFullScreen(fullScreen);
+}
+
+/**
+ * SDL allows us to query the point to pixel ration, we are using that. returns 1.0 if no scale
+ */
+float SDL2Helper::getDisplayPixelDensity() {
+    SDL_DisplayID displayID = SDL_GetPrimaryDisplay();
+    if (displayID == 0) {
+        std::cerr << "Couldn't determine the primary display, assuming it is unscaled: " << SDL_GetError() << std::endl;
+        return 1.0f;
+    }
+    const SDL_DisplayMode* desktopMode = SDL_GetDesktopDisplayMode(displayID);
+    if (desktopMode == nullptr) {
+        std::cerr << "Couldn't read the desktop display mode, assuming an unscaled display: " << SDL_GetError() << std::endl;
+        return 1.0f;
+    }
+    if (desktopMode->pixel_density <= 0.0f) {
+        return 1.0f;//SDL leaves this unset for drivers that have no notion of density
+    }
+    return desktopMode->pixel_density;
+}
+
+/**
+ * Window managers can force other sizes of windows. This is to check if that happened or not.
+ *
+ * Currently we only log error, as I don't know what to do in this case.
+ */
+void SDL2Helper::verifyDrawableMatchesRequestedResolution() {
+    const int requestedWidth  = (int)options->getScreenWidth();
+    const int requestedHeight = (int)options->getScreenHeight();
+
+    int drawableWidth = 0, drawableHeight = 0;
+    SDL_GetWindowSizeInPixels(window, &drawableWidth, &drawableHeight);
+    if (drawableWidth == requestedWidth && drawableHeight == requestedHeight) {
+        return;
+    }
+
+    int windowWidth = 0, windowHeight = 0;
+    SDL_GetWindowSize(window, &windowWidth, &windowHeight);
+    std::cerr << "Warning: asked for a " << requestedWidth << "x" << requestedHeight
+              << " pixel drawable but got " << drawableWidth << "x" << drawableHeight
+              << ", from a " << windowWidth << "x" << windowHeight << " point window at density "
+              << SDL_GetWindowPixelDensity(window)
+              << ". Rendering will not be one to one with display pixels." << std::endl;
 }
 
 bool SDL2Helper::createContext() {

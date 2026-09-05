@@ -35,6 +35,8 @@ public:
 
     SDL2Helper(OptionsUtil::Options* options);
     void initWindow(const char* title, const GraphicsInterface::ContextInformation& contextInformation);
+    static float getDisplayPixelDensity();
+    void verifyDrawableMatchesRequestedResolution();
     bool createContext();
     void destroyWindow();
     ~SDL2Helper();
