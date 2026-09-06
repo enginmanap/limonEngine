@@ -8,6 +8,10 @@
 #include "Material.h"
 #include "Graphics/Texture.h"
 
+#ifdef __APPLE__
+#include <OpenGL/OpenGL.h>//CGL for fullscreen resizing (Apple calls pinning)
+#endif
+
 #ifdef TRACY_ENABLE
 #include "tracy/TracyOpenGL.hpp"
 #endif
@@ -379,6 +383,32 @@ bool OpenGLGraphics::createGraphicsBackend() {
         std::cout << "GLEW Init: Success!" << std::endl;
     }
     checkErrors("after Context creation");
+
+#ifdef __APPLE__
+    // Apple display server can resize our backbufer, like Wayland viewporter, but it is implemented in
+    // their OpenGL package, and Metal has a CAMetalLayer separately, so we can't put this in SDL.
+    // So this part triggers their driver to resize our backbuffer to their screen, then updates
+    // What is the size so other parts would get actual values when queried.
+    CGLContextObj cglContext = CGLGetCurrentContext();
+    if (cglContext == nullptr) {
+        std::cerr << "No current CGL context, can't pin the GL surface size" << std::endl;
+    } else {
+        GLint surfaceDimensions[2] = { (GLint)this->screenWidth, (GLint)this->screenHeight };
+        CGLError cglError = CGLSetParameter(cglContext, kCGLCPSurfaceBackingSize, surfaceDimensions);
+        if (cglError == kCGLNoError) {
+            cglError = CGLEnable(cglContext, kCGLCESurfaceBackingSize);//setting the size is not enough, it has to be switched on
+        }
+        if (cglError != kCGLNoError) {
+            std::cerr << "Couldn't pin the GL surface size: " << CGLErrorString(cglError) << std::endl;
+        } else {
+            // Update the sizes so querying it returns actual values.
+            options->setDrawableWidth((int)this->screenWidth);
+            options->setDrawableHeight((int)this->screenHeight);
+            std::cout << "GL surface pinned to " << this->screenWidth << "x" << this->screenHeight
+                      << " pixels, the window server will scale it to the view" << std::endl;
+        }
+    }
+#endif
 
     glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &maxTextureImageUnits);
 

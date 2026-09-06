@@ -90,7 +90,8 @@ private:
     TexturePreviewCache previewCache;
     GraphicsInterface* graphicsWrapper = nullptr;
     OptionsUtil::Options* options;
-
+    OptionsUtil::Options::Option<long> displayHeight;
+    OptionsUtil::Options::Option<long> displayWidth;
     ImGuiContext* context = nullptr;
     void CreateFontsTexture();
     static const char* GetClipboardText(void*);

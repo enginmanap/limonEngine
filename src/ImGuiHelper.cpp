@@ -446,6 +446,9 @@ ImGuiHelper::ImGuiHelper(std::shared_ptr<AssetManager> assetManager, OptionsUtil
 
     // Setup style
     ImGui::StyleColorsClassic();
+
+    displayHeight = options->getOption<long>(HASH("display_height"));
+    displayWidth = options->getOption<long>(HASH("display_width"));
 }
 
 ImGuiHelper::~ImGuiHelper()
@@ -463,9 +466,8 @@ void ImGuiHelper::NewFrame(std::shared_ptr<GraphicsProgram> graphicsProgram) {
 
     // Setup display size (every frame to accommodate for window resizing)
     io.DisplaySize = ImVec2((float)options->getWindowWidth(), (float)options->getWindowHeight());
-    io.DisplayFramebufferScale = ImVec2(options->getWindowWidth() > 0 ? ((float)options->getDrawableWidth() / options->getWindowWidth()) : 0,
-                                        options->getWindowHeight() > 0 ? ((float)options->getDrawableHeight() / options->getWindowHeight()) : 0);
-
+    io.DisplayFramebufferScale = ImVec2(static_cast<float>(displayWidth.getOrDefault<long>(options->getWindowWidth())) / static_cast<float>(options->getWindowWidth()),
+                                        static_cast<float>(displayHeight.getOrDefault<long>(options->getWindowHeight())) / static_cast<float>(options->getWindowHeight()));
     // Setup time step
     static Uint64 frequency = SDL_GetPerformanceFrequency();
     Uint64 current_time =  SDL_GetPerformanceCounter();

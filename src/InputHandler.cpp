@@ -368,10 +368,14 @@ void InputHandler::mapInput() {
             case SDL_EVENT_MOUSE_MOTION: {
                 inputState.setActiveDevice(InputStates::ActiveDevice::KEYBOARD_MOUSE);
                 inputState.setInputStatus(InputActions::MOUSE_MOVE, true);
-                float xPos    = (event.motion.x    - (options->getScreenWidth()  / 2.0f)) / (options->getScreenWidth()  / 2);
-                float xChange = (event.motion.xrel)                                        / (options->getScreenWidth()  / 2.0f);
-                float yPos    = (event.motion.y    - (options->getScreenHeight() / 2.0f)) / (options->getScreenHeight() / 2);
-                float yChange = (event.motion.yrel)                                        / (options->getScreenHeight() / 2.0f);
+                // HiDPI scaling messes with the sizes, so SDL capture that is in window coordinates, might not be
+                // equal to pixels in our own calculations. This part does the normalizing
+                float normalizeWidth  = options->getWindowWidth()  > 0 ? (float)options->getWindowWidth()  : (float)options->getScreenWidth();
+                float normalizeHeight = options->getWindowHeight() > 0 ? (float)options->getWindowHeight() : (float)options->getScreenHeight();
+                float xPos    = (event.motion.x    - (normalizeWidth  / 2.0f)) / (normalizeWidth  / 2.0f);
+                float xChange = (event.motion.xrel)                            / (normalizeWidth  / 2.0f);
+                float yPos    = (event.motion.y    - (normalizeHeight / 2.0f)) / (normalizeHeight / 2.0f);
+                float yChange = (event.motion.yrel)                            / (normalizeHeight / 2.0f);
                 inputState.setMouseChange(xPos, yPos, xChange, yChange);
                 if (mouseAnalogXAction != 0) inputState.addAnalogValue(mouseAnalogXAction, xChange);
                 if (mouseAnalogYAction != 0) inputState.addAnalogValue(mouseAnalogYAction, yChange);

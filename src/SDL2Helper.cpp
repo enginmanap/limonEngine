@@ -65,8 +65,6 @@ void SDL2Helper::initWindow(const char* title, const GraphicsInterface::ContextI
     if (!window) {
         std::cout << "SDL Error: " << SDL_GetError() << std::endl;
         //we don't quit if failed, because there is a fallback possibility
-    } else {
-        verifyDrawableMatchesRequestedResolution();
     }
 
     OptionsUtil::Options::Option<bool> fullScreenOption = options->getOption<bool>(HASH("display_fullScreen"));
@@ -92,30 +90,6 @@ float SDL2Helper::getDisplayPixelDensity() {
         return 1.0f;//SDL leaves this unset for drivers that have no notion of density
     }
     return desktopMode->pixel_density;
-}
-
-/**
- * Window managers can force other sizes of windows. This is to check if that happened or not.
- *
- * Currently we only log error, as I don't know what to do in this case.
- */
-void SDL2Helper::verifyDrawableMatchesRequestedResolution() {
-    const int requestedWidth  = (int)options->getScreenWidth();
-    const int requestedHeight = (int)options->getScreenHeight();
-
-    int drawableWidth = 0, drawableHeight = 0;
-    SDL_GetWindowSizeInPixels(window, &drawableWidth, &drawableHeight);
-    if (drawableWidth == requestedWidth && drawableHeight == requestedHeight) {
-        return;
-    }
-
-    int windowWidth = 0, windowHeight = 0;
-    SDL_GetWindowSize(window, &windowWidth, &windowHeight);
-    std::cerr << "Warning: asked for a " << requestedWidth << "x" << requestedHeight
-              << " pixel drawable but got " << drawableWidth << "x" << drawableHeight
-              << ", from a " << windowWidth << "x" << windowHeight << " point window at density "
-              << SDL_GetWindowPixelDensity(window)
-              << ". Rendering will not be one to one with display pixels." << std::endl;
 }
 
 bool SDL2Helper::createContext() {
