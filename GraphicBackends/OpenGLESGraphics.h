@@ -71,6 +71,7 @@ class OpenGLESGraphics : public GraphicsInterface {
         unsigned int activeProgram;
         unsigned int activeTextureUnit;
         std::vector<unsigned int> textures;
+        RenderStats& frameStats;//Stats are owned by backend, not by world.
 
         /* backup and restore part */
         GLenum last_active_texture;
@@ -103,7 +104,9 @@ class OpenGLESGraphics : public GraphicsInterface {
                           << "). Update the render pipeline XML to use a lower index." << std::endl;
                 return;
             }
+            ++frameStats.textureBindRequestCount;
             if (textures[textureUnit] != textureID) {
+                ++frameStats.textureBindCount;
                 textures[textureUnit] = textureID;
                 activateTextureUnit(textureUnit);
                 glBindTexture(type, textureID);
@@ -157,7 +160,7 @@ class OpenGLESGraphics : public GraphicsInterface {
             glViewport(last_viewport[0], last_viewport[1], (GLsizei)last_viewport[2], (GLsizei)last_viewport[3]);
             glScissor(last_scissor_box[0], last_scissor_box[1], (GLsizei)last_scissor_box[2], (GLsizei)last_scissor_box[3]);
         }
-        explicit OpenglState(GLint textureUnitCount) : activeProgram(0) {
+        OpenglState(GLint textureUnitCount, RenderStats& frameStats) : activeProgram(0), frameStats(frameStats) {
             textures.resize(textureUnitCount);
             memset(textures.data(), 0, textureUnitCount * sizeof(int));
             activeTextureUnit = 0;
@@ -210,7 +213,9 @@ class OpenGLESGraphics : public GraphicsInterface {
 
 
         void setProgram(GLuint program) {
+            ++frameStats.programSwitchRequestCount;
             if (program != this->activeProgram) {
+                ++frameStats.programSwitchCount;
                 glUseProgram(program);
                 this->activeProgram = program;
             }
@@ -254,9 +259,8 @@ private:
     std::vector<glm::vec4>frustumPlanes;
     glm::mat4 orthogonalProjectionMatrix;
     glm::vec3 cameraPosition;
-    uint32_t renderTriangleCount;
-    uint32_t renderLineCount;
-    uint32_t uniformSetCount=0;
+    RenderStats frameStats;
+    RenderStats lastFrameStats;//what getFrameStats reports, so readers get a complete frame wherever in the frame they ask
 
     bool isProgramInterfaceQuerySupported = false;
     bool isFrameBufferParameterSupported = false;
@@ -269,9 +273,13 @@ private:
 
 public:
 
-    void getRenderTriangleAndLineCount(uint32_t& triangleCount, uint32_t& lineCount) override {
-        triangleCount = renderTriangleCount;
-        lineCount = renderLineCount;
+    const RenderStats& getFrameStats() const override {
+        return lastFrameStats;
+    }
+
+    void reportBatch(uint32_t materialSwitchCount) override {
+        ++frameStats.batchCount;
+        frameStats.materialSwitchCount += materialSwitchCount;
     }
 
     bool getFrameBufferParameterSupported() const {
@@ -426,10 +434,8 @@ public:
         glBindFramebuffer(GL_FRAMEBUFFER, 0);//combining doesn't need depth test either
         glClear(GL_COLOR_BUFFER_BIT);//clear for default
 
-        renderTriangleCount = 0;
-        renderLineCount = 0;
-        //std::cout << "uniform set count was : " << uniformSetCount << std::endl;
-        uniformSetCount = 0;
+        lastFrameStats = frameStats;
+        frameStats = RenderStats();
         checkErrors("clearFrame");
     }
 
@@ -526,10 +532,10 @@ public:
 
     void attachModelIndicesUBO(const uint32_t programID) override;
 
-    void renderInstanced(uint32_t program, uint32_t VAO, uint32_t EBO, uint32_t triangleCount,
+    void renderInstanced(uint32_t program, uint32_t VAO, uint32_t EBO, uint32_t elementCount,
                          uint32_t instanceCount) override;
 
-    void renderInstanced(uint32_t program, uint32_t VAO, uint32_t EBO, uint32_t triangleCount, uint32_t startOffset,
+    void renderInstanced(uint32_t program, uint32_t VAO, uint32_t EBO, uint32_t elementCount, uint32_t startOffset,
                          uint32_t instanceCount) override;
 
     void setScissorRect(int32_t x, int32_t y, uint32_t width, uint32_t height) {

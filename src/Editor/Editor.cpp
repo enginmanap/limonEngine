@@ -1787,11 +1787,8 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
     }
 
     if (world->showProfilerOverlay) {
-        ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_FirstUseEver);
-        ImGui::SetNextWindowSize(ImVec2(600, 400), ImGuiCond_FirstUseEver);
-        ImGui::Begin("Profiler", &world->showProfilerOverlay);
-        ProfilerUI::DrawProfilerUI(world->profilerSystem);
-        ImGui::End();
+        ProfilerUI::DrawProfilerWindow(world->profilerSystem, world->frameTimeTracker, world->graphicsWrapper,
+                                       &world->showProfilerOverlay);
     }
 
     previewRenderer->finalizeOffscreenModelPreviews(graphicsProgram);

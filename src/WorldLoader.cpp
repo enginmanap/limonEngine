@@ -35,13 +35,14 @@
 #include "GamePlay/APISerializer.h"
 #include "limonAPI/CameraExtensionInterface.h"
 
-WorldLoader::WorldLoader(std::shared_ptr<AssetManager> assetManager, InputHandler *inputHandler, OptionsUtil::Options *options, ProfilerSystem* profilerSystem) :
+WorldLoader::WorldLoader(std::shared_ptr<AssetManager> assetManager, InputHandler *inputHandler, OptionsUtil::Options *options, ProfilerSystem* profilerSystem, FrameTimeTracker* frameTimeTracker) :
         options(options),
         graphicsWrapper(assetManager->getGraphicsWrapper()),
         alHelper(assetManager->getAlHelper()),
         assetManager(assetManager),
         inputHandler(inputHandler),
-        profilerSystem(profilerSystem)
+        profilerSystem(profilerSystem),
+        frameTimeTracker(frameTimeTracker)
 {}
 
 void WorldLoader::resolvePendingAttachments(World *world, const std::vector<PendingAttachment> &pending) {
@@ -173,7 +174,7 @@ World * WorldLoader::loadMapFromXML(const std::string &worldFileName, LimonAPI *
         }
     }
 
-    World* world = new World(worldNameStr, startingPlayer, inputHandler, assetManager, options, profilerSystem);
+    World* world = new World(worldNameStr, startingPlayer, inputHandler, assetManager, options, profilerSystem, frameTimeTracker);
 
 
 

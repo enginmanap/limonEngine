@@ -50,11 +50,9 @@ class GUIText;
 class GUIRenderable;
 class GUILayer;
 class GUITextBase;
-class GUIFPSCounter;
 class GUITextDynamic;
 class GUICursor;
 class GUIButton;
-
 
 class GameObject;
 class Player;
@@ -83,6 +81,7 @@ class PipelineExtension;
 class IterationExtension;
 class NodeGraph;
 class VisibilityManager;
+class FrameTimeTracker;
 
 /*
  * This is a workaround to access the timedEvent priority queue container.
@@ -233,6 +232,7 @@ private:
     std::vector<std::shared_ptr<Material>> pendingMaterialOverrides;
     OptionsUtil::Options* options;
     ProfilerSystem* profilerSystem;
+    FrameTimeTracker* frameTimeTracker;//owned by GameEngine, ticked at the frame boundary next to clearFrame
     uint32_t nextWorldID = 2;
     uint32_t nextRigID = 1;
     std::queue<uint32_t> unusedIDs;
@@ -257,7 +257,6 @@ private:
     std::priority_queue<TimedEvent, std::vector<TimedEvent>, std::greater<>> gameTimeEvents;
     std::priority_queue<TimedEvent, std::vector<TimedEvent>, std::greater<>> wallTimeEvents;
     long timedEventHandleIndex = 1;//we don't need to keep them, just have them unique
-
 
     std::map<uint32_t, GUIRenderable*> guiElements;
     std::map<uint32_t, TriggerObject*> triggers;
@@ -325,7 +324,6 @@ private:
 
     GUILayer *apiGUILayer;
     GUIText* renderCounts;
-    GUIFPSCounter* fpsCounter;
     GUICursor* cursor;
     GUIButton *hoveringButton = nullptr;
     GUITextDynamic* debugOutputGUI;
@@ -435,7 +433,7 @@ private:
     void setupRenderForPipeline() const;
 
     World(const std::string &name, PlayerInfo startingPlayerType, InputHandler *inputHandler,
-          std::shared_ptr<AssetManager> assetManager, OptionsUtil::Options *options, ProfilerSystem* profilerSystem);
+          std::shared_ptr<AssetManager> assetManager, OptionsUtil::Options *options, ProfilerSystem* profilerSystem, FrameTimeTracker* frameTimeTracker);
 
     void afterLoadFinished();
 
@@ -469,6 +467,7 @@ private:
     }
 
     void ImGuiFrameSetup(std::shared_ptr<GraphicsProgram> graphicsProgram, const std::string& cameraName[[gnu::unused]], const std::vector<HashUtil::HashedString> &tags [[gnu::unused]]);
+
     void renderLight(unsigned int lightIndex, unsigned int renderLayer, const std::shared_ptr<GraphicsProgram> &renderProgram, const std::vector<HashUtil::HashedString> &tags) const;
     void renderParticleEmitters(const std::shared_ptr<GraphicsProgram>& renderProgram, const std::string &cameraName [[gnu::unused]], const std::vector<HashUtil::HashedString> &tags [[gnu::unused]]) const;
     void renderGPUParticleEmitters(const std::shared_ptr<GraphicsProgram>& renderProgram, const std::string &cameraName [[gnu::unused]], const std::vector<HashUtil::HashedString> &tags [[gnu::unused]]) const;
@@ -522,12 +521,10 @@ public:
 
     void animateCustomAnimations();
 
-
     void updateActiveLights(bool forceUpdate = false);
     // Removes the lights that were suppose to be removed, but was waiting for new frame
     bool applyPendingLightRemovals();
     void uploadActiveLightsToGPU() const;
-
 
     void
     removeActiveCustomAnimation(const AnimationCustom &animationToRemove, const AnimationStatus *animationStatusToRemove,

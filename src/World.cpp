@@ -24,7 +24,6 @@
 #include "GameObjects/Light.h"
 #include "GUI/GUILayer.h"
 #include "GUI/GUITextBase.h"
-#include "GUI/GUIFPSCounter.h"
 #include "GUI/GUITextDynamic.h"
 #include "ImGuiHelper.h"
 #include "GameObjects/TriggerObject.h"
@@ -37,10 +36,10 @@
 #include "Graphics/PostProcess/QuadRender.h"
 #include "Editor/Editor.h"
 #include "Editor/ProfilerUI.h"
-#include "ImGui/imgui.h"
 #include "Occlusion/RenderList.h"
 #include "Occlusion/VisibilityManager.h"
 #include "Profiler/ProfilerMacros.h"
+#include "Utils/FrameTimeTracker.h"
 
 const std::map<World::PlayerInfo::Types, std::string> World::PlayerInfo::typeNames =
     {
@@ -54,8 +53,8 @@ void World::setupRenderForPipeline() const {
 }
 
 World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandler *inputHandler,
-                std::shared_ptr<AssetManager> assetManager, OptionsUtil::Options *options, ProfilerSystem* profilerSystem)
-        : assetManager(assetManager), options(options), profilerSystem(profilerSystem),
+                std::shared_ptr<AssetManager> assetManager, OptionsUtil::Options *options, ProfilerSystem* profilerSystem, FrameTimeTracker* frameTimeTracker)
+        : assetManager(assetManager), options(options), profilerSystem(profilerSystem), frameTimeTracker(frameTimeTracker),
         graphicsWrapper(assetManager->getGraphicsWrapper()), alHelper(assetManager->getAlHelper()), name(name),
         fontManager(graphicsWrapper), startingPlayer(startingPlayerType) {
     editor = std::make_unique<Editor>(this);
@@ -135,10 +134,6 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
         std::exit(-1);
     }
     setupRenderForPipeline();
-
-    fpsCounter = new GUIFPSCounter(graphicsWrapper, fontManager.getFont("./Data/Fonts/Helvetica-Normal.ttf", 16), "0",
-                                   glm::vec3(204, 204, 0));
-    fpsCounter->set2dWorldTransform(glm::vec2(options->getScreenWidth() - 50, options->getScreenHeight() - 18), 0);
 
     onLoadActions.push_back(new ActionForOnload());//this is here for editor, as if no action is added, editor would fail to allow setting the first one.
 
@@ -687,15 +682,13 @@ void World::renderGUITexts(const std::shared_ptr<GraphicsProgram>& renderProgram
     renderProgram->setUniform("layerDepth", 0.019f / 256.0f);
     apiGUILayer->renderTextWithProgram(renderProgram);
 
-    uint32_t triangle, line;
-    graphicsWrapper->getRenderTriangleAndLineCount(triangle, line);
-    renderCounts->updateText("Tris: " + std::to_string(triangle) + ", lines: " + std::to_string(line));
     bool renderInformations =renderInformationsOption.getOrDefault(false);
     renderProgram->setUniform("layerDepth", 0.019f / 512.0f);
     if (renderInformations) {
+        renderCounts->updateText(std::to_string((int)frameTimeTracker->getFramesPerSecond()) + " fps, " +
+                                 std::to_string(graphicsWrapper->getFrameStats().triangleCount) + " tris");
         renderCounts->renderWithProgram(renderProgram, 0);
         debugOutputGUI->renderWithProgram(renderProgram, 0);
-        fpsCounter->renderWithProgram(renderProgram, 0);
     }
 }
 
@@ -832,9 +825,7 @@ void World::ImGuiFrameSetup(std::shared_ptr<GraphicsProgram> graphicsProgram, co
 
    if (showProfilerOverlay && !currentPlayersSettings->editorShown) {
        editor->imgGuiHelper->NewFrame(graphicsProgram);
-       ImGui::Begin("Profiler", nullptr, ImGuiWindowFlags_NoMouseInputs | ImGuiWindowFlags_NoNav);
-       ProfilerUI::DrawProfilerUI(profilerSystem);
-       ImGui::End();
+       ProfilerUI::DrawProfilerWindow(profilerSystem, frameTimeTracker, graphicsWrapper, nullptr);
        editor->imgGuiHelper->RenderDrawLists(graphicsProgram);
        return;
    }
@@ -996,7 +987,6 @@ World::~World() {
 
     delete apiGUILayer;
     delete renderCounts;
-    delete fpsCounter;
     delete cursor;
     delete debugOutputGUI;
     delete apiAccessor;

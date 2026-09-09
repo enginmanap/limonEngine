@@ -465,4 +465,12 @@
         <IsSet>True</IsSet>
         <Index>52</Index>
     </Parameter>
+    <Parameter>
+        <RequestType>FreeNumber</RequestType>
+        <Description>debug_fpsWindowMs</Description>
+        <Value>500</Value>
+        <valueType>Long</valueType>
+        <IsSet>True</IsSet>
+        <Index>53</Index>
+    </Parameter>
 </Options>

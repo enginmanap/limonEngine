@@ -12,6 +12,7 @@
 #include "Profiler/ProfilerSystem.h"
 #include <pthread.h>
 #include "Profiler/ProfilerMacros.h"
+#include "Utils/FrameTimeTracker.h"
 #include "Material.h"
 
 const std::string PROGRAM_NAME = "LimonEngine";
@@ -170,6 +171,7 @@ GameEngine::GameEngine() {
     }
     std::cout << "Options loaded successfully" << std::endl;
     profilerSystem = new ProfilerSystem(options);
+    frameTimeTracker = new FrameTimeTracker(options);
 
     sdlHelper = new SDL2Helper(options);
 
@@ -232,7 +234,7 @@ GameEngine::GameEngine() {
     inputHandler = new InputHandler(sdlHelper->getWindow(), options);
     assetManager = std::make_shared<AssetManager>(graphicsWrapper.get(), alHelper);
 
-    worldLoader = new WorldLoader(assetManager, inputHandler, options, profilerSystem);
+    worldLoader = new WorldLoader(assetManager, inputHandler, options, profilerSystem, frameTimeTracker);
 }
 
 void GameEngine::applyPendingSwitch() {
@@ -323,6 +325,7 @@ void GameEngine::run() {
             }
         }
         graphicsWrapper->clearFrame();
+        frameTimeTracker->tick();//same boundary as the stats snapshot in clearFrame, so both describe the same frame
         {
             PROFILE_RENDERING("Render");
             currentWorld->setupRender();
@@ -360,6 +363,7 @@ GameEngine::~GameEngine() {
     delete alHelper;
     graphicsWrapper = nullptr;//FIXME this should be part of SdlHelper, because it is created and deleted by it. now it is order dependent because if it.
     delete sdlHelper;
+    delete frameTimeTracker;
     delete profilerSystem;
     delete options;
 }

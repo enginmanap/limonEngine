@@ -25,6 +25,7 @@ class ALHelper;
 class InputHandler;
 class Model;
 class Attachable;
+class FrameTimeTracker;
 
 class WorldLoader {
 public:
@@ -54,6 +55,7 @@ private:
     std::shared_ptr<AssetManager> assetManager;
     InputHandler* inputHandler;
     ProfilerSystem* profilerSystem;
+    FrameTimeTracker* frameTimeTracker;
 
     World *loadMapFromXML(const std::string &worldFileName, LimonAPI *limonAPI) const;
     bool loadObjectGroupsFromXMLV1(tinyxml2::XMLNode *worldNode, World *world, LimonAPI *limonAPI,
@@ -79,7 +81,7 @@ private:
     void attachedAPIMethodsToWorld(World *world, LimonAPI *limonAPI) const;
 
 public:
-    WorldLoader(std::shared_ptr<AssetManager> assetManager, InputHandler *inputHandler, OptionsUtil::Options *options, ProfilerSystem* profilerSystem);
+    WorldLoader(std::shared_ptr<AssetManager> assetManager, InputHandler *inputHandler, OptionsUtil::Options *options, ProfilerSystem* profilerSystem, FrameTimeTracker* frameTimeTracker);
 
     std::unique_ptr<std::string> getLoadingImage(const std::string &worldFile) const;
 

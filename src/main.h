@@ -23,6 +23,7 @@ class LimonAPI;
 class GUIImage;
 class ScriptManager;
 class ProfilerSystem;
+class FrameTimeTracker;
 
 class GameEngine {
     WorldLoader* worldLoader = nullptr;
@@ -36,6 +37,7 @@ class GameEngine {
     std::shared_ptr<AssetManager> assetManager = nullptr;
     SDL2Helper* sdlHelper = nullptr;
     ProfilerSystem* profilerSystem = nullptr;
+    FrameTimeTracker* frameTimeTracker = nullptr;
 
     std::unordered_map<std::string, std::pair<World*, LimonAPI*>> loadedWorlds;
 

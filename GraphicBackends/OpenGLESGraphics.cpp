@@ -397,7 +397,7 @@ bool OpenGLESGraphics::createGraphicsBackend() {
     glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &maxTextureImageUnits);
 
     std::cout << "Maximum number of texture image units is " << maxTextureImageUnits << std::endl;
-    state = new OpenglState(maxTextureImageUnits);
+    state = new OpenglState(maxTextureImageUnits, frameStats);
 
     glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
     // Setup
@@ -884,14 +884,15 @@ void OpenGLESGraphics::render(const uint32_t program, const uint32_t vao, const 
     glBindVertexArray(vao);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
 
-    renderTriangleCount = renderTriangleCount + elementCount;
+    frameStats.triangleCount += elementCount / 3;
+    ++frameStats.drawCallCount;
     glDrawElements(GL_TRIANGLES, elementCount, GL_UNSIGNED_SHORT, startIndex);
     glBindVertexArray(0);
 
     checkErrors("render");
 }
 
-void OpenGLESGraphics::renderInstanced(uint32_t program, uint32_t VAO, uint32_t EBO, uint32_t triangleCount,
+void OpenGLESGraphics::renderInstanced(uint32_t program, uint32_t VAO, uint32_t EBO, uint32_t elementCount,
                                         uint32_t instanceCount) {
     if (program == 0) {
         std::cerr << "No program render requested." << std::endl;
@@ -903,14 +904,16 @@ void OpenGLESGraphics::renderInstanced(uint32_t program, uint32_t VAO, uint32_t 
     glBindVertexArray(VAO);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
 
-    renderTriangleCount = renderTriangleCount + (triangleCount * instanceCount);
-    glDrawElementsInstanced(GL_TRIANGLES, triangleCount, GL_UNSIGNED_SHORT, nullptr, instanceCount);
+    frameStats.triangleCount += (elementCount / 3) * instanceCount;
+    frameStats.instanceCount += instanceCount;
+    ++frameStats.drawCallCount;
+    glDrawElementsInstanced(GL_TRIANGLES, elementCount, GL_UNSIGNED_SHORT, nullptr, instanceCount);
     glBindVertexArray(0);
     //state->setProgram(0);
     checkErrors("renderInstanced");
 }
 
-void OpenGLESGraphics::renderInstanced(uint32_t program, uint32_t VAO, uint32_t EBO, uint32_t triangleCount, uint32_t startOffset,
+void OpenGLESGraphics::renderInstanced(uint32_t program, uint32_t VAO, uint32_t EBO, uint32_t elementCount, uint32_t startOffset,
                                      uint32_t instanceCount) {
     if (program == 0) {
         std::cerr << "No program render requested." << std::endl;
@@ -922,8 +925,10 @@ void OpenGLESGraphics::renderInstanced(uint32_t program, uint32_t VAO, uint32_t 
     glBindVertexArray(VAO);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
 
-    renderTriangleCount = renderTriangleCount + (triangleCount * instanceCount);
-    glDrawElementsInstanced(GL_TRIANGLES, triangleCount, GL_UNSIGNED_SHORT, (void*)(startOffset*sizeof(GLuint)), instanceCount);
+    frameStats.triangleCount += (elementCount / 3) * instanceCount;
+    frameStats.instanceCount += instanceCount;
+    ++frameStats.drawCallCount;
+    glDrawElementsInstanced(GL_TRIANGLES, elementCount, GL_UNSIGNED_SHORT, (void*)(startOffset*sizeof(GLuint)), instanceCount);
     glBindVertexArray(0);
     //state->setProgram(0);
     checkErrors("renderInstancedOffset");
@@ -937,7 +942,7 @@ bool OpenGLESGraphics::setUniform(const uint32_t programID, const uint32_t unifo
         state->setProgram(programID);
         glUniformMatrix4fv(uniformID, 1, GL_FALSE, glm::value_ptr(matrix));
         //state->setProgram(0);
-        uniformSetCount++;
+        frameStats.uniformSetCount++;
         checkErrors("setUniformMatrix");
         return true;
     }
@@ -954,7 +959,7 @@ OpenGLESGraphics::setUniformArray(const uint32_t programID, const uint32_t unifo
         int elementCount = matrixArray.size();
         glUniformMatrix4fv(uniformID, elementCount, GL_FALSE, glm::value_ptr(matrixArray.at(0)));
         //state->setProgram(0);
-        uniformSetCount++;
+        frameStats.uniformSetCount++;
         checkErrors("setUniformMatrixArray");
         return true;
     }
@@ -968,7 +973,7 @@ bool OpenGLESGraphics::setUniform(const uint32_t programID, const uint32_t unifo
         state->setProgram(programID);
         glUniform3fv(uniformID, 1, glm::value_ptr(vector));
         //state->setProgram(0);
-        uniformSetCount++;
+        frameStats.uniformSetCount++;
         checkErrors("setUniformVector");
         return true;
     }
@@ -982,7 +987,7 @@ bool OpenGLESGraphics::setUniform(const uint32_t programID, const uint32_t unifo
         state->setProgram(programID);
         glUniform3fv(uniformID, vectorArray.size(), glm::value_ptr(*vectorArray.data()));
         //state->setProgram(0);
-        uniformSetCount++;
+        frameStats.uniformSetCount++;
         checkErrors("setUniformVector");
         return true;
     }
@@ -996,7 +1001,7 @@ bool OpenGLESGraphics::setUniform(const uint32_t programID, const uint32_t unifo
         state->setProgram(programID);
         glUniform1f(uniformID, value);
         //state->setProgram(0);
-        uniformSetCount++;
+        frameStats.uniformSetCount++;
         checkErrors("setUniformFloat");
         return true;
     }
@@ -1010,7 +1015,7 @@ bool OpenGLESGraphics::setUniform(const uint32_t programID, const uint32_t unifo
         state->setProgram(programID);
         glUniform1i(uniformID, value);
         //state->setProgram(0);
-        uniformSetCount++;
+        frameStats.uniformSetCount++;
         checkErrors("setUniformInt");
         return true;
     }
@@ -1650,7 +1655,8 @@ void OpenGLESGraphics::drawLines(GraphicsProgram &program, uint32_t vao, uint32_
     glBufferSubData(GL_ARRAY_BUFFER, 0, lines.size() * sizeof(Line), lines.data());
     program.setUniform("cameraTransformMatrix", perspectiveProjectionMatrix * cameraMatrix);
 
-    renderLineCount = renderLineCount + lines.size();
+    frameStats.lineCount += lines.size();
+    ++frameStats.drawCallCount;
     glDrawArrays(GL_LINES, 0, lines.size()*2);
 
     glBindVertexArray(0);

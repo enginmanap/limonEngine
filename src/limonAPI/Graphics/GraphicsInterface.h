@@ -95,7 +95,25 @@ public:
         int SDL_GL_CONTEXT_FLAGS = 1;
     };
 
-    virtual void getRenderTriangleAndLineCount(uint32_t& triangleCount, uint32_t& lineCount) = 0;
+    //per frame counters, all reset in clearFrame. the *RequestCount pairs are what the state cache was asked for,
+    //the plain ones what it let through, so the difference is what the cache saved
+    struct RenderStats {
+        uint32_t triangleCount = 0;
+        uint32_t lineCount = 0;
+        uint32_t drawCallCount = 0;
+        uint32_t instanceCount = 0;
+        uint32_t batchCount = 0;
+        uint32_t programSwitchCount = 0;
+        uint32_t programSwitchRequestCount = 0;
+        uint32_t textureBindCount = 0;
+        uint32_t textureBindRequestCount = 0;
+        uint32_t materialSwitchCount = 0;
+        uint32_t uniformSetCount = 0;
+    };
+
+    virtual const RenderStats& getFrameStats() const = 0;
+    //batches and material switches are decided above the backend, RenderList reports them here
+    virtual void reportBatch(uint32_t materialSwitchCount) = 0;
     explicit GraphicsInterface(OptionsUtil::Options *options [[gnu::unused]]) {};
     virtual ContextInformation getContextInformation() = 0;
     //only valid after createGraphicsBackend, the header carries limits we can't know before there is a context
@@ -202,10 +220,10 @@ public:
     //The batch size for model index buffer. If you push more than this limit, it will be dropped because driver can't handle it.
     virtual uint32_t getModelIndexBatchCapacity() const = 0;
 
-    virtual void renderInstanced(uint32_t program, uint32_t VAO, uint32_t EBO, uint32_t triangleCount,
+    virtual void renderInstanced(uint32_t program, uint32_t VAO, uint32_t EBO, uint32_t elementCount,
                                  uint32_t instanceCount) = 0;
 
-    virtual void renderInstanced(uint32_t program, uint32_t VAO, uint32_t EBO, uint32_t triangleCount, uint32_t startOffset,
+    virtual void renderInstanced(uint32_t program, uint32_t VAO, uint32_t EBO, uint32_t elementCount, uint32_t startOffset,
                                  uint32_t instanceCount) = 0;
 
     virtual void setScissorRect(int32_t x, int32_t y, uint32_t width, uint32_t height) = 0;

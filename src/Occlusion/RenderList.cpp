@@ -71,6 +71,7 @@ void RenderList::processRenderBatch(GraphicsInterface *graphicsWrapper, const st
         return;
     }
     graphicsWrapper->setModelIndexesUBO(batchIndices);
+    uint32_t materialSwitchCount = 0;
     for (const PendingDraw &pendingDraw : pendingDraws) {
         if (!forceNotAnimated && lastAnimationState != pendingDraw.isAnimated) {
             renderProgram->setUniform("isAnimated", pendingDraw.isAnimated);
@@ -78,6 +79,7 @@ void RenderList::processRenderBatch(GraphicsInterface *graphicsWrapper, const st
         }
         if (renderProgram->isMaterialRequired() && lastMaterial != pendingDraw.material) {
             pendingDraw.material->activateTextures(graphicsWrapper);
+            ++materialSwitchCount;
         }
         lastMaterial = pendingDraw.material;
         renderProgram->setUniform("modelIndexOffset", (int)pendingDraw.indexOffset);
@@ -85,6 +87,7 @@ void RenderList::processRenderBatch(GraphicsInterface *graphicsWrapper, const st
                                          pendingDraw.mesh->getTriangleCount()[pendingDraw.lod] * 3,
                                          pendingDraw.mesh->getOffsets()[pendingDraw.lod], pendingDraw.instanceCount);
     }
+    graphicsWrapper->reportBatch(materialSwitchCount);
     pendingDraws.clear();
     batchIndices.clear();
 }

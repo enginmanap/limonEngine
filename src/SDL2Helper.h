@@ -57,6 +57,15 @@ public:
         return SDL_GetTicks();
     }
 
+    //millisecond ticks are too coarse for frame timing, above ~300 fps single frames quantize to 3/4 ms
+    static inline Uint64 getPerformanceCounter() {
+        return SDL_GetPerformanceCounter();
+    }
+
+    static inline Uint64 getPerformanceFrequency() {
+        return SDL_GetPerformanceFrequency();
+    }
+
     static uint32_t getLogicalCPUCount() {
         return SDL_GetNumLogicalCPUCores();
     }

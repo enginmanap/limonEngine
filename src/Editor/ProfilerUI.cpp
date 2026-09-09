@@ -6,7 +6,9 @@
 #include "../Profiler/ProfilerState.h"
 #include "../Profiler/ProfilerSystem.h"
 #include "limonAPI/Options.h"
+#include "limonAPI/Graphics/GraphicsInterface.h"
 #include "Utils/HashUtil.h"
+#include "Utils/FrameTimeTracker.h"
 #include "FlameGraph.h"
 
 namespace ProfilerUI {
@@ -253,5 +255,41 @@ namespace ProfilerUI {
             }
         }
 #endif
+    }
+
+    void DrawFrameStatsUI(const FrameTimeTracker* frameTimeTracker, const GraphicsInterface* graphicsWrapper) {
+        const GraphicsInterface::RenderStats& stats = graphicsWrapper->getFrameStats();
+        ImGui::Text("%.1f fps, %.2f ms avg (%.2f min, %.2f max, %zu frames)",
+                    frameTimeTracker->getFramesPerSecond(),
+                    frameTimeTracker->getAverageFrameTimeMicroseconds() / 1000.0f,
+                    frameTimeTracker->getMinimumFrameTimeMicroseconds() / 1000.0f,
+                    frameTimeTracker->getMaximumFrameTimeMicroseconds() / 1000.0f,
+                    frameTimeTracker->getSampleCount());
+        ImGui::Separator();
+        ImGui::Text("Triangles       %u", stats.triangleCount);
+        ImGui::Text("Lines           %u", stats.lineCount);
+        ImGui::Text("Draw calls      %u", stats.drawCallCount);
+        ImGui::Text("Batches         %u", stats.batchCount);
+        ImGui::Text("Instances       %u", stats.instanceCount);
+        ImGui::Separator();
+        ImGui::Text("Program switch  %u of %u", stats.programSwitchCount, stats.programSwitchRequestCount);
+        ImGui::Text("Texture bind    %u of %u", stats.textureBindCount, stats.textureBindRequestCount);
+        ImGui::Text("Material switch %u", stats.materialSwitchCount);
+        ImGui::Text("Uniform set     %u", stats.uniformSetCount);
+        ImGui::Separator();
+    }
+
+    void DrawProfilerWindow(ProfilerSystem* profilerSystem, const FrameTimeTracker* frameTimeTracker,
+                            const GraphicsInterface* graphicsWrapper, bool* editorMode) {
+        if (editorMode != nullptr) {
+            ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_FirstUseEver);
+            ImGui::SetNextWindowSize(ImVec2(600, 400), ImGuiCond_FirstUseEver);
+            ImGui::Begin("Profiler", editorMode);
+        } else {
+            ImGui::Begin("Profiler", nullptr, ImGuiWindowFlags_NoMouseInputs | ImGuiWindowFlags_NoNav);
+        }
+        DrawFrameStatsUI(frameTimeTracker, graphicsWrapper);
+        DrawProfilerUI(profilerSystem);
+        ImGui::End();
     }
 }
