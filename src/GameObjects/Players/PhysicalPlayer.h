@@ -149,10 +149,27 @@ public:
 
     void setAttachedModel(Model *attachedModel);
 
+    // this sets where the origin for offset is. Currently roughly chest height
+    glm::vec3 getAttachedModelBasePosition() const {
+        return GLMConverter::BltToGLM(getRigidBody()->getWorldTransform().getOrigin()) + glm::vec3(0, 1, 0);
+    }
+
    void setAttachedModelTransformation(Model *attachedModel) const {
         if(attachedModel != nullptr) {
-            attachedModel->getTransformation()->setTranslate(GLMConverter::BltToGLM(getRigidBody()->getWorldTransform().getOrigin()) + glm::vec3(0,1,0)  + getLookDirectionQuaternion() * attachedModelOffset);
+            attachedModel->getTransformation()->setTranslate(getAttachedModelBasePosition() + getLookDirectionQuaternion() * attachedModelOffset);
         }
+    }
+
+    /**
+     * reverse of setAttachedModelTransformation, as translate is feed by player.
+     */
+    void adoptAttachedModelTranslateAsOffset(Model *attachedModel) {
+        if(attachedModel == nullptr) {
+            return;
+        }
+        const glm::vec3 worldTranslate = attachedModel->getTransformation()->getTranslate();
+        attachedModelOffset = glm::inverse(getLookDirectionQuaternion()) * (worldTranslate - getAttachedModelBasePosition());
+        setAttachedModelTransformation(attachedModel);
     }
 
     void processInput(const InputStates &inputHandler, uint32_t time) override;

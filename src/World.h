@@ -12,6 +12,7 @@ static const int SKIP_LOD_LEVEL = 9999;
 #include <unordered_map>
 #include <unordered_set>
 #include <set>
+#include <functional>
 #include <queue>
 #include <Graphics/Particles/Emitter.h>
 #include <Graphics/Particles/GPUParticleEmitter.h>
@@ -380,6 +381,30 @@ private:
 
     bool addModelToWorld(Model *xmlModel);
 
+    /**
+     * Iteration for player attachments
+     */
+    void forEachAttachmentModel(Model *attachment, const std::function<void(Model *)> &operation);
+
+    /**
+     * Base for model registry
+     */
+    void registerModelCommon(Model *model);
+
+    void untrackRigidBody(const btRigidBody *body);
+
+    /**
+     * Extension of base for player attachment
+     */
+    void addPlayerAttachmentToWorld(Model *attachment);
+
+    /**
+     * reverse of player attachment
+     */
+    void returnPlayerAttachmentToWorld(Model *attachment);
+
+    bool connectModelToPhysics(Model *model);
+
     //swaps in whatever this world overrides, for every mesh of the model
     void applyMaterialOverrides(Model *model);
 
@@ -451,8 +476,10 @@ private:
 
     std::vector<LimonTypes::GenericParameter>
     fillRouteInformation(std::vector<LimonTypes::GenericParameter> parameters) const;
-
-    void clearWorldRefsBeforeAttachment(PhysicalRenderable *attachment, bool removeChildren);
+    /**
+     * Clean up before an object becomes player attachment, or removal
+     */
+    void clearWorldRefsBeforeAttachment(PhysicalRenderable *attachment, bool removeChildren, bool forRemoval);
     void onModelMaterialChanged(uint32_t modelID);
 
     std::vector<size_t> getLightIndexes(Light::LightTypes lightType) const {

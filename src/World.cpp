@@ -119,6 +119,7 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
                                            COLLIDE_MODELS | COLLIDE_TRIGGER_VOLUME | COLLIDE_EVERYTHING,
                                            COLLIDE_MODELS | COLLIDE_EVERYTHING, worldAABBMin,
                                            worldAABBMax);
+    addPlayerAttachmentToWorld(startingPlayer.attachedModel);
     switchPlayer(currentPlayer, *inputHandler); //switching to itself, to set the states properly. It uses camera so done after camera creation
 
     OptionsUtil::Options::Option<std::string> renderPipelineOption = options->getOption<std::string>(HASH("render_pipeline"));
@@ -284,10 +285,10 @@ void World::applyAudioVolumeOptionsIfChanged() {
              }
          }
 
-         //Player setup
-         if(startingPlayer.attachedModel != nullptr) {
-             startingPlayer.attachedModel->setupForTime(gameTime);
-         }
+         const uint32_t setupTime = gameTime;
+         forEachAttachmentModel(startingPlayer.attachedModel, [setupTime](Model *model) {
+             model->setupForTime(setupTime);
+         });
      }
 
     for (unsigned int i = 0; i < guiLayers.size(); ++i) {
@@ -435,19 +436,14 @@ void World::animateCustomAnimations() {
 }
 
 void World::setPlayerAttachmentsForChangedBoneTransforms(Model *playerAttachment) {
-    if (playerAttachment == nullptr) {
-        return;
-    }
-    if (playerAttachment->getRigId() == 0) {
-        playerAttachment->setRigId(this->getNextRigId());
-    }
-    if(playerAttachment->isAnimated()) {
-            changedBoneTransforms.emplace(playerAttachment->getRigId(), playerAttachment->getBoneTransforms());
-    }
-    for (auto& child:playerAttachment->getChildren()) {
-        Model* childModel = dynamic_cast<Model*>(child);
-        setPlayerAttachmentsForChangedBoneTransforms(childModel);
-    }
+    forEachAttachmentModel(playerAttachment, [this](Model *model) {
+        if (model->getRigId() == 0) {
+            model->setRigId(this->getNextRigId());
+        }
+        if(model->isAnimated()) {
+            changedBoneTransforms.emplace(model->getRigId(), model->getBoneTransforms());
+        }
+    });
 }
 
 ActorInterface::ActorInformation World::fillActorInformation(ActorInterface *actor) {
@@ -1030,6 +1026,10 @@ void World::resolveMaterialOverrides() {
             applyMaterialOverrides(model);
         }
     }
+    //player attachments are not in world objects, we need to apply them too
+    forEachAttachmentModel(startingPlayer.attachedModel, [this](Model *model) {
+        applyMaterialOverrides(model);
+    });
 }
 
 bool World::isMaterialOverride(const std::shared_ptr<const Material> &material) const {
@@ -1069,46 +1069,117 @@ void World::addMaterialOverride(uint32_t baseRegistrationID, const std::shared_p
     materialOverrides[baseRegistrationID] = material;
 }
 
+void World::forEachAttachmentModel(Model *attachment, const std::function<void(Model *)> &operation) {
+    if(attachment == nullptr) {
+        return;
+    }
+    operation(attachment);
+    //copied before descending, so an operation is free to re-register or reparent the model it is handed
+    const std::vector<Attachable *> children(attachment->getChildren());
+    for (Attachable *child : children) {
+        Model *childModel = dynamic_cast<Model *>(child);
+        if(childModel != nullptr) {
+            forEachAttachmentModel(childModel, operation);
+        }
+    }
+}
+
+void World::untrackRigidBody(const btRigidBody *body) {
+    for (auto iterator = rigidBodies.begin(); iterator != rigidBodies.end(); ++iterator) {
+        if ((*iterator) == body) {
+            rigidBodies.erase(iterator);
+            break;
+        }
+    }
+}
+
+void World::registerModelCommon(Model *model) {
+    //before it joins, so it never renders a frame with the asset's material when this world overrides it
+    applyMaterialOverrides(model);
+    model->getTransformation()->getWorldTransform();
+    rigidBodies.push_back(model->getRigidBody());
+    model->updateAABB();
+    //A model coming back from being a player attachment is still registered, and Bullet guards double adds with
+    //btAssert only, which compiles out in release. Take it out first so connectModelToPhysics applies to a clean
+    //body. isDisconnected() is sampled beforehand, because disconnectFromPhysicsWorld() flips it.
+    const bool keepDisconnected = model->isDisconnected();
+    model->disconnectFromPhysicsWorld(dynamicsWorld);
+    if(keepDisconnected) {
+        disconnectedModels.insert(model->getWorldObjectID());
+    } else {
+        connectModelToPhysics(model);
+    }
+}
+
 bool World::addModelToWorld(Model *xmlModel) {
     if(objects.find(xmlModel->getWorldObjectID()) != objects.end()) {
         //the object is already registered. fail
         return false;
     }
-    //before it joins, so it never renders a frame with the asset's material when this world overrides it
-    applyMaterialOverrides(xmlModel);
-    xmlModel->getTransformation()->getWorldTransform();
     objects[xmlModel->getWorldObjectID()] = xmlModel;
-    if (xmlModel->isAnimated()) {
+    if (xmlModel->isAnimated() && xmlModel->getRigId() == 0) {
         xmlModel->setRigId(getNextRigId());
     }
-    rigidBodies.push_back(xmlModel->getRigidBody());
-    xmlModel->updateAABB();
-    if(xmlModel->isDisconnected()) {
-        disconnectedModels.insert(xmlModel->getWorldObjectID());
-        dynamicsWorld->removeRigidBody(xmlModel->getRigidBody());
-    } else {
-        if(xmlModel->isAnimated()) {
-            dynamicsWorld->addRigidBody(xmlModel->getRigidBody(), COLLIDE_MODELS | COLLIDE_KINEMATIC_MODELS,
-                                        COLLIDE_MODELS | COLLIDE_PLAYER | COLLIDE_EVERYTHING);
-        } else {
-            if(xmlModel->getRigidBody()->isStaticObject()) {
-                dynamicsWorld->addRigidBody(xmlModel->getRigidBody(), COLLIDE_MODELS | COLLIDE_STATIC_MODELS,
-                                            COLLIDE_DYNAMIC_MODELS | COLLIDE_PLAYER | COLLIDE_EVERYTHING);
-            } else if(xmlModel->getRigidBody()->isKinematicObject()) {
-                dynamicsWorld->addRigidBody(xmlModel->getRigidBody(), COLLIDE_MODELS | COLLIDE_KINEMATIC_MODELS,
-                                            COLLIDE_DYNAMIC_MODELS | COLLIDE_PLAYER | COLLIDE_EVERYTHING);
-            } else {
-                dynamicsWorld->addRigidBody(xmlModel->getRigidBody(), COLLIDE_MODELS | COLLIDE_DYNAMIC_MODELS,
-                                            COLLIDE_MODELS | COLLIDE_PLAYER | COLLIDE_EVERYTHING);
-            }
-        }
-    }
+    registerModelCommon(xmlModel);
     btVector3 aabbMin, aabbMax;
     xmlModel->getRigidBody()->getAabb(aabbMin, aabbMax);
 
     updateWorldAABB(GLMConverter::BltToGLM(aabbMin), GLMConverter::BltToGLM(aabbMax));
     return true;
 
+}
+
+void World::addPlayerAttachmentToWorld(Model *attachment) {
+    forEachAttachmentModel(attachment, [this](Model *model) {
+        //we want kinematic, but normal attachment does that only for animated models.
+        btRigidBody *attachmentBody = model->getRigidBody();
+        if(!attachmentBody->isKinematicObject()) {
+            attachmentBody->setCollisionFlags(attachmentBody->getCollisionFlags() | btCollisionObject::CF_KINEMATIC_OBJECT);
+            attachmentBody->setActivationState(DISABLE_DEACTIVATION);
+        }
+        registerModelCommon(model);
+    });
+}
+
+bool World::connectModelToPhysics(Model *model) {
+    if(model == nullptr) {
+        return false;
+    }
+    if(startingPlayer.attachedModel != nullptr &&
+       findAttachableInSubtree(startingPlayer.attachedModel, model->getWorldObjectID()) != nullptr) {
+        //player attachment: kinematic, and COLLIDE_PLAYER left out so it cannot push the player it hangs on
+        return model->connectToPhysicsWorld(dynamicsWorld, COLLIDE_MODELS | COLLIDE_KINEMATIC_MODELS,
+                                            COLLIDE_MODELS | COLLIDE_EVERYTHING);
+    }
+    //the group has to match the body's current static/kinematic/dynamic state
+    if(model->isAnimated()) {
+        return model->connectToPhysicsWorld(dynamicsWorld, COLLIDE_MODELS | COLLIDE_KINEMATIC_MODELS,
+                                            COLLIDE_MODELS | COLLIDE_PLAYER | COLLIDE_EVERYTHING);
+    }
+    if(model->getRigidBody()->isStaticObject()) {
+        return model->connectToPhysicsWorld(dynamicsWorld, COLLIDE_MODELS | COLLIDE_STATIC_MODELS,
+                                            COLLIDE_DYNAMIC_MODELS | COLLIDE_PLAYER | COLLIDE_EVERYTHING);
+    }
+    if(model->getRigidBody()->isKinematicObject()) {
+        return model->connectToPhysicsWorld(dynamicsWorld, COLLIDE_MODELS | COLLIDE_KINEMATIC_MODELS,
+                                            COLLIDE_DYNAMIC_MODELS | COLLIDE_PLAYER | COLLIDE_EVERYTHING);
+    }
+    return model->connectToPhysicsWorld(dynamicsWorld, COLLIDE_MODELS | COLLIDE_DYNAMIC_MODELS,
+                                        COLLIDE_MODELS | COLLIDE_PLAYER | COLLIDE_EVERYTHING);
+}
+
+void World::returnPlayerAttachmentToWorld(Model *attachment) {
+    forEachAttachmentModel(attachment, [this](Model *model) {
+        //we forced kinematic at attachment, now we need to revese
+        btRigidBody *attachmentBody = model->getRigidBody();
+        if(!model->isAnimated()) {
+            attachmentBody->setCollisionFlags(attachmentBody->getCollisionFlags() & ~btCollisionObject::CF_KINEMATIC_OBJECT);
+            attachmentBody->setActivationState(ACTIVE_TAG);
+        }
+        //don't have duplicates
+        untrackRigidBody(attachmentBody);
+        addModelToWorld(model);
+    });
 }
 
 bool World::changeModelMass(uint32_t objectID, float newMass) {
@@ -1137,20 +1208,13 @@ bool World::changeModelMass(uint32_t objectID, float newMass) {
     bool connected = !model->isDisconnected();
     btRigidBody *rigidBody = model->getRigidBody();
     if (connected) {
-        dynamicsWorld->removeRigidBody(rigidBody);
+        model->disconnectFromPhysicsWorld(dynamicsWorld);
     }
 
     model->reloadPhysicsShape();
 
     if (connected) {
-        //re-add with the collision group matching the new static/dynamic state (mirrors addModelToWorld).
-        if (rigidBody->isStaticObject()) {
-            dynamicsWorld->addRigidBody(rigidBody, COLLIDE_MODELS | COLLIDE_STATIC_MODELS,
-                                        COLLIDE_DYNAMIC_MODELS | COLLIDE_PLAYER | COLLIDE_EVERYTHING);
-        } else {
-            dynamicsWorld->addRigidBody(rigidBody, COLLIDE_MODELS | COLLIDE_DYNAMIC_MODELS,
-                                        COLLIDE_MODELS | COLLIDE_PLAYER | COLLIDE_EVERYTHING);
-        }
+        connectModelToPhysics(model);
         dynamicsWorld->updateSingleAabb(rigidBody);
     }
     return true;
@@ -1835,16 +1899,14 @@ void World::uploadActiveLightsToGPU() const {
     }
 }
 
-   void World::clearWorldRefsBeforeAttachment(PhysicalRenderable *attachment, const bool removeChildren) {
+   void World::clearWorldRefsBeforeAttachment(PhysicalRenderable *attachment, const bool removeChildren, const bool forRemoval) {
        Model *modelToClear = dynamic_cast<Model *>(attachment);
        if (modelToClear != nullptr) {
-           modelToClear->disconnectFromPhysicsWorld(dynamicsWorld);
-           for (auto iterator = rigidBodies.begin(); iterator != rigidBodies.end(); ++iterator) {
-               if ((*iterator) == attachment->getRigidBody()) {
-                   rigidBodies.erase(iterator);
-                   break;
-               }
+           if (forRemoval) {.
+               // model will be deleted, and we wanna clear the physics first because model doesn't know the world
+               modelToClear->disconnectFromPhysicsWorld(dynamicsWorld);
            }
+           untrackRigidBody(attachment->getRigidBody());
 
            //disconnect AI
            if (modelToClear->getAIID() != 0) {
@@ -1866,17 +1928,19 @@ void World::uploadActiveLightsToGPU() const {
            }
            //remove its children
            if (removeChildren) {
-               std::vector<Attachable*> children(objects[modelToClear->getWorldObjectID()]->getChildren());
+               std::vector<Attachable*> children(modelToClear->getChildren());
                for (auto child = children.begin(); child != children.end(); ++child) {
                    Model *model = dynamic_cast<Model *>(*child);
                    if (model != nullptr) {
-                       clearWorldRefsBeforeAttachment(model, removeChildren);
+                       clearWorldRefsBeforeAttachment(model, removeChildren, forRemoval);
                    }
                }
            }
            //clear object itself
            objects.erase(modelToClear->getWorldObjectID());
-           unusedIDs.push(modelToClear->getWorldObjectID());
+           if (forRemoval) {
+               unusedIDs.push(modelToClear->getWorldObjectID());
+           }
        }
    }
 

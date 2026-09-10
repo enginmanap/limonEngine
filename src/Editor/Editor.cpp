@@ -518,8 +518,8 @@ void Editor::revertAlteredMaterialEdit() {
     }
     std::shared_ptr<Material> sourceMaterial = alteredMaterialEdit.sourceMaterial;
     if (sourceMaterial != nullptr) {
-        auto objectIt = world->objects.find(alteredMaterialEdit.objectID);
-        Model* model = (objectIt != world->objects.end()) ? dynamic_cast<Model*>(objectIt->second) : nullptr;
+        // world->object don't have player attachments, we need to use findModelByID
+        Model* model = world->findModelByID(alteredMaterialEdit.objectID);
         if (model != nullptr) {
             model->setMeshMaterial(alteredMaterialEdit.meshIndex, sourceMaterial);
             world->onModelMaterialChanged(alteredMaterialEdit.objectID);
@@ -549,11 +549,7 @@ void Editor::releaseAlteredMaterialEdit() {
 
 //points every mesh in this world that uses baseMaterial at overrideMaterial
 void Editor::reseatWorldMeshes(const std::shared_ptr<const Material> &baseMaterial, const std::shared_ptr<Material> &overrideMaterial) {
-    for (auto objectIt = world->objects.begin(); objectIt != world->objects.end(); ++objectIt) {
-        Model* model = dynamic_cast<Model*>(objectIt->second);
-        if (model == nullptr) {
-            continue;
-        }
+    auto reseatModel = [&](Model *model) {
         bool anyMeshChanged = false;
         const std::vector<Model::MeshMeta *> &meshMetas = model->getMeshMetaData();
         for (size_t meshIndex = 0; meshIndex < meshMetas.size(); ++meshIndex) {
@@ -567,7 +563,16 @@ void Editor::reseatWorldMeshes(const std::shared_ptr<const Material> &baseMateri
             //anymore. Strip per model, not per mesh, same as the flip change path below
             world->onModelMaterialChanged(model->getWorldObjectID());
         }
+    };
+    for (auto objectIt = world->objects.begin(); objectIt != world->objects.end(); ++objectIt) {
+        Model* model = dynamic_cast<Model*>(objectIt->second);
+        if (model == nullptr) {
+            continue;
+        }
+        reseatModel(model);
     }
+    //player attachments not in the world->objects
+    world->forEachAttachmentModel(world->startingPlayer.attachedModel, reseatModel);
 }
 
 /**
@@ -823,8 +828,11 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
             if(modelToAttach != nullptr && modelToAttach->getWorldObjectID() != this->pickedObject->getWorldObjectID()) {
                 if (ImGui::Button("Attach saved object to Player")) {
                     world->physicalPlayer->setAttachedModel(modelToAttach);
-                    world->clearWorldRefsBeforeAttachment(modelToAttach, true);
+                    world->clearWorldRefsBeforeAttachment(modelToAttach, true, false);
+                    // we are setting the attachment before registering, because addPlayerAttachmentToWorld
+                    // uses that info for collision group
                     world->startingPlayer.attachedModel = modelToAttach;
+                    world->addPlayerAttachmentToWorld(modelToAttach);
                     this->objectToAttach = nullptr;
                 }
             }
@@ -1095,7 +1103,8 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
                     Model* attachedModel = world->startingPlayer.attachedModel;
                     world->startingPlayer.attachedModel = nullptr;
                     world->physicalPlayer->setAttachedModel(nullptr);
-                    world->addModelToWorld(attachedModel);
+                    // walk the tree, return all to objects
+                    world->returnPlayerAttachmentToWorld(attachedModel);
                 }
             }
         }
@@ -1568,6 +1577,15 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
                             }
                         } else {
                             if(!selectedObject->isDisconnected()) {
+                                world->dynamicsWorld->updateSingleAabb(selectedObject->getRigidBody());
+                            }
+                        }
+
+                        // the root player attachments transformation is not what we save, because it is
+                        // driven by player. We save the offsets.
+                        if (world->physicalPlayer != nullptr && world->startingPlayer.attachedModel == selectedObject) {
+                            world->physicalPlayer->adoptAttachedModelTranslateAsOffset(selectedObject);
+                            if (!selectedObject->isDisconnected()) {
                                 world->dynamicsWorld->updateSingleAabb(selectedObject->getRigidBody());
                             }
                         }

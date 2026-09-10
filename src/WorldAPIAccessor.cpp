@@ -458,7 +458,7 @@ bool WorldAPIAccessor::removeObject(uint32_t objectID, const bool &removeChildre
     if(modelToRemove == nullptr) {
         return false;
     }
-    world->clearWorldRefsBeforeAttachment(modelToRemove, removeChildren);
+    world->clearWorldRefsBeforeAttachment(modelToRemove, removeChildren, true);
     if(removeChildren) {
         // clearWorldRefsBeforeAttachment already handles child removal recursively
     }
@@ -533,10 +533,7 @@ bool WorldAPIAccessor::isObjectPhysicsConnected(uint32_t objectID) const {
 }
 
 bool WorldAPIAccessor::disconnectObjectFromPhysics(uint32_t objectWorldID) {
-    if(world->objects.find(objectWorldID) == world->objects.end()) {
-        return false;
-    }
-    Model* model = dynamic_cast<Model*>(world->objects.at(objectWorldID));
+    Model* model = world->findModelByID(objectWorldID);
     if(model == nullptr) {
         return false;
     }
@@ -545,22 +542,17 @@ bool WorldAPIAccessor::disconnectObjectFromPhysics(uint32_t objectWorldID) {
 }
 
 bool WorldAPIAccessor::reconnectObjectToPhysics(uint32_t objectWorldID) {
-    if(world->objects.find(objectWorldID) == world->objects.end()) {
-        return false;
-    }
-    Model* model = dynamic_cast<Model*>(world->objects.at(objectWorldID));
+    Model* model = world->findModelByID(objectWorldID);
     if(model == nullptr) {
         return false;
     }
-    model->connectToPhysicsWorld(world->dynamicsWorld, World::COLLIDE_MODELS, World::COLLIDE_MODELS | World::COLLIDE_PLAYER | World::COLLIDE_EVERYTHING);
+
+    world->connectModelToPhysics(model);
     return true;
 }
 
 bool WorldAPIAccessor::disconnectObjectFromPhysicsRequest(uint32_t objectWorldID) {
-    if(world->objects.find(objectWorldID) == world->objects.end()) {
-        return false;
-    }
-    Model* model = dynamic_cast<Model*>(world->objects.at(objectWorldID));
+    Model* model = world->findModelByID(objectWorldID);
     if(model == nullptr) {
         return false;
     }
@@ -569,10 +561,7 @@ bool WorldAPIAccessor::disconnectObjectFromPhysicsRequest(uint32_t objectWorldID
 }
 
 bool WorldAPIAccessor::reconnectObjectToPhysicsRequest(uint32_t objectWorldID) {
-    if(world->objects.find(objectWorldID) == world->objects.end()) {
-        return false;
-    }
-    Model* model = dynamic_cast<Model*>(world->objects.at(objectWorldID));
+    Model* model = world->findModelByID(objectWorldID);
     if(model == nullptr) {
         return false;
     }
