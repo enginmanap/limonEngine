@@ -489,6 +489,10 @@ public:
 
     void play(InputHandler &, uint32_t wallTimeMs);
 
+    // prepares rendering part, after simulation. Only happens once per render frame, unlike simulation, which can run multiple times
+    // in case of low framerate to catch up
+    void prepareFrame();
+
     void render();
 
     uint32_t getNextObjectID() {
@@ -507,8 +511,6 @@ public:
     std::string getName();
 
     RenderMethods buildRenderMethods();
-
-    void setupRender();
 
     /************************************ Methods LimonAPI exposes *************/
     void setupForPlay(InputHandler &inputHandler);

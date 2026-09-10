@@ -247,16 +247,6 @@ void World::applyAudioVolumeOptionsIfChanged() {
      applyAudioVolumeOptionsIfChanged();
      // Feed the active rig its attachment-target transform, or sync the player's default camera if no rig is active.
      feedActiveCameraRig();
-     if(playerCamera->isDirty()) {
-         // getCameraMatrix() refreshes the view AND rebuilds the projection from the attachment, so it
-         // must be evaluated before getProjectionMatrix() (argument evaluation order is unspecified).
-         const glm::mat4& cameraMatrix = playerCamera->getCameraMatrix();
-         graphicsWrapper->setPlayerMatrices(playerCamera->getPosition(), cameraMatrix, playerCamera->getProjectionMatrix(), gameTime);//this is required for any render
-         alHelper->setListenerPositionAndOrientation(playerCamera->getPosition(), playerCamera->getCenter(), playerCamera->getUp());
-     } else {
-         graphicsWrapper->setCurrentTime(gameTime);//setPlayerMatrices pushes everything, this one pushes time only
-     }
-
      if(currentPlayersSettings->worldSimulation) {
          for(const auto& emitter:emitters) {
              emitter.second->setupForTime(gameTime);
@@ -300,19 +290,6 @@ void World::applyAudioVolumeOptionsIfChanged() {
          }
      }
 
-     bool lightsRemoved = applyPendingLightRemovals();
-     updateActiveLights(lightsRemoved);
-     for (size_t j = 0; j < activeLights.size(); ++j) {
-         activeLights[j]->step(gameTime, playerCamera);
-     }
-    uploadActiveLightsToGPU();
-     visibilityManager->update();
-
-     playerCamera->clearDirty();
-    if(sky != nullptr) { // menu worlds don't have sky set, and WIP levels can miss it too.
-        sky->step(playerCamera);
-    }
-
     for (unsigned int i = 0; i < guiLayers.size(); ++i) {
         guiLayers[i]->setupForTime(gameTime);
     }
@@ -349,6 +326,37 @@ void World::applyAudioVolumeOptionsIfChanged() {
             }
         }
     }
+}
+
+void World::prepareFrame() {
+    PROFILE_VISIBILITY("World::prepareFrame");
+    if(playerCamera->isDirty()) {
+        // update player camera and upload the ubo
+        const glm::mat4& cameraMatrix = playerCamera->getCameraMatrix();
+        graphicsWrapper->setPlayerMatrices(playerCamera->getPosition(), cameraMatrix, playerCamera->getProjectionMatrix(), gameTime);//this is required for any render
+        alHelper->setListenerPositionAndOrientation(playerCamera->getPosition(), playerCamera->getCenter(), playerCamera->getUp());
+    } else {
+        graphicsWrapper->setCurrentTime(gameTime);//setPlayerMatrices pushes everything, this one pushes time only
+    }
+
+    bool lightsRemoved = applyPendingLightRemovals();
+    updateActiveLights(lightsRemoved);//adds and removes light cameras, so it has to run before the culling pass
+    for (size_t j = 0; j < activeLights.size(); ++j) {
+        activeLights[j]->step(gameTime, playerCamera);
+    }
+    uploadActiveLightsToGPU();
+    visibilityManager->update();
+
+    playerCamera->clearDirty();
+    if(sky != nullptr) { // menu worlds don't have sky set, and WIP levels can miss it too.
+        sky->step(playerCamera);
+    }
+
+    //the culling pass above filled changedBoneTransforms we upload as a batch.
+    for (auto& boneTransformPair: changedBoneTransforms) {
+        graphicsWrapper->setBoneTransforms(boneTransformPair.first, *(boneTransformPair.second));
+    }
+    changedBoneTransforms.clear();
 }
 
 void World::animateCustomAnimations() {
@@ -1208,13 +1216,6 @@ void World::addLight(Light *light) {
     updateActiveLights(false);
 }
 
-   void World::setupRender() {
-    for (auto& boneTransformPair: changedBoneTransforms) {
-        graphicsWrapper->setBoneTransforms(boneTransformPair.first, *(boneTransformPair.second));
-    }
-    changedBoneTransforms.clear();
-   }
-
 void World::afterLoadFinished() {
     alHelper->setDistanceModel(soundDistanceModel);
     visibilityManager->onPipelineChange();
@@ -1269,6 +1270,7 @@ void World::afterLoadFinished() {
     }
 
     this->visibilityManager->start();
+    prepareFrame();//We need to prepare a frame or it won't render anything
 }
 
 void World::feedActiveCameraRig() {
@@ -1465,6 +1467,7 @@ void World::setupForPauseOrStop() {
 
 void World::setupForUnpause() {
     this->visibilityManager->start();
+    prepareFrame();//When we resume, the tick count is 0, we need to prepare
     if(this->music != nullptr) {
         this->music->resume();
     }

@@ -289,6 +289,7 @@ void GameEngine::run() {
             ticksRun = ticksDue - MAX_CATCHUP_TICKS;
             ticksToRun = MAX_CATCHUP_TICKS;
         }
+        bool simulationRun = false;
         while (ticksToRun > 0 && !worldQuit) {
             --ticksToRun;
             //we don't need to check for input, if we won't update world state
@@ -296,6 +297,7 @@ void GameEngine::run() {
 
             currentWorld->play(*inputHandler, (uint32_t)SDL2Helper::getTicks());
             ++ticksRun;
+            simulationRun = true;
 
             bool worldSwitched = false;
             if (pendingSwitch.type != PendingSwitchType::NONE && !worldQuit) {
@@ -321,14 +323,19 @@ void GameEngine::run() {
             }
             if (worldSwitched) {
                 // If we switched worlds, we want ticksDue and ticksToRun to reset, so we quit inner while
+                // so the world that renders is not the one we simulated
+                simulationRun = false;
                 break;
             }
+        }
+        if (simulationRun) {
+            // if we run a simulation, it means we need to update what we render, here it is.
+            currentWorld->prepareFrame();
         }
         graphicsWrapper->clearFrame();
         frameTimeTracker->tick();//same boundary as the stats snapshot in clearFrame, so both describe the same frame
         {
             PROFILE_RENDERING("Render");
-            currentWorld->setupRender();
             currentWorld->render();
         }
         {
