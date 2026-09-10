@@ -97,6 +97,12 @@ class Editor {
     uint32_t particleEmitterDebugLineBufferId = 0;
 
     void clearParticleEmitterDebugBuffer();
+    uint32_t lightDebugLineBufferId = 0;
+
+    void clearLightDebugBuffer();
+
+    // If selected object has line visualization, we this method will render it
+    void renderSelectedObjectLineVisualization();
 
 public:
     bool showNodeGraph = false;

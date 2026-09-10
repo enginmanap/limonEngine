@@ -9,6 +9,7 @@
 #include <string>
 #include <deque>
 #include <map>
+#include <vector>
 #include <functional>
 #include <glm/glm.hpp>
 
@@ -45,6 +46,22 @@ private:
     std::deque<LogLine*> logQueue;
     std::map<uint32_t, std::vector<Line>> userManagedLineBuffer;
     uint32_t lineBufferIndex = 0;
+
+    void buildSphereLines(std::vector<Line> &lineBuffer, const glm::vec3 &center, float radius, const glm::vec3 &color) const {
+        // Builds a 3 line sphere, 32 segments each, 96 total
+        const int segmentCount = 32;
+        const float stepAngle = 2.0f * 3.14159265358979323846f / (float)segmentCount;
+        for (int step = 0; step < segmentCount; ++step) {
+            float currentCos = glm::cos(stepAngle * step) * radius;
+            float currentSin = glm::sin(stepAngle * step) * radius;
+            float nextCos = glm::cos(stepAngle * (step + 1)) * radius;
+            float nextSin = glm::sin(stepAngle * (step + 1)) * radius;
+            lineBuffer.push_back(Line(center + glm::vec3(currentCos, currentSin, 0.0f), center + glm::vec3(nextCos, nextSin, 0.0f), color, color, true));
+            lineBuffer.push_back(Line(center + glm::vec3(currentCos, 0.0f, currentSin), center + glm::vec3(nextCos, 0.0f, nextSin), color, color, true));
+            lineBuffer.push_back(Line(center + glm::vec3(0.0f, currentCos, currentSin), center + glm::vec3(0.0f, nextCos, nextSin), color, color, true));
+        }
+    }
+
 public:
 
     uint32_t drawLine(glm::vec3 from, glm::vec3 to, glm::vec3 fromColor, glm::vec3 toColor, bool requireCameraTransform) {
@@ -70,6 +87,29 @@ public:
             return false;
         }
         userManagedLineBuffer.erase(bufferToDelete);
+        return true;
+    }
+
+    uint32_t drawSphere(const glm::vec3 &center, float radius, const glm::vec3 &color) {
+        if(radius <= 0.0f) {
+            return 0;//we can't have a 0 radius sphere
+        }
+        lineBufferIndex++;
+        std::vector<Line> lineBuffer;
+        buildSphereLines(lineBuffer, center, radius, color);
+        userManagedLineBuffer[lineBufferIndex] = lineBuffer;
+        return lineBufferIndex;
+    }
+
+    bool drawSphere(uint32_t bufferIndex, const glm::vec3 &center, float radius, const glm::vec3 &color) {
+        if(radius <= 0.0f) {
+            return false;
+        }
+        std::map<uint32_t, std::vector<Line>>::iterator bufferToAdd = userManagedLineBuffer.find(bufferIndex);
+        if(bufferToAdd == userManagedLineBuffer.end()) {
+            return false;
+        }
+        buildSphereLines(bufferToAdd->second, center, radius, color);
         return true;
     }
 

@@ -1821,7 +1821,9 @@ void World::uploadActiveLightsToGPU() const {
                 currentLight->getColor(),
                 currentLight->getAmbientColor(),
                 static_cast<int>(currentLight->getLightType()),
-                currentLight->getActiveDistance()
+                currentLight->getActiveDistance(),
+                currentLight->getIntensity(),
+                currentLight->getFalloffExponent()
                 );
     }
 

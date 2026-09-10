@@ -492,7 +492,9 @@ public:
                   const glm::vec3& color,
                   const glm::vec3& ambientColor,
                   const int32_t lightType,
-                  const float farPlane) override;
+                  const float radius,
+                  const float intensity,
+                  const float falloffExponent) override;
 
     void removeLight(const int i) override {
         GLint temp = 0;

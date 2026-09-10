@@ -1490,12 +1490,6 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
             ImGuiResult objectEditorResult = this->pickedObject->addImGuiEditorElements(*this->request);
             this->request->alteredMaterial = nullptr;
             this->request->materialSelectedInList = nullptr;
-            Emitter* pickedEmitter = dynamic_cast<Emitter*>(this->pickedObject);
-            if(pickedEmitter != nullptr) {
-                pickedEmitter->renderDebugVisualization(world->options->getLogger(), this->particleEmitterDebugLineBufferId);
-            } else {
-                clearParticleEmitterDebugBuffer();
-            }
             if (objectEditorResult.selectedMeshMaterial != nullptr) {
                 //the list is drawn before this, so it picks this up next frame
                 selectedMeshMaterial = objectEditorResult.selectedMeshMaterial;
@@ -1782,6 +1776,9 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
 
             }
         }
+
+        //out of picked object switch, so if nothing is selected, we can clear the line buffer
+        renderSelectedObjectLineVisualization();
 
         ImGui::End();
     }
@@ -3170,12 +3167,49 @@ void Editor::update(InputHandler &inputHandler) {
 }
 
 void Editor::onEditorDisabled() {
+    clearLightDebugBuffer();
     clearParticleEmitterDebugBuffer();
+}
+
+
+
+void Editor::renderSelectedObjectLineVisualization() {
+    if (pickedObject == nullptr) {
+        clearParticleEmitterDebugBuffer();
+        clearLightDebugBuffer();
+        return;
+    }
+    switch (this->pickedObject->getTypeID()) {
+        case GameObject::ObjectTypes::PARTICLE_EMITTER: {
+            clearLightDebugBuffer();
+            Emitter* pickedEmitter = static_cast<Emitter*>(this->pickedObject);
+            pickedEmitter->renderDebugVisualization(world->options->getLogger(), this->particleEmitterDebugLineBufferId);
+            return;
+        }
+        case GameObject::ObjectTypes::LIGHT: {
+            clearParticleEmitterDebugBuffer();
+            Light* pickedLight = static_cast<Light*>(this->pickedObject);
+            pickedLight->renderLineVisualization(world->options->getLogger(), this->lightDebugLineBufferId);
+            return;
+        }
+        default: {
+            clearParticleEmitterDebugBuffer();
+            clearLightDebugBuffer();
+
+        }
+    }
 }
 
 void Editor::clearParticleEmitterDebugBuffer() {
     if(particleEmitterDebugLineBufferId != 0) {
         world->options->getLogger()->clearLineBuffer(particleEmitterDebugLineBufferId);
         particleEmitterDebugLineBufferId = 0;
+    }
+}
+
+void Editor::clearLightDebugBuffer() {
+    if(lightDebugLineBufferId != 0) {
+        world->options->getLogger()->clearLineBuffer(lightDebugLineBufferId);
+        lightDebugLineBufferId = 0;
     }
 }

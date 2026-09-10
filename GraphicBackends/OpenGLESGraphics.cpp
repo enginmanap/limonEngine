@@ -1670,7 +1670,9 @@ void OpenGLESGraphics::setLight(const int lightIndex,
                               const glm::vec3& color,
                               const glm::vec3& ambientColor,
                               const int32_t lightType,
-                              const float farPlane) {
+                              const float radius,
+                              const float intensity,
+                              const float falloffExponent) {
 
     //std::cout << "light type is " << lightType << std::endl;
     glBindBuffer(GL_UNIFORM_BUFFER, lightUBOLocation);
@@ -1680,15 +1682,19 @@ void OpenGLESGraphics::setLight(const int lightIndex,
     glBufferSubData(GL_UNIFORM_BUFFER, lightIndex * lightUniformSize + sizeof(glm::mat4) * 6,
                     sizeof(glm::vec3), &position);
     glBufferSubData(GL_UNIFORM_BUFFER, lightIndex * lightUniformSize + sizeof(glm::mat4) * 6 + sizeof(glm::vec3),
-                    sizeof(GLfloat), &farPlane);
+                    sizeof(GLfloat), &radius);
     glBufferSubData(GL_UNIFORM_BUFFER, lightIndex * lightUniformSize + sizeof(glm::mat4) * 6 + sizeof(glm::vec4),
                     sizeof(glm::vec3), &color);
     glBufferSubData(GL_UNIFORM_BUFFER, lightIndex * lightUniformSize + sizeof(glm::mat4) * 6 + sizeof(glm::vec4) + sizeof(glm::vec3),
                     sizeof(GLint), &lightType);
     glBufferSubData(GL_UNIFORM_BUFFER, lightIndex * lightUniformSize + sizeof(glm::mat4) * 6 + 2 * sizeof(glm::vec4),
                     sizeof(glm::vec3), glm::value_ptr(attenuation));
+    glBufferSubData(GL_UNIFORM_BUFFER, lightIndex * lightUniformSize + sizeof(glm::mat4) * 6 + 2 * sizeof(glm::vec4) + sizeof(glm::vec3),
+                    sizeof(GLfloat), &intensity);
     glBufferSubData(GL_UNIFORM_BUFFER, lightIndex * lightUniformSize + sizeof(glm::mat4) * 6 + 3 * sizeof(glm::vec4),
                     sizeof(glm::vec3), glm::value_ptr(ambientColor));
+    glBufferSubData(GL_UNIFORM_BUFFER, lightIndex * lightUniformSize + sizeof(glm::mat4) * 6 + 3 * sizeof(glm::vec4) + sizeof(glm::vec3),
+                    sizeof(GLfloat), &falloffExponent);
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
     checkErrors("setLight");
 }

@@ -20,6 +20,8 @@
 #include "../Utils/HardCodedTags.h"
 #include "Camera/PerspectiveCamera.h"
 
+class Logger;
+
 class Light : public GameObject, public Attachable, public CameraAttachment {
 public:
     enum class LightTypes {
@@ -35,6 +37,10 @@ private:
     glm::vec3 position, color;
     glm::vec3 playerPosition;
     glm::vec3 attenuation = glm::vec3(1,0.1,0.01);//const, linear, exponential
+    float intensity = 1.0f;
+    float radius = 20.0f;
+    float falloffExponent = 4.0f;
+    float edgeBrightness = 0.5f;
     glm::vec3 ambientColor = glm::vec3(0,0,0); //this will be added to all objects on shading phase
     std::vector<Camera*> directionalCameras;
     mutable std::vector<glm::mat4> directionalCameraMatrices;
@@ -108,9 +114,13 @@ public:
             this->position = position;
             cubeCameras.emplace_back(new CubeCamera(this->Light::getName() + " camera", graphicsWrapper->getOptions(), this));
 
+            static_cast<CubeCamera*>(cubeCameras[0])->setActiveDistance(radius);
             cubeCameras[0]->getCameraMatrix();
             cubeCameras[0]->addTag(HardCodedTags::CAMERA_LIGHT_POINT);
         }
+
+        //re align the linear and exponential components
+        setAttenuationComponent(0, this->attenuation.x);
 
         // Seed the attachment transformation with the current position.
         attachTransformation.setTranslate(this->position);
@@ -124,6 +134,13 @@ public:
             Light(other.graphicsWrapper, newObjectID, other.lightType, other.position, other.color) {
         this->attenuation = other.attenuation;
         this->ambientColor = other.ambientColor;
+        this->intensity = other.intensity;
+        this->falloffExponent = other.falloffExponent;
+        this->edgeBrightness = other.edgeBrightness;
+        this->radius = other.radius;
+        if(this->lightType == LightTypes::POINT) {
+            static_cast<CubeCamera*>(cubeCameras[0])->setActiveDistance(this->radius);
+        }
     }
 
     Attachable* clone(uint32_t newObjectID, LimonAPI* limonAPI [[gnu::unused]],
@@ -177,7 +194,9 @@ public:
     }
 
     void setColor(glm::vec3 color) {
-        this->color = color;
+        this->color.r = color.r < 1.0f ? color.r : 1.0f;
+        this->color.g = color.g < 1.0f ? color.g : 1.0f;
+        this->color.b = color.b < 1.0f ? color.b : 1.0f;
         this->setFrustumChanged(true);
     }
 
@@ -264,18 +283,121 @@ public:
     ImGuiResult addImGuiEditorElements(const ImGuiRequest &request) override;
     /************Game Object methods **************/
 
+    void renderLineVisualization(Logger *logger, uint32_t &bufferId) const;
+
     glm::vec3 getAttenuation() const {
         return attenuation;
     }
 
     void setAttenuation(const glm::vec3& attenuation) {
         this->attenuation = attenuation;
-        this->setFrustumChanged(true);
+        setAttenuationComponent(0, attenuation.x);
+    }
+
+    float getEdgeBrightness() const {
+        return edgeBrightness;
+    }
+
+    void setEdgeBrightness(float edgeBrightness) {
+        if(edgeBrightness <= 0.0f || edgeBrightness > 1.0f) {
+            return;
+        }
+        this->edgeBrightness = edgeBrightness;
+        setAttenuationComponent(0, attenuation.x);//recalculate to align
+    }
+
+    /**
+     * How much we got left to distribute to Linear and Exponential components
+     */
+    float getAttenuationBudget() const {
+        return attenuation.x * (1.0f / edgeBrightness - 1.0f);
+    }
+
+    //We wanna limit the drag to so it can't set attenuation values to contradict the other light properties
+    float getAttenuationComponentLimit(int componentIndex) const {
+        if(componentIndex == 1) {
+            return getAttenuationBudget() / radius;
+        }
+        if(componentIndex == 2) {
+            return getAttenuationBudget() / (radius * radius);
+        }
+        return 10.0f;//Constant has the whole budget, others align
+    }
+
+    /**
+     * Total attenuation at the point of radius distance is known, and constant attenuation is constant,
+     * so if user edits one component, we align the other one to keep the attenuation at radius same.
+     * Since editor shows the values this method writes, it also hasuser feedback built in.
+     */
+    void setAttenuationComponent(int componentIndex, float value) {
+        if(radius <= 0.0f) {
+            return;
+        }
+        float linearContribution = attenuation.y * radius;
+        float exponentialContribution = attenuation.z * radius * radius;
+
+        if(componentIndex == 0) {
+            attenuation.x = glm::max(value, 0.0001f);//div by zero guard
+            float budget = getAttenuationBudget();
+            float currentSum = linearContribution + exponentialContribution;
+            if(currentSum > 0.0f) {
+                linearContribution *= budget / currentSum;
+                exponentialContribution *= budget / currentSum;
+            } else {
+                linearContribution = budget * 0.5f;//nothing to calculate, equal split
+                exponentialContribution = budget * 0.5f;
+            }
+        } else if(componentIndex == 1) {
+            float budget = getAttenuationBudget();
+            linearContribution = glm::clamp(value * radius, 0.0f, budget);
+            exponentialContribution = budget - linearContribution;
+        } else {
+            float budget = getAttenuationBudget();
+            exponentialContribution = glm::clamp(value * radius * radius, 0.0f, budget);
+            linearContribution = budget - exponentialContribution;
+        }
+
+        attenuation.y = linearContribution / radius;
+        attenuation.z = exponentialContribution / (radius * radius);
+    }
+
+    float getIntensity() const {
+        return intensity;
+    }
+
+    void setIntensity(float intensity) {
+        this->intensity = intensity;
+    }
+
+    float getRadius() const {
+        return radius;
+    }
+
+    void setRadius(float radius) {
+        if(radius <= 0.0f) {
+            return;
+        }
+        float radiusRatio = this->radius / radius;
+        this->attenuation.y *= radiusRatio;
+        this->attenuation.z *= radiusRatio * radiusRatio;
+        this->radius = radius;
+        if(this->lightType == LightTypes::POINT) {
+            static_cast<CubeCamera*>(cubeCameras[0])->setActiveDistance(radius);
+            this->setFrustumChanged(true);//reach changed, we need to let gpu know
+        }
+    }
+
+    float getFalloffExponent() const {
+        return falloffExponent;
+    }
+
+    void setFalloffExponent(float falloffExponent) {
+        this->falloffExponent = falloffExponent;
     }
 
     float getActiveDistance() const {
         if(this->lightType == LightTypes::POINT) {
-            return static_cast<CubeCamera*>(cubeCameras[0])->getActiveDistance();
+            return radius;
         }
         return 0.0f;
     }

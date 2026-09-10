@@ -6,13 +6,16 @@
 #ifndef LIGHT_DEFINITIONS
 #define LIGHT_DEFINITIONS
 struct LightSource {
+    //vec3 float, vec3 float is to make use of the std140 alignment, not mistake
     mat4 shadowMatrices[6];
     vec3 position;
-    float farPlanePoint;
+    float radius;
     vec3 color;
     int type; //1 Directional, 2 point
     vec3 attenuation;
+    float intensity;
     vec3 ambient;
+    float falloffExponent;
 };
 
 layout (std140) uniform LightSourceBlock

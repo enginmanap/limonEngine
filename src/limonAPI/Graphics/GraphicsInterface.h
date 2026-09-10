@@ -194,7 +194,9 @@ public:
                           const glm::vec3& color,
                           const glm::vec3& ambientColor,
                           const int32_t lightType,
-                          const float farPlane) = 0;
+                          const float radius,
+                          const float intensity,
+                          const float falloffExponent) = 0;
 
     virtual void removeLight(const int i) = 0;
 

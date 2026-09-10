@@ -5,6 +5,7 @@
 #include <glm/ext.hpp>
 #include "Light.h"
 #include "../XMLHelper.h"
+#include "../limonAPI/util/Logger.h"
 
 
 void Light::setPosition(glm::vec3 position, const Camera* playerCamera) {
@@ -31,37 +32,34 @@ void Light::setPosition(glm::vec3 position, const Camera* playerCamera) {
     }
 }
 
+// this is used to reorient precise drag inputs based on crude positions
+static void clampToPreciseWindow(glm::vec3 &value, const glm::vec3 &center) {
+    const float preciseDragWindow = 5.0f;
+    value.x = glm::clamp(value.x, center.x - preciseDragWindow, center.x + preciseDragWindow);
+    value.y = glm::clamp(value.y, center.y - preciseDragWindow, center.y + preciseDragWindow);
+    value.z = glm::clamp(value.z, center.z - preciseDragWindow, center.z + preciseDragWindow);
+}
+
 ImGuiResult Light::addImGuiEditorElements(const ImGuiRequest &request) {
     ImGuiResult result;
 
-    ImGui::Text("Please note, Directional lights position setting is relative to player.");
     static glm::vec3 preciseTranslatePoint = this->position;
     bool crudeUpdated = false;
     bool positionAlreadySet = false;
-    result.updated = ImGui::DragFloat("Color R", &(this->color.r), 0.0f, 1.0f)   || result.updated;
-    result.updated = ImGui::DragFloat("Color G", &(this->color.g), 0.0f, 1.0f)   || result.updated;
-    result.updated = ImGui::DragFloat("Color B", &(this->color.b), 0.0f, 1.0f)   || result.updated;
-    ImGui::NewLine();
-    bool attenuationUpdate = false;
     const bool isAttached = (parentObject != nullptr);
     switch (lightType) {
         case LightTypes::NONE:
             break;
         case LightTypes::POINT: {
+            ImGui::SeparatorText("Position");
             if(isAttached) {
-                ImGui::Text("World Position X: %s", std::to_string(this->position.x).c_str());
-                ImGui::Text("World Position Y: %s", std::to_string(this->position.y).c_str());
-                ImGui::Text("World Position Z: %s", std::to_string(this->position.z).c_str());
-                ImGui::NewLine();
+                ImGui::Text("World: %.3f, %.3f, %.3f", this->position.x, this->position.y, this->position.z);
                 glm::vec3 localPos = attachTransformation.getTranslateSingle();
-                bool localUpdated = false;
-                localUpdated = ImGui::DragFloat("Local Position X", &(localPos.x), 0.01f, preciseTranslatePoint.x - 5.0f, preciseTranslatePoint.x + 5.0f) || localUpdated;
-                localUpdated = ImGui::DragFloat("Local Position Y", &(localPos.y), 0.01f, preciseTranslatePoint.y - 5.0f, preciseTranslatePoint.y + 5.0f) || localUpdated;
-                localUpdated = ImGui::DragFloat("Local Position Z", &(localPos.z), 0.01f, preciseTranslatePoint.z - 5.0f, preciseTranslatePoint.z + 5.0f) || localUpdated;
-                ImGui::NewLine();
-                crudeUpdated = ImGui::SliderFloat("Crude Local X", &(localPos.x), -100.0f, 100.0f) || crudeUpdated;
-                crudeUpdated = ImGui::SliderFloat("Crude Local Y", &(localPos.y), -100.0f, 100.0f) || crudeUpdated;
-                crudeUpdated = ImGui::SliderFloat("Crude Local Z", &(localPos.z), -100.0f, 100.0f) || crudeUpdated;
+                bool localUpdated = ImGui::DragFloat3("Precise Local", glm::value_ptr(localPos), 0.01f);
+                if(localUpdated) {
+                    clampToPreciseWindow(localPos, preciseTranslatePoint);
+                }
+                crudeUpdated = ImGui::SliderFloat3("Crude Local", glm::value_ptr(localPos), -100.0f, 100.0f);
                 if(localUpdated || crudeUpdated) {
                     const glm::mat4 parentWorld = parentObject->getAttachmentTransformFor(parentBoneID)->getWorldTransform();
                     this->setPosition(glm::vec3(parentWorld * glm::vec4(localPos, 1.0f)), request.playerCamera);
@@ -72,32 +70,62 @@ ImGuiResult Light::addImGuiEditorElements(const ImGuiRequest &request) {
                     preciseTranslatePoint = localPos;
                 }
             } else {
-                result.updated = ImGui::DragFloat("Precise Position X", &(this->position.x), 0.01f, preciseTranslatePoint.x - 5.0f, preciseTranslatePoint.x + 5.0f) || result.updated;
-                result.updated = ImGui::DragFloat("Precise Position Y", &(this->position.y), 0.01f, preciseTranslatePoint.y - 5.0f, preciseTranslatePoint.y + 5.0f) || result.updated;
-                result.updated = ImGui::DragFloat("Precise Position Z", &(this->position.z), 0.01f, preciseTranslatePoint.z - 5.0f, preciseTranslatePoint.z + 5.0f) || result.updated;
-                ImGui::NewLine();
-                crudeUpdated = ImGui::SliderFloat("Crude Position X", &(this->position.x), -100.0f, 100.0f) || crudeUpdated;
-                crudeUpdated = ImGui::SliderFloat("Crude Position Y", &(this->position.y), -100.0f, 100.0f) || crudeUpdated;
-                crudeUpdated = ImGui::SliderFloat("Crude Position Z", &(this->position.z), -100.0f, 100.0f) || crudeUpdated;
+                if(ImGui::DragFloat3("Precise Position", glm::value_ptr(this->position), 0.01f)) {
+                    clampToPreciseWindow(this->position, preciseTranslatePoint);
+                    result.updated = true;
+                }
+                crudeUpdated = ImGui::SliderFloat3("Crude Position", glm::value_ptr(this->position), -100.0f, 100.0f);
             }
-            ImGui::NewLine();
-            attenuationUpdate = ImGui::DragFloat("Constant", &(this->attenuation.x), 0.01f, -10.0f, 1.0f) || attenuationUpdate;
-            attenuationUpdate = ImGui::DragFloat("Linear", &(this->attenuation.y), 0.01f, 0.0f, 1.0f) || attenuationUpdate;
-            attenuationUpdate = ImGui::DragFloat("Exponential", &(this->attenuation.z), 0.01f, 0.0f, 1.0f) || attenuationUpdate;
-            if (attenuationUpdate) {
-                this->setFrustumChanged(true);
+
+            ImGui::SeparatorText("Light");
+            result.updated = ImGui::ColorEdit3("Color", glm::value_ptr(this->color)) || result.updated;
+            ImGui::SetItemTooltip("Hue only. Brightness is coming from Intensity.");
+            result.updated = ImGui::DragFloat("Intensity", &(this->intensity), 0.05f, 0.0f, 100.0f) || result.updated;
+            ImGui::SetItemTooltip("Brightness at the centre. Above 1 it saturates, widening the fully lit core.");
+            float editedRadius = this->radius;
+            if(ImGui::DragFloat("Radius", &editedRadius, 0.1f, 0.1f, 500.0f)) {
+                this->setRadius(editedRadius);//Setting directly would break attenuation alignment
                 result.updated = true;
             }
-            ImGui::NewLine();
+            ImGui::SetItemTooltip("Where the light reaches. Used by culling and shadows");
+
+            ImGui::SeparatorText("Attenuation");
+            float editedEdgeBrightness = this->edgeBrightness;
+            if(ImGui::DragFloat("Edge Brightness", &editedEdgeBrightness, 0.005f, 0.01f, 1.0f)) {
+                this->setEdgeBrightness(editedEdgeBrightness);
+                result.updated = true;
+            }
+            ImGui::SetItemTooltip("Brightness at the radius, as fraction of center. 1 means as bright as center");
+            //Limited at 1, as we don't want it to reverse the bightness. at 0 it would mean no light anywhere
+            result.updated = ImGui::DragFloat("Falloff", &(this->falloffExponent), 0.1f, 1.0f, 32.0f) || result.updated;
+            ImGui::SetItemTooltip("How fast the light loses its brightness close to center. Low values make it lose brightness faster.");
+            //one shared budget, so dragging any of these moves the others in front of you instead of behind your back
+            static const char* attenuationLabels[3] = {"Constant", "Linear", "Exponential"};
+            for (int componentIndex = 0; componentIndex < 3; ++componentIndex) {
+                float componentLimit = this->getAttenuationComponentLimit(componentIndex);
+                float componentMinimum = (componentIndex == 0) ? 0.01f : 0.0f;//C is the divisor at distance zero
+                float editedComponent = this->attenuation[componentIndex];
+                if(ImGui::DragFloat(attenuationLabels[componentIndex], &editedComponent,
+                                    glm::max(componentLimit / 200.0f, 0.0001f), componentMinimum, componentLimit)) {
+                    this->setAttenuationComponent(componentIndex, editedComponent);
+                    result.updated = true;
+                }
+            }
+            ImGui::TextDisabled("Linear and Exponential needs to end up with radius. To ensure that, editing one auto calibrates the other.");
         }
         break;
         case LightTypes::DIRECTIONAL: {
-            result.updated = ImGui::DragFloat3("Ambient", glm::value_ptr(ambientColor), 0.01f, 0.0f, 1.0f) || result.updated;
-            ImGui::NewLine();
-            result.updated = ImGui::DragFloat("Precise Position X", &(this->position.x), 0.001, -1.0f, 1.0f)   || result.updated;
-            result.updated = ImGui::DragFloat("Precise Position Y", &(this->position.y), 0.001, -1.0f, 0.0f)   || result.updated;
-            result.updated = ImGui::DragFloat("Precise Position Z", &(this->position.z), 0.001, -1.0f, 1.0f)   || result.updated;
+            ImGui::SeparatorText("Direction");
+            ImGui::TextDisabled("Relative to the player.");
+            if(ImGui::DragFloat3("Precise Direction", glm::value_ptr(this->position), 0.001f, -1.0f, 1.0f)) {
+                result.updated = true;
+            }
+            this->position.y = glm::min(this->position.y, 0.0f);//a directional light that points up lights nothing
             this->position = glm::normalize(this->position);
+
+            ImGui::SeparatorText("Light");
+            result.updated = ImGui::ColorEdit3("Color", glm::value_ptr(this->color)) || result.updated;
+            result.updated = ImGui::ColorEdit3("Ambient", glm::value_ptr(ambientColor)) || result.updated;
         }
         break;
     }
@@ -144,6 +172,18 @@ ImGuiResult Light::addImGuiEditorElements(const ImGuiRequest &request) {
     return result;
 }
 
+void Light::renderLineVisualization(Logger *logger, uint32_t &bufferId) const {
+    if(bufferId != 0) {
+        logger->clearLineBuffer(bufferId);
+        bufferId = 0;
+    }
+    if(lightType != LightTypes::POINT) {
+        return;//Only point light has sphere visualization
+    }
+    const glm::vec3 activeDistanceColor(1.0f, 0.9f, 0.6f);//warm white, doesn't collide with the emitter palette
+    bufferId = logger->drawSphere(getPosition(), getActiveDistance(), activeDistanceColor);
+}
+
 void Light::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *lightsNode) const {
     tinyxml2::XMLElement *lightElement = document.NewElement("Light");
     lightsNode->InsertEndChild(lightElement);
@@ -176,6 +216,11 @@ void Light::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *lig
     tinyxml2::XMLElement *ambientNode = document.NewElement("Ambient");
     XMLHelper::writeVec3(document, ambientNode, ambientColor);
     lightElement->InsertEndChild(ambientNode);
+
+    XMLHelper::writeElement(document, lightElement, "Intensity", intensity);
+    XMLHelper::writeElement(document, lightElement, "Radius", radius);
+    XMLHelper::writeElement(document, lightElement, "Falloff", falloffExponent);
+    XMLHelper::writeElement(document, lightElement, "EdgeBrightness", edgeBrightness);
 
     if(getParentObject() != nullptr) {
         const GameObject* parentGO = dynamic_cast<const GameObject*>(getParentObject());
@@ -237,11 +282,23 @@ Light *Light::deserialize(tinyxml2::XMLElement *lightNode, GraphicsInterface *gr
         light->getTransformation()->deserialize(lightTransformationElement);
     }
 
+    // We first assign the values that would calculate the attenuation alignment, then call setActiveDistance again
+    // to trigger the alignment, otherwise it would work with invalid values
+    light->intensity = XMLHelper::readFloatOrDefault(lightNode, "Intensity", 1.0f);
+    light->radius = XMLHelper::readFloatOrDefault(lightNode, "Radius", 20.0f);
+    light->falloffExponent = XMLHelper::readFloatOrDefault(lightNode, "Falloff", 4.0f);
+    light->edgeBrightness = XMLHelper::readFloatOrDefault(lightNode, "EdgeBrightness", 0.5f);
+    if(type == LightTypes::POINT) {
+        static_cast<CubeCamera*>(light->cubeCameras[0])->setActiveDistance(light->radius);
+    }
+
     glm::vec3 attenuation(1, 0.1f, 0.01f);
     tinyxml2::XMLElement* attenuationEl = lightNode->FirstChildElement("Attenuation");
     if(attenuationEl != nullptr && XMLHelper::readVec3(attenuationEl, attenuation)) {
-        light->setAttenuation(attenuation);
+        light->attenuation = attenuation;
     }
+    // By calling this, we force the constant to be set, and other 2 to be realigned
+    light->setAttenuationComponent(0, light->attenuation.x);//keeps Constant, pulls the other two onto the budget
 
     glm::vec3 ambientColor(1, 0.1f, 0.01f);
     tinyxml2::XMLElement* ambientEl = lightNode->FirstChildElement("Ambient");
