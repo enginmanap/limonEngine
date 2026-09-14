@@ -53,10 +53,13 @@ void World::setupRenderForPipeline() const {
 }
 
 World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandler *inputHandler,
-                std::shared_ptr<AssetManager> assetManager, OptionsUtil::Options *options, ProfilerSystem* profilerSystem, FrameTimeTracker* frameTimeTracker)
+                std::shared_ptr<AssetManager> assetManager, OptionsUtil::Options *options, ProfilerSystem* profilerSystem, FrameTimeTracker* frameTimeTracker,
+                LimonAPI *limonAPI)
         : assetManager(assetManager), options(options), profilerSystem(profilerSystem), frameTimeTracker(frameTimeTracker),
         graphicsWrapper(assetManager->getGraphicsWrapper()), alHelper(assetManager->getAlHelper()), name(name),
         fontManager(graphicsWrapper), startingPlayer(startingPlayerType) {
+    // apiAccessor is an indirection, in case someone wants to use it while construction, we need it first
+    apiAccessor = new WorldAPIAccessor(this, limonAPI);
     editor = std::make_unique<Editor>(this);
 
     // physics init

@@ -333,7 +333,7 @@ private:
     btDiscreteDynamicsWorld *dynamicsWorld;
     std::vector<btRigidBody *> rigidBodies;
 
-    LimonAPI* apiInstance;
+    LimonAPI* apiInstance = nullptr;
     WorldAPIAccessor* apiAccessor = nullptr;
 
     btBroadphaseInterface *broadphase;
@@ -458,7 +458,8 @@ private:
     void setupRenderForPipeline() const;
 
     World(const std::string &name, PlayerInfo startingPlayerType, InputHandler *inputHandler,
-          std::shared_ptr<AssetManager> assetManager, OptionsUtil::Options *options, ProfilerSystem* profilerSystem, FrameTimeTracker* frameTimeTracker);
+          std::shared_ptr<AssetManager> assetManager, OptionsUtil::Options *options, ProfilerSystem* profilerSystem, FrameTimeTracker* frameTimeTracker,
+          LimonAPI *limonAPI);
 
     void afterLoadFinished();
 

@@ -85,11 +85,6 @@ World * WorldLoader::loadWorld(const std::string &worldFile, LimonAPI *limonAPI)
     return newWorld;
 }
 
-void WorldLoader::attachedAPIMethodsToWorld(World *world, LimonAPI *limonAPI) const {
-    world->apiAccessor = new WorldAPIAccessor(world, limonAPI);
-}
-
-
 World * WorldLoader::loadMapFromXML(const std::string &worldFileName, LimonAPI *limonAPI) const {
     Uint64 currentTime = SDL2Helper::getTicks();
 
@@ -174,12 +169,7 @@ World * WorldLoader::loadMapFromXML(const std::string &worldFileName, LimonAPI *
         }
     }
 
-    World* world = new World(worldNameStr, startingPlayer, inputHandler, assetManager, options, profilerSystem, frameTimeTracker);
-
-
-
-
-    attachedAPIMethodsToWorld(world, limonAPI);
+    World* world = new World(worldNameStr, startingPlayer, inputHandler, assetManager, options, profilerSystem, frameTimeTracker, limonAPI);
     world->loadingImage = loadingImageStr;
 
     // Camera rigs are loaded later (loadCameraRigs), after objects exist, because a rig may attach to one.

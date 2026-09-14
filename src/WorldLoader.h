@@ -78,8 +78,6 @@ private:
     bool loadGUILayersAndElements(tinyxml2::XMLNode *worldNode, World *world) const;
     bool loadMaterials(tinyxml2::XMLNode *worldNode, World *world) const;
 
-    void attachedAPIMethodsToWorld(World *world, LimonAPI *limonAPI) const;
-
 public:
     WorldLoader(std::shared_ptr<AssetManager> assetManager, InputHandler *inputHandler, OptionsUtil::Options *options, ProfilerSystem* profilerSystem, FrameTimeTracker* frameTimeTracker);
 
