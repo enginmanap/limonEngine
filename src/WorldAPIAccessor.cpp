@@ -112,13 +112,22 @@ WorldAPIAccessor::WorldAPIAccessor(World* world, LimonAPI* limonAPI) : world(wor
     limonAPI->worldSetEmitterParticleSpeed        = std::bind(&WorldAPIAccessor::setEmitterParticleSpeed,            this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
     limonAPI->worldSetEmitterParticleGravity      = std::bind(&WorldAPIAccessor::setEmitterParticleGravity,          this, std::placeholders::_1, std::placeholders::_2);
     limonAPI->worldChangeRenderPipeline           = std::bind(&WorldAPIAccessor::changeRenderPipeline,               this, std::placeholders::_1);
-    limonAPI->worldAddLight                       = std::bind(&WorldAPIAccessor::addLightAPI,                        this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+    limonAPI->worldAddLightPoint                  = std::bind(&WorldAPIAccessor::addLightPointAPI,                   this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5, std::placeholders::_6);
+    limonAPI->worldAddLightDirectional            = std::bind(&WorldAPIAccessor::addLightDirectionalAPI,             this, std::placeholders::_1, std::placeholders::_2);
     limonAPI->worldRemoveLight                    = std::bind(&WorldAPIAccessor::removeLightAPI,                     this, std::placeholders::_1);
     limonAPI->worldAddLightTranslate              = std::bind(&WorldAPIAccessor::addLightTranslateAPI,               this, std::placeholders::_1, std::placeholders::_2);
     limonAPI->worldSetLightColor                  = std::bind(&WorldAPIAccessor::setLightColorAPI,                   this, std::placeholders::_1, std::placeholders::_2);
     limonAPI->worldGetLightPosition               = std::bind(&WorldAPIAccessor::getLightPositionAPI,                this, std::placeholders::_1);
     limonAPI->worldGetLightColor                  = std::bind(&WorldAPIAccessor::getLightColorAPI,                   this, std::placeholders::_1);
     limonAPI->worldSetLightTranslate              = std::bind(&WorldAPIAccessor::setLightTranslateAPI,               this, std::placeholders::_1, std::placeholders::_2);
+    limonAPI->worldGetLightType                   = std::bind(&WorldAPIAccessor::getLightTypeAPI,                    this, std::placeholders::_1);
+    limonAPI->worldSetLightPointParameters        = std::bind(&WorldAPIAccessor::setLightPointParametersAPI,         this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5);
+    limonAPI->worldGetLightPointParameters        = std::bind(&WorldAPIAccessor::getLightPointParametersAPI,         this, std::placeholders::_1);
+    limonAPI->worldSetLightPointAttenuation       = std::bind(&WorldAPIAccessor::setLightPointAttenuationAPI,        this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+    limonAPI->worldGetLightPointAttenuation       = std::bind(&WorldAPIAccessor::getLightPointAttenuationAPI,        this, std::placeholders::_1);
+    limonAPI->worldSolveLightPointAttenuation     = std::bind(&WorldAPIAccessor::solveLightPointAttenuationAPI,      this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);
+    limonAPI->worldSetLightAmbient                = std::bind(&WorldAPIAccessor::setLightAmbientAPI,                 this, std::placeholders::_1, std::placeholders::_2);
+    limonAPI->worldGetLightAmbient                = std::bind(&WorldAPIAccessor::getLightAmbientAPI,                 this, std::placeholders::_1);
 
     limonAPI->worldLog = [world](Logger::Subsystem subsystem, Logger::Level level, const std::string& text) {
         world->options->getLogger()->log(subsystem, level, text);
@@ -1179,18 +1188,44 @@ bool WorldAPIAccessor::isMusicPlaying() const {
     return state == Sound::State::PLAYING || state == Sound::State::STOP_AFTER_FINISH;
 }
 
-uint32_t WorldAPIAccessor::addLightAPI(uint32_t lightType, const LimonTypes::Vec4 &position, const LimonTypes::Vec4 &color) {
-    Light::LightTypes type;
-    switch(lightType) {
-        case 1: type = Light::LightTypes::DIRECTIONAL; break;
-        case 2: type = Light::LightTypes::POINT; break;
-        default: return 0;
+Light* WorldAPIAccessor::findLight(uint32_t lightID) const {
+    for(size_t i = 0; i < world->lights.size(); ++i) {
+        if(world->lights[i]->getWorldObjectID() == lightID) {
+            return world->lights[i];
+        }
     }
+    return nullptr;
+}
+
+uint32_t WorldAPIAccessor::addLightPointAPI(const LimonTypes::Vec4 &position, const LimonTypes::Vec4 &color,
+                                            float intensity, float radius, float falloff, float edgeBrightness) {
     uint32_t lightID = world->getNextObjectID();
-    Light* light = new Light(world->graphicsWrapper, lightID, type,
+    Light* light = new Light(world->graphicsWrapper, lightID, Light::LightTypes::POINT,
                              GLMConverter::LimonToGLMV3(position),
                              GLMConverter::LimonToGLMV3(color));
-    world->addLight(light);
+    // Order is important. Edge brightness effects the attenuation calculations
+    light->setEdgeBrightness(edgeBrightness);
+    light->setIntensity(intensity);
+    light->setFalloffExponent(falloff);
+    light->setRadius(radius);
+    if(!world->addLight(light)) {
+        world->unusedIDs.push(lightID);
+        delete light;
+        return 0;
+    }
+    return lightID;
+}
+
+uint32_t WorldAPIAccessor::addLightDirectionalAPI(const LimonTypes::Vec4 &direction, const LimonTypes::Vec4 &color) {
+    uint32_t lightID = world->getNextObjectID();
+    Light* light = new Light(world->graphicsWrapper, lightID, Light::LightTypes::DIRECTIONAL,
+                             GLMConverter::LimonToGLMV3(direction),
+                             GLMConverter::LimonToGLMV3(color));
+    if(!world->addLight(light)) {//the world already has one
+        world->unusedIDs.push(lightID);
+        delete light;
+        return 0;
+    }
     return lightID;
 }
 
@@ -1218,13 +1253,7 @@ bool WorldAPIAccessor::removeLightAPI(uint32_t lightID) {
 }
 
 bool WorldAPIAccessor::addLightTranslateAPI(uint32_t lightID, const LimonTypes::Vec4 &position) {
-    Light* light = nullptr;
-    for(size_t i = 0; i < world->lights.size(); ++i) {
-        if(world->lights[i]->getWorldObjectID() == lightID) {
-            light = world->lights[i];
-            break;
-        }
-    }
+    Light* light = findLight(lightID);
     if(light == nullptr) {
         return false;
     }
@@ -1233,13 +1262,7 @@ bool WorldAPIAccessor::addLightTranslateAPI(uint32_t lightID, const LimonTypes::
 }
 
 bool WorldAPIAccessor::setLightColorAPI(uint32_t lightID, const LimonTypes::Vec4 &color) {
-    Light* light = nullptr;
-    for(size_t i = 0; i < world->lights.size(); ++i) {
-        if(world->lights[i]->getWorldObjectID() == lightID) {
-            light = world->lights[i];
-            break;
-        }
-    }
+    Light* light = findLight(lightID);
     if(light == nullptr) {
         return false;
     }
@@ -1248,35 +1271,112 @@ bool WorldAPIAccessor::setLightColorAPI(uint32_t lightID, const LimonTypes::Vec4
 }
 
 LimonTypes::Vec4 WorldAPIAccessor::getLightPositionAPI(uint32_t lightID) const {
-    for(size_t i = 0; i < world->lights.size(); ++i) {
-        if(world->lights[i]->getWorldObjectID() == lightID) {
-            glm::vec3 pos = world->lights[i]->getPosition();
-            return LimonTypes::Vec4(pos.x, pos.y, pos.z, 1.0f);
-        }
+    Light* light = findLight(lightID);
+    if(light == nullptr) {
+        return LimonTypes::Vec4(0, 0, 0, 0);
     }
-    return LimonTypes::Vec4(0, 0, 0, 0);
+    glm::vec3 pos = light->getPosition();
+    return LimonTypes::Vec4(pos.x, pos.y, pos.z, 1.0f);
 }
 
 LimonTypes::Vec4 WorldAPIAccessor::getLightColorAPI(uint32_t lightID) const {
-    for(size_t i = 0; i < world->lights.size(); ++i) {
-        if(world->lights[i]->getWorldObjectID() == lightID) {
-            glm::vec3 col = world->lights[i]->getColor();
-            return LimonTypes::Vec4(col.r, col.g, col.b, 1.0f);
-        }
+    Light* light = findLight(lightID);
+    if(light == nullptr) {
+        return LimonTypes::Vec4(0, 0, 0, 0);
     }
-    return LimonTypes::Vec4(0, 0, 0, 0);
+    glm::vec3 col = light->getColor();
+    return LimonTypes::Vec4(col.r, col.g, col.b, 1.0f);
 }
 
 bool WorldAPIAccessor::setLightTranslateAPI(uint32_t lightID, const LimonTypes::Vec4& position) {
-    for(size_t i = 0; i < world->lights.size(); ++i) {
-        if(world->lights[i]->getWorldObjectID() == lightID) {
-            world->lights[i]->setPosition(glm::vec3(GLMConverter::LimonToGLM(position)), world->playerCamera);
-            return true;
-        }
+    Light* light = findLight(lightID);
+    if(light == nullptr) {
+        return false;
     }
-    return false;
+    light->setPosition(glm::vec3(GLMConverter::LimonToGLM(position)), world->playerCamera);
+    return true;
 }
 
+uint32_t WorldAPIAccessor::getLightTypeAPI(uint32_t lightID) const {
+    Light* light = findLight(lightID);
+    if(light == nullptr) {
+        return 0;
+    }
+    switch(light->getLightType()) {
+        case Light::LightTypes::DIRECTIONAL: return 1;
+        case Light::LightTypes::POINT: return 2;
+        default: return 0;
+    }
+}
+
+bool WorldAPIAccessor::setLightPointParametersAPI(uint32_t lightID, float intensity, float radius, float falloff, float edgeBrightness) {
+    Light* light = findLight(lightID);
+    if(light == nullptr || light->getLightType() != Light::LightTypes::POINT) {
+        return false;
+    }
+    // Order is important. Edge brightness effects the attenuation calculations
+    light->setEdgeBrightness(edgeBrightness);
+    light->setIntensity(intensity);
+    light->setFalloffExponent(falloff);
+    light->setRadius(radius);
+    return true;
+}
+
+LimonTypes::Vec4 WorldAPIAccessor::getLightPointParametersAPI(uint32_t lightID) const {
+    Light* light = findLight(lightID);
+    if(light == nullptr || light->getLightType() != Light::LightTypes::POINT) {
+        return LimonTypes::Vec4(0, 0, 0, 0);
+    }
+    return LimonTypes::Vec4(light->getIntensity(), light->getRadius(),
+                            light->getFalloffExponent(), light->getEdgeBrightness());
+}
+
+bool WorldAPIAccessor::setLightPointAttenuationAPI(uint32_t lightID, float constant, float linear) {
+    Light* light = findLight(lightID);
+    if(light == nullptr || light->getLightType() != Light::LightTypes::POINT) {
+        return false;
+    }
+    // setting linear after constant solves for exponential and gives what ever left to it.
+    light->setAttenuationComponent(0, constant);
+    light->setAttenuationComponent(1, linear);
+    return true;
+}
+
+LimonTypes::Vec4 WorldAPIAccessor::getLightPointAttenuationAPI(uint32_t lightID) const {
+    Light* light = findLight(lightID);
+    if(light == nullptr || light->getLightType() != Light::LightTypes::POINT) {
+        return LimonTypes::Vec4(0, 0, 0, 0);
+    }
+    glm::vec3 attenuation = light->getAttenuation();
+    return LimonTypes::Vec4(attenuation.x, attenuation.y, attenuation.z, 0.0f);
+}
+
+LimonTypes::Vec4 WorldAPIAccessor::solveLightPointAttenuationAPI(uint32_t lightID, float constant, float linear, float exponential) const {
+    Light* light = findLight(lightID);
+    if(light == nullptr || light->getLightType() != Light::LightTypes::POINT) {
+        return LimonTypes::Vec4(0, 0, 0, 0);
+    }
+    glm::vec4 solved = light->solveAttenuation(constant, linear, exponential);
+    return LimonTypes::Vec4(solved.x, solved.y, solved.z, solved.w);
+}
+
+bool WorldAPIAccessor::setLightAmbientAPI(uint32_t lightID, const LimonTypes::Vec4 &ambientColor) {
+    Light* light = findLight(lightID);
+    if(light == nullptr) {
+        return false;
+    }
+    light->setAmbientColor(glm::vec3(GLMConverter::LimonToGLM(ambientColor)));
+    return true;
+}
+
+LimonTypes::Vec4 WorldAPIAccessor::getLightAmbientAPI(uint32_t lightID) const {
+    Light* light = findLight(lightID);
+    if(light == nullptr) {
+        return LimonTypes::Vec4(0, 0, 0, 0);
+    }
+    glm::vec3 ambient = light->getAmbientColor();
+    return LimonTypes::Vec4(ambient.r, ambient.g, ambient.b, 1.0f);
+}
 bool WorldAPIAccessor::changeRenderPipeline(const std::string &pipelineFileName) {
     std::unique_ptr<GraphicsPipeline> newPipeline = GraphicsPipeline::deserialize(pipelineFileName, world->graphicsWrapper, world->assetManager, world->options, world->buildRenderMethods());
     if(newPipeline != nullptr) {

@@ -922,7 +922,10 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
             if(world->directionalLightIndex == -1) {//Allow single directional light
                 if(ImGui::Button("Add Directional Light")) {
                     Light* newLight = new Light(world->graphicsWrapper, world->getNextObjectID(), Light::LightTypes::DIRECTIONAL, newObjectPosition, glm::vec3(0.5f, 0.5f, 0.5f));
-                    world->addLight(newLight);
+                    if(!world->addLight(newLight)) {
+                        world->unusedIDs.push(newLight->getWorldObjectID());
+                        delete newLight;
+                    }
                 }
             }
 
@@ -1944,7 +1947,12 @@ Attachable* Editor::copyAttachableRecursive(Attachable* source, Attachable* newP
                                                      world->activeAnimations[sourceModel]->animationIndex, true, true);
         }
     } else if (Light* newLight = dynamic_cast<Light*>(newObj)) {
-        world->addLight(newLight);
+        if (!world->addLight(newLight)) {
+            //copying the map's only directional light, World refuses a second one
+            world->unusedIDs.push(newObjectID);
+            delete newLight;
+            return nullptr;
+        }
     } else if (CameraRig* newRig = dynamic_cast<CameraRig*>(newObj)) {
         world->addCameraRig(std::unique_ptr<CameraRig>(newRig));
     } else if (Sound* newSound = dynamic_cast<Sound*>(newObj)) {

@@ -197,13 +197,27 @@ public:
     void simulateInput(const InputStates& input);
 
 
-    uint32_t addLight(uint32_t lightType, const LimonTypes::Vec4& position, const LimonTypes::Vec4& color);
+    uint32_t addLightPoint(const LimonTypes::Vec4& position, const LimonTypes::Vec4& color,
+                           float intensity = 1.0f, float radius = 20.0f, float falloff = 4.0f, float edgeBrightness = 0.5f);
+    //if returns 0, means the add failed, because world already has a directional light. Remove that first to add
+    uint32_t addLightDirectional(const LimonTypes::Vec4& direction, const LimonTypes::Vec4& color);
     bool removeLight(uint32_t lightID);
     bool addLightTranslate(uint32_t lightID, const LimonTypes::Vec4& translate);
     bool setLightColor(uint32_t lightID, const LimonTypes::Vec4& color);
     LimonTypes::Vec4 getLightPosition(uint32_t lightID);
     LimonTypes::Vec4 getLightColor(uint32_t lightID);
     bool setLightTranslate(uint32_t lightID, const LimonTypes::Vec4& position);
+    uint32_t getLightType(uint32_t lightID);
+    // Using point light methods on non-point lights returns false or zero vector
+    bool setLightPointParameters(uint32_t lightID, float intensity, float radius, float falloff, float edgeBrightness);
+    LimonTypes::Vec4 getLightPointParameters(uint32_t lightID);//x,y,z,w = intensity, radius, falloff, edgeBrightness
+    bool setLightPointAttenuation(uint32_t lightID, float constant, float linear); //exponential attenuation is auto calculated
+    LimonTypes::Vec4 getLightPointAttenuation(uint32_t lightID);//x,y,z = constant, linear, exponential
+    // Negative means auto calculate, zero means I want zero. Use it for getting what values for constant/linear you need, if you know the exponent you want
+    // Can be just ignored. W indicates success. If w=0 means values you provided can't be used, and xyz is the closest that can be.
+    LimonTypes::Vec4 solveLightPointAttenuation(uint32_t lightID, float constant, float linear, float exponential);
+    bool setLightAmbient(uint32_t lightID, const LimonTypes::Vec4& ambientColor);
+    LimonTypes::Vec4 getLightAmbient(uint32_t lightID);
 
     bool changeRenderPipeline(const std::string& pipelineFileName);
 
@@ -365,13 +379,22 @@ private:
     std::function<void (std::vector<LimonTypes::GenericParameter>&)> worldInteractWithPlayer;
     std::function<void (InputStates)> worldSimulateInput;
 
-    std::function<uint32_t(uint32_t, const LimonTypes::Vec4&, const LimonTypes::Vec4&)> worldAddLight;
+    std::function<uint32_t(const LimonTypes::Vec4&, const LimonTypes::Vec4&, float, float, float, float)> worldAddLightPoint;
+    std::function<uint32_t(const LimonTypes::Vec4&, const LimonTypes::Vec4&)> worldAddLightDirectional;
     std::function<bool(uint32_t)> worldRemoveLight;
     std::function<bool (uint32_t, const LimonTypes::Vec4&)> worldAddLightTranslate;
     std::function<bool (uint32_t, const LimonTypes::Vec4&)> worldSetLightColor;
     std::function<LimonTypes::Vec4(uint32_t)> worldGetLightPosition;
     std::function<LimonTypes::Vec4(uint32_t)> worldGetLightColor;
     std::function<bool(uint32_t, const LimonTypes::Vec4&)> worldSetLightTranslate;
+    std::function<uint32_t(uint32_t)> worldGetLightType;
+    std::function<bool(uint32_t, float, float, float, float)> worldSetLightPointParameters;
+    std::function<LimonTypes::Vec4(uint32_t)> worldGetLightPointParameters;
+    std::function<bool(uint32_t, float, float)> worldSetLightPointAttenuation;
+    std::function<LimonTypes::Vec4(uint32_t)> worldGetLightPointAttenuation;
+    std::function<LimonTypes::Vec4(uint32_t, float, float, float)> worldSolveLightPointAttenuation;
+    std::function<bool(uint32_t, const LimonTypes::Vec4&)> worldSetLightAmbient;
+    std::function<LimonTypes::Vec4(uint32_t)> worldGetLightAmbient;
 
     std::function<long (uint64_t, bool, std::function<void(const std::vector<LimonTypes::GenericParameter>&)>, std::vector<LimonTypes::GenericParameter>)> worldAddTimedEvent;
     std::function<bool (long)> worldCancelTimedEvent;

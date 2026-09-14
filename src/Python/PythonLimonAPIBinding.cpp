@@ -317,9 +317,16 @@ void bindLimonAPI(pybind11::module_& m) {
                  pybind11::arg("start"), pybind11::arg("direction"))
 
             // Lighting
-            .def("add_light", &LimonAPI::addLight,
-                 "Add a light. lightType: 1=directional, 2=point. Returns light ID, or 0 on failure.",
-                 pybind11::arg("light_type"), pybind11::arg("position"), pybind11::arg("color"))
+            .def("add_light_point", &LimonAPI::addLightPoint,
+                 "Add a point light. Returns light ID, or 0 on failure.\n"
+                 "The falloff values default to what a light added from the editor gets.",
+                 pybind11::arg("position"), pybind11::arg("color"),
+                 pybind11::arg("intensity") = 1.0f, pybind11::arg("radius") = 20.0f,
+                 pybind11::arg("falloff") = 4.0f, pybind11::arg("edge_brightness") = 0.5f)
+            .def("add_light_directional", &LimonAPI::addLightDirectional,
+                 "Add the directional light. Direction is relative to the player and normalized.\n"
+                 "Returns light ID, or 0 if the world already has one, only one is supported.",
+                 pybind11::arg("direction"), pybind11::arg("color"))
             .def("remove_light", &LimonAPI::removeLight,
                  "Remove a light by ID. Returns true on success.",
                  pybind11::arg("light_id"))
@@ -338,6 +345,41 @@ void bindLimonAPI(pybind11::module_& m) {
             .def("set_light_translate", &LimonAPI::setLightTranslate,
                  "Set a light's absolute position. Returns False if not found",
                  pybind11::arg("light_id"), pybind11::arg("position"))
+            .def("get_light_type", &LimonAPI::getLightType,
+                 "Returns 1 for directional, 2 for point, 0 if not found",
+                 pybind11::arg("light_id"))
+            .def("set_light_point_parameters", &LimonAPI::setLightPointParameters,
+                 "Set a point light's intensity, radius, falloff and edge brightness together.\n"
+                 "Returns False if not found or the light is directional",
+                 pybind11::arg("light_id"), pybind11::arg("intensity"), pybind11::arg("radius"),
+                 pybind11::arg("falloff"), pybind11::arg("edge_brightness"))
+            .def("get_light_point_parameters", &LimonAPI::getLightPointParameters,
+                 "Returns Vec4(intensity, radius, falloff, edge_brightness).\n"
+                 "Returns zero Vec4 if not found or the light is directional",
+                 pybind11::arg("light_id"))
+            .def("set_light_point_attenuation", &LimonAPI::setLightPointAttenuation,
+                 "Set a point light's constant and linear attenuation. Exponential is solved from them,\n"
+                 "the three are constrained to reach edge brightness at the radius.\n"
+                 "Returns False if not found or the light is directional",
+                 pybind11::arg("light_id"), pybind11::arg("constant"), pybind11::arg("linear"))
+            .def("get_light_point_attenuation", &LimonAPI::getLightPointAttenuation,
+                 "Returns Vec4(constant, linear, exponential).\n"
+                 "Returns zero Vec4 if not found or the light is directional",
+                 pybind11::arg("light_id"))
+            .def("solve_light_point_attenuation", &LimonAPI::solveLightPointAttenuation,
+                 "Returns a valid Vec4(constant, linear, exponential, exact) without touching the light.\n"
+                 "Pass a negative value for anything you want solved for you, zero is a real request.\n"
+                 "w is 1 if every value asked for survived, 0 if it had to be clamped to the closest reachable.\n"
+                 "All three negative returns the light's current attenuation",
+                 pybind11::arg("light_id"), pybind11::arg("constant"), pybind11::arg("linear"),
+                 pybind11::arg("exponential"))
+            .def("set_light_ambient", &LimonAPI::setLightAmbient,
+                 "Set a light's ambient fill colour. Works on both light types, falls off with distance\n"
+                 "for point lights. Returns False if not found",
+                 pybind11::arg("light_id"), pybind11::arg("ambient_color"))
+            .def("get_light_ambient", &LimonAPI::getLightAmbient,
+                 "Returns the ambient colour of a light as Vec4 (w=1). Returns zero Vec4 if not found",
+                 pybind11::arg("light_id"))
 
             // World Management
             .def("load_and_remove", &LimonAPI::loadAndRemove,

@@ -41,6 +41,8 @@ private:
     float radius = 20.0f;
     float falloffExponent = 4.0f;
     float edgeBrightness = 0.5f;
+    // Editor, rebalance solver uses this
+    static constexpr float MINIMUM_ATTENUATION_CONSTANT = 0.01f;
     glm::vec3 ambientColor = glm::vec3(0,0,0); //this will be added to all objects on shading phase
     std::vector<Camera*> directionalCameras;
     mutable std::vector<glm::mat4> directionalCameraMatrices;
@@ -327,18 +329,20 @@ public:
     /**
      * Total attenuation at the point of radius distance is known, and constant attenuation is constant,
      * so if user edits one component, we align the other one to keep the attenuation at radius same.
-     * Since editor shows the values this method writes, it also hasuser feedback built in.
+     * Only returns the rebalanced values. Both solver and setter uses this
      */
-    void setAttenuationComponent(int componentIndex, float value) {
+    glm::vec3 rebalanceAttenuation(const glm::vec3& from, int componentIndex, float value) const {
+        glm::vec3 result = from;
         if(radius <= 0.0f) {
-            return;
+            return result;
         }
-        float linearContribution = attenuation.y * radius;
-        float exponentialContribution = attenuation.z * radius * radius;
+        float budgetFactor = 1.0f / edgeBrightness - 1.0f;
+        float linearContribution = from.y * radius;
+        float exponentialContribution = from.z * radius * radius;
 
         if(componentIndex == 0) {
-            attenuation.x = glm::max(value, 0.0001f);//div by zero guard
-            float budget = getAttenuationBudget();
+            result.x = glm::max(value, MINIMUM_ATTENUATION_CONSTANT);//div by zero guard
+            float budget = result.x * budgetFactor;
             float currentSum = linearContribution + exponentialContribution;
             if(currentSum > 0.0f) {
                 linearContribution *= budget / currentSum;
@@ -348,18 +352,29 @@ public:
                 exponentialContribution = budget * 0.5f;
             }
         } else if(componentIndex == 1) {
-            float budget = getAttenuationBudget();
+            float budget = from.x * budgetFactor;
             linearContribution = glm::clamp(value * radius, 0.0f, budget);
             exponentialContribution = budget - linearContribution;
         } else {
-            float budget = getAttenuationBudget();
+            float budget = from.x * budgetFactor;
             exponentialContribution = glm::clamp(value * radius * radius, 0.0f, budget);
             linearContribution = budget - exponentialContribution;
         }
 
-        attenuation.y = linearContribution / radius;
-        attenuation.z = exponentialContribution / (radius * radius);
+        result.y = linearContribution / radius;
+        result.z = exponentialContribution / (radius * radius);
+        return result;
     }
+
+    void setAttenuationComponent(int componentIndex, float value) {
+        attenuation = rebalanceAttenuation(attenuation, componentIndex, value);
+    }
+
+    /**
+     * Negative is place-holder, zero is actual value. If possible solves for placeholders, sets w to 1.
+     * If no solution for placeholders, calculates closest set, and sets w to 0
+     */
+    glm::vec4 solveAttenuation(float constant, float linear, float exponential) const;
 
     float getIntensity() const {
         return intensity;
@@ -392,7 +407,8 @@ public:
     }
 
     void setFalloffExponent(float falloffExponent) {
-        this->falloffExponent = falloffExponent;
+        // Clamp so API/Editor errors can't break the light and turn to complete black
+        this->falloffExponent = glm::max(falloffExponent, 1.0f);
     }
 
     float getActiveDistance() const {

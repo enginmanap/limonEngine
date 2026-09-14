@@ -88,6 +88,8 @@ ImGuiResult Light::addImGuiEditorElements(const ImGuiRequest &request) {
                 result.updated = true;
             }
             ImGui::SetItemTooltip("Where the light reaches. Used by culling and shadows");
+            result.updated = ImGui::ColorEdit3("Ambient", glm::value_ptr(ambientColor)) || result.updated;
+            ImGui::SetItemTooltip("Base light that ignores facing and shadowing. Same attenuation rules apply");
 
             ImGui::SeparatorText("Attenuation");
             float editedEdgeBrightness = this->edgeBrightness;
@@ -103,7 +105,7 @@ ImGuiResult Light::addImGuiEditorElements(const ImGuiRequest &request) {
             static const char* attenuationLabels[3] = {"Constant", "Linear", "Exponential"};
             for (int componentIndex = 0; componentIndex < 3; ++componentIndex) {
                 float componentLimit = this->getAttenuationComponentLimit(componentIndex);
-                float componentMinimum = (componentIndex == 0) ? 0.01f : 0.0f;//C is the divisor at distance zero
+                float componentMinimum = (componentIndex == 0) ? MINIMUM_ATTENUATION_CONSTANT : 0.0f;//C is the divisor at distance zero
                 float editedComponent = this->attenuation[componentIndex];
                 if(ImGui::DragFloat(attenuationLabels[componentIndex], &editedComponent,
                                     glm::max(componentLimit / 200.0f, 0.0001f), componentMinimum, componentLimit)) {
@@ -182,6 +184,47 @@ void Light::renderLineVisualization(Logger *logger, uint32_t &bufferId) const {
     }
     const glm::vec3 activeDistanceColor(1.0f, 0.9f, 0.6f);//warm white, doesn't collide with the emitter palette
     bufferId = logger->drawSphere(getPosition(), getActiveDistance(), activeDistanceColor);
+}
+
+// Check if the input survived rebalance. We can't use == as floats do weird stuff
+static bool isSameAttenuationContributionAsInput(float first, float second, float budget) {
+    return glm::abs(first - second) <= 0.0001f * glm::max(budget, glm::max(glm::abs(first), glm::abs(second))) + 0.0000001f;
+}
+
+glm::vec4 Light::solveAttenuation(float constant, float linear, float exponential) const {
+    bool constantGiven = constant >= 0.0f;
+    bool linearGiven = linear >= 0.0f;
+    bool exponentialGiven = exponential >= 0.0f;
+    if(!constantGiven && !linearGiven && !exponentialGiven) {
+        return glm::vec4(attenuation, 1.0f);
+    }
+
+    float budgetFactor = 1.0f / edgeBrightness - 1.0f;
+    float candidateConstant = constant;
+    if(!constantGiven) {
+        if(!linearGiven || !exponentialGiven) {
+            candidateConstant = 1.0f;//We don't need to change it
+        } else if(budgetFactor > 0.0f) {
+            candidateConstant = (linear * radius + exponential * radius * radius) / budgetFactor;
+        } else {
+            candidateConstant = attenuation.x;//if edge brightness is 1, we can't have a constant can we
+        }
+    }
+
+    glm::vec3 scratch(candidateConstant, glm::max(linear, 0.0f), glm::max(exponential, 0.0f));
+    glm::vec3 result = rebalanceAttenuation(scratch, 0, candidateConstant);
+    if(linearGiven && !exponentialGiven) {
+        result = rebalanceAttenuation(result, 1, linear);
+    } else if(exponentialGiven && !linearGiven) {
+        result = rebalanceAttenuation(result, 2, exponential);
+    }
+    result = rebalanceAttenuation(rebalanceAttenuation(result, 0, result.x), 1, result.y);
+
+    float budget = result.x * budgetFactor;
+    bool exact = (!constantGiven || isSameAttenuationContributionAsInput(result.x, constant, 0.0f)) &&
+                 (!linearGiven || isSameAttenuationContributionAsInput(result.y * radius, linear * radius, budget)) &&
+                 (!exponentialGiven || isSameAttenuationContributionAsInput(result.z * radius * radius, exponential * radius * radius, budget));
+    return glm::vec4(result, exact ? 1.0f : 0.0f);
 }
 
 void Light::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *lightsNode) const {

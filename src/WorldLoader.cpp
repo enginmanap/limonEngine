@@ -1048,11 +1048,16 @@ bool WorldLoader::loadLights(tinyxml2::XMLNode *lightsNode, World* world) const 
             return false;
         }
 
+        // try to add before attachment, because attachment can fail.
+        if(!world->addLight(xmlLight)) {
+            delete xmlLight;//the ID will be reclaimed after load finishes, no worry about that
+            lightNode =  lightNode->NextSiblingElement("Light");
+            continue;
+        }
+
         if(hasParent) {
             resolvePendingAttachments(world, {{xmlLight, parentID, parentBoneID, "Light"}});
         }
-
-        world->addLight(xmlLight);
 
         lightNode =  lightNode->NextSiblingElement("Light");
     }

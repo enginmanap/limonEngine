@@ -1270,7 +1270,11 @@ void World::setSky(SkyBox *skyBox) {
     sky = skyBox;
 }
 
-void World::addLight(Light *light) {
+bool World::addLight(Light *light) {
+    if(light->getLightType() == Light::LightTypes::DIRECTIONAL && directionalLightIndex != -1) {
+        std::cerr << "World already has a directional light, refusing " << light->getName() << "." << std::endl;
+        return false;
+    }
     this->lights.push_back(light);
     if(light->getLightType() == Light::LightTypes::DIRECTIONAL) {
         directionalLightIndex = (uint32_t)lights.size()-1;
@@ -1278,6 +1282,7 @@ void World::addLight(Light *light) {
     light->setFrustumChanged(true);//ensure updateActiveLights picks it up even if player hasn't moved
     //we don't add it to visibility manager threads, because we don't know if it will activate or not.
     updateActiveLights(false);
+    return true;
 }
 
 void World::afterLoadFinished() {
@@ -1902,7 +1907,7 @@ void World::uploadActiveLightsToGPU() const {
    void World::clearWorldRefsBeforeAttachment(PhysicalRenderable *attachment, const bool removeChildren, const bool forRemoval) {
        Model *modelToClear = dynamic_cast<Model *>(attachment);
        if (modelToClear != nullptr) {
-           if (forRemoval) {.
+           if (forRemoval) {
                // model will be deleted, and we wanna clear the physics first because model doesn't know the world
                modelToClear->disconnectFromPhysicsWorld(dynamicsWorld);
            }

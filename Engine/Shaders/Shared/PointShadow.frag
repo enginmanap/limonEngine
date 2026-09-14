@@ -34,25 +34,10 @@ float ShadowCalculationPoint(vec3 world_space_frag_pos, float viewDistance, int 
     vec3 fragToLight = world_space_frag_pos - LightSources.lights[lightIndex].position;
     float fragDistance = length(fragToLight);
     if(LightSources.lights[lightIndex].radius < fragDistance) {
-        return 1.0; // Occluded if beyond the light's radius
+        return 0.0;
     }
 
-    // zero or negative would cause divide by zero or other nasty numeric issue, so we do max
-    float attenuationFactor = max(LightSources.lights[lightIndex].attenuation.x +
-                                  (LightSources.lights[lightIndex].attenuation.y * fragDistance) +
-                                  (LightSources.lights[lightIndex].attenuation.z * fragDistance * fragDistance), 0.0001);
-
     float normalizedFragDistance = fragDistance / LightSources.lights[lightIndex].radius;
-    // We want the light to reach 0 at the end (radius), to achieve that we use double root
-    float window = clamp(1.0 - pow(normalizedFragDistance, LightSources.lights[lightIndex].falloffExponent), 0.0, 1.0);
-    window = window * window;
-    float attenuation = clamp(LightSources.lights[lightIndex].intensity / attenuationFactor, 0.0, 1.0) * window;
-
-    // Early-out: center sample fully lit — skip full PCF loop
-    //float centerLit = texture(pre_shadowPoint, vec4(fragToLight, lightIndex), normalizedFragDistance);
-    //if(centerLit == 1.0) {
-    //    return 1.0 - attenuation;
-    //}
 
     float shadow = 0.0;
     int samples  = shadow_pointSampleCount;
@@ -66,5 +51,5 @@ float ShadowCalculationPoint(vec3 world_space_frag_pos, float viewDistance, int 
     }
     shadow /= float(samples);
 
-    return max(shadow, 1.0 - attenuation);
+    return shadow;
 }

@@ -277,8 +277,13 @@ void LimonAPI::simulateInput(const InputStates& input) {
     this->worldSimulateInput(input);
 }
 
-uint32_t LimonAPI::addLight(uint32_t lightType, const LimonTypes::Vec4 &position, const LimonTypes::Vec4 &color) {
-    return worldAddLight(lightType, position, color);
+uint32_t LimonAPI::addLightPoint(const LimonTypes::Vec4 &position, const LimonTypes::Vec4 &color,
+                                 float intensity, float radius, float falloff, float edgeBrightness) {
+    return worldAddLightPoint(position, color, intensity, radius, falloff, edgeBrightness);
+}
+
+uint32_t LimonAPI::addLightDirectional(const LimonTypes::Vec4 &direction, const LimonTypes::Vec4 &color) {
+    return worldAddLightDirectional(direction, color);
 }
 
 bool LimonAPI::removeLight(uint32_t lightID) {
@@ -303,6 +308,38 @@ LimonTypes::Vec4 LimonAPI::getLightColor(uint32_t lightID) {
 
 bool LimonAPI::setLightTranslate(uint32_t lightID, const LimonTypes::Vec4& position) {
     return worldSetLightTranslate(lightID, position);
+}
+
+uint32_t LimonAPI::getLightType(uint32_t lightID) {
+    return worldGetLightType(lightID);
+}
+
+bool LimonAPI::setLightPointParameters(uint32_t lightID, float intensity, float radius, float falloff, float edgeBrightness) {
+    return worldSetLightPointParameters(lightID, intensity, radius, falloff, edgeBrightness);
+}
+
+LimonTypes::Vec4 LimonAPI::getLightPointParameters(uint32_t lightID) {
+    return worldGetLightPointParameters(lightID);
+}
+
+bool LimonAPI::setLightPointAttenuation(uint32_t lightID, float constant, float linear) {
+    return worldSetLightPointAttenuation(lightID, constant, linear);
+}
+
+LimonTypes::Vec4 LimonAPI::getLightPointAttenuation(uint32_t lightID) {
+    return worldGetLightPointAttenuation(lightID);
+}
+
+LimonTypes::Vec4 LimonAPI::solveLightPointAttenuation(uint32_t lightID, float constant, float linear, float exponential) {
+    return worldSolveLightPointAttenuation(lightID, constant, linear, exponential);
+}
+
+bool LimonAPI::setLightAmbient(uint32_t lightID, const LimonTypes::Vec4& ambientColor) {
+    return worldSetLightAmbient(lightID, ambientColor);
+}
+
+LimonTypes::Vec4 LimonAPI::getLightAmbient(uint32_t lightID) {
+    return worldGetLightAmbient(lightID);
 }
 
 bool LimonAPI::changeRenderPipeline(const std::string& pipelineFileName) {

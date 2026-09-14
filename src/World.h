@@ -452,7 +452,7 @@ private:
 
     void setSky(SkyBox *skyBox);
 
-    void addLight(Light *light);
+    bool addLight(Light *light);//if try to add a second directional light, it will return false, caller needs to delete.
     void addSound(Sound* sound);
 
     void setupRenderForPipeline() const;

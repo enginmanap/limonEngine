@@ -18,6 +18,7 @@
 #include "limonAPI/LimonAPI.h"
 
 class World;
+class Light;
 
 class WorldAPIAccessor {
     World* world;
@@ -141,13 +142,24 @@ public:
     // Channel (bus) volumes are option-driven (see World::applyAudioVolumeOptionsIfChanged), not set here.
 
     // Lights
-    uint32_t addLightAPI(uint32_t lightType, const LimonTypes::Vec4& position, const LimonTypes::Vec4& color);
+    Light* findLight(uint32_t lightID) const;
+    uint32_t addLightPointAPI(const LimonTypes::Vec4& position, const LimonTypes::Vec4& color,
+                              float intensity, float radius, float falloff, float edgeBrightness);
+    uint32_t addLightDirectionalAPI(const LimonTypes::Vec4& direction, const LimonTypes::Vec4& color);
     bool removeLightAPI(uint32_t lightID);
     bool addLightTranslateAPI(uint32_t lightID, const LimonTypes::Vec4& position);
     bool setLightColorAPI(uint32_t lightID, const LimonTypes::Vec4& color);
     LimonTypes::Vec4 getLightPositionAPI(uint32_t lightID) const;
     LimonTypes::Vec4 getLightColorAPI(uint32_t lightID) const;
     bool setLightTranslateAPI(uint32_t lightID, const LimonTypes::Vec4& position);
+    uint32_t getLightTypeAPI(uint32_t lightID) const;
+    bool setLightPointParametersAPI(uint32_t lightID, float intensity, float radius, float falloff, float edgeBrightness);
+    LimonTypes::Vec4 getLightPointParametersAPI(uint32_t lightID) const;
+    bool setLightPointAttenuationAPI(uint32_t lightID, float constant, float linear);
+    LimonTypes::Vec4 getLightPointAttenuationAPI(uint32_t lightID) const;
+    LimonTypes::Vec4 solveLightPointAttenuationAPI(uint32_t lightID, float constant, float linear, float exponential) const;
+    bool setLightAmbientAPI(uint32_t lightID, const LimonTypes::Vec4& ambientColor);
+    LimonTypes::Vec4 getLightAmbientAPI(uint32_t lightID) const;
 
     // Render pipeline
     bool changeRenderPipeline(const std::string& pipelineFileName);

@@ -92,7 +92,7 @@ class PythonPlayerExtension(PlayerExtensionInterface):
                     if transform and len(transform) > 0:
                         pos = transform[0].value
                         light_position = limon.Vec4(pos[0], pos[1], pos[2], 0.0)
-                muzzle_light_id = self._limon_api.add_light(2, light_position, limon.Vec4(1.0, 0.6, 0.1, 1.0))
+                muzzle_light_id = self._limon_api.add_light_point(light_position, limon.Vec4(1.0, 0.6, 0.1, 1.0))
                 if muzzle_light_id != 0:
                     light_param = GenericParameter(
                         request_type=RequestParameterType.FREE_NUMBER,
