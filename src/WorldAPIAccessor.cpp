@@ -48,6 +48,7 @@ WorldAPIAccessor::WorldAPIAccessor(World* world, LimonAPI* limonAPI) : world(wor
     limonAPI->worldRemoveObject                   = std::bind(&WorldAPIAccessor::removeObject,                       this, std::placeholders::_1, std::placeholders::_2);
     limonAPI->worldAttachObjectToObject           = std::bind(&WorldAPIAccessor::attachObjectToObject,               this, std::placeholders::_1, std::placeholders::_2);
     limonAPI->worldAttachObjectToObjectAtWorldPosition = std::bind(&WorldAPIAccessor::attachObjectToObjectAtWorldPosition, this, std::placeholders::_1, std::placeholders::_2);
+    limonAPI->worldDetachObjectFromParent         = std::bind(&WorldAPIAccessor::detachObjectFromParent,             this, std::placeholders::_1);
     limonAPI->worldRemoveTriggerObject            = std::bind(&WorldAPIAccessor::removeTriggerObject,                this, std::placeholders::_1);
     limonAPI->worldGetObjectLinearVelocity        = std::bind(&WorldAPIAccessor::getObjectLinearVelocity,            this, std::placeholders::_1);
     limonAPI->worldSetObjectLinearVelocity        = std::bind(&WorldAPIAccessor::setObjectLinearVelocity,            this, std::placeholders::_1, std::placeholders::_2);
@@ -462,6 +463,15 @@ bool WorldAPIAccessor::attachObjectToObjectAtWorldPosition(uint32_t objectID, ui
     return true;
 }
 
+bool WorldAPIAccessor::detachObjectFromParent(uint32_t objectID) {
+    Attachable* objectToDetach = world->findAttachableByID(objectID);
+    if(objectToDetach == nullptr || objectToDetach->getParentObject() == nullptr) {
+        return false;
+    }
+    objectToDetach->detach();
+    return true;
+}
+
 bool WorldAPIAccessor::removeObject(uint32_t objectID, const bool &removeChildren) {
     Model* modelToRemove = world->findModelByID(objectID);
     if(modelToRemove == nullptr) {
@@ -526,9 +536,9 @@ uint32_t WorldAPIAccessor::getObjectByName(const std::string& name) const {
 }
 
 uint32_t WorldAPIAccessor::getObjectParent(uint32_t objectID) const {
-    Model* model = world->findModelByID(objectID);
-    if(model == nullptr) return 0;
-    Attachable* parent = model->getParentObject();
+    Attachable* object = world->findAttachableByID(objectID);
+    if(object == nullptr) return 0;
+    Attachable* parent = object->getParentObject();
     if(parent == nullptr) return 0;
     GameObject* parentGO = dynamic_cast<GameObject*>(parent);
     if(parentGO == nullptr) return 0;

@@ -52,6 +52,7 @@ public:
     bool setModelTemporaryAPI(uint32_t modelID, bool temporary);
     bool attachObjectToObject(uint32_t objectID, uint32_t objectToAttachToID);
     bool attachObjectToObjectAtWorldPosition(uint32_t objectID, uint32_t objectToAttachToID);
+    bool detachObjectFromParent(uint32_t objectID);
     bool removeObject(uint32_t objectID, const bool& removeChildren = true);
     bool removeTriggerObject(uint32_t triggerobjectID);
 

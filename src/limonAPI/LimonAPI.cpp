@@ -49,6 +49,10 @@ bool LimonAPI::attachObjectToObjectAtWorldPosition(uint32_t objectID, uint32_t o
     return worldAttachObjectToObjectAtWorldPosition(objectID, objectToAttachToID);
 }
 
+bool LimonAPI::detachObjectFromParent(uint32_t objectID) {
+    return worldDetachObjectFromParent(objectID);
+}
+
 bool LimonAPI::updateGuiText(uint32_t guiTextID, const std::string &newText) {
     return worldUpdateGuiText(guiTextID, newText);
 }

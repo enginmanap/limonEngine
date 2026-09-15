@@ -142,6 +142,9 @@ void bindLimonAPI(pybind11::module_& m) {
             .def("attach_object_to_object_at_world_position", &LimonAPI::attachObjectToObjectAtWorldPosition,
                  "Attach child to parent; child keeps its current world position (local offset is derived automatically).",
                  pybind11::arg("object_id"), pybind11::arg("object_to_attach_to_id"))
+            .def("detach_object_from_parent", &LimonAPI::detachObjectFromParent,
+                 "Detach object from its parent; object stays at its current world position. Returns False if not found or has no parent",
+                 pybind11::arg("object_id"))
             .def("remove_trigger_object", &LimonAPI::removeTriggerObject,
                  "Remove a trigger object",
                  pybind11::arg("trigger_object_id"))
