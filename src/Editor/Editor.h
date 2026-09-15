@@ -166,6 +166,7 @@ private:
                                         const std::unordered_map<uint32_t, uint32_t>& idRemap);
 
     void buildTreeFromAllGameObjects();
+    void putPickReferencedObjectButton(GameObject* referencedObject, const std::string& label);
     std::unique_ptr<ClosestNotMeConvexResultCallback> convexSweepTestDown(Model * selectedObject) const;
     void addAnimationDefinitionToEditor();
     void createObjectTreeRecursive(PhysicalRenderable *physicalRenderable, uint32_t pickedObjectID,

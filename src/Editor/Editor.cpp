@@ -96,9 +96,10 @@ bool Editor::generateEditorElementsForParameters(std::vector<LimonTypes::Generic
             case LimonTypes::GenericParameter::RequestParameterTypes::MODEL: {
                 parameter.valueType = LimonTypes::GenericParameter::ValueTypes::LONG;
                 std::string currentObject;
+                Model* foundModel = nullptr;
                 if (parameter.isSet) {
                     auto objectIt = world->objects.find((uint32_t)(parameter.value.longValue));
-                    Model* foundModel = (objectIt != world->objects.end()) ? dynamic_cast<Model*>(objectIt->second) : nullptr;
+                    foundModel = (objectIt != world->objects.end()) ? dynamic_cast<Model*>(objectIt->second) : nullptr;
                     if (foundModel != nullptr) {
                         currentObject = foundModel->getName();
                     } else {
@@ -130,6 +131,7 @@ bool Editor::generateEditorElementsForParameters(std::vector<LimonTypes::Generic
                     }
                     ImGui::EndCombo();
                 }
+                putPickReferencedObjectButton(foundModel, "##triggerParam" + std::to_string(i) + "##" + std::to_string(index));
             }
                 break;
             case LimonTypes::GenericParameter::RequestParameterTypes::ANIMATION: {
@@ -171,11 +173,13 @@ bool Editor::generateEditorElementsForParameters(std::vector<LimonTypes::Generic
             case LimonTypes::GenericParameter::RequestParameterTypes::GUI_TEXT: {
                 parameter.valueType = LimonTypes::GenericParameter::ValueTypes::LONG;
                 std::string currentGUIText;
+                GameObject* referencedGUIText = nullptr;
                 if (parameter.isSet) {
                     if(world->guiElements.find(static_cast<uint32_t>(parameter.value.longValue)) != world->guiElements.end()) {
                         GameObject* guiGameObject = dynamic_cast<GameObject*>(world->guiElements[static_cast<uint32_t>(parameter.value.longValue)]);
                         if(guiGameObject != nullptr && guiGameObject->getTypeID() == GameObject::ObjectTypes::GUI_TEXT) {
                             currentGUIText = guiGameObject->getName();
+                            referencedGUIText = guiGameObject;
                         }
                     } else {
                         parameter.isSet = false;
@@ -205,6 +209,7 @@ bool Editor::generateEditorElementsForParameters(std::vector<LimonTypes::Generic
                     }
                     ImGui::EndCombo();
                 }
+                putPickReferencedObjectButton(referencedGUIText, "##triggerParam" + std::to_string(i) + "##" + std::to_string(index));
             }
                 break;
             case LimonTypes::GenericParameter::RequestParameterTypes::SWITCH: {
@@ -271,10 +276,12 @@ bool Editor::generateEditorElementsForParameters(std::vector<LimonTypes::Generic
                 parameter.valueType = LimonTypes::GenericParameter::ValueTypes::LONG_ARRAY;
                 parameter.value.longValues[0] = 3;
                 std::string currentObject;
+                TriggerObject* foundTrigger = nullptr;
                 if (parameter.isSet) {
                     auto triggerIt = world->triggers.find((uint32_t)(parameter.value.longValues[1]));
                     if (triggerIt != world->triggers.end()) {
-                        currentObject = dynamic_cast<TriggerObject*>(triggerIt->second)->getName();
+                        foundTrigger = triggerIt->second;
+                        currentObject = foundTrigger->getName();
                     } else {
                         parameter.isSet = false;
                         currentObject = "Not selected";
@@ -303,6 +310,7 @@ bool Editor::generateEditorElementsForParameters(std::vector<LimonTypes::Generic
                     ImGui::EndCombo();
 
                 }
+                putPickReferencedObjectButton(foundTrigger, label);
                 int RadioButtonValue = parameter.value.longValues[2];
                 ImGui::BeginGroup();
                 ImGui::RadioButton(("First Enter##" + label).c_str(), &RadioButtonValue, 1);
@@ -316,8 +324,8 @@ bool Editor::generateEditorElementsForParameters(std::vector<LimonTypes::Generic
             case LimonTypes::GenericParameter::RequestParameterTypes::LIGHT: {
                 parameter.valueType = LimonTypes::GenericParameter::ValueTypes::LONG;
                 std::string currentLight;
+                Light* foundLight = nullptr;
                 if (parameter.isSet) {
-                    Light* foundLight = nullptr;
                     for (Light* light : world->lights) {
                         if (light->getWorldObjectID() == (uint32_t)(parameter.value.longValue)) {
                             foundLight = light;
@@ -349,16 +357,19 @@ bool Editor::generateEditorElementsForParameters(std::vector<LimonTypes::Generic
                     }
                     ImGui::EndCombo();
                 }
+                putPickReferencedObjectButton(foundLight, "##triggerParam" + std::to_string(i) + "##" + std::to_string(index));
             }
             break;
 
             case LimonTypes::GenericParameter::RequestParameterTypes::SOUND: {
                 parameter.valueType = LimonTypes::GenericParameter::ValueTypes::LONG;
                 std::string currentSound;
+                Sound* foundSound = nullptr;
                 if (parameter.isSet) {
                     auto soundIt = world->sounds.find((uint32_t)(parameter.value.longValue));
                     if (soundIt != world->sounds.end()) {
-                        currentSound = soundIt->second->getName();
+                        foundSound = soundIt->second.get();
+                        currentSound = foundSound->getName();
                     } else {
                         parameter.isSet = false;
                         currentSound = "Not selected";
@@ -382,14 +393,16 @@ bool Editor::generateEditorElementsForParameters(std::vector<LimonTypes::Generic
                     }
                     ImGui::EndCombo();
                 }
+                putPickReferencedObjectButton(foundSound, "##triggerParam" + std::to_string(i) + "##" + std::to_string(index));
             }
             break;
 
             case LimonTypes::GenericParameter::RequestParameterTypes::CAMERA_RIG: {
                 parameter.valueType = LimonTypes::GenericParameter::ValueTypes::LONG;
                 std::string currentRig;
+                CameraRig* foundRig = nullptr;
                 if (parameter.isSet) {
-                    CameraRig* foundRig = world->findCameraRigByID((uint32_t)(parameter.value.longValue));
+                    foundRig = world->findCameraRigByID((uint32_t)(parameter.value.longValue));
                     if (foundRig != nullptr) {
                         currentRig = foundRig->getName();
                     } else {
@@ -415,6 +428,7 @@ bool Editor::generateEditorElementsForParameters(std::vector<LimonTypes::Generic
                     }
                     ImGui::EndCombo();
                 }
+                putPickReferencedObjectButton(foundRig, "##triggerParam" + std::to_string(i) + "##" + std::to_string(index));
             }
             break;
 
@@ -645,6 +659,17 @@ void Editor::applyPendingPick() {
     if (pickedObject != nullptr) {
         pickedObject->addTag(HardCodedTags::PICKED_OBJECT);
     }
+}
+
+void Editor::putPickReferencedObjectButton(GameObject* referencedObject, const std::string& label) {
+    ImGui::SameLine();
+    ImGui::BeginDisabled(referencedObject == nullptr);
+    if (ImGui::SmallButton(("->##pick" + label).c_str())) {
+        //changing pickedObject here would swap the panel we are in the middle of drawing
+        pendingPickedObject = referencedObject;
+        hasPendingPick = true;
+    }
+    ImGui::EndDisabled();
 }
 
 void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
