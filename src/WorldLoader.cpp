@@ -1271,25 +1271,38 @@ bool WorldLoader::loadOnLoadActions(tinyxml2::XMLNode *worldNode, World *world) 
             //now we know the action name, create it
             World::ActionForOnload* actionForOnload = new World::ActionForOnload();
             actionForOnload->action = TriggerInterface::createTrigger(actionCodeNameNode->GetText(), world->apiInstance);
+            if(actionForOnload->action == nullptr) {
+                std::cerr << "On load action [" << actionCodeNameNode->GetText() << "] is not a registered trigger, skipping." << std::endl;
+                delete actionForOnload;
+                onloadActionNode = onloadActionNode->NextSiblingElement("OnloadAction");
+                continue;
+            }
 
             //now we have the Trigger Action, load parameters
             tinyxml2::XMLElement* parametersListNode = onloadActionNode->FirstChildElement("Parameters");
+            if(parametersListNode != nullptr) {//if no parameters, we will skip parameter setting, so defaults take over
+                tinyxml2::XMLElement* parameterNode = parametersListNode->FirstChildElement("Parameter");
+                std::vector<LimonTypes::GenericParameter> parameters;
+                uint32_t index;
+                while(parameterNode != nullptr) {
+                    std::shared_ptr<LimonTypes::GenericParameter> request = APISerializer::deserializeParameterRequest(parameterNode, index);
+                    if(request == nullptr) {
+                        delete actionForOnload;
+                        return false;
+                    }
+                    if(index > parameters.size()) {
+                        std::cerr << "On load action [" << actionCodeNameNode->GetText() << "] parameter index " << index
+                                  << " is out of order, action can't be loaded." << std::endl;
+                        delete actionForOnload;
+                        return false;
+                    }
+                    parameters.insert(parameters.begin() + index, *request);
 
-            tinyxml2::XMLElement* parameterNode = parametersListNode->FirstChildElement("Parameter");
-            std::vector<LimonTypes::GenericParameter> parameters;
-            uint32_t index;
-            while(parameterNode != nullptr) {
-                std::shared_ptr<LimonTypes::GenericParameter> request = APISerializer::deserializeParameterRequest(parameterNode, index);
-                if(request == nullptr) {
-                    delete actionForOnload;
-                    return false;
+                    parameterNode = parameterNode->NextSiblingElement("Parameter");
                 }
-                parameters.insert(parameters.begin() + index, *request);
-
-                parameterNode = parameterNode->NextSiblingElement("Parameter");
+                //values are owned by the trigger instance
+                actionForOnload->action->setParameters(parameters);
             }
-            //values are owned by the trigger instance
-            actionForOnload->action->setParameters(parameters);
 
             //now load enabled state
             tinyxml2::XMLElement* enabledNode = onloadActionNode->FirstChildElement("Enabled");
@@ -1323,6 +1336,8 @@ bool WorldLoader::loadOnLoadActions(tinyxml2::XMLNode *worldNode, World *world) 
         }
         onloadActionNode = onloadActionNode->NextSiblingElement("OnloadAction");
     } // end of while (OnloadAction)
+    // If we skip an action, or someone edited the map manually and caused gaps, this will remove the gaps, so we don't get null pointer is
+    world->onLoadActions.erase(std::remove(world->onLoadActions.begin(), world->onLoadActions.end(), nullptr), world->onLoadActions.end());
     return true;
 }
 
