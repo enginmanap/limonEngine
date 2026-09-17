@@ -160,6 +160,9 @@ void bindLimonAPI(pybind11::module_& m) {
             .def("is_object_physics_connected", &LimonAPI::isObjectPhysicsConnected,
                  "Returns True if the object is active in the physics simulation",
                  pybind11::arg("object_id"))
+            .def("set_physics_simulation_active", &LimonAPI::setPhysicsSimulationActive,
+                 "Keeps an animated model's pose evaluated while out of view. Returns False if not a model",
+                 pybind11::arg("object_id"), pybind11::arg("active"))
             .def("get_object_linear_velocity", &LimonAPI::getObjectLinearVelocity,
                  "Returns the linear velocity of an object as Vec4 (w=0). Returns zero Vec4 if not found",
                  pybind11::arg("object_id"))
@@ -539,13 +542,6 @@ void bindLimonAPI(pybind11::module_& m) {
 
     limon.def("get_player_attached_model", &LimonAPI::getPlayerAttachedModel,
               "Get the ID of the model attached to the player");
-
-    limon.def("get_player_attached_model_offset", &LimonAPI::getPlayerAttachedModelOffset,
-              "Get the offset of the model attached to the player");
-
-    limon.def("set_player_attached_model_offset", &LimonAPI::setPlayerAttachedModelOffset,
-              "Set the offset of the model attached to the player",
-              pybind11::arg("new_offset"));
 
     // World management
     limon.def("load_and_switch_world", &LimonAPI::loadAndSwitchWorld,

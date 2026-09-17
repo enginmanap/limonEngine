@@ -124,7 +124,9 @@ void bindInterfaces(pybind11::module_& m) {
             .def("set_mouse_change", &InputStates::setMouseChange)
             .def("get_analog_value",  &InputStates::getAnalogValue)
             .def("set_analog_value",  &InputStates::setAnalogValue)
-            .def("get_active_device", &InputStates::getActiveDevice);
+            .def("add_analog_value",  &InputStates::addAnalogValue)
+            .def("get_active_device", &InputStates::getActiveDevice)
+            .def("is_simulated", &InputStates::isSimulated);
 
     // Bind PlayerExtensionInterface::PlayerInformation
     pybind11::class_<PlayerExtensionInterface::PlayerInformation>(m, "PlayerInformation")
@@ -145,26 +147,42 @@ void bindInterfaces(pybind11::module_& m) {
             .def_readwrite("near_plane", &CameraAttachment::ProjectionParameters::nearPlane)
             .def_readwrite("far_plane", &CameraAttachment::ProjectionParameters::farPlane);
 
-    pybind11::class_<TriggerInterface, PyTriggerInterface>(m, "TriggerInterface")
-            .def(pybind11::init([](LimonAPI *api) {
-                pybind11::object pyClass = pybind11::module_::import("trigger_interface").attr("TriggerInterface");
-                pybind11::object pyInstance = pyClass.attr("__new__")(pyClass);
-                return new PyTriggerInterface(api, pyInstance);
-            }))
-            .def("get_parameters", &TriggerInterface::getParameters)
-            .def("run", &TriggerInterface::run)
-            .def("get_results", &TriggerInterface::getResults)
-            .def("get_name", &TriggerInterface::getName);
+    // no pybind11::init on any interface: script classes subclass the pure-Python bases, instances only come from create_*
+    pybind11::class_<TriggerInterface>(m, "TriggerInterface")
+            .def("get_parameters", [](const TriggerInterface& self) {
+                return GenericParameterConverter::convertGenericParameterVectorToObjects(self.getParameters());
+            })
+            .def("set_parameters", [](TriggerInterface& self, pybind11::object pyParams) {
+                self.setParameters(GenericParameterConverter::convertPythonListToGenericParameterVector(pyParams));
+            })
+            .def("run", [](TriggerInterface& self, pybind11::object pyParams) {
+                return self.run(GenericParameterConverter::convertPythonListToGenericParameterVector(pyParams));
+            })
+            .def("get_results", [](TriggerInterface& self) {
+                return GenericParameterConverter::convertGenericParameterVectorToObjects(self.getResults());
+            })
+            .def("get_name", &TriggerInterface::getName)
+            .def_static("create_trigger", [](const std::string &name, LimonAPI *api) -> TriggerInterface * {
+                TriggerInterface* ptr = TriggerInterface::createTrigger(name, api);
+                if (!ptr) {
+                    throw std::runtime_error("Failed to create trigger: " + name);
+                }
+                return ptr;
+            }, pybind11::return_value_policy::reference);
 
-    pybind11::class_<PlayerExtensionInterface, PyPlayerExtensionInterface>(m, "PlayerExtensionInterface")
-        .def(pybind11::init([](LimonAPI *api) {
-            pybind11::object pyClass = pybind11::module_::import("player_extension_interface").attr("PlayerExtensionInterface");
-            pybind11::object pyInstance = pyClass.attr("__new__")(pyClass);
-            return new PyPlayerExtensionInterface(api, pyInstance);
-        }))
+    pybind11::class_<PlayerExtensionInterface>(m, "PlayerExtensionInterface")
             .def("process_input", &PlayerExtensionInterface::processInput)
-            .def("interact", &PlayerExtensionInterface::interact)
+            .def("interact", [](PlayerExtensionInterface& self, pybind11::object pyParams) {
+                std::vector<LimonTypes::GenericParameter> interactionData = GenericParameterConverter::convertPythonListToGenericParameterVector(pyParams);
+                self.interact(interactionData);
+            })
             .def("get_name", &PlayerExtensionInterface::getName)
+            .def("get_parameters", [](const PlayerExtensionInterface& self) {
+                return GenericParameterConverter::convertGenericParameterVectorToObjects(self.getParameters());
+            })
+            .def("set_parameters", [](PlayerExtensionInterface& self, pybind11::object pyParams) {
+                self.setParameters(GenericParameterConverter::convertPythonListToGenericParameterVector(pyParams));
+            })
             .def_static("create_extension", [](const std::string &name, LimonAPI *api) -> PlayerExtensionInterface * {
                 PlayerExtensionInterface* ptr = PlayerExtensionInterface::createExtension(name, api);
                 if (!ptr) {
@@ -193,23 +211,23 @@ void bindInterfaces(pybind11::module_& m) {
             .def_readwrite("route_ready", &ActorInterface::ActorInformation::routeReady)
             .def_readwrite("player_dead", &ActorInterface::ActorInformation::playerDead);
 
-    pybind11::class_<ActorInterface, PyActorInterface>(m, "ActorInterface")
-        .def(pybind11::init([](uint32_t id, LimonAPI *api) {
-            pybind11::object pyClass = pybind11::module_::import("actor_interface").attr("ActorInterface");
-            pybind11::object pyInstance = pyClass.attr("__new__")(pyClass);
-            return new PyActorInterface(id, api, pyInstance);
-        }))
+    pybind11::class_<ActorInterface>(m, "ActorInterface")
             .def("get_name", &ActorInterface::getName)
             .def("play", &ActorInterface::play)
-            .def("interaction", &ActorInterface::interaction)
-            .def("get_parameters", [](ActorInterface& self) -> std::vector<LimonTypes::GenericParameter> {
-                pybind11::object py_result = pybind11::cast(&self).attr("get_parameters")();
-                return GenericParameterConverter::convertPythonListToGenericParameterVector(py_result);
-            }, "Get configurable parameters for this actor")
-            .def("set_parameters", [](ActorInterface& self, pybind11::object pyParams) {
-                std::vector<LimonTypes::GenericParameter> params = GenericParameterConverter::convertPythonListToGenericParameterVector(pyParams);
-                self.setParameters(params);
+            .def("interaction", [](ActorInterface& self, pybind11::object pyParams) {
+                std::vector<LimonTypes::GenericParameter> interactionInformation = GenericParameterConverter::convertPythonListToGenericParameterVector(pyParams);
+                return self.interaction(interactionInformation);
             })
+            .def("get_parameters", [](const ActorInterface& self) {
+                return GenericParameterConverter::convertGenericParameterVectorToObjects(self.getParameters());
+            })
+            .def("set_parameters", [](ActorInterface& self, pybind11::object pyParams) {
+                self.setParameters(GenericParameterConverter::convertPythonListToGenericParameterVector(pyParams));
+            })
+            .def("get_world_id", &ActorInterface::getWorldID)
+            .def("get_model_id", &ActorInterface::getModelID)
+            .def("get_position", &ActorInterface::getPosition)
+            .def("get_front_vector", &ActorInterface::getFrontVector)
             .def_static("create_actor", [](const std::string &name, uint32_t id, LimonAPI *api) -> ActorInterface * {
                 ActorInterface* ptr = ActorInterface::createActor(name, id, api);
                 if (!ptr) {
@@ -219,21 +237,15 @@ void bindInterfaces(pybind11::module_& m) {
             }, pybind11::return_value_policy::reference);
 
     // Bind CameraExtensionInterface (registered, configurable camera rig) - full parity with C++.
-    pybind11::class_<CameraExtensionInterface, PyCameraExtensionInterface>(m, "CameraExtensionInterface")
-            .def(pybind11::init([](LimonAPI *api) {
-                pybind11::object pyClass = pybind11::module_::import("camera_extension_interface").attr("CameraExtensionInterface");
-                pybind11::object pyInstance = pyClass.attr("__new__")(pyClass);
-                return new PyCameraExtensionInterface(api, pyInstance);
-            }))
+    pybind11::class_<CameraExtensionInterface>(m, "CameraExtensionInterface")
             .def("get_name", &CameraExtensionInterface::getName)
-            .def("get_parameters", [](CameraExtensionInterface& self) -> std::vector<LimonTypes::GenericParameter> {
-                pybind11::object py_result = pybind11::cast(&self).attr("get_parameters")();
-                return GenericParameterConverter::convertPythonListToGenericParameterVector(py_result);
-            }, "Get configurable parameters for this camera rig")
-            .def("set_parameters", [](CameraExtensionInterface& self, pybind11::object pyParams) {
-                std::vector<LimonTypes::GenericParameter> params = GenericParameterConverter::convertPythonListToGenericParameterVector(pyParams);
-                self.setParameters(params);
+            .def("get_parameters", [](const CameraExtensionInterface& self) {
+                return GenericParameterConverter::convertGenericParameterVectorToObjects(self.getParameters());
             })
+            .def("set_parameters", [](CameraExtensionInterface& self, pybind11::object pyParams) {
+                self.setParameters(GenericParameterConverter::convertPythonListToGenericParameterVector(pyParams));
+            })
+            .def("set_attachment_transform", &CameraExtensionInterface::setAttachmentTransform)
             .def("is_dirty", &CameraExtensionInterface::isDirty)
             .def("clear_dirty", &CameraExtensionInterface::clearDirty)
             .def("get_projection", &CameraExtensionInterface::getProjection)

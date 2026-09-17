@@ -18,7 +18,6 @@ private:
 public:
     PyTriggerInterface(LimonAPI* api, pybind11::object obj)
         : TriggerInterface(api), pyObj(obj) {
-        pyObj.attr("_limon_api") = pybind11::cast(api);
         // Seed the default parameters from the Python implementation at create time.
         // After this, the base getParameters()/setParameters() are the source of truth.
         try {

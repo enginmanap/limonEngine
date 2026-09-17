@@ -391,6 +391,15 @@ TriggerInterface *ScriptManager::CreateTriggerWrapper(LimonAPI *api, size_t inde
             pybind11::object pyClass = callbacks[index].pyClass;
             pybind11::object instance = pyClass.attr("__new__")(pyClass);
             instance.attr("__init__")(api);
+
+            if (!pybind11::hasattr(instance, "get_name") ||
+                !pybind11::hasattr(instance, "run") ||
+                !pybind11::hasattr(instance, "get_results") ||
+                !pybind11::hasattr(instance, "get_parameters")) {
+                std::cerr << "[ScriptManager] Python trigger class is missing required methods" << std::endl;
+                return nullptr;
+            }
+
             return new PyTriggerInterface(api, instance);
         }
     } catch (const pybind11::error_already_set &e) {
