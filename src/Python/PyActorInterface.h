@@ -70,11 +70,7 @@ public:
     bool interaction(std::vector<LimonTypes::GenericParameter> &interactionInformation) noexcept override {
         try {
             forwardModelID();
-            pybind11::list param_list;
-            for (const auto& param : interactionInformation) {
-                param_list.append(param);
-            }
-            return pyObj.attr("interaction")(param_list).cast<bool>();
+            return pyObj.attr("interaction")(GenericParameterConverter::convertGenericParameterVectorToObjects(interactionInformation)).cast<bool>();
         } catch (const std::exception& e) {
             std::cerr << "[PyActor] interaction: " << e.what() << std::endl;
             PyErr_Clear();
@@ -96,11 +92,7 @@ public:
     void setParameters(std::vector<LimonTypes::GenericParameter> parameters) noexcept override {
         try {
             forwardModelID();
-            pybind11::list param_list;
-            for (const auto& param : parameters) {
-                param_list.append(param);
-            }
-            pyObj.attr("set_parameters")(param_list);
+            pyObj.attr("set_parameters")(GenericParameterConverter::convertGenericParameterVectorToObjects(parameters));
         } catch (const std::exception& e) {
             std::cerr << "[PyActor] set_parameters: " << e.what() << std::endl;
             PyErr_Clear();

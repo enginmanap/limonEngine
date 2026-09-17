@@ -66,7 +66,7 @@ class ActorInterface:
         """
         raise NotImplementedError("get_name() not implemented")
 
-    def play(self, time: int, actor_information: Dict[str, Any]) -> None:
+    def play(self, time: int, actor_information: "limon.ActorInformation") -> None:
         """
         Called as update function for the actor. Check Actor Information on python API documentation for details.
         Args:

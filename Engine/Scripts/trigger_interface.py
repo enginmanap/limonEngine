@@ -12,11 +12,12 @@ class TriggerInterface:
 
     def get_parameters(self) -> List[GenericParameter]:
         """
-        Returns the parameters required by this trigger.
+        Returns the default parameters of this trigger. Called only once, when the trigger is created;
+        the engine keeps the edited or loaded values and passes them to run().
         Returns:
             List[GenericParameter]: List of parameter definitions
         """
-        raise NotImplementedError("get_parameters() not implemented")
+        return []
 
     def run(self, parameters: List[GenericParameter]) -> bool:
         """

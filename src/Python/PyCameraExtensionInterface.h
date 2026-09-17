@@ -53,11 +53,7 @@ public:
 
     void setParameters(std::vector<LimonTypes::GenericParameter> parameters) override {
         try {
-            pybind11::list param_list;
-            for (const auto& param : parameters) {
-                param_list.append(param);
-            }
-            pyObj.attr("set_parameters")(param_list);
+            pyObj.attr("set_parameters")(GenericParameterConverter::convertGenericParameterVectorToObjects(parameters));
         } catch (const std::exception& e) {
             std::cerr << "[PyCameraRig] set_parameters: " << e.what() << std::endl;
             PyErr_Clear();

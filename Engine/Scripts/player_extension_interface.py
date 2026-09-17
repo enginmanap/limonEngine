@@ -1,32 +1,31 @@
-from typing import Dict, Any
+from typing import List
+from generic_parameter import GenericParameter
 
 
 class PlayerExtensionInterface:
-
-    def __init__(self, limon_api):
-        self.limon_api = limon_api
-
     """
     Base class for player extensions.
     Implement this to create custom player behaviors.
     """
-    def process_input(self, input_state: Dict[str, Any]) -> None:
+
+    def __init__(self, limon_api):
+        self.limon_api = limon_api
+
+    def process_input(self, input_states, player_information, time: int) -> None:
         """
-        provides the input state to the player extension from the engine.
-        Use it based on the player implementation requirements.
+        Called every tick with the current input.
         Args:
-            input_state: Dictionary containing the current input state
+            input_states: limon.InputStates, query with get_input_status / get_input_events / get_analog_value
+            player_information: limon.PlayerInformation, position and look_direction as limon.Vec4
+            time: Current game time in milliseconds
         """
         raise NotImplementedError("process_input() not implemented")
 
-    def interact(self, target: Any) -> bool:
+    def interact(self, interaction_data: List[GenericParameter]) -> None:
         """
-        Some other actor is interacted with the player. Process accordingly.
-        Actors will be using actor_interface so the data passed is going to be defined there.
+        Some other actor interacted with the player. Process accordingly.
         Args:
-            target: The object being interacted with
-        Returns:
-            bool: True if the interaction was successful
+            interaction_data: List of parameters describing the interaction, defined by the interacting actor
         """
         raise NotImplementedError("interact() not implemented")
 
@@ -37,3 +36,19 @@ class PlayerExtensionInterface:
             str: The extension's name
         """
         raise NotImplementedError("get_name() not implemented")
+
+    def get_parameters(self) -> List[GenericParameter]:
+        """
+        Configurable parameters of this extension, shown in the editor and saved with the world.
+        Returns:
+            List[GenericParameter]: List of extension parameters
+        """
+        return []
+
+    def set_parameters(self, parameters: List[GenericParameter]) -> None:
+        """
+        Apply edited or loaded parameter values.
+        Args:
+            parameters: List of parameters to set
+        """
+        pass

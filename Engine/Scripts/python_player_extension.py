@@ -2,7 +2,6 @@
 import limon
 from typing import List, Optional
 from player_extension_interface import PlayerExtensionInterface
-from python_third_person_camera import ThirdPersonCamera
 from generic_parameter import RequestParameterType, ValueType, GenericParameter
 
 """
@@ -17,23 +16,20 @@ class PythonPlayerExtension(PlayerExtensionInterface):
     def __init__(self, limon_api):
         super().__init__(limon_api)
         self._limon_api = limon_api
-        self.playerAttachedModelID = -1
-        self.playerAttachedPistolId = -1
-        self.camera_instance = None
+        self.playerAttachedModelID = 0  # engine ids start from 1, get_player_attached_model returns 0 for none
+        self.playerAttachedPistolId = 0
+        self.muzzle_flash_duration = 500
 
         try:
             print("Initializing PythonPlayerExtension")
             self.playerAttachedModelID = self._limon_api.get_player_attached_model()
             print(f"Player model ID: {self.playerAttachedModelID}")
 
-            if hasattr(self._limon_api, 'get_model_children') and self.playerAttachedModelID != -1:
+            if self.playerAttachedModelID != 0:
                 children = self._limon_api.get_model_children(self.playerAttachedModelID)
                 if children and len(children) > 0:
                     self.playerAttachedPistolId = children[0]
                     print(f"Pistol ID: {self.playerAttachedPistolId}")
-
-            print("Initializing third person camera")
-            self.camera_instance = ThirdPersonCamera(self._limon_api)
 
         except Exception as e:
             print(f"Error in PythonPlayerExtension.__init__: {str(e)}")
@@ -50,8 +46,9 @@ class PythonPlayerExtension(PlayerExtensionInterface):
             player_info: Information about the player
             time: Current time in milliseconds
         """
+        if self.playerAttachedModelID == 0 or self.playerAttachedPistolId == 0:
+            return
         try:
-
             soundOffset = limon.Vec4()
             soundOffset.x = 0.0
             soundOffset.y = 0.0
@@ -80,14 +77,14 @@ class PythonPlayerExtension(PlayerExtensionInterface):
                 )
                 param_vector = [param]  # Python list - binding handles automatic conversion to C++
                 self._limon_api.add_timed_event(
-                    wait_time=500,  # 0.5 second
+                    wait_time=self.muzzle_flash_duration,
                     use_wall_time=True,
                     callback=self.remove_muzzle_flash,
                     parameters=param_vector
                 )
                 # Add muzzle flash light at player position
                 light_position = limon.Vec4(0.0, 2.0, 0.0, 0.0)
-                if self.playerAttachedModelID != -1:
+                if self.playerAttachedModelID != 0:
                     transform = self._limon_api.get_object_transformation(self.playerAttachedModelID)
                     if transform and len(transform) > 0:
                         pos = transform[0].value
@@ -136,7 +133,6 @@ class PythonPlayerExtension(PlayerExtensionInterface):
             print(f"Error in run method: {type(e).__name__}: {e}")
             import traceback
             traceback.print_exc()
-        return True
 
     def remove_muzzle_flash(self, parameters):
         """
@@ -183,8 +179,14 @@ class PythonPlayerExtension(PlayerExtensionInterface):
         pass
 
     def get_name(self) -> str:
-        """Get the name of this extension."""
-        return self.__class__.__name__
-
-    def get_name(self):
         return "PythonPlayerExtension"
+
+    def get_parameters(self) -> List[GenericParameter]:
+        return [GenericParameter(RequestParameterType.FREE_NUMBER, "Muzzle flash duration (ms)", ValueType.LONG,
+                                 int(self.muzzle_flash_duration), True)]
+
+    def set_parameters(self, parameters: List[GenericParameter]) -> None:
+        print(f"PythonPlayerExtension.set_parameters: {parameters}")
+        for parameter in parameters:
+            if parameter.description == "Muzzle flash duration (ms)":
+                self.muzzle_flash_duration = int(parameter.value)

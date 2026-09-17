@@ -177,7 +177,7 @@ void bindGenericParameter(pybind11::module_& m) {
                                               throw std::runtime_error("Failed to convert sequence to MAT4. All elements must be numbers");
                                           }
                                       }
-                                      else if (seq.size() <= 32 &&
+                                      else if (seq.size() <= 15 &&
                                               self.valueType == LimonTypes::GenericParameter::LONG_ARRAY) {
                                           try {
                                               self.value.longValues[0] = seq.size(); // NOLINT(*-narrowing-conversions)

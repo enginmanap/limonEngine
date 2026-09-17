@@ -8,6 +8,7 @@
 #include "limonAPI/InputStates.h"
 #include "limonAPI/LimonTypes.h"
 #include "limonAPI/PlayerExtensionInterface.h"
+#include "GenericParameterConverter.h"
 
 
 class PyPlayerExtensionInterface : public PlayerExtensionInterface {
@@ -33,7 +34,7 @@ public:
 
     void interact(std::vector<LimonTypes::GenericParameter>& interactionData) noexcept override {
         try {
-            pyObj.attr("interact")(interactionData);
+            pyObj.attr("interact")(GenericParameterConverter::convertGenericParameterVectorToObjects(interactionData));
         } catch (const std::exception& e) {
             std::cerr << "[PyPlayer] interact: " << e.what() << std::endl;
             PyErr_Clear();
@@ -47,6 +48,25 @@ public:
             std::cerr << "[PyPlayer] get_name: " << e.what() << std::endl;
             PyErr_Clear();
             return "<error>";
+        }
+    }
+
+    std::vector<LimonTypes::GenericParameter> getParameters() const noexcept override {
+        try {
+            return GenericParameterConverter::convertPythonListToGenericParameterVector(pyObj.attr("get_parameters")());
+        } catch (const std::exception& e) {
+            std::cerr << "[PyPlayer] get_parameters: " << e.what() << std::endl;
+            PyErr_Clear();
+            return {};
+        }
+    }
+
+    void setParameters(std::vector<LimonTypes::GenericParameter> parameters) noexcept override {
+        try {
+            pyObj.attr("set_parameters")(GenericParameterConverter::convertGenericParameterVectorToObjects(parameters));
+        } catch (const std::exception& e) {
+            std::cerr << "[PyPlayer] set_parameters: " << e.what() << std::endl;
+            PyErr_Clear();
         }
     }
 };

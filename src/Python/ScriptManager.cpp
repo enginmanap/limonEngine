@@ -413,7 +413,9 @@ PlayerExtensionInterface* ScriptManager::CreatePlayerExtensionWrapper(LimonAPI* 
 
                 if (!pybind11::hasattr(instance, "process_input") ||
                     !pybind11::hasattr(instance, "interact") ||
-                    !pybind11::hasattr(instance, "get_name")) {
+                    !pybind11::hasattr(instance, "get_name") ||
+                    !pybind11::hasattr(instance, "get_parameters") ||
+                    !pybind11::hasattr(instance, "set_parameters")) {
                     std::cerr << "[ScriptManager] Python extension class is missing required methods" << std::endl;
                     return nullptr;
                 }

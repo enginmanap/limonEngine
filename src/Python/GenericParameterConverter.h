@@ -1,4 +1,5 @@
-#pragma once
+#ifndef LIMONENGINE_GENERICPARAMETERCONVERTER_H
+#define LIMONENGINE_GENERICPARAMETERCONVERTER_H
 
 #include <pybind11/pybind11.h>
 #include <pybind11/cast.h>
@@ -67,12 +68,52 @@ public:
                 cpp_param.value.boolValue = py::cast<bool>(value);
                 break;
             case LimonTypes::GenericParameter::VEC4: {
-                auto vec = py::cast<std::vector<float>>(value);
+                py::sequence vec = py::cast<py::sequence>(value);//no stl.h here, a std::vector cast would throw at runtime
                 if (vec.size() >= 4) {
-                    cpp_param.value.vectorValue.x = vec[0];
-                    cpp_param.value.vectorValue.y = vec[1];
-                    cpp_param.value.vectorValue.z = vec[2];
-                    cpp_param.value.vectorValue.w = vec[3];
+                    cpp_param.value.vectorValue.x = py::cast<float>(vec[0]);
+                    cpp_param.value.vectorValue.y = py::cast<float>(vec[1]);
+                    cpp_param.value.vectorValue.z = py::cast<float>(vec[2]);
+                    cpp_param.value.vectorValue.w = py::cast<float>(vec[3]);
+                }
+                break;
+            }
+            case LimonTypes::GenericParameter::LONG_ARRAY: {
+                py::sequence values = py::cast<py::sequence>(value);
+                size_t capacity = sizeof(cpp_param.value.longValues) / sizeof(cpp_param.value.longValues[0]) - 1;//element 0 is the size
+                if (values.size() > capacity) {
+                    throw std::runtime_error("LONG_ARRAY has " + std::to_string(values.size()) + " elements, max is " + std::to_string(capacity));
+                }
+                cpp_param.value.longValues[0] = static_cast<long>(values.size());
+                for (size_t i = 0; i < values.size(); ++i) {
+                    cpp_param.value.longValues[i + 1] = py::cast<long>(values[i]);
+                }
+                break;
+            }
+            case LimonTypes::GenericParameter::FLOAT_ARRAY: {
+                py::sequence values = py::cast<py::sequence>(value);
+                size_t capacity = sizeof(cpp_param.value.floatValues) / sizeof(cpp_param.value.floatValues[0]) - 1;//element 0 is the size
+                if (values.size() > capacity) {
+                    throw std::runtime_error("FLOAT_ARRAY has " + std::to_string(values.size()) + " elements, max is " + std::to_string(capacity));
+                }
+                cpp_param.value.floatValues[0] = static_cast<float>(values.size());
+                for (size_t i = 0; i < values.size(); ++i) {
+                    cpp_param.value.floatValues[i + 1] = py::cast<float>(values[i]);
+                }
+                break;
+            }
+            case LimonTypes::GenericParameter::MAT4: {
+                py::sequence rows = py::cast<py::sequence>(value);
+                if (rows.size() != 4) {
+                    throw std::runtime_error("MAT4 needs 4 rows");
+                }
+                for (size_t i = 0; i < 4; ++i) {
+                    py::sequence row = py::cast<py::sequence>(rows[i]);
+                    if (row.size() != 4) {
+                        throw std::runtime_error("MAT4 rows need 4 elements");
+                    }
+                    for (size_t j = 0; j < 4; ++j) {
+                        cpp_param.value.matrixValue.rows[i][j] = py::cast<float>(row[j]);
+                    }
                 }
                 break;
             }
@@ -152,6 +193,15 @@ public:
                 value = array_list;
                 break;
             }
+            case LimonTypes::GenericParameter::FLOAT_ARRAY: {
+                py::list array_list;
+                long size = static_cast<long>(param.value.floatValues[0]);
+                for (long i = 1; i <= size; ++i) {
+                    array_list.append(param.value.floatValues[i]);
+                }
+                value = array_list;
+                break;
+            }
             case LimonTypes::GenericParameter::MAT4: {
                 py::list matrix_list;
                 for (int i = 0; i < 4; ++i) {
@@ -203,3 +253,5 @@ public:
     }
 
 };
+
+#endif //LIMONENGINE_GENERICPARAMETERCONVERTER_H

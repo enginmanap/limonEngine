@@ -1109,10 +1109,6 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
                 if(playerToUpdate != nullptr && tempName != "") {
                     PlayerExtensionInterface* extension = PlayerExtensionInterface::createExtension(tempName, world->apiInstance);
                     if(extension != nullptr) {
-                        if(tempName != world->startingPlayer.extensionName) {
-                            //extension type changed, reset parameters to the new extension's defaults
-                            world->startingPlayer.parameters = extension->getParameters();
-                        }
                         world->startingPlayer.extensionName = tempName;
                         extension->setParameters(world->startingPlayer.parameters);
                         playerToUpdate->setPlayerExtension(extension);
