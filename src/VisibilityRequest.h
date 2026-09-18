@@ -13,6 +13,7 @@
 
 
 class PhysicalRenderable;
+class Attachable;
 class Camera;
 
 class VisibilityRequest {
@@ -77,14 +78,16 @@ public:
         const OptionsUtil::Options::Option<double> occlusionOccluderSizeOrthographicOption;
         const OptionsUtil::Options::Option<bool> occlusionEnabledOption;
 
-        const std::unordered_map<uint32_t, PhysicalRenderable *>* const objects;
+        const std::unordered_map<uint32_t, Model *>* const objects;
+        const Attachable* const playerObject;
         std::unordered_map<std::vector<uint64_t>, RenderList, uint64_vector_hasher>* visibility;
         mutable OcclusionCullerHelper occlusionCuller;
         mutable std::unordered_map<uint32_t, const std::vector<glm::mat4>*> changedBoneTransforms;
         bool running = true; //non atomic because only used in between latch/barrier. But, must be checked before doing anything (because false means dangling pointers to camera and objects)
         bool cameraIsDirty = true; // cached by main thread before each signal; avoids Python GIL call from background thread
+        bool playerDead = false; // same reason, isDead() reaches the player and we cannot touch that from here
 
-        VisibilityRequest(Camera* camera, std::unordered_map<uint32_t, PhysicalRenderable *>* objects, std::unordered_map<std::vector<uint64_t>, RenderList, uint64_vector_hasher> * visibility, const glm::vec3& playerPosition, const OptionsUtil::Options* options, SDL2MultiThreading::Barrier* frameBarrier, const std::string& cameraName) :
+        VisibilityRequest(Camera* camera, std::unordered_map<uint32_t, Model *>* objects, const Attachable* playerObject, std::unordered_map<std::vector<uint64_t>, RenderList, uint64_vector_hasher> * visibility, const glm::vec3& playerPosition, const OptionsUtil::Options* options, SDL2MultiThreading::Barrier* frameBarrier, const std::string& cameraName) :
                 visibilityLatch(cameraName), frameBarrier(frameBarrier), camera(camera), playerPosition(playerPosition), options(options),
                 lodDistancesOption(options->getOption<std::vector<long>>(HASH("LOD_distanceList"))),
                 skipRenderDistanceOption(options->getOption<double>(HASH("LOD_skipRenderDistance"))),
@@ -96,7 +99,7 @@ public:
                 occlusionOccluderSizePerspectiveOption(options->getOption<double>(HASH("occlusion_occluderSizePerspective"))),
                 occlusionOccluderSizeOrthographicOption(options->getOption<double>(HASH("occlusion_occluderSizeOrthographic"))),
                 occlusionEnabledOption(options->getOption<bool>(HASH("occlusion_enabled"))),
-                objects(objects), visibility(visibility),
+                objects(objects), playerObject(playerObject), visibility(visibility),
                 occlusionCuller(options->getOption<long>(HASH("occlusion_renderWidth")),
                 options->getOption<long>(HASH("occlusion_renderHeight"))) {
         }

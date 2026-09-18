@@ -27,6 +27,8 @@ class APISerializer;
 
 class LimonAPI {
 public:
+    // Player is always ID 1
+    static constexpr uint32_t PLAYER_OBJECT_ID = 1;
 
     const OptionsUtil::Options * getOptions();
 
@@ -54,8 +56,8 @@ public:
                        const glm::vec3 &scale, const glm::quat &orientation);
     bool setObjectTemporary(uint32_t modelID, bool temporary);
     bool removeObject(uint32_t objectID, const bool &removeChildren = true);
-    bool attachObjectToObject(uint32_t objectID, uint32_t objectToAttachToID);
-    bool attachObjectToObjectAtWorldPosition(uint32_t objectID, uint32_t objectToAttachToID);
+    bool attachObjectToObject(uint32_t objectID, uint32_t objectToAttachToID, const std::string &boneName = "");
+    bool attachObjectToObjectAtWorldPosition(uint32_t objectID, uint32_t objectToAttachToID, const std::string &boneName = "");
     bool detachObjectFromParent(uint32_t objectID);
     bool removeTriggerObject(uint32_t triggerObjectID);
     LimonTypes::Vec4 getObjectLinearVelocity(uint32_t objectID);
@@ -175,9 +177,7 @@ public:
     LimonTypes::Vec4 getPlayerLookDirection();
     LimonTypes::Vec4 getCameraPosition();
     LimonTypes::Vec4 getCameraLookDirection();
-    uint32_t getPlayerAttachedModel();
-    LimonTypes::Vec4 getPlayerAttachedModelOffset();
-    bool setPlayerAttachedModelOffset(LimonTypes::Vec4 newOffset);
+    uint32_t getPlayerObjectID();
     void killPlayer();
 
     std::string getModelAnimationName(uint32_t modelID);
@@ -187,7 +187,6 @@ public:
     bool setModelAnimation(uint32_t modelID, const std::string& animationName, bool isLooped = true);
     bool setModelAnimationWithBlend(uint32_t modelID, const std::string& animationName, bool isLooped = true, uint64_t blendTime = 100);
     bool setModelAnimationSpeed(uint32_t modelID, float speed);
-    std::vector<uint32_t> getModelChildren(uint32_t modelID);
 
 
     long addTimedEvent(uint64_t waitTime, bool useWallTime, std::function<void(const std::vector<LimonTypes::GenericParameter>&)> methodToCall, std::vector<LimonTypes::GenericParameter> parameters);
@@ -249,7 +248,11 @@ public:
     bool isInsideTrigger(uint32_t triggerID);
     uint32_t getObjectByName(const std::string& name);
     uint32_t getObjectParent(uint32_t objectID);
+    //return order is not guaranteed
+    std::vector<uint32_t> getObjectChildren(uint32_t objectID);
     bool isObjectPhysicsConnected(uint32_t objectID);
+    // Used to manually activate physics simulation on an object.
+    bool setPhysicsSimulationActive(uint32_t objectID, bool active);
 
     /**
      * This method Returns a parameter request reference that you can update. If the variable was never set,
@@ -332,6 +335,7 @@ private:
     std::function<uint32_t(const std::string&)> worldGetObjectByName;
     std::function<uint32_t(uint32_t)> worldGetObjectParent;
     std::function<bool(uint32_t)> worldIsObjectPhysicsConnected;
+    std::function<bool(uint32_t, bool)> worldSetPhysicsSimulationActive;
     std::function<bool (uint32_t, bool)> worldRemoveObject;
     std::function<std::vector<LimonTypes::GenericParameter>(uint32_t)> worldGetObjectTransformation;
     std::function<bool (uint32_t, const LimonTypes::Vec4&)> worldSetObjectTranslate;
@@ -343,8 +347,8 @@ private:
     std::function<bool (uint32_t, const LimonTypes::Vec4&)> worldAddObjectOrientation;
 
     std::function<std::vector<LimonTypes::GenericParameter>(uint32_t)> worldGetObjectTransformationMatrix;
-    std::function<bool (uint32_t, uint32_t)> worldAttachObjectToObject;
-    std::function<bool (uint32_t, uint32_t)> worldAttachObjectToObjectAtWorldPosition;
+    std::function<bool (uint32_t, uint32_t, const std::string&)> worldAttachObjectToObject;
+    std::function<bool (uint32_t, uint32_t, const std::string&)> worldAttachObjectToObjectAtWorldPosition;
     std::function<bool (uint32_t)> worldDetachObjectFromParent;
     std::function<bool (uint32_t)> worldRemoveTriggerObject;
     std::function<LimonTypes::Vec4 (uint32_t)> worldGetObjectLinearVelocity;
@@ -413,10 +417,8 @@ private:
     std::function<LimonTypes::Vec4()> worldGetPlayerLookDirection;
     std::function<LimonTypes::Vec4()> worldGetCameraPosition;
     std::function<LimonTypes::Vec4()> worldGetCameraLookDirection;
-    std::function<LimonTypes::Vec4 ()> worldGetPlayerAttachmentOffset;
-    std::function<bool (LimonTypes::Vec4)> worldSetPlayerAttachmentOffset;
-    std::function<uint32_t ()> worldGetPlayerAttachedModel;
-    std::function<std::vector<uint32_t> (uint32_t)> worldGetModelChildren;
+    std::function<uint32_t ()> worldGetPlayerObjectID;
+    std::function<std::vector<uint32_t> (uint32_t)> worldGetObjectChildren;
     std::function<void ()> worldKillPlayer;
 
     std::function<std::string(uint32_t)> worldGetModelAnimationName;

@@ -7,8 +7,8 @@
 #include "../../GUI/GUIRenderable.h"
 
 EditorPlayer::EditorPlayer(OptionsUtil::Options *options, GUIRenderable *cursor, const glm::vec3 &position,
-                           const glm::vec3 &lookDirection, InputHandler* inputHandler) :
-        FreeCursorPlayer(options, cursor, position, lookDirection),
+                           const glm::vec3 &lookDirection, InputHandler* inputHandler, uint32_t worldObjectID) :
+        FreeCursorPlayer(options, cursor, position, lookDirection, worldObjectID),
         inputHandler(inputHandler) {
     worldSettings.debugMode = DEBUG_NOCHANGE;
     worldSettings.audioPlaying = false;

@@ -11,6 +11,7 @@
 #include "GameObjects/TriggerObject.h"
 #include "GameObjects/Players/PhysicalPlayer.h"
 #include "GameObjects/Model.h"
+#include "GameObjects/ModelGroup.h"
 #include "GameObjects/Sound.h"
 #include "Assets/Animations/AnimationCustom.h"
 #include "Utils/GLMConverter.h"
@@ -40,14 +41,16 @@ WorldAPIAccessor::WorldAPIAccessor(World* world, LimonAPI* limonAPI) : world(wor
     limonAPI->worldIsInsideTrigger                = std::bind(&WorldAPIAccessor::isInsideTrigger,                    this, std::placeholders::_1);
     limonAPI->worldGetObjectByName                = std::bind(&WorldAPIAccessor::getObjectByName,                    this, std::placeholders::_1);
     limonAPI->worldGetObjectParent                = std::bind(&WorldAPIAccessor::getObjectParent,                    this, std::placeholders::_1);
+    limonAPI->worldGetObjectChildren              = std::bind(&WorldAPIAccessor::getObjectChildren,                  this, std::placeholders::_1);
     limonAPI->worldIsObjectPhysicsConnected       = std::bind(&WorldAPIAccessor::isObjectPhysicsConnected,           this, std::placeholders::_1);
+    limonAPI->worldSetPhysicsSimulationActive     = std::bind(&WorldAPIAccessor::setPhysicsSimulationActive,         this, std::placeholders::_1, std::placeholders::_2);
     limonAPI->worldRemoveGuiElement               = std::bind(&WorldAPIAccessor::removeGuiElement,                   this, std::placeholders::_1);
     limonAPI->worldGetGuiElementPosition          = std::bind(&WorldAPIAccessor::getGuiElementPositionAPI,           this, std::placeholders::_1);
     limonAPI->worldSetGuiElementPosition          = std::bind(&WorldAPIAccessor::setGuiElementPositionAPI,           this, std::placeholders::_1, std::placeholders::_2);
     limonAPI->worldSetGuiElementVisible           = std::bind(&WorldAPIAccessor::setGuiElementVisibleAPI,            this, std::placeholders::_1, std::placeholders::_2);
     limonAPI->worldRemoveObject                   = std::bind(&WorldAPIAccessor::removeObject,                       this, std::placeholders::_1, std::placeholders::_2);
-    limonAPI->worldAttachObjectToObject           = std::bind(&WorldAPIAccessor::attachObjectToObject,               this, std::placeholders::_1, std::placeholders::_2);
-    limonAPI->worldAttachObjectToObjectAtWorldPosition = std::bind(&WorldAPIAccessor::attachObjectToObjectAtWorldPosition, this, std::placeholders::_1, std::placeholders::_2);
+    limonAPI->worldAttachObjectToObject           = std::bind(&WorldAPIAccessor::attachObjectToObject,               this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+    limonAPI->worldAttachObjectToObjectAtWorldPosition = std::bind(&WorldAPIAccessor::attachObjectToObjectAtWorldPosition, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
     limonAPI->worldDetachObjectFromParent         = std::bind(&WorldAPIAccessor::detachObjectFromParent,             this, std::placeholders::_1);
     limonAPI->worldRemoveTriggerObject            = std::bind(&WorldAPIAccessor::removeTriggerObject,                this, std::placeholders::_1);
     limonAPI->worldGetObjectLinearVelocity        = std::bind(&WorldAPIAccessor::getObjectLinearVelocity,            this, std::placeholders::_1);
@@ -90,8 +93,7 @@ WorldAPIAccessor::WorldAPIAccessor(World* world, LimonAPI* limonAPI) : world(wor
     limonAPI->worldAddTimedEvent                  = std::bind(&WorldAPIAccessor::addTimedEventAPI,                   this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);
     limonAPI->worldCancelTimedEvent               = std::bind(&WorldAPIAccessor::cancelTimedEventAPI,                this, std::placeholders::_1);
     limonAPI->worldKillPlayer                     = std::bind(&WorldAPIAccessor::killPlayerAPI,                      this);
-    limonAPI->worldGetPlayerAttachedModel         = std::bind(&WorldAPIAccessor::getPlayerAttachedModelAPI,          this);
-    limonAPI->worldGetModelChildren               = std::bind(&WorldAPIAccessor::getModelChildrenAPI,                this, std::placeholders::_1);
+    limonAPI->worldGetPlayerObjectID              = std::bind(&WorldAPIAccessor::getPlayerObjectIDAPI,               this);
     limonAPI->worldGetModelAnimationName          = std::bind(&WorldAPIAccessor::getModelAnimationNameAPI,           this, std::placeholders::_1);
     limonAPI->worldGetModelAnimationFinished      = std::bind(&WorldAPIAccessor::getModelAnimationFinishedAPI,       this, std::placeholders::_1);
     limonAPI->worldGetModelAnimationProgress      = std::bind(&WorldAPIAccessor::getModelAnimationProgressAPI,       this, std::placeholders::_1);
@@ -104,8 +106,6 @@ WorldAPIAccessor::WorldAPIAccessor(World* world, LimonAPI* limonAPI) : world(wor
     limonAPI->worldGetPlayerLookDirection         = std::bind(&WorldAPIAccessor::getPlayerLookDirectionAPI,          this);
     limonAPI->worldGetCameraPosition              = std::bind(&WorldAPIAccessor::getCameraPositionAPI,               this);
     limonAPI->worldGetCameraLookDirection         = std::bind(&WorldAPIAccessor::getCameraLookDirectionAPI,          this);
-    limonAPI->worldGetPlayerAttachmentOffset      = std::bind(&WorldAPIAccessor::getPlayerModelOffsetAPI,            this);
-    limonAPI->worldSetPlayerAttachmentOffset      = std::bind(&WorldAPIAccessor::setPlayerModelOffsetAPI,            this, std::placeholders::_1);
     limonAPI->worldEnableParticleEmitter          = std::bind(&WorldAPIAccessor::enableParticleEmitter,              this, std::placeholders::_1);
     limonAPI->worldDisableParticleEmitter         = std::bind(&WorldAPIAccessor::disableParticleEmitter,             this, std::placeholders::_1);
     limonAPI->worldAddParticleEmitter             = std::bind(&WorldAPIAccessor::addParticleEmitter,                 this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5, std::placeholders::_6, std::placeholders::_7, std::placeholders::_8, std::placeholders::_9);
@@ -218,7 +218,6 @@ uint32_t WorldAPIAccessor::addAnimationToObjectWithSound(uint32_t modelID, uint3
     if(world->objects.find(modelID) != world->objects.end()) {
         as->object = world->objects[modelID];
         physicalPointer = world->objects[modelID];
-        as->wasPhysical = true;
     } else if(world->guiElements.find(modelID) != world->guiElements.end()) {
         as->object = world->guiElements[modelID];
     } else {
@@ -233,32 +232,17 @@ uint32_t WorldAPIAccessor::addAnimationToObjectWithSound(uint32_t modelID, uint3
     }
     as->animationIndex = animationID;
     as->loop = looped;
-    if(physicalPointer != nullptr) {
-        as->wasKinematic = physicalPointer->getRigidBody()->getCollisionFlags() & btCollisionObject::CF_KINEMATIC_OBJECT;
-    }
     as->startTime = world->gameTime;
     if(world->activeAnimations.count(as->object) != 0) {
         world->options->getLogger()->log(Logger::log_Subsystem_ANIMATION, Logger::log_level_WARN, "Model had custom animation, overriding.");
-        as->wasKinematic = world->activeAnimations[as->object]->wasKinematic;
         if(world->activeAnimations[as->object]->loop) {
             as->originalTransformation = world->activeAnimations[as->object]->originalTransformation;
         } else {
             const AnimationCustom* oldAnimation = &world->loadedAnimations[world->activeAnimations[as->object]->animationIndex];
             float duration = oldAnimation->getDuration();
             oldAnimation->calculateTransform("", duration, *as->object->getTransformation());
-
-            as->object->getTransformation()->getWorldTransform();
-            glm::vec3 tempScale, tempTranslate;
-            glm::quat tempOrientation;
-            tempScale       = as->object->getTransformation()->getScale();
-            tempTranslate   = as->object->getTransformation()->getTranslate();
-            tempOrientation = as->object->getTransformation()->getOrientation();
-
-            as->object->getTransformation()->removeParentTransform();
-            as->object->getTransformation()->setTransformations(tempTranslate,
-            tempScale,
-            tempOrientation);
-            as->object->setCustomAnimation(false);
+            //puts the object back on its real parent, so the copy below keeps that link
+            world->finishCustomAnimation(world->activeAnimations[as->object]);
             as->originalTransformation = *as->object->getTransformation();
         }
         delete world->activeAnimations[as->object];
@@ -272,8 +256,7 @@ uint32_t WorldAPIAccessor::addAnimationToObjectWithSound(uint32_t modelID, uint3
     as->object->getTransformation()->setParentTransform(&as->originalTransformation);
     as->object->setCustomAnimation(true);
     if(physicalPointer != nullptr) {
-        physicalPointer->getRigidBody()->setCollisionFlags(physicalPointer->getRigidBody()->getCollisionFlags() | btCollisionObject::CF_KINEMATIC_OBJECT);
-        physicalPointer->getRigidBody()->setActivationState(DISABLE_DEACTIVATION);
+        applyBodyType(physicalPointer);
     }
     if(startOnLoad) {
         world->onLoadAnimations.insert(as->object);
@@ -416,7 +399,25 @@ bool WorldAPIAccessor::setModelTemporaryAPI(uint32_t modelID, bool temporary) {
     return true;
 }
 
-bool WorldAPIAccessor::attachObjectToObject(uint32_t objectID, uint32_t objectToAttachToID) {
+bool WorldAPIAccessor::resolveAttachmentBone(const Attachable *parent, const std::string &boneName, int32_t &boneID) const {
+    boneID = -1;
+    if(boneName.empty()) {
+        return true;
+    }
+    const Model* parentModel = dynamic_cast<const Model*>(parent);
+    if(parentModel == nullptr) {
+        std::cerr << "Bone \"" << boneName << "\" requested, but the parent object is not a model, attachment failed." << std::endl;
+        return false;
+    }
+    boneID = parentModel->getModelAsset()->getBoneIDByName(boneName);
+    if(boneID == -1) {
+        std::cerr << "Bone \"" << boneName << "\" not found on model " << parentModel->getName() << ", attachment failed." << std::endl;
+        return false;
+    }
+    return true;
+}
+
+bool WorldAPIAccessor::attachObjectToObject(uint32_t objectID, uint32_t objectToAttachToID, const std::string &boneName) {
     if(objectID == objectToAttachToID) {
         return false;
     }
@@ -428,6 +429,11 @@ bool WorldAPIAccessor::attachObjectToObject(uint32_t objectID, uint32_t objectTo
 
     Attachable* objectToAttachTo = world->findAttachableByID(objectToAttachToID);
     if(objectToAttachTo == nullptr) {
+        return false;
+    }
+
+    int32_t boneID = -1;
+    if(!resolveAttachmentBone(objectToAttachTo, boneName, boneID)) {
         return false;
     }
 
@@ -436,14 +442,15 @@ bool WorldAPIAccessor::attachObjectToObject(uint32_t objectID, uint32_t objectTo
     // which applies -centerOffset.  Shift the child's local translate by -parentCenterOffset
     // so the two cancel and the child ends up at the caller's intended local position.
     PhysicalRenderable* physicalParent = dynamic_cast<PhysicalRenderable*>(objectToAttachTo);
-    if(physicalParent != nullptr && physicalParent->getCenterOffset() != glm::vec3(0.0f)) {
+    if(boneID == -1 && physicalParent != nullptr && physicalParent->getCenterOffset() != glm::vec3(0.0f)) {
+        //a bone attachment composes against the bone transform, which never carries the model's center offset
         objectToAttach->getTransformation()->addTranslate(-1.0f * physicalParent->getCenterOffset());
     }
-    objectToAttach->attachToWithLocalOffset(objectToAttachTo);
+    attach(objectToAttach, objectToAttachTo, boneID, false);
     return true;
 }
 
-bool WorldAPIAccessor::attachObjectToObjectAtWorldPosition(uint32_t objectID, uint32_t objectToAttachToID) {
+bool WorldAPIAccessor::attachObjectToObjectAtWorldPosition(uint32_t objectID, uint32_t objectToAttachToID, const std::string &boneName) {
     if(objectID == objectToAttachToID) {
         return false;
     }
@@ -458,8 +465,13 @@ bool WorldAPIAccessor::attachObjectToObjectAtWorldPosition(uint32_t objectID, ui
         return false;
     }
 
+    int32_t boneID = -1;
+    if(!resolveAttachmentBone(objectToAttachTo, boneName, boneID)) {
+        return false;
+    }
+
     // Child is at its world position; derive local offset from parent's world transform.
-    objectToAttach->attachTo(objectToAttachTo);
+    attach(objectToAttach, objectToAttachTo, boneID, true);
     return true;
 }
 
@@ -468,9 +480,177 @@ bool WorldAPIAccessor::detachObjectFromParent(uint32_t objectID) {
     if(objectToDetach == nullptr || objectToDetach->getParentObject() == nullptr) {
         return false;
     }
-    objectToDetach->detach();
+    detach(objectToDetach);
     return true;
 }
+
+void WorldAPIAccessor::attach(Attachable *child, Attachable *parent, int32_t boneID, bool keepWorldPosition) {
+    if(child->getParentObject() != nullptr) {
+        //attachTo doesn't leave the old parent, its children list would keep a stale entry
+        const glm::vec3 localTranslate = child->getTransformation()->getTranslateSingle();
+        const glm::vec3 localScale = child->getTransformation()->getScaleSingle();
+        const glm::quat localOrientation = child->getTransformation()->getOrientationSingle();
+        detach(child);
+        if(!keepWorldPosition) {
+            child->getTransformation()->setTransformations(localTranslate, localScale, localOrientation);
+        }
+    }
+    ModelGroup* parentGroup = dynamic_cast<ModelGroup*>(parent);
+    PhysicalRenderable* childRenderable = dynamic_cast<PhysicalRenderable*>(child);
+    if(parentGroup != nullptr && childRenderable != nullptr) {
+        parentGroup->addChild(childRenderable);//averaging re-centers the group gizmo on its children's centroid; child world positions are preserved
+    } else if(keepWorldPosition) {
+        child->attachTo(parent, boneID);
+    } else {
+        child->attachToWithLocalOffset(parent, boneID);
+    }
+
+    if(childRenderable != nullptr) {
+        applyBodyType(childRenderable);
+    }
+    Attachable* root = parent;
+    while(root->getParentObject() != nullptr) {
+        root = root->getParentObject();
+    }
+    GameObject* rootObject = dynamic_cast<GameObject*>(root);
+    setHierarchyRootIndex(root, rootObject != nullptr ? static_cast<int>(rootObject->getWorldObjectID()) : -1);
+}
+
+void WorldAPIAccessor::detach(Attachable *child) {
+    ModelGroup* parentGroup = dynamic_cast<ModelGroup*>(child->getParentObject());
+    if(parentGroup != nullptr) {
+        parentGroup->removeChild(child);
+    } else {
+        child->detach();
+    }
+    PhysicalRenderable* childRenderable = dynamic_cast<PhysicalRenderable*>(child);
+    if(childRenderable != nullptr) {
+        applyBodyType(childRenderable);
+    }
+    GameObject* childObject = dynamic_cast<GameObject*>(child);
+    setHierarchyRootIndex(child, childObject != nullptr && child->hasChildren() ? static_cast<int>(childObject->getWorldObjectID()) : -1);
+}
+
+WorldAPIAccessor::BodyTypes WorldAPIAccessor::calculateBodyType(const Model *model) const {
+    //animated shapes follow bones, a static body can't
+    if(model->isAnimated() || model->getCustomAnimation()) {
+        return BodyTypes::KINEMATIC;
+    }
+    const Attachable* parent = model->getParentObject();
+    if(parent == nullptr) {
+        return model->getMass() > 0 ? BodyTypes::DYNAMIC : BodyTypes::STATIC;
+    }
+    return calculateParentBodyType(parent) == BodyTypes::STATIC ? BodyTypes::STATIC : BodyTypes::KINEMATIC;
+}
+
+WorldAPIAccessor::BodyTypes WorldAPIAccessor::calculateParentBodyType(const Attachable *parent) const {
+    const Model* parentModel = dynamic_cast<const Model*>(parent);
+    if(parentModel != nullptr) {
+        return calculateBodyType(parentModel);
+    }
+    if(dynamic_cast<const Player*>(parent) != nullptr) {
+        return BodyTypes::KINEMATIC;
+    }
+    //groups, lights, rigs and sounds have no body, they only move if something moves them, same as a static model
+    if(parent->getParentObject() == nullptr) {
+        return BodyTypes::STATIC;
+    }
+    return calculateParentBodyType(parent->getParentObject());
+}
+
+void WorldAPIAccessor::applyBodyType(PhysicalRenderable *renderable) {
+    Model* model = dynamic_cast<Model*>(renderable);
+    if(model != nullptr) {
+        btRigidBody* body = model->getRigidBody();
+        int collisionFlags = body->getCollisionFlags() & ~(btCollisionObject::CF_STATIC_OBJECT | btCollisionObject::CF_KINEMATIC_OBJECT);
+        int activationState = ACTIVE_TAG;
+        switch (calculateBodyType(model)) {
+            case BodyTypes::STATIC:
+                collisionFlags |= btCollisionObject::CF_STATIC_OBJECT;
+                break;
+            case BodyTypes::KINEMATIC:
+                collisionFlags |= btCollisionObject::CF_KINEMATIC_OBJECT;
+                activationState = DISABLE_DEACTIVATION;
+                break;
+            case BodyTypes::DYNAMIC:
+                break;
+        }
+        if(collisionFlags != body->getCollisionFlags()) {
+            //the collision group depends on the body type, and Bullet only reads it when the body is added
+            const bool connected = !model->isDisconnected();
+            if(connected) {
+                model->disconnectFromPhysicsWorld(world->dynamicsWorld);
+            }
+            body->setCollisionFlags(collisionFlags);
+            body->forceActivationState(activationState);//setActivationState can't leave DISABLE_DEACTIVATION
+            if(connected) {
+                world->connectModelToPhysics(model);
+            }
+        }
+    }
+    for(Attachable* child : renderable->getChildren()) {
+        PhysicalRenderable* childRenderable = dynamic_cast<PhysicalRenderable*>(child);
+        if(childRenderable != nullptr) {
+            applyBodyType(childRenderable);
+        }
+    }
+}
+
+void WorldAPIAccessor::setHierarchyRootIndex(Attachable *subtreeRoot, int rootIndex) {
+    Model* model = dynamic_cast<Model*>(subtreeRoot);
+    if(model != nullptr && model->getRigidBody()->getUserIndex() != rootIndex) {
+        model->getRigidBody()->setUserIndex(rootIndex);
+        //existing pairs never pass through the filter again, re-adding the body is what re-evaluates them
+        if(!model->isDisconnected()) {
+            model->disconnectFromPhysicsWorld(world->dynamicsWorld);
+            world->connectModelToPhysics(model);
+        }
+    }
+    for(Attachable* child : subtreeRoot->getChildren()) {
+        setHierarchyRootIndex(child, rootIndex);
+    }
+}
+
+bool WorldAPIAccessor::changeModelMass(uint32_t objectID, float newMass) {
+    Model *model = world->findModelByID(objectID);
+    if (model == nullptr) {
+        return false;
+    }
+    if (model->isAnimated()) {
+        //animated bodies are kinematic and always use the convex hull regardless of mass; nothing to switch.
+        world->options->getLogger()->log(Logger::log_Subsystem_MODEL, Logger::log_level_WARN,
+                                  "Mass change requested for animated model, ignored.");
+        return false;
+    }
+
+    model->setMassValue(newMass);
+
+    //switching static<->dynamic moves the model between render/visibility tag buckets; drop its stale membership
+    //so the next culling pass re-buckets it from the freshly updated tags.
+    for (auto &perCameraVisibility : world->visibilityManager->getCullingResults()) {
+        for (auto perTagVisibilityIt = perCameraVisibility.second->begin(); perTagVisibilityIt != perCameraVisibility.second->end(); ++perTagVisibilityIt) {
+            perTagVisibilityIt->second.removeModelFromAll(objectID);
+        }
+    }
+
+    //Bullet requires the body to be out of the world while its collision shape and mass props change.
+    bool connected = !model->isDisconnected();
+    btRigidBody *rigidBody = model->getRigidBody();
+    if (connected) {
+        model->disconnectFromPhysicsWorld(world->dynamicsWorld);
+    }
+
+    model->reloadPhysicsShape();
+
+    if (connected) {
+        world->connectModelToPhysics(model);
+        world->dynamicsWorld->updateSingleAabb(rigidBody);
+    }
+    //reloadPhysicsShape sets the type from mass alone, a parent may override it and children follow this one
+    applyBodyType(model);
+    return true;
+}
+
 
 bool WorldAPIAccessor::removeObject(uint32_t objectID, const bool &removeChildren) {
     Model* modelToRemove = world->findModelByID(objectID);
@@ -516,9 +696,8 @@ bool WorldAPIAccessor::isInsideTrigger(uint32_t triggerID) const {
 
 uint32_t WorldAPIAccessor::getObjectByName(const std::string& name) const {
     for(auto& kv : world->objects) {
-        GameObject* go = dynamic_cast<GameObject*>(kv.second);
-        if(go != nullptr && go->getName() == name) {
-            return go->getWorldObjectID();
+        if(kv.second->getName() == name) {
+            return kv.second->getWorldObjectID();
         }
     }
     for(auto& kv : world->guiElements) {
@@ -545,10 +724,36 @@ uint32_t WorldAPIAccessor::getObjectParent(uint32_t objectID) const {
     return parentGO->getWorldObjectID();
 }
 
+std::vector<uint32_t> WorldAPIAccessor::getObjectChildren(uint32_t objectID) const {
+    std::vector<uint32_t> childIDs;
+    Attachable* object = world->findAttachableByID(objectID);
+    if(object == nullptr) return childIDs;
+    for(Attachable* child : object->getChildren()) {
+        GameObject* childGameObject = dynamic_cast<GameObject*>(child);
+        if(childGameObject != nullptr) {
+            childIDs.push_back(childGameObject->getWorldObjectID());
+        }
+    }
+    return childIDs;
+}
+
 bool WorldAPIAccessor::isObjectPhysicsConnected(uint32_t objectID) const {
     Model* model = world->findModelByID(objectID);
     if(model == nullptr) return false;
     return !model->isDisconnected();
+}
+
+bool WorldAPIAccessor::setPhysicsSimulationActive(uint32_t objectID, bool active) {
+    Model* model = world->findModelByID(objectID);
+    if(model == nullptr) {
+        return false;
+    }
+    if(active) {
+        world->physicsSimulationActiveModels.insert(objectID);
+    } else {
+        world->physicsSimulationActiveModels.erase(objectID);
+    }
+    return true;
 }
 
 bool WorldAPIAccessor::disconnectObjectFromPhysics(uint32_t objectWorldID) {
@@ -797,7 +1002,7 @@ bool WorldAPIAccessor::setObjectTranslateAPI(uint32_t objectID, const LimonTypes
 }
 
 bool WorldAPIAccessor::setObjectMassAPI(uint32_t objectID, float mass) {
-    return world->changeModelMass(objectID, mass);
+    return changeModelMass(objectID, mass);
 }
 
 bool WorldAPIAccessor::setObjectScaleAPI(uint32_t objectID, const LimonTypes::Vec4 &scale) {
@@ -932,45 +1137,8 @@ LimonTypes::Vec4 WorldAPIAccessor::getCameraLookDirectionAPI() {
     return LimonTypes::Vec4(center.x, center.y, center.z, 0.0f);
 }
 
-uint32_t WorldAPIAccessor::getPlayerAttachedModelAPI() {
-    if(world->startingPlayer.attachedModel != nullptr) {
-        return world->startingPlayer.attachedModel->getWorldObjectID();
-    }
-    return 0;
-}
-
-std::vector<uint32_t> WorldAPIAccessor::getModelChildrenAPI(uint32_t modelID) {
-    std::vector<uint32_t> result;
-    Model* model = world->findModelByID(modelID);
-    if(model != nullptr) {
-        std::vector<Attachable*> children = model->getChildren();
-        for(auto child = children.begin(); child != children.end(); ++child) {
-            Model* childModel = dynamic_cast<Model*>(*child);
-            if(childModel != nullptr) {
-                result.push_back(childModel->getWorldObjectID());
-            }
-        }
-    }
-    return result;
-}
-
-LimonTypes::Vec4 WorldAPIAccessor::getPlayerModelOffsetAPI() {
-    if(world->startingPlayer.attachedModel != nullptr) {
-        if(world->physicalPlayer != nullptr) {
-            return GLMConverter::GLMToLimon(world->physicalPlayer->getAttachedModelOffset());
-        }
-    }
-    return LimonTypes::Vec4(0, 0, 0);
-}
-
-bool WorldAPIAccessor::setPlayerModelOffsetAPI(LimonTypes::Vec4 newOffset) {
-    if(world->startingPlayer.attachedModel != nullptr) {
-        if(world->physicalPlayer != nullptr) {
-            world->physicalPlayer->setAttachedModelOffset(glm::vec3(GLMConverter::LimonToGLM(newOffset)));
-            return true;
-        }
-    }
-    return false;
+uint32_t WorldAPIAccessor::getPlayerObjectIDAPI() const {
+    return world->getStartingPlayer()->getWorldObjectID();
 }
 
 void WorldAPIAccessor::killPlayerAPI() {

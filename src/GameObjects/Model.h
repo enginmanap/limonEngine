@@ -47,6 +47,7 @@ private:
     uint64_t animationBlendTime = 1000;
 
     bool animationLastFramePlayed = false;
+    bool posePending = false;
     uint32_t lastSetupTime = 0;
     float animationTimeScale = 1.0f;
     std::string name;
@@ -126,7 +127,7 @@ public:
      * mass > 0 uses the convex hulls (dynamic). Also toggles CF_STATIC_OBJECT and flips the STATIC/PHYSICAL tags.
      * The rigid body pointer is preserved. The caller MUST remove the body from the dynamics world before calling
      * and re-add it afterwards (the collision filter group changes between static and dynamic) — see
-     * World::changeModelMass. Does not touch the dynamics world itself.
+     * WorldAPIAccessor::changeModelMass. Does not touch the dynamics world itself.
      */
     void reloadPhysicsShape();
 
@@ -180,6 +181,11 @@ public:
     const std::vector<MeshMeta *> &getMeshMetaData() const { return meshMetaData; }
 
     void setupForTime(uint32_t time) override;
+
+    // A limited version of setup for time, doesn't calculate the bone transforms but determines if animation finished
+    void advanceAnimationClock(uint32_t time);
+    // Actually updates bones and collision shapes, and AABB. If Model actually needed, either physics, attachments or because visible.
+    void evaluatePose();
 
     void renderWithProgram(std::shared_ptr<GraphicsProgram> program, uint32_t lodLevel) override;
 

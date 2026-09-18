@@ -49,19 +49,8 @@ void WorldLoader::resolvePendingAttachments(World *world, const std::vector<Pend
     for(const PendingAttachment& pa : pending) {
         Attachable* parent = world->findAttachableByID(pa.parentID);
         if(parent != nullptr) {
-            if(pa.parentBoneID != -1) {
-                Model* parentModel = dynamic_cast<Model*>(parent);
-                if(parentModel != nullptr) {
-                    pa.child->setParentObject(parentModel, pa.parentBoneID);
-                    parentModel->addChild(pa.child);
-                    pa.child->getTransformation()->setParentTransform(
-                            parentModel->getAttachmentTransformForKnownBone(pa.parentBoneID));
-                } else {
-                    pa.child->attachTo(parent, pa.parentBoneID);
-                }
-            } else {
-                pa.child->attachTo(parent);
-            }
+            //bone attachments are saved local, boneTransforms are identity at load so world would be wrong
+            world->apiAccessor->attach(pa.child, parent, pa.parentBoneID, pa.parentBoneID == -1);
         } else {
             std::cerr << pa.childTypeName << " parent ID " << pa.parentID << " not found, attachment skipped." << std::endl;
         }
@@ -159,14 +148,6 @@ World * WorldLoader::loadMapFromXML(const std::string &worldFileName, LimonAPI *
             }
         }
 
-        tinyxml2::XMLElement* playerAttachmentModel =  worldStartPlayer->FirstChildElement("Attachment");
-        if(playerAttachmentModel != nullptr) {
-            if(saveVersion >= 2) {
-                loadPlayerAttachmentV2(playerAttachmentModel, startingPlayer.attachedModel, limonAPI);
-            } else {
-                loadPlayerAttachmentV1(playerAttachmentModel, startingPlayer.attachedModel, limonAPI);
-            }
-        }
     }
 
     World* world = new World(worldNameStr, startingPlayer, inputHandler, assetManager, options, profilerSystem, frameTimeTracker, limonAPI);
@@ -225,6 +206,13 @@ World * WorldLoader::loadMapFromXML(const std::string &worldFileName, LimonAPI *
     if(!loadObjectsFromXML(worldNode, world, limonAPI, saveVersion)) {
         delete world;
         return nullptr;
+    }
+    if(saveVersion < 2 && worldStartPlayer != nullptr) {
+        //V2 saves attachments as ordinary objects parented to the player
+        tinyxml2::XMLElement* playerAttachmentNode = worldStartPlayer->FirstChildElement("Attachment");
+        if(playerAttachmentNode != nullptr) {
+            loadPlayerAttachmentV1(playerAttachmentNode, world, limonAPI);
+        }
     }
 
     loadAnimations(worldNode, world);
@@ -357,95 +345,36 @@ bool WorldLoader::loadObjectGroupsFromXMLV2(tinyxml2::XMLNode *worldNode, World 
                       << pendingGroupAttachment.parentID << " not found, attachment skipped." << std::endl;
             continue;
         }
-        ModelGroup* parentGroup = dynamic_cast<ModelGroup*>(parent);
-        if(parentGroup != nullptr) {
-            parentGroup->addChild(pendingGroupAttachment.group);//averaging re-centers the group gizmo on its children's centroid; child world positions are preserved
-        } else {
-            pendingGroupAttachment.group->attachTo(parent);
-        }
+        world->apiAccessor->attach(pendingGroupAttachment.group, parent, -1, true);
     }
 
     return true;
 }
 
-void WorldLoader::loadPlayerAttachmentV1(tinyxml2::XMLElement* attachmentNode, Model*& attachedModel, LimonAPI* limonAPI) const {
+void WorldLoader::loadPlayerAttachmentV1(tinyxml2::XMLElement* attachmentNode, World* world, LimonAPI* limonAPI) const {
     std::unordered_map<std::string, std::shared_ptr<Sound>> requiredSounds;
     tinyxml2::XMLElement* objectNode = attachmentNode->FirstChildElement("Object");
     if(objectNode == nullptr) {
         return;
     }
     std::vector<std::unique_ptr<ObjectInformation>> objectInfos = loadObject(assetManager, objectNode, requiredSounds, limonAPI, nullptr);
+    if(objectInfos.empty()) {
+        return;
+    }
     for(auto& info : objectInfos) {
         if(info->modelActor != nullptr) {
             std::cerr << "There was an AI attached to player model, this shouldn't happen. Ignoring" << std::endl;
             delete info->modelActor;
         }
-        attachedModel = info->model;
-        if(attachedModel->hasTag(HashUtil::hashString(HardCodedTags::OBJECT_MODEL_BASIC))) {
-            attachedModel->addTag(HardCodedTags::OBJECT_PLAYER_BASIC);
-        } else if(attachedModel->hasTag(HashUtil::hashString(HardCodedTags::OBJECT_MODEL_ANIMATED))) {
-            attachedModel->addTag(HardCodedTags::OBJECT_PLAYER_ANIMATED);
-        } else if(attachedModel->hasTag(HashUtil::hashString(HardCodedTags::OBJECT_MODEL_TRANSPARENT))) {
-            attachedModel->addTag(HardCodedTags::OBJECT_PLAYER_TRANSPARENT);
+        if(!world->addModelToWorld(info->model)) {
+            std::cerr << "Player attachment " << info->model->getName() << " ID " << info->model->getWorldObjectID()
+                      << " collides with a world object, it is not loaded." << std::endl;
         }
     }
-}
-
-void WorldLoader::loadPlayerAttachmentV2(tinyxml2::XMLElement* attachmentNode, Model*& attachedModel, LimonAPI* limonAPI) const {
-    struct PendingAttachmentLocal { Model* child; uint32_t parentID; int32_t boneID; };
-    std::unordered_map<std::string, std::shared_ptr<Sound>> requiredSounds;
-    std::unordered_map<uint32_t, Model*> attachmentModels;
-    std::vector<PendingAttachmentLocal> pending;
-
-    tinyxml2::XMLElement* objectNode = attachmentNode->FirstChildElement("Object");
-    while(objectNode != nullptr) {
-        auto objectInfos = loadObjectV2(assetManager, objectNode, requiredSounds, limonAPI);
-        for(auto& info : objectInfos) {
-            if(info->modelActor != nullptr) {
-                std::cerr << "There was an AI attached to player model, this shouldn't happen. Ignoring" << std::endl;
-                delete info->modelActor;
-            }
-            Model* m = info->model;
-            attachmentModels[m->getWorldObjectID()] = m;
-            if(m->hasTag(HashUtil::hashString(HardCodedTags::OBJECT_MODEL_BASIC))) {
-                m->addTag(HardCodedTags::OBJECT_PLAYER_BASIC);
-            } else if(m->hasTag(HashUtil::hashString(HardCodedTags::OBJECT_MODEL_ANIMATED))) {
-                m->addTag(HardCodedTags::OBJECT_PLAYER_ANIMATED);
-            } else if(m->hasTag(HashUtil::hashString(HardCodedTags::OBJECT_MODEL_TRANSPARENT))) {
-                m->addTag(HardCodedTags::OBJECT_PLAYER_TRANSPARENT);
-            }
-            tinyxml2::XMLElement* parentIDElement = objectNode->FirstChildElement("ParentID");
-            if(parentIDElement != nullptr && parentIDElement->GetText() != nullptr) {
-                uint32_t parentID = std::stoul(parentIDElement->GetText());
-                int32_t boneID = -1;
-                tinyxml2::XMLElement* boneIDElement = objectNode->FirstChildElement("ParentBoneID");
-                if(boneIDElement != nullptr && boneIDElement->GetText() != nullptr) {
-                    boneID = std::stoi(boneIDElement->GetText());
-                }
-                pending.push_back({m, parentID, boneID});
-            } else {
-                attachedModel = m;
-            }
-        }
-        objectNode = objectNode->NextSiblingElement("Object");
-    }
-
-    for(auto& pa : pending) {
-        auto it = attachmentModels.find(pa.parentID);
-        if(it != attachmentModels.end()) {
-            Model* parentModel = it->second;
-            if(pa.boneID != -1) {
-                pa.child->setParentObject(parentModel, pa.boneID);
-                parentModel->addChild(pa.child);
-                pa.child->getTransformation()->setParentTransform(
-                    parentModel->getAttachmentTransformForKnownBone(pa.boneID));
-            } else {
-                pa.child->attachTo(parentModel, pa.boneID);
-            }
-        } else {
-            std::cerr << "Attachment child " << pa.child->getWorldObjectID() << " parent " << pa.parentID << " not found, skipped." << std::endl;
-        }
-    }
+    Model* attachmentRoot = objectInfos.back()->model;//we know the root of the list is the last element
+    //V1 saved the player's look rotation as the orientation, only the translate was the offset
+    attachmentRoot->getTransformation()->setOrientation(glm::quat(1.0f, 0.0f, 0.0f, 0.0f));
+    world->apiAccessor->attach(attachmentRoot, world->getStartingPlayer(), -1, false);
 }
 
 bool WorldLoader::loadObjectsFromXML(tinyxml2::XMLNode *objectsNode, World *world, LimonAPI *limonAPI, int saveVersion) const {
@@ -531,6 +460,20 @@ bool WorldLoader::loadObjectsFromXML(tinyxml2::XMLNode *objectsNode, World *worl
 
     for (unsigned int i = 0; i < notStaticObjects.size(); ++i) {
         world->addModelToWorld(notStaticObjects[i]);
+    }
+
+    //V1 links children while constructing them, not through the accessor attach, so settle bodies and pairs here
+    for (auto objectIt = world->objects.begin(); objectIt != world->objects.end(); ++objectIt) {
+        if (objectIt->second->getParentObject() == nullptr && objectIt->second->hasChildren()) {
+            world->apiAccessor->applyBodyType(objectIt->second);
+            world->apiAccessor->setHierarchyRootIndex(objectIt->second, static_cast<int>(objectIt->second->getWorldObjectID()));
+        }
+    }
+    for (auto groupIt = world->modelGroups.begin(); groupIt != world->modelGroups.end(); ++groupIt) {
+        if (groupIt->second->getParentObject() == nullptr) {
+            world->apiAccessor->applyBodyType(groupIt->second);
+            world->apiAccessor->setHierarchyRootIndex(groupIt->second, static_cast<int>(groupIt->first));
+        }
     }
 
     //clear up the preloaded asset counts.
@@ -951,28 +894,12 @@ bool WorldLoader::loadObjectsFromXMLV2(tinyxml2::XMLNode *objectsNode, World *wo
     }
 
     // Second pass: wire up all parent-child relationships.
-    // Non-bone: saved values are world coords, attachTo converts world->local correctly.
-    // Bone: boneTransforms are identity at load time so attachTo would give wrong local;
-    //       saved values are local (serializeLocal), preserved via setParentTransform.
+    // Group children are saved in world coords, everything else local (see Model::fillObjects). A moving
+    // parent, the player above all, is not where it was at save time, so world coords would misplace children.
     for(auto& pa : pendingAttachments) {
         Attachable* parent = world->findAttachableByID(pa.parentID);
         if(parent != nullptr) {
-            ModelGroup* parentGroup = dynamic_cast<ModelGroup*>(parent);
-            if(parentGroup != nullptr) {
-                parentGroup->addChild(pa.child);//averaging re-centers the group gizmo on its children's centroid; child world positions are preserved
-            } else if(pa.parentBoneID != -1) {
-                Model* parentModel = dynamic_cast<Model*>(parent);
-                if(parentModel != nullptr) {
-                    pa.child->setParentObject(parentModel, pa.parentBoneID);
-                    parentModel->addChild(pa.child);
-                    pa.child->getTransformation()->setParentTransform(
-                        parentModel->getAttachmentTransformForKnownBone(pa.parentBoneID));
-                } else {
-                    pa.child->attachTo(parent, pa.parentBoneID);
-                }
-            } else {
-                pa.child->attachTo(parent, pa.parentBoneID);
-            }
+            world->apiAccessor->attach(pa.child, parent, pa.parentBoneID, dynamic_cast<ModelGroup*>(parent) != nullptr);
         } else {
             std::cerr << "Object " << pa.child->getWorldObjectID() << " parent " << pa.parentID << " not found, attachment skipped." << std::endl;
         }

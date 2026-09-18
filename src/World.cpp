@@ -52,6 +52,24 @@ const std::map<World::PlayerInfo::Types, std::string> World::PlayerInfo::typeNam
 void World::setupRenderForPipeline() const {
 }
 
+/**
+ * We don't want attachments to an object, to try to collide with the parent. We use this method to prevent it.
+ * We are setting the userIndex for marking the objects, then we filter those in the broad phase
+ */
+struct HierarchyFilterCallback : public btOverlapFilterCallback {
+    bool needBroadphaseCollision(btBroadphaseProxy* proxy0, btBroadphaseProxy* proxy1) const override {
+        bool collides = (proxy0->m_collisionFilterGroup & proxy1->m_collisionFilterMask) != 0;
+        collides = collides && (proxy1->m_collisionFilterGroup & proxy0->m_collisionFilterMask);
+        if (!collides) {
+            return false;
+        }
+        //group/mask first, so the common reject never touches the collision objects
+        int rootIndex0 = static_cast<const btCollisionObject*>(proxy0->m_clientObject)->getUserIndex();
+        int rootIndex1 = static_cast<const btCollisionObject*>(proxy1->m_clientObject)->getUserIndex();
+        return rootIndex0 <= 0 || rootIndex0 != rootIndex1;
+    }
+};
+
 World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandler *inputHandler,
                 std::shared_ptr<AssetManager> assetManager, OptionsUtil::Options *options, ProfilerSystem* profilerSystem, FrameTimeTracker* frameTimeTracker,
                 LimonAPI *limonAPI)
@@ -74,6 +92,8 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
     solver = new btSequentialImpulseConstraintSolver;
 
     dynamicsWorld = new btDiscreteDynamicsWorld(dispatcher, broadphase, solver, collisionConfiguration);
+    hierarchyFilterCallback = new HierarchyFilterCallback();
+    dynamicsWorld->getPairCache()->setOverlapFilterCallback(hierarchyFilterCallback);
     dynamicsWorld->setGravity(btVector3(0, -10, 0));
     debugDrawer = new BulletDebugDrawer(assetManager, options);
     dynamicsWorld->setDebugDrawer(debugDrawer);
@@ -95,25 +115,27 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
                                         glm::vec3(0, 0, 0), 640, 380, options);
     debugOutputGUI->set2dWorldTransform(glm::vec2(320, options->getScreenHeight()-200), 0.0f);
 
+    //the starting player is the one that owns the ID and carries the attachments, the modes switched into don't
     switch(startingPlayer.type) {
         case PlayerInfo::Types::PHYSICAL_PLAYER:
-            physicalPlayer = new PhysicalPlayer(1, options, cursor, startingPlayer.position, startingPlayer.orientation, startingPlayerType.attachedModel);// 1 is reserved for physical player
+            physicalPlayer = new PhysicalPlayer(options, cursor, startingPlayer.position, startingPlayer.orientation, LimonAPI::PLAYER_OBJECT_ID);
             currentPlayer = physicalPlayer;
             break;
         case PlayerInfo::Types::DEBUG_PLAYER:
-            debugPlayer = new FreeMovingPlayer(options, cursor, startingPlayer.position, startingPlayer.orientation);
+            debugPlayer = new FreeMovingPlayer(options, cursor, startingPlayer.position, startingPlayer.orientation, LimonAPI::PLAYER_OBJECT_ID);
             currentPlayer = debugPlayer;
             break;
         case PlayerInfo::Types::EDITOR_PLAYER:
-            editorPlayer = new EditorPlayer(options, cursor, startingPlayer.position, startingPlayer.orientation, inputHandler);
+            editorPlayer = new EditorPlayer(options, cursor, startingPlayer.position, startingPlayer.orientation, inputHandler, LimonAPI::PLAYER_OBJECT_ID);
             currentPlayer = editorPlayer;
             break;
         case PlayerInfo::Types::MENU_PLAYER:
-            menuPlayer = new MenuPlayer(options, cursor, startingPlayer.position, startingPlayer.orientation);
+            menuPlayer = new MenuPlayer(options, cursor, startingPlayer.position, startingPlayer.orientation, LimonAPI::PLAYER_OBJECT_ID);
             currentPlayer = menuPlayer;
             break;
     }
-    
+    currentPlayer->updateTransformation();
+
     quadRender = std::make_shared<QuadRender>(graphicsWrapper);
     visibilityManager = std::make_unique<VisibilityManager>(this);
     //FIXME adding camera after dynamic world because static only world is needed for ai movement grid generation
@@ -122,7 +144,6 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
                                            COLLIDE_MODELS | COLLIDE_TRIGGER_VOLUME | COLLIDE_EVERYTHING,
                                            COLLIDE_MODELS | COLLIDE_EVERYTHING, worldAABBMin,
                                            worldAABBMax);
-    addPlayerAttachmentToWorld(startingPlayer.attachedModel);
     switchPlayer(currentPlayer, *inputHandler); //switching to itself, to set the states properly. It uses camera so done after camera creation
 
     OptionsUtil::Options::Option<std::string> renderPipelineOption = options->getOption<std::string>(HASH("render_pipeline"));
@@ -249,6 +270,7 @@ void World::applyAudioVolumeOptionsIfChanged() {
      }
      checkAndRunTimedEvents();//no londer requires to be in world simulation, because it checks both game time and wall time now
      applyAudioVolumeOptionsIfChanged();
+     currentPlayer->updateTransformation();
      // Feed the active rig its attachment-target transform, or sync the player's default camera if no rig is active.
      feedActiveCameraRig();
      if(currentPlayersSettings->worldSimulation) {
@@ -274,24 +296,38 @@ void World::applyAudioVolumeOptionsIfChanged() {
              }
          }
 
-         tempRenderedObjectsSet.clear();//used to choose which models needs setup for time
-         for (const auto &visibility: visibilityManager->getCullingResults()) {
-             for (auto &visibleTags: *visibility.second){
-                 for (auto it = visibleTags.second.getIterator(); !it.isEnd(); ++it) {
-                     for (glm::uvec4 meshRenderInfo:it.get().indices) {
-                         if (tempRenderedObjectsSet.find(meshRenderInfo.x) == tempRenderedObjectsSet.end()) {
-                             objects[meshRenderInfo.x]->setupForTime(gameTime);
-                             tempRenderedObjectsSet.insert(meshRenderInfo.x);
+         {
+             PROFILE_SIMULATION("World::play::AnimationClocks");
+             for (auto it = objects.begin(); it != objects.end(); ++it) {
+                 if (it->second->isAnimated()) {
+                     it->second->advanceAnimationClock(gameTime);
+                 }
+             }
+         }
+         {
+             PROFILE_SIMULATION("World::play::PhysicsActivation");
+             collectPhysicsActivatedModels();
+         }
+         {
+             PROFILE_SIMULATION("World::play::EvaluatePoses");
+             tempRenderedObjectsSet.clear();//models whose pose is already evaluated this tick
+             for (const auto &visibility: visibilityManager->getCullingResults()) {
+                 for (auto &visibleTags: *visibility.second){
+                     for (auto it = visibleTags.second.getIterator(); !it.isEnd(); ++it) {
+                         for (glm::uvec4 meshRenderInfo:it.get().indices) {
+                             evaluatePoseOnce(meshRenderInfo.x);
                          }
                      }
                  }
              }
+             for (uint32_t modelID : physicsSimulationActiveModels) {
+                 evaluatePoseOnce(modelID);
+             }
+             for (uint32_t modelID : physicsActivatedModels) {
+                 evaluatePoseOnce(modelID);
+             }
          }
-
-         const uint32_t setupTime = gameTime;
-         forEachAttachmentModel(startingPlayer.attachedModel, [setupTime](Model *model) {
-             model->setupForTime(setupTime);
-         });
+         updateAnimatedSleepStates();
      }
 
     for (unsigned int i = 0; i < guiLayers.size(); ++i) {
@@ -372,9 +408,12 @@ void World::animateCustomAnimations() {
             //this means the origin has changed in editor mode, so we should update our origin of transformation.
 
             // First change the original transform to current, since user updated it
-            animationStatus->originalTransformation.setTransformations(animationStatus->object->getTransformation()->getTranslate()
-            ,animationStatus->object->getTransformation()->getScale()
-            ,animationStatus->object->getTransformation()->getOrientation());
+            //composed in local space, the original may sit on a real parent and world values would apply it twice
+            glm::vec3 originTranslate, originScale;
+            glm::quat originOrientation;
+            composeAnimationLocal(animationStatus->originalTransformation, *animationStatus->object->getTransformation(),
+                                  originTranslate, originScale, originOrientation);
+            animationStatus->originalTransformation.setTransformations(originTranslate, originScale, originOrientation);
 
             //then remove the change from object transform.
             animationStatus->object->getTransformation()->setTransformations(glm::vec3(0.0f,0.0f,0.0f)
@@ -404,31 +443,11 @@ void World::animateCustomAnimations() {
             float animationTime = animationCustom->getDuration();
             animationCustom->calculateTransform("", animationTime, *animationStatus->object->getTransformation());
 
-            if(!animationStatus->wasKinematic && animationStatus->wasPhysical) {
-                PhysicalRenderable* tempPointer = dynamic_cast<PhysicalRenderable*>(animationStatus->object);//this can be static cast, since it is not possible to be anything else.
-                tempPointer->getRigidBody()->setCollisionFlags(tempPointer->getRigidBody()->getCollisionFlags() & ~btCollisionObject::CF_KINEMATIC_OBJECT);
-                tempPointer->getRigidBody()->setActivationState(ACTIVE_TAG);
-            }
-
             if(animationStatus->sound) {
                 animationStatus->sound->stop();
             }
 
-            //now before deleting the animation, separate parent/child animations
-
-            animationStatus->object->getTransformation()->getWorldTransform();//make sure propagates were run
-
-            glm::vec3 tempScale, tempTranslate;
-            glm::quat tempOrientation;
-            tempScale       = animationStatus->object->getTransformation()->getScale();
-            tempTranslate   = animationStatus->object->getTransformation()->getTranslate();
-            tempOrientation = animationStatus->object->getTransformation()->getOrientation();
-
-            animationStatus->object->getTransformation()->removeParentTransform();
-            animationStatus->object->getTransformation()->setTransformations(tempTranslate
-            , tempScale
-            , tempOrientation);
-            animationStatus->object->setCustomAnimation(false);
+            finishCustomAnimation(animationStatus);
 
             options->getLogger()->log(Logger::log_Subsystem_ANIMATION, Logger::log_level_DEBUG, "Animation " + animationCustom->getName() + " finished, removing. ");
             delete animIt->second;
@@ -438,21 +457,96 @@ void World::animateCustomAnimations() {
     }
 }
 
-void World::setPlayerAttachmentsForChangedBoneTransforms(Model *playerAttachment) {
-    forEachAttachmentModel(playerAttachment, [this](Model *model) {
-        if (model->getRigId() == 0) {
-            model->setRigId(this->getNextRigId());
+void World::collectPhysicsActivatedModels() {
+    physicsActivatedModels.clear();
+    //pairs exist on AABB overlap whatever the activation state, so this can't feed back through our own wake ups
+    btBroadphasePairArray& pairs = dynamicsWorld->getPairCache()->getOverlappingPairArray();
+    for (int pairIndex = 0; pairIndex < pairs.size(); ++pairIndex) {
+        const btCollisionObject* object0 = static_cast<const btCollisionObject*>(pairs[pairIndex].m_pProxy0->m_clientObject);
+        const btCollisionObject* object1 = static_cast<const btCollisionObject*>(pairs[pairIndex].m_pProxy1->m_clientObject);
+        markActivatedByPair(object0, object1);
+        markActivatedByPair(object1, object0);
+    }
+}
+
+void World::markActivatedByPair(const btCollisionObject *candidate, const btCollisionObject *other) {
+    const btRigidBody* otherBody = btRigidBody::upcast(other);
+    if (otherBody == nullptr || otherBody->isStaticOrKinematicObject() || !otherBody->isActive() || !otherBody->hasContactResponse()) {
+        return;
+    }
+    if (candidate->getUserPointer() == nullptr) {
+        return;
+    }
+    Model* model = dynamic_cast<Model*>(static_cast<GameObject*>(candidate->getUserPointer()));
+    if (model != nullptr && model->isAnimated()) {
+        physicsActivatedModels.push_back(model->getWorldObjectID());
+    }
+}
+
+void World::evaluatePoseOnce(uint32_t modelID) {
+    if (tempRenderedObjectsSet.find(modelID) != tempRenderedObjectsSet.end()) {
+        return;
+    }
+    objects.at(modelID)->evaluatePose();
+    tempRenderedObjectsSet.insert(modelID);
+}
+
+void World::updateAnimatedSleepStates() {
+    for (auto it = objects.begin(); it != objects.end(); ++it) {
+        Model* model = it->second;
+        //parented or custom animated bodies move without their pose being evaluated, asleep they would pass through sleeping bodies
+        if (!model->isAnimated() || model->getParentObject() != nullptr || model->getCustomAnimation() || model->isDisconnected()) {
+            continue;
         }
-        if(model->isAnimated()) {
-            changedBoneTransforms.emplace(model->getRigId(), model->getBoneTransforms());
+        btRigidBody* body = model->getRigidBody();
+        //a kinematic body that isn't sleeping wakes everything it shares a manifold with, even a frozen one
+        const bool poseEvaluated = tempRenderedObjectsSet.find(it->first) != tempRenderedObjectsSet.end();
+        if (poseEvaluated && body->getActivationState() == ISLAND_SLEEPING) {
+            body->forceActivationState(DISABLE_DEACTIVATION);
+        } else if (!poseEvaluated && body->getActivationState() != ISLAND_SLEEPING) {
+            body->forceActivationState(ISLAND_SLEEPING);
         }
-    });
+    }
+}
+
+void World::composeAnimationLocal(const Transformation &originalTransformation, const Transformation &animatedTransformation,
+                                  glm::vec3 &translate, glm::vec3 &scale, glm::quat &orientation) {
+    glm::mat4 originalLocal = glm::translate(glm::mat4(1.0f), originalTransformation.getTranslateSingle()) *
+                              glm::mat4_cast(originalTransformation.getOrientationSingle()) *
+                              glm::scale(glm::mat4(1.0f), originalTransformation.getScaleSingle());
+    glm::mat4 animatedLocal = glm::translate(glm::mat4(1.0f), animatedTransformation.getTranslateSingle()) *
+                              glm::mat4_cast(animatedTransformation.getOrientationSingle()) *
+                              glm::scale(glm::mat4(1.0f), animatedTransformation.getScaleSingle());
+    glm::vec3 skew;
+    glm::vec4 perspective;
+    glm::decompose(originalLocal * animatedLocal, scale, orientation, translate, skew, perspective);
+    orientation = glm::normalize(orientation);
+}
+
+void World::finishCustomAnimation(AnimationStatus *animationStatus) {
+    Transformation* objectTransformation = animationStatus->object->getTransformation();
+    glm::vec3 translate, scale;
+    glm::quat orientation;
+    composeAnimationLocal(animationStatus->originalTransformation, *objectTransformation, translate, scale, orientation);
+    //the original is a copy of the object's transform, so it holds the link to the real parent
+    Transformation* realParent = animationStatus->originalTransformation.getParentTransform();
+    objectTransformation->removeParentTransform();
+    if (realParent != nullptr) {
+        objectTransformation->setParentTransform(realParent);
+    }
+    objectTransformation->setTransformations(translate, scale, orientation);
+    animationStatus->object->setCustomAnimation(false);
+    PhysicalRenderable* physicalRenderable = dynamic_cast<PhysicalRenderable*>(animationStatus->object);
+    if (physicalRenderable != nullptr) {
+        //the animation ending is in World class, because it is happening without API or Editor requesting it. but the body type it forced is the accessor's to undo
+        apiAccessor->applyBodyType(physicalRenderable);
+    }
 }
 
 ActorInterface::ActorInformation World::fillActorInformation(ActorInterface *actor) {
     PROFILE_SIMULATION("World::fillActorInformation");
     ActorInterface::ActorInformation information;
-    Model* actorModel = dynamic_cast<Model*>(objects[actor->getModelID()]);
+    Model* actorModel = objects[actor->getModelID()];
     if(actorModel != nullptr) {
         information.canSeePlayerDirectly = checkPlayerVisibility(
                 actor->getPosition() + glm::vec3(0, AIMovementGrid::floatingHeight+1.0f, 0),
@@ -610,7 +704,7 @@ World::fillRouteInformation(std::vector<LimonTypes::GenericParameter> parameters
 
     if (inputHandler.getInputStates().getInputEvents(InputActions::EDITOR) && inputHandler.getInputStates().getInputStatus(InputActions::EDITOR)) {
         if(editorPlayer == nullptr) {
-            editorPlayer = new EditorPlayer(options, cursor, startingPlayer.position, startingPlayer.orientation, &inputHandler);
+            editorPlayer = new EditorPlayer(options, cursor, startingPlayer.position, startingPlayer.orientation, &inputHandler, 0);
             editorPlayer->registerToPhysicalWorld(dynamicsWorld, COLLIDE_PLAYER,
                                                   COLLIDE_MODELS | COLLIDE_TRIGGER_VOLUME | COLLIDE_EVERYTHING,
                                                   COLLIDE_MODELS | COLLIDE_EVERYTHING,
@@ -627,7 +721,7 @@ World::fillRouteInformation(std::vector<LimonTypes::GenericParameter> parameters
     if (!currentPlayersSettings->editorShown && inputHandler.getInputStates().getInputEvents(InputActions::DEBUG_MODE) && inputHandler.getInputStates().getInputStatus(InputActions::DEBUG_MODE)) {
         if(currentPlayersSettings->debugMode != Player::DEBUG_ENABLED) {
             if(debugPlayer == nullptr) {
-                debugPlayer = new FreeMovingPlayer(options, cursor, startingPlayer.position, startingPlayer.orientation);
+                debugPlayer = new FreeMovingPlayer(options, cursor, startingPlayer.position, startingPlayer.orientation, 0);
                 debugPlayer->registerToPhysicalWorld(dynamicsWorld, COLLIDE_PLAYER,
                                                      COLLIDE_MODELS | COLLIDE_TRIGGER_VOLUME | COLLIDE_EVERYTHING,
                                                      COLLIDE_MODELS | COLLIDE_EVERYTHING,
@@ -637,7 +731,7 @@ World::fillRouteInformation(std::vector<LimonTypes::GenericParameter> parameters
             switchPlayer(debugPlayer, inputHandler);
         } else {
             if(physicalPlayer == nullptr) {
-                physicalPlayer = new PhysicalPlayer(1, options, cursor, startingPlayer.position, startingPlayer.orientation, startingPlayer.attachedModel);
+                physicalPlayer = new PhysicalPlayer(options, cursor, startingPlayer.position, startingPlayer.orientation, 0);
                 physicalPlayer->registerToPhysicalWorld(dynamicsWorld, COLLIDE_PLAYER,
                                                         COLLIDE_MODELS | COLLIDE_TRIGGER_VOLUME | COLLIDE_EVERYTHING,
                                                         COLLIDE_MODELS | COLLIDE_EVERYTHING,
@@ -739,59 +833,16 @@ void World::renderCameraByTag(const std::shared_ptr<GraphicsProgram> &renderProg
     for (const auto &visibilityEntry: visibilityManager->getCullingResults()) {
         if (visibilityEntry.first->hasTag(hashedCameraTag)) { //This is a request for this camera
             std::unordered_map<std::vector<uint64_t>, RenderList, VisibilityRequest::uint64_vector_hasher>& renderLists = *visibilityEntry.second;
-            //First  recursively render the player attachments, no visibility check.
-            if (!currentPlayer->isDead() && startingPlayer.attachedModel != nullptr) {
-                //don't render attached model if dead
-                std::vector<uint32_t> alreadyRenderedModelIds;
-                for (const auto &renderTag: tags) {
-                    renderPlayerAttachmentsRecursiveByTag(startingPlayer.attachedModel, renderTag.hash,
-                                                          renderProgram, alreadyRenderedModelIds);//Starting player, because we don't wanna render when in editor mode
-                }
-            }
             for (auto& renderListEntry: renderLists) {
                 if (!VisibilityRequest::vectorComparator(renderListEntry.first, tags)) {
                     continue;
                 }
                 const RenderList& renderList = renderListEntry.second;
                 renderList.render(graphicsWrapper, renderProgram);
-                }
             }
         }
-
+    }
 }
-
-void World::renderPlayerAttachmentsRecursiveByTag(PhysicalRenderable *attachment, uint64_t renderTag, const std::shared_ptr<GraphicsProgram> &renderProgram,
-                                                  std::vector<uint32_t> &alreadyRenderedModelIds) const{
-    if(attachment == nullptr) {
-        return;
-    }
-    GameObject* attachmentObject = dynamic_cast<GameObject*>(attachment);
-    if(attachmentObject == nullptr) {
-        //FIXME there is no logical explanation for something to be a PhysicalRenderable and not a game object
-        // the object is not a game object. We should render and return, as no tag checks possible
-        attachment->renderWithProgram(renderProgram, 0);
-        return;
-    }
-    std::vector<Attachable *> children;
-    if(attachmentObject->getTypeID() == GameObject::ObjectTypes::MODEL) {
-        children = (static_cast<Model*>(attachment))->getChildren();
-    } else if(attachmentObject->getTypeID() == GameObject::ObjectTypes::MODEL_GROUP) {
-        //the group has the tag, everything under should be rendered.
-        children = (static_cast<ModelGroup*>(attachment))->getChildren();
-    }
-    if(std::find(alreadyRenderedModelIds.begin(), alreadyRenderedModelIds.end(), attachmentObject->getWorldObjectID()) == alreadyRenderedModelIds.end() && attachmentObject->hasTag(renderTag)) {
-        alreadyRenderedModelIds.emplace_back(attachmentObject->getWorldObjectID());
-        if(attachmentObject->getTypeID() == GameObject::ObjectTypes::MODEL) {
-            static_cast<Model *>(attachment)->convertToRenderList(0,0).render(graphicsWrapper, renderProgram);
-        }
-    }
-    for (const auto &child: children) {
-        PhysicalRenderable* physChild = dynamic_cast<PhysicalRenderable*>(child);
-        if(physChild != nullptr) {
-            renderPlayerAttachmentsRecursiveByTag(physChild, renderTag, renderProgram, alreadyRenderedModelIds);
-        }
-    }
- }
 
 void World::renderSky(const std::shared_ptr<GraphicsProgram>& renderProgram, const std::string &cameraName [[gnu::unused]], const std::vector<HashUtil::HashedString> &tags [[gnu::unused]]) const {
    PROFILE_RENDERING("World::renderSky");
@@ -879,7 +930,7 @@ void World::ImGuiFrameSetup(std::shared_ptr<GraphicsProgram> graphicsProgram, co
 }
 
 void World::removeActiveCustomAnimation(const AnimationCustom &animationToRemove,
-        const World::AnimationStatus *animationStatusToRemove,
+        World::AnimationStatus *animationStatusToRemove,
         float animationTime) {
    if(animationStatusToRemove->sound) {
        animationStatusToRemove->sound->stop();
@@ -887,24 +938,7 @@ void World::removeActiveCustomAnimation(const AnimationCustom &animationToRemove
 
    animationToRemove.calculateTransform("", animationTime, *animationStatusToRemove->object->getTransformation());
 
-   if(!animationStatusToRemove->wasKinematic && animationStatusToRemove->wasPhysical) {
-       PhysicalRenderable* tempPointer = dynamic_cast<PhysicalRenderable*>(animationStatusToRemove->object);//this can be static cast, since it is not possible to be anything else.
-       tempPointer->getRigidBody()->setCollisionFlags(tempPointer->getRigidBody()->getCollisionFlags() & ~btCollisionObject::CF_KINEMATIC_OBJECT);
-       tempPointer->getRigidBody()->setActivationState(ACTIVE_TAG);
-   }
-
-   //now before deleting the animation, separate parent/child animations
-   glm::vec3 tempScale, tempTranslate;
-   glm::quat tempOrientation;
-   tempScale       = animationStatusToRemove->object->getTransformation()->getScale();
-   tempTranslate   = animationStatusToRemove->object->getTransformation()->getTranslate();
-   tempOrientation = animationStatusToRemove->object->getTransformation()->getOrientation();
-
-   animationStatusToRemove->object->getTransformation()->removeParentTransform();
-   animationStatusToRemove->object->getTransformation()->setTransformations(tempTranslate
-   , tempScale
-   , tempOrientation);
-   animationStatusToRemove->object->setCustomAnimation(false);
+   finishCustomAnimation(animationStatusToRemove);
 
    //now remove active animations
    Renderable* objectOfAnimation = animationStatusToRemove->object;
@@ -983,6 +1017,7 @@ World::~World() {
     delete dispatcher;
     delete broadphase;
     delete ghostPairCallback;
+    delete hierarchyFilterCallback;
 
     delete grid;
     delete playerCamera;
@@ -1024,15 +1059,8 @@ void World::resolveMaterialOverrides() {
     pendingMaterialOverrides.clear();
 
     for (auto objectIt = objects.begin(); objectIt != objects.end(); ++objectIt) {
-        Model* model = dynamic_cast<Model*>(objectIt->second);
-        if (model != nullptr) {
-            applyMaterialOverrides(model);
-        }
+        applyMaterialOverrides(objectIt->second);
     }
-    //player attachments are not in world objects, we need to apply them too
-    forEachAttachmentModel(startingPlayer.attachedModel, [this](Model *model) {
-        applyMaterialOverrides(model);
-    });
 }
 
 bool World::isMaterialOverride(const std::shared_ptr<const Material> &material) const {
@@ -1072,45 +1100,12 @@ void World::addMaterialOverride(uint32_t baseRegistrationID, const std::shared_p
     materialOverrides[baseRegistrationID] = material;
 }
 
-void World::forEachAttachmentModel(Model *attachment, const std::function<void(Model *)> &operation) {
-    if(attachment == nullptr) {
-        return;
-    }
-    operation(attachment);
-    //copied before descending, so an operation is free to re-register or reparent the model it is handed
-    const std::vector<Attachable *> children(attachment->getChildren());
-    for (Attachable *child : children) {
-        Model *childModel = dynamic_cast<Model *>(child);
-        if(childModel != nullptr) {
-            forEachAttachmentModel(childModel, operation);
-        }
-    }
-}
-
 void World::untrackRigidBody(const btRigidBody *body) {
     for (auto iterator = rigidBodies.begin(); iterator != rigidBodies.end(); ++iterator) {
         if ((*iterator) == body) {
             rigidBodies.erase(iterator);
             break;
         }
-    }
-}
-
-void World::registerModelCommon(Model *model) {
-    //before it joins, so it never renders a frame with the asset's material when this world overrides it
-    applyMaterialOverrides(model);
-    model->getTransformation()->getWorldTransform();
-    rigidBodies.push_back(model->getRigidBody());
-    model->updateAABB();
-    //A model coming back from being a player attachment is still registered, and Bullet guards double adds with
-    //btAssert only, which compiles out in release. Take it out first so connectModelToPhysics applies to a clean
-    //body. isDisconnected() is sampled beforehand, because disconnectFromPhysicsWorld() flips it.
-    const bool keepDisconnected = model->isDisconnected();
-    model->disconnectFromPhysicsWorld(dynamicsWorld);
-    if(keepDisconnected) {
-        disconnectedModels.insert(model->getWorldObjectID());
-    } else {
-        connectModelToPhysics(model);
     }
 }
 
@@ -1123,7 +1118,20 @@ bool World::addModelToWorld(Model *xmlModel) {
     if (xmlModel->isAnimated() && xmlModel->getRigId() == 0) {
         xmlModel->setRigId(getNextRigId());
     }
-    registerModelCommon(xmlModel);
+    //before it joins, so it never renders a frame with the asset's material when this world overrides it
+    applyMaterialOverrides(xmlModel);
+    xmlModel->getTransformation()->getWorldTransform();
+    rigidBodies.push_back(xmlModel->getRigidBody());
+    xmlModel->updateAABB();
+    //A new model reports connected without being in the world. Bullet guards double adds with btAssert only,
+    //which compiles out in release, so take it out first. isDisconnected() is sampled beforehand, disconnect flips it.
+    const bool keepDisconnected = xmlModel->isDisconnected();
+    xmlModel->disconnectFromPhysicsWorld(dynamicsWorld);
+    if(keepDisconnected) {
+        disconnectedModels.insert(xmlModel->getWorldObjectID());
+    } else {
+        connectModelToPhysics(xmlModel);
+    }
     btVector3 aabbMin, aabbMax;
     xmlModel->getRigidBody()->getAabb(aabbMin, aabbMax);
 
@@ -1132,27 +1140,9 @@ bool World::addModelToWorld(Model *xmlModel) {
 
 }
 
-void World::addPlayerAttachmentToWorld(Model *attachment) {
-    forEachAttachmentModel(attachment, [this](Model *model) {
-        //we want kinematic, but normal attachment does that only for animated models.
-        btRigidBody *attachmentBody = model->getRigidBody();
-        if(!attachmentBody->isKinematicObject()) {
-            attachmentBody->setCollisionFlags(attachmentBody->getCollisionFlags() | btCollisionObject::CF_KINEMATIC_OBJECT);
-            attachmentBody->setActivationState(DISABLE_DEACTIVATION);
-        }
-        registerModelCommon(model);
-    });
-}
-
 bool World::connectModelToPhysics(Model *model) {
     if(model == nullptr) {
         return false;
-    }
-    if(startingPlayer.attachedModel != nullptr &&
-       findAttachableInSubtree(startingPlayer.attachedModel, model->getWorldObjectID()) != nullptr) {
-        //player attachment: kinematic, and COLLIDE_PLAYER left out so it cannot push the player it hangs on
-        return model->connectToPhysicsWorld(dynamicsWorld, COLLIDE_MODELS | COLLIDE_KINEMATIC_MODELS,
-                                            COLLIDE_MODELS | COLLIDE_EVERYTHING);
     }
     //the group has to match the body's current static/kinematic/dynamic state
     if(model->isAnimated()) {
@@ -1169,58 +1159,6 @@ bool World::connectModelToPhysics(Model *model) {
     }
     return model->connectToPhysicsWorld(dynamicsWorld, COLLIDE_MODELS | COLLIDE_DYNAMIC_MODELS,
                                         COLLIDE_MODELS | COLLIDE_PLAYER | COLLIDE_EVERYTHING);
-}
-
-void World::returnPlayerAttachmentToWorld(Model *attachment) {
-    forEachAttachmentModel(attachment, [this](Model *model) {
-        //we forced kinematic at attachment, now we need to revese
-        btRigidBody *attachmentBody = model->getRigidBody();
-        if(!model->isAnimated()) {
-            attachmentBody->setCollisionFlags(attachmentBody->getCollisionFlags() & ~btCollisionObject::CF_KINEMATIC_OBJECT);
-            attachmentBody->setActivationState(ACTIVE_TAG);
-        }
-        //don't have duplicates
-        untrackRigidBody(attachmentBody);
-        addModelToWorld(model);
-    });
-}
-
-bool World::changeModelMass(uint32_t objectID, float newMass) {
-    Model *model = findModelByID(objectID);
-    if (model == nullptr) {
-        return false;
-    }
-    if (model->isAnimated()) {
-        //animated bodies are kinematic and always use the convex hull regardless of mass; nothing to switch.
-        options->getLogger()->log(Logger::log_Subsystem_MODEL, Logger::log_level_WARN,
-                                  "Mass change requested for animated model, ignored.");
-        return false;
-    }
-
-    model->setMassValue(newMass);
-
-    //switching static<->dynamic moves the model between render/visibility tag buckets; drop its stale membership
-    //so the next culling pass re-buckets it from the freshly updated tags.
-    for (auto &perCameraVisibility : visibilityManager->getCullingResults()) {
-        for (auto perTagVisibilityIt = perCameraVisibility.second->begin(); perTagVisibilityIt != perCameraVisibility.second->end(); ++perTagVisibilityIt) {
-            perTagVisibilityIt->second.removeModelFromAll(objectID);
-        }
-    }
-
-    //Bullet requires the body to be out of the world while its collision shape and mass props change.
-    bool connected = !model->isDisconnected();
-    btRigidBody *rigidBody = model->getRigidBody();
-    if (connected) {
-        model->disconnectFromPhysicsWorld(dynamicsWorld);
-    }
-
-    model->reloadPhysicsShape();
-
-    if (connected) {
-        connectModelToPhysics(model);
-        dynamicsWorld->updateSingleAabb(rigidBody);
-    }
-    return true;
 }
 
 bool World::addGUIElementToWorld(GUIRenderable *guiRenderable, GUILayer *guiLayer) {
@@ -1335,9 +1273,8 @@ void World::afterLoadFinished() {
     }
 
     for(auto& kv : objects) {
-        Model* model = dynamic_cast<Model*>(kv.second);
-        if(model != nullptr && model->isAnimated()) {
-            model->setupForTime(gameTime);
+        if(kv.second->isAnimated()) {
+            kv.second->setupForTime(gameTime);
         }
     }
 
@@ -1388,7 +1325,7 @@ void World::activateCameraAttachment(CameraAttachment* attachment) {
     visibilityManager->addCamera(playerCamera);
 }
 
-Player* World::getStartingPlayer() {
+Player* World::getStartingPlayer() const {
     switch (startingPlayer.type) {
         case PlayerInfo::Types::DEBUG_PLAYER:    return debugPlayer;
         case PlayerInfo::Types::EDITOR_PLAYER:   return editorPlayer;
@@ -1694,39 +1631,17 @@ void World::checkAndRunTimedEvents() {
 }
 
    Model *World::findModelByID(uint32_t modelID) const {
-    if(startingPlayer.attachedModel != nullptr) {
-        Model * playerAttachment = dynamic_cast<Model *>(findAttachableInSubtree(startingPlayer.attachedModel, modelID));
-        if(playerAttachment != nullptr) {
-            return playerAttachment;
-        }
-    }
-
-    if(objects.find(modelID) != objects.end()) {
-        Model* model = dynamic_cast<Model*>(objects.at(modelID));
-        if(model != nullptr) {
-            return model;
-        }
-    }
-    return nullptr;
-}
-
-Attachable* World::findAttachableInSubtree(Attachable *root, uint32_t objectID) {
-    if(root == nullptr) return nullptr;
-    const GameObject* go = dynamic_cast<const GameObject*>(root);
-    if(go != nullptr && go->getWorldObjectID() == objectID) return root;
-    for(Attachable* child : root->getChildren()) {
-        Attachable* found = findAttachableInSubtree(child, objectID);
-        if(found != nullptr) return found;
+    std::unordered_map<uint32_t, Model *>::const_iterator objectIt = objects.find(modelID);
+    if(objectIt != objects.end()) {
+        return objectIt->second;
     }
     return nullptr;
 }
 
 Attachable* World::findAttachableByID(uint32_t objectID) const {
-    if(startingPlayer.attachedModel != nullptr) {
-        Attachable* playerAttachment = findAttachableInSubtree(startingPlayer.attachedModel, objectID);
-        if(playerAttachment != nullptr) {
-            return playerAttachment;
-        }
+    Player* startingPlayerObject = getStartingPlayer();
+    if(startingPlayerObject != nullptr && startingPlayerObject->getWorldObjectID() == objectID) {
+        return startingPlayerObject;
     }
 
     auto objectIt = objects.find(objectID);
@@ -1946,38 +1861,15 @@ void World::uploadActiveLightsToGPU() const {
            }
            //clear object itself
            objects.erase(modelToClear->getWorldObjectID());
+           physicsSimulationActiveModels.erase(modelToClear->getWorldObjectID());//the ID is reused, the request must not carry over
            if (forRemoval) {
                unusedIDs.push(modelToClear->getWorldObjectID());
            }
        }
    }
 
-bool World::addPlayerAttachmentUsedIDs(const Attachable *attachment, std::set<uint32_t> &usedIDs,
-                                       uint32_t &maxID) {
-    if(attachment == nullptr) {
-        return true;
-    }
-    const GameObject* gameObjectOfTheSame = dynamic_cast<const GameObject*>(attachment);
-    if(gameObjectOfTheSame == nullptr) {
-        std::cerr << "Player attachment is not GameObject, that should never happen." << std::endl;
-        return false;
-    }
-    auto result = usedIDs.insert(gameObjectOfTheSame->getWorldObjectID());
-    if(result.second == false) {
-        std::cerr << "world ID repetition on player attachment detected! ID was " << gameObjectOfTheSame->getWorldObjectID() << std::endl;
-        return false;
-    }
-    maxID = std::max(maxID, gameObjectOfTheSame->getWorldObjectID());
-    for (auto child = attachment->getChildren().begin(); child != attachment->getChildren().end(); ++child) {
-        if(!addPlayerAttachmentUsedIDs(*child, usedIDs, maxID)) {
-            return false;
-        }
-    }
-    return true;
-}
-
 bool World::isIDUsed(uint32_t id) const {
-    if (id < 2) return true; // 0 is invalid, 1 is reserved for the physical player
+    if (id == 0 || id == LimonAPI::PLAYER_OBJECT_ID) return true; // 0 is invalid
     if (sky != nullptr && sky->getWorldObjectID() == id) return true;
     if (objects.count(id)) return true;
     if (triggers.count(id)) return true;
@@ -2000,7 +1892,7 @@ bool World::verifyIDs() {
     std::queue<uint32_t>().swap(unusedIDs);
     std::set<uint32_t > usedIDs;
     uint32_t maxID = 0;
-    usedIDs.insert(1);//reserved for physicalPlayer
+    usedIDs.insert(LimonAPI::PLAYER_OBJECT_ID);
     /** Places that have IDs:
      * 1) sky
      * 2) objects
@@ -2008,8 +1900,7 @@ bool World::verifyIDs() {
      * 4) actors
      * 5) GUI elements
      * 6) model groups
-     * 7) player attachments
-     * 8) lights
+     * 7) lights
      */
     //put sky first, since it is guaranteed to be single
     if(this->sky != nullptr) {
@@ -2060,10 +1951,6 @@ bool World::verifyIDs() {
             return false;
         }
         maxID = std::max(maxID, modelGroup->first);
-    }
-
-    if (!addPlayerAttachmentUsedIDs(startingPlayer.attachedModel, usedIDs, maxID)) {
-        return false;
     }
 
     for (Light* light : lights) {

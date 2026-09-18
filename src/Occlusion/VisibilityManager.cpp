@@ -36,7 +36,7 @@ void VisibilityManager::start() {
     } else {
         if(visibilityThreadPool.empty()) {
             for (auto &cameraVisibility: cullingResults) {
-                VisibilityRequest* request = new VisibilityRequest(cameraVisibility.first, &world->objects, cameraVisibility.second, world->currentPlayer->getPosition(), world->options, &cullingBarrier, cameraVisibility.first->getName());
+                VisibilityRequest* request = new VisibilityRequest(cameraVisibility.first, &world->objects, world->getStartingPlayer(), cameraVisibility.second, world->currentPlayer->getPosition(), world->options, &cullingBarrier, cameraVisibility.first->getName());
                 visibilityThreadPool[request] = nullptr;
             }
         }
@@ -83,7 +83,7 @@ void VisibilityManager::addCamera(Camera* camera) {
     // fillVisibleObjectsUsingTags processes this camera. During initial load the pool is empty and start()
     // creates the threads.
     if (!visibilityThreadPool.empty()) {
-        VisibilityRequest* request = new VisibilityRequest(camera, &world->objects, tagMap,
+        VisibilityRequest* request = new VisibilityRequest(camera, &world->objects, world->getStartingPlayer(), tagMap,
                                                            world->currentPlayer->getPosition(),
                                                            world->options, &cullingBarrier, camera->getName());
         if (multiThreadedCulling) {
@@ -145,6 +145,7 @@ void VisibilityManager::fillVisibleObjectsUsingTags() {
         size_t wokenThreadCount = 0;
         for (const auto &item: visibilityThreadPool) {
             item.first->cameraIsDirty = item.first->camera->isDirty();
+            item.first->playerDead = world->currentPlayer->isDead();
             item.first->visibilityLatch.signal();
             wokenThreadCount++;
         }
@@ -163,6 +164,7 @@ void VisibilityManager::fillVisibleObjectsUsingTags() {
         // The start() method now handles the initial request creation.
         for (const auto &item: visibilityThreadPool) {
             item.first->playerPosition = world->currentPlayer->getPosition();
+            item.first->playerDead = world->currentPlayer->isDead();
             fillVisibleObjectPerCamera(item.first);
             item.first->playerPosition = world->currentPlayer->getPosition();
             for (auto& changedRigs:item.first->changedBoneTransforms) {
@@ -171,8 +173,6 @@ void VisibilityManager::fillVisibleObjectsUsingTags() {
             item.first->changedBoneTransforms.clear();
         }
     }
-
-    world->setPlayerAttachmentsForChangedBoneTransforms(world->startingPlayer.attachedModel);
 
     for (auto objectIt = world->objects.begin(); objectIt != world->objects.end(); ++objectIt) {
         //all cameras calculated, clear dirty for object
@@ -188,7 +188,7 @@ void VisibilityManager::fillVisibleObjectsUsingTags() {
 std::map<VisibilityRequest*, SDL2MultiThreading::InternalThread*> VisibilityManager::occlusionThreadManager() {
     std::map<VisibilityRequest*, SDL2MultiThreading::InternalThread*> visibilityProcessing;
     for (auto &cameraVisibility: cullingResults) {
-        VisibilityRequest* request = new VisibilityRequest(cameraVisibility.first, &world->objects, cameraVisibility.second, world->currentPlayer->getPosition(), world->options, &cullingBarrier, cameraVisibility.first->getName());
+        VisibilityRequest* request = new VisibilityRequest(cameraVisibility.first, &world->objects, world->getStartingPlayer(), cameraVisibility.second, world->currentPlayer->getPosition(), world->options, &cullingBarrier, cameraVisibility.first->getName());
         SDL2MultiThreading::InternalThread* thread = new SDL2MultiThreading::InternalThread(
             request->camera->getName(),
             [request]() { VisibilityManager::staticOcclusionThread(request); }
@@ -305,15 +305,20 @@ void VisibilityManager::fillVisibleObjectPerCamera(const VisibilityRequest* visi
     uint32_t nonOccludedCount = 0; // occludees that survived the depth test
     float maxScreenSize = 0.0;
     for (auto objectIt = visibilityRequest->objects->begin(); objectIt != visibilityRequest->objects->end(); ++objectIt) {
-        if(!visibilityRequest->cameraIsDirty && !objectIt->second->isDirtyForFrustum() && skipOcclusionCulling) {
+        bool isHiddenPlayerAttachment = false;
+        if (visibilityRequest->playerDead) {
+            const Attachable* hierarchyRoot = objectIt->second;
+            while (hierarchyRoot->getParentObject() != nullptr) {
+                hierarchyRoot = hierarchyRoot->getParentObject();
+            }
+            isHiddenPlayerAttachment = hierarchyRoot == visibilityRequest->playerObject;
+        }
+        //a dead player's attachments stop moving, so the dirty skip would leave them in the light cameras
+        if(!visibilityRequest->cameraIsDirty && !objectIt->second->isDirtyForFrustum() && skipOcclusionCulling && !isHiddenPlayerAttachment) {
             continue; //if neither object nor camera dirty, no need to recalculate
         }
-        Model *currentModel = dynamic_cast<Model *>(objectIt->second);
-        if (currentModel == nullptr) {
-            std::cerr << "model id " << objectIt->second << " is not a model?" << std::endl;
-            exit(1);
-        }
-        bool isVisible = visibilityRequest->camera->isVisible(*currentModel);//find if visible
+        Model *currentModel = objectIt->second;
+        bool isVisible = !isHiddenPlayerAttachment && visibilityRequest->camera->isVisible(*currentModel);//find if visible
         for (auto& visibilityEntry: *visibilityRequest->visibility) {
             if (VisibilityRequest::isAnyTagMatch(visibilityEntry.first, currentModel->getTags())) {
                 if(isVisible) {

@@ -99,7 +99,7 @@ bool Editor::generateEditorElementsForParameters(std::vector<LimonTypes::Generic
                 Model* foundModel = nullptr;
                 if (parameter.isSet) {
                     auto objectIt = world->objects.find((uint32_t)(parameter.value.longValue));
-                    foundModel = (objectIt != world->objects.end()) ? dynamic_cast<Model*>(objectIt->second) : nullptr;
+                    foundModel = (objectIt != world->objects.end()) ? objectIt->second : nullptr;
                     if (foundModel != nullptr) {
                         currentObject = foundModel->getName();
                     } else {
@@ -114,11 +114,7 @@ bool Editor::generateEditorElementsForParameters(std::vector<LimonTypes::Generic
                 if (ImGui::BeginCombo((parameter.description + "##triggerParam" + std::to_string(i) + "##" + std::to_string(index)).c_str(),
                                       currentObject.c_str())) {
                     for (auto it = world->objects.begin(); it != world->objects.end(); it++) {
-                        Model* currentModel = dynamic_cast<Model *>(it->second);
-                        if(currentModel == nullptr) {
-                            std::cerr << "Object cast to model failed" << std::endl;
-                            continue;
-                        }
+                        Model* currentModel = it->second;
                         bool isThisModelSelected = (currentObject == currentModel->getName());
 
                         if (ImGui::Selectable(currentModel->getName().c_str(), isThisModelSelected)) {
@@ -579,14 +575,8 @@ void Editor::reseatWorldMeshes(const std::shared_ptr<const Material> &baseMateri
         }
     };
     for (auto objectIt = world->objects.begin(); objectIt != world->objects.end(); ++objectIt) {
-        Model* model = dynamic_cast<Model*>(objectIt->second);
-        if (model == nullptr) {
-            continue;
-        }
-        reseatModel(model);
+        reseatModel(objectIt->second);
     }
-    //player attachments not in the world->objects
-    world->forEachAttachmentModel(world->startingPlayer.attachedModel, reseatModel);
 }
 
 /**
@@ -833,7 +823,7 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
                         if(pickedModel != nullptr) {
                             pickedModel->getAttachmentTransform(attachedBoneID);
                         }
-                        this->objectToAttach->attachTo(pickedAttachable, attachedBoneID);
+                        world->apiAccessor->attach(this->objectToAttach, pickedAttachable, attachedBoneID, true);
                         this->objectToAttach = nullptr;
                     }
                     ImGui::SameLine();
@@ -843,22 +833,8 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
                 }
                 if(pickedAttachable->getParentObject() != nullptr) {
                     if(ImGui::Button("Detach from parent")) {
-                        pickedAttachable->detach();
+                        world->apiAccessor->detach(pickedAttachable);
                     }
-                }
-            }
-        }
-        if(this->pickedObject != nullptr && this->pickedObject->getTypeID() == GameObject::ObjectTypes::PLAYER) {
-            Model* modelToAttach = dynamic_cast<Model*>(this->objectToAttach);
-            if(modelToAttach != nullptr && modelToAttach->getWorldObjectID() != this->pickedObject->getWorldObjectID()) {
-                if (ImGui::Button("Attach saved object to Player")) {
-                    world->physicalPlayer->setAttachedModel(modelToAttach);
-                    world->clearWorldRefsBeforeAttachment(modelToAttach, true, false);
-                    // we are setting the attachment before registering, because addPlayerAttachmentToWorld
-                    // uses that info for collision group
-                    world->startingPlayer.attachedModel = modelToAttach;
-                    world->addPlayerAttachmentToWorld(modelToAttach);
-                    this->objectToAttach = nullptr;
                 }
             }
         }
@@ -885,7 +861,7 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
                 //now prevent adding to self
 
                 if(ImGui::Button("Add model to group")) {
-                    world->modelGroups[selectedModelGroup]->addChild(pickedPhysicalRenderable);
+                    world->apiAccessor->attach(pickedPhysicalRenderable, world->modelGroups[selectedModelGroup], -1, true);
                 }
             } else {
                 ImGui::Button("Add model to group");
@@ -1121,15 +1097,6 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
                 ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.0f, 0.0f, 1.0f));
                 ImGui::Text("The name didn't match an extension. The info won't be saved!");
                 ImGui::PopStyleColor();
-            }
-            if(world->startingPlayer.attachedModel != nullptr) {
-                if(ImGui::Button("Disconnect Attachment##player attachment")) {
-                    Model* attachedModel = world->startingPlayer.attachedModel;
-                    world->startingPlayer.attachedModel = nullptr;
-                    world->physicalPlayer->setAttachedModel(nullptr);
-                    // walk the tree, return all to objects
-                    world->returnPlayerAttachmentToWorld(attachedModel);
-                }
             }
         }
         ImGui::Separator();
@@ -1379,13 +1346,7 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
             std::set<std::vector<std::string>> convertedAssets;
             for (auto objectIt = world->objects.begin(); objectIt != world->objects.end(); ++objectIt) {
 
-                Model* model = dynamic_cast<Model*>(objectIt->second);
-                if(model!= nullptr) {
-                    model->convertAssetToLimon(convertedAssets);
-                }
-            }
-            if(world->startingPlayer.attachedModel != nullptr) {
-                world->startingPlayer.attachedModel->convertAssetToLimon(convertedAssets);
+                objectIt->second->convertAssetToLimon(convertedAssets);
             }
         }
 
@@ -1604,15 +1565,6 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
                                 world->dynamicsWorld->updateSingleAabb(selectedObject->getRigidBody());
                             }
                         }
-
-                        // the root player attachments transformation is not what we save, because it is
-                        // driven by player. We save the offsets.
-                        if (world->physicalPlayer != nullptr && world->startingPlayer.attachedModel == selectedObject) {
-                            world->physicalPlayer->adoptAttachedModelTranslateAsOffset(selectedObject);
-                            if (!selectedObject->isDisconnected()) {
-                                world->dynamicsWorld->updateSingleAabb(selectedObject->getRigidBody());
-                            }
-                        }
                     }
                     uint32_t removedActorID = 0;
                     if (objectEditorResult.removeAI) {
@@ -1660,7 +1612,7 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
                         //the widget already stored the new value on the model; world reloads the shape and re-registers
                         //the body with the collision group matching its new static/dynamic state.
                         Model *selectedObject = static_cast<Model *>(this->pickedObject);
-                        world->changeModelMass(selectedObject->getWorldObjectID(), selectedObject->getMass());
+                        world->apiAccessor->changeModelMass(selectedObject->getWorldObjectID(), selectedObject->getMass());
                     }
                 }
                     /* fall through */
@@ -1797,7 +1749,7 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
                         this->pickedObject = nullptr;
                         if(s != nullptr) {
                             s->stop();
-                            s->detach();
+                            world->apiAccessor->detach(s);
                         }
                         world->unusedIDs.push(soundID);
                         world->sounds.erase(soundID);
@@ -1884,10 +1836,18 @@ void Editor::addAnimationDefinitionToEditor() {
     }
 }
 
-bool Editor::buildFilteredVisibleIDs(PhysicalRenderable *physicalRenderable, const std::string& filterText,
+// This method is used to check if an object is attached to a model, model group or player. Those lists their childs, but others don't.
+// That is intentional, because we don't actually allow in the editor others to be parents of attachment, but that is not what engine internals
+// do, they can be parents internally.
+bool Editor::isListedUnderParent(const Attachable *attachable) const {
+    const Attachable* parent = attachable->getParentObject();
+    return parent != nullptr && (dynamic_cast<const PhysicalRenderable*>(parent) != nullptr || parent == world->getStartingPlayer());
+}
+
+bool Editor::buildFilteredVisibleIDs(Attachable *attachable, const std::string& filterText,
                                      std::unordered_set<uint32_t>& visibleIDs) {
-    GameObject* gameObject = dynamic_cast<GameObject*>(physicalRenderable);
-    if (physicalRenderable == nullptr || gameObject == nullptr) {
+    GameObject* gameObject = dynamic_cast<GameObject*>(attachable);
+    if (attachable == nullptr || gameObject == nullptr) {
         return false;
     }
     std::string lower = gameObject->getName();
@@ -1895,9 +1855,8 @@ bool Editor::buildFilteredVisibleIDs(PhysicalRenderable *physicalRenderable, con
     bool selfMatches = lower.find(filterText) != std::string::npos;
 
     bool childMatches = false;
-    for (Attachable* childAttachable : physicalRenderable->getChildren()) {
-        PhysicalRenderable* child = dynamic_cast<PhysicalRenderable*>(childAttachable);
-        if (child != nullptr && buildFilteredVisibleIDs(child, filterText, visibleIDs)) {
+    for (Attachable* child : attachable->getChildren()) {
+        if (buildFilteredVisibleIDs(child, filterText, visibleIDs)) {
             childMatches = true;
         }
     }
@@ -1994,7 +1953,7 @@ Attachable* Editor::copyAttachableRecursive(Attachable* source, Attachable* newP
     if (newParent != nullptr) {
         //newObj currently sits at source's world position (from clone()); attachTo derives the local
         //offset from that, keeping the same world position under newParent.
-        newObj->attachTo(newParent, source->getParentBoneID());
+        world->apiAccessor->attach(newObj, newParent, source->getParentBoneID(), true);
     }
 
     if (recursive) {
@@ -2017,11 +1976,11 @@ void Editor::buildTreeFromAllGameObjects() {
     std::vector<uint32_t> parentageList;
     if(this->pickedObject != nullptr) {
         if(this->pickedObject->getTypeID() == GameObject::ObjectTypes::MODEL || this->pickedObject->getTypeID() == GameObject::ObjectTypes::MODEL_GROUP) {
-            PhysicalRenderable *physicalRenderable = dynamic_cast<PhysicalRenderable *>(this->pickedObject);
-            if(physicalRenderable != nullptr) {
+            Attachable *selectedAttachable = dynamic_cast<Attachable *>(this->pickedObject);
+            if(selectedAttachable != nullptr) {
                 if (ImGui::Button("Find selected") || this->pickedObjectID != this->pickedObject->getWorldObjectID()) {//trigger find if selected object changes
-                    while (physicalRenderable != nullptr) {
-                        GameObject* gameObject = dynamic_cast<GameObject*>(physicalRenderable);
+                    while (selectedAttachable != nullptr) {
+                        GameObject* gameObject = dynamic_cast<GameObject*>(selectedAttachable);
                         if(gameObject != nullptr) {
                             parentageList.push_back(gameObject->getWorldObjectID());
                         } else {
@@ -2029,7 +1988,7 @@ void Editor::buildTreeFromAllGameObjects() {
                             parentageList.clear();
                             break;
                         }
-                        physicalRenderable = physicalRenderable->getParentObject();
+                        selectedAttachable = selectedAttachable->getParentObject();
                     }
 
                     std::reverse(std::begin(parentageList), std::end(parentageList));
@@ -2047,20 +2006,18 @@ void Editor::buildTreeFromAllGameObjects() {
     std::unordered_set<uint32_t> filteredVisibleIDs;
     if (hasFilter) {
         for (auto iterator = world->modelGroups.begin(); iterator != world->modelGroups.end(); ++iterator) {
-            if (iterator->second->getParentObject() != nullptr) {
+            if (isListedUnderParent(iterator->second)) {
                 continue;
             }
             buildFilteredVisibleIDs(iterator->second, filterText, filteredVisibleIDs);
         }
         for (auto iterator = world->objects.begin(); iterator != world->objects.end(); ++iterator) {
-            if (iterator->second->getParentObject() != nullptr) {
+            if (isListedUnderParent(iterator->second)) {
                 continue;
             }
             buildFilteredVisibleIDs(iterator->second, filterText, filteredVisibleIDs);
         }
-        if (world->startingPlayer.attachedModel != nullptr) {
-            buildFilteredVisibleIDs(world->startingPlayer.attachedModel, filterText, filteredVisibleIDs);
-        }
+        buildFilteredVisibleIDs(world->getStartingPlayer(), filterText, filteredVisibleIDs);
     }
 
     ImGui::BeginChild("Game Object Selector##treeMode", ImVec2(0, 200), true, ImGuiWindowFlags_HorizontalScrollbar);
@@ -2074,7 +2031,7 @@ void Editor::buildTreeFromAllGameObjects() {
     if (ImGui::TreeNode("Objects##ObjectsTreeRoot")) {
         //ModelGroups
         for (auto iterator = world->modelGroups.begin(); iterator != world->modelGroups.end(); ++iterator) {
-            if(iterator->second->getParentObject() != nullptr) {
+            if(isListedUnderParent(iterator->second)) {
                 continue; //the parent will show this group
             }
             if(hasFilter) {
@@ -2089,36 +2046,31 @@ void Editor::buildTreeFromAllGameObjects() {
 
         //Objects recursive
         for (auto iterator = world->objects.begin(); iterator != world->objects.end(); ++iterator) {
-            if(iterator->second->getParentObject() != nullptr) {
+            if(isListedUnderParent(iterator->second)) {
                 continue; //the parent will show this group
             }
             if(iterator->second->hasChildren()) {
-                if(hasFilter) {
-                    GameObject* gameObject = dynamic_cast<GameObject*>(iterator->second);
-                    if(gameObject == nullptr || filteredVisibleIDs.count(gameObject->getWorldObjectID()) == 0) {
-                        continue;
-                    }
+                if(hasFilter && filteredVisibleIDs.count(iterator->second->getWorldObjectID()) == 0) {
+                    continue;
                 }
                 createObjectTreeRecursive(iterator->second, this->pickedObjectID, nodeFlags, leafFlags, parentageList, filterText, filteredVisibleIDs);
             } else {
-                GameObject* currentObject = dynamic_cast<GameObject*>(iterator->second);
-                if(currentObject != nullptr) {
-                    if(hasFilter && filteredVisibleIDs.count(currentObject->getWorldObjectID()) == 0) {
-                        continue;
-                    }
-                    bool isSelected = currentObject->getWorldObjectID() == this->pickedObjectID;
-                    ImGui::TreeNodeEx(currentObject->getName().c_str(), leafFlags | (isSelected ? ImGuiTreeNodeFlags_Selected : 0));
-                    if(isSelected && !parentageList.empty()) {
-                        ImGui::SetScrollHereY();
-                    }
+                Model* currentObject = iterator->second;
+                if(hasFilter && filteredVisibleIDs.count(currentObject->getWorldObjectID()) == 0) {
+                    continue;
+                }
+                bool isSelected = currentObject->getWorldObjectID() == this->pickedObjectID;
+                ImGui::TreeNodeEx(currentObject->getName().c_str(), leafFlags | (isSelected ? ImGuiTreeNodeFlags_Selected : 0));
+                if(isSelected && !parentageList.empty()) {
+                    ImGui::SetScrollHereY();
+                }
 
-                    if (ImGui::IsItemClicked()) {
-                        if(this->pickedObject != nullptr ) {
-                            this->pickedObject->removeTag(HardCodedTags::PICKED_OBJECT);
-                        }
-                        this->pickedObject = currentObject;
-                        this->pickedObject->addTag(HardCodedTags::PICKED_OBJECT);
+                if (ImGui::IsItemClicked()) {
+                    if(this->pickedObject != nullptr ) {
+                        this->pickedObject->removeTag(HardCodedTags::PICKED_OBJECT);
                     }
+                    this->pickedObject = currentObject;
+                    this->pickedObject->addTag(HardCodedTags::PICKED_OBJECT);
                 }
             }
         }
@@ -2313,18 +2265,41 @@ void Editor::buildTreeFromAllGameObjects() {
 
     //player
     if(world->physicalPlayer == nullptr) {
-        world->physicalPlayer = new PhysicalPlayer(1, world->options, world->cursor, world->startingPlayer.position, world->startingPlayer.orientation, world->startingPlayer.attachedModel);// 1 is reserved for physical player
+        world->physicalPlayer = new PhysicalPlayer(world->options, world->cursor, world->startingPlayer.position, world->startingPlayer.orientation, 0);
     }
-    bool isOpen = ImGui::TreeNodeEx(world->physicalPlayer->getName().c_str(), nodeFlags |
-                                                               ((world->physicalPlayer->getWorldObjectID() ==
+    Player* startingPlayerObject = world->getStartingPlayer();
+    std::vector<uint32_t> playerChildParentage;
+    if(!parentageList.empty()) {
+        ImGui::SetNextItemOpen(parentageList[0] == startingPlayerObject->getWorldObjectID());
+        playerChildParentage.assign(parentageList.begin() + 1, parentageList.end());
+    }
+    bool isOpen = ImGui::TreeNodeEx(startingPlayerObject->getName().c_str(), nodeFlags |
+                                                               ((startingPlayerObject->getWorldObjectID() ==
                                                                  this->pickedObjectID) ? ImGuiTreeNodeFlags_Selected
                                                                                  : 0));
     if (ImGui::IsItemClicked()) {
-        this->pickedObject = world->physicalPlayer;
+        this->pickedObject = startingPlayerObject;
     }
     if(isOpen) {
-        if(world->startingPlayer.attachedModel != nullptr) {
-            createObjectTreeRecursive(world->startingPlayer.attachedModel, this->pickedObjectID, nodeFlags, leafFlags, parentageList, filterText, filteredVisibleIDs);
+        for(Attachable* child : startingPlayerObject->getChildren()) {
+            GameObject* childObject = dynamic_cast<GameObject*>(child);
+            if(childObject == nullptr || (hasFilter && filteredVisibleIDs.count(childObject->getWorldObjectID()) == 0)) {
+                continue;
+            }
+            if(child->hasChildren()) {
+                createObjectTreeRecursive(child, this->pickedObjectID, nodeFlags, leafFlags, playerChildParentage, filterText, filteredVisibleIDs);
+            } else {
+                bool isChildSelected = childObject->getWorldObjectID() == this->pickedObjectID;
+                ImGui::TreeNodeEx((childObject->getName() + "##PlayerChild" + std::to_string(childObject->getWorldObjectID())).c_str(),
+                                  leafFlags | (isChildSelected ? ImGuiTreeNodeFlags_Selected : 0));
+                if(ImGui::IsItemClicked()) {
+                    if(this->pickedObject != nullptr) {
+                        this->pickedObject->removeTag(HardCodedTags::PICKED_OBJECT);
+                    }
+                    this->pickedObject = childObject;
+                    this->pickedObject->addTag(HardCodedTags::PICKED_OBJECT);
+                }
+            }
         }
         if(world->activeCameraRig != nullptr) {
             bool rigSelected = world->activeCameraRig->getWorldObjectID() == this->pickedObjectID;
@@ -2347,13 +2322,13 @@ void Editor::buildTreeFromAllGameObjects() {
     ImGui::EndChild();
 }
 
-void Editor::createObjectTreeRecursive(PhysicalRenderable *physicalRenderable, uint32_t pickedObjectID,
+void Editor::createObjectTreeRecursive(Attachable *attachable, uint32_t pickedObjectID,
                                       ImGuiTreeNodeFlags nodeFlags, ImGuiTreeNodeFlags leafFlags,
                                       std::vector<uint32_t> parentage,
                                       const std::string& filterText,
                                       const std::unordered_set<uint32_t>& filteredVisibleIDs) {
-    GameObject* gameObjectOfSame = dynamic_cast<GameObject*>(physicalRenderable);
-    if(physicalRenderable == nullptr || gameObjectOfSame == nullptr) {
+    GameObject* gameObjectOfSame = dynamic_cast<GameObject*>(attachable);
+    if(attachable == nullptr || gameObjectOfSame == nullptr) {
         return;
     }
     bool hasFilter = !filterText.empty();
@@ -2380,7 +2355,7 @@ void Editor::createObjectTreeRecursive(PhysicalRenderable *physicalRenderable, u
         this->pickedObject->addTag(HardCodedTags::PICKED_OBJECT);
     }
     if(isNodeOpen){
-       for (auto iterator = physicalRenderable->getChildren().begin(); iterator != physicalRenderable->getChildren().end(); ++iterator) {
+       for (auto iterator = attachable->getChildren().begin(); iterator != attachable->getChildren().end(); ++iterator) {
            GameObject* currentObject = dynamic_cast<GameObject*>(*iterator);
            if(currentObject != nullptr) {
                if((*iterator)->hasChildren()) {
@@ -2391,7 +2366,7 @@ void Editor::createObjectTreeRecursive(PhysicalRenderable *physicalRenderable, u
                    if(!parentage.empty()) {
                        parentage.erase(parentage.begin());
                    }
-                   createObjectTreeRecursive(static_cast<ModelGroup *>(currentObject), pickedObjectID, nodeFlags,
+                   createObjectTreeRecursive(*iterator, pickedObjectID, nodeFlags,
                                              leafFlags, parentage, filterText, filteredVisibleIDs);
                } else {
                    if(hasFilter && filteredVisibleIDs.count(currentObject->getWorldObjectID()) == 0) {

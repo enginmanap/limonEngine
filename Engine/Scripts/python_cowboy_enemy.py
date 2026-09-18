@@ -67,6 +67,7 @@ class PythonCowboyEnemy(ActorInterface):
         self.route_to_request = []
         self.route_get_time = 0
         self.route_requested = False
+        self.simulation_active = False
 
         self.last_setup_time = 0
         self.last_shoot_time = 0
@@ -137,6 +138,16 @@ class PythonCowboyEnemy(ActorInterface):
                     self.transition_to_idle(information)
             else:
                 self._run_state_machine(information, is_player_visible)
+
+            # idle or finished death animation means no need to simulate
+            should_simulate = (self.current_state not in (State.IDLE, State.SCRIPTED)
+                               and not (self.current_state == State.DEAD and self.current_animation_finished))
+            self._update_simulation_active(should_simulate)
+
+    def _update_simulation_active(self, should_simulate) -> None:
+        if should_simulate != self.simulation_active:
+            self.limon_api.set_physics_simulation_active(self.model_id, should_simulate)
+            self.simulation_active = should_simulate
 
     def _run_state_machine(self, information, is_player_visible) -> None:
         state = self.current_state

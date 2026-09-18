@@ -16,25 +16,29 @@ class PythonPlayerExtension(PlayerExtensionInterface):
     def __init__(self, limon_api):
         super().__init__(limon_api)
         self._limon_api = limon_api
-        self.playerAttachedModelID = 0  # engine ids start from 1, get_player_attached_model returns 0 for none
+        self.playerAttachedBodyID = 0  # 0 means not set
         self.playerAttachedPistolId = 0
         self.muzzle_flash_duration = 500
+        # we don't use index, as they might change. We use ID
+        self._parameters = [
+            GenericParameter(request_type=RequestParameterType.MODEL, description="Body", value_type=ValueType.LONG, value=0, is_set=False),
+            GenericParameter(request_type=RequestParameterType.MODEL, description="Pistol", value_type=ValueType.LONG, value=0, is_set=False),
+        ]
 
-        try:
-            print("Initializing PythonPlayerExtension")
-            self.playerAttachedModelID = self._limon_api.get_player_attached_model()
-            print(f"Player model ID: {self.playerAttachedModelID}")
+    def get_parameters(self) -> List[GenericParameter]:
+        return self._parameters
 
-            if self.playerAttachedModelID != 0:
-                children = self._limon_api.get_model_children(self.playerAttachedModelID)
-                if children and len(children) > 0:
-                    self.playerAttachedPistolId = children[0]
-                    print(f"Pistol ID: {self.playerAttachedPistolId}")
+    def set_parameters(self, parameters: List[GenericParameter]) -> None:
+        self._parameters = parameters
+        self.playerAttachedBodyID = self._read_model_parameter("Body")
+        self.playerAttachedPistolId = self._read_model_parameter("Pistol")
 
-        except Exception as e:
-            print(f"Error in PythonPlayerExtension.__init__: {str(e)}")
-            import traceback
-            traceback.print_exc()
+    def _read_model_parameter(self, description: str) -> int:
+        for parameter in self._parameters:
+            if parameter.description == description and parameter.is_set:
+                return int(parameter.value)
+        print(f"PythonPlayerExtension: {description} model is not set, pick it in the player properties.")
+        return 0
 
 
     def process_input(self, input_states, player_info, time: int) -> None:
@@ -46,7 +50,7 @@ class PythonPlayerExtension(PlayerExtensionInterface):
             player_info: Information about the player
             time: Current time in milliseconds
         """
-        if self.playerAttachedModelID == 0 or self.playerAttachedPistolId == 0:
+        if self.playerAttachedBodyID == 0 or self.playerAttachedPistolId == 0:
             return
         try:
             soundOffset = limon.Vec4()
@@ -56,8 +60,8 @@ class PythonPlayerExtension(PlayerExtensionInterface):
             if input_states.get_input_events(limon.InputActions.MOUSE_BUTTON_LEFT) and input_states.get_input_status(limon.InputActions.MOUSE_BUTTON_LEFT):
                 self._limon_api.log(limon.LogSubsystem.INPUT, limon.LogLevel.INFO, "player shoot")
                 self._limon_api.play_sound("./Data/Sounds/EasyFPS/shot.wav", soundOffset, False, False)
-                self._limon_api.set_model_animation(self.playerAttachedModelID, "Shooting|", False)
-                self._limon_api.set_model_animation_speed(self.playerAttachedModelID, 1.5)
+                self._limon_api.set_model_animation(self.playerAttachedBodyID, "Shooting|", False)
+                self._limon_api.set_model_animation_speed(self.playerAttachedBodyID, 1.5)
                 muzzleFlashOffset = limon.Vec4(0.010, 0.173, 0.844, 0.0)
                 scale = limon.Vec4(0.25,0.25,0.25, 0.0)
                 direction = limon.Vec4(0,1,0,0)
@@ -84,8 +88,8 @@ class PythonPlayerExtension(PlayerExtensionInterface):
                 )
                 # Add muzzle flash light at player position
                 light_position = limon.Vec4(0.0, 2.0, 0.0, 0.0)
-                if self.playerAttachedModelID != 0:
-                    transform = self._limon_api.get_object_transformation(self.playerAttachedModelID)
+                if self.playerAttachedBodyID != 0:
+                    transform = self._limon_api.get_object_transformation(self.playerAttachedBodyID)
                     if transform and len(transform) > 0:
                         pos = transform[0].value
                         light_position = limon.Vec4(pos[0], pos[1], pos[2], 0.0)

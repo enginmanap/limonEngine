@@ -28,6 +28,9 @@ class HumanEnemy: public ActorInterface {
     std::vector<glm::vec3> routeToRequest;
     uint32_t routeGetTime = 0;
     bool routeRequested = false;
+    bool simulationActive = false;
+
+    void updateSimulationActive(bool shouldSimulate);
 
 public:
     HumanEnemy(uint32_t id, LimonAPI *limonAPI) : ActorInterface(id, limonAPI) {

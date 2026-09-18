@@ -104,23 +104,6 @@ bool WorldSaver::saveWorld(const std::string& mapName, const World* world) {
         APISerializer::serializeParameterRequest(world->startingPlayer.parameters[i], mapDocument, playerExtensionParameters, i);
     }
     currentElement->InsertEndChild(playerExtensionParameters);
-
-    tinyxml2::XMLElement *playerAttachment = mapDocument.NewElement("Attachment");
-    if(world->startingPlayer.attachedModel != nullptr) {
-        if(world->physicalPlayer != nullptr) {
-            glm::vec3 attachmentPositionBackup = world->startingPlayer.attachedModel->getTransformation()->getTranslate();
-            world->startingPlayer.attachedModel->getTransformation()->setTranslate(
-                    world->physicalPlayer->getAttachedModelOffset());
-            world->startingPlayer.attachedModel->fillObjects(mapDocument, playerAttachment);
-            world->startingPlayer.attachedModel->getTransformation()->setTranslate(attachmentPositionBackup);
-        } else {
-            //if physical player doesn't exists, but attached model does. This should not happen now, but this line is here as future proofing.
-            world->startingPlayer.attachedModel->fillObjects(mapDocument, playerAttachment);
-        }
-        // Save children as flat V2 sibling <Object> elements (each with <ParentID>).
-        saveAttachmentChildrenFlat(mapDocument, playerAttachment, world->startingPlayer.attachedModel);
-    }
-    currentElement->InsertEndChild(playerAttachment);
     rootNode->InsertEndChild(currentElement);
 
     // The world's camera rigs (each a CameraRig GameObject owning a registered CameraExtensionInterface).
@@ -238,16 +221,6 @@ bool WorldSaver::saveWorld(const std::string& mapName, const World* world) {
     }
 
     return true;
-}
-
-void WorldSaver::saveAttachmentChildrenFlat(tinyxml2::XMLDocument& document, tinyxml2::XMLElement* attachmentNode, const Model* model) {
-    for(Attachable* child : model->getChildren()) {
-        const Model* childModel = dynamic_cast<const Model*>(child);
-        if(childModel == nullptr) continue;
-        // fillObjects already writes <ParentID> and <ParentBoneID> when parentObject != nullptr
-        childModel->fillObjects(document, attachmentNode);
-        saveAttachmentChildrenFlat(document, attachmentNode, childModel);
-    }
 }
 
 bool WorldSaver::fillObjectGroups(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *objectGroupsNode, const World *world){

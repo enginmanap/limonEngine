@@ -17,17 +17,15 @@ const float PhysicalPlayer::CAPSULE_HEIGHT = 1.0f;
 const float PhysicalPlayer::CAPSULE_RADIUS = 1.0f;
 const float PhysicalPlayer::STANDING_HEIGHT = 2.0f;
 
-PhysicalPlayer::PhysicalPlayer(uint32_t worldID, OptionsUtil::Options *options, GUIRenderable *cursor, const glm::vec3 &position,
-                               const glm::vec3 &lookDirection, Model *attachedModel ) :
-        Player(cursor, options, position, lookDirection),
+PhysicalPlayer::PhysicalPlayer(OptionsUtil::Options *options, GUIRenderable *cursor, const glm::vec3 &position,
+                               const glm::vec3 &lookDirection, uint32_t worldObjectID) :
+        Player(cursor, options, position, lookDirection, worldObjectID),
         center(lookDirection),
         up(glm::vec3(0,1,0)),
         view(glm::quat(0,0,0,-1)),
         spring(nullptr),
-        worldID(worldID),
         onAir(true),
-        dirty(true),
-        attachedModel(attachedModel) {
+        dirty(true) {
     right = glm::normalize(glm::cross(center, up));
     startingHeight = position.y;
     worldSettings.debugMode = DEBUG_DISABLED;
@@ -58,10 +56,7 @@ PhysicalPlayer::PhysicalPlayer(uint32_t worldID, OptionsUtil::Options *options, 
     player->setAngularFactor(0);
     player->setFriction(1);
     player->setUserPointer(static_cast<GameObject *>(this));
-    if (attachedModel != nullptr) {
-        this->attachedModelOffset = attachedModel->getTransformation()->getTranslate();
-        setAttachedModelTransformation(attachedModel);
-    }
+    updateTransformation();
 }
 
 void PhysicalPlayer::move(moveDirections direction) {
@@ -189,10 +184,6 @@ void PhysicalPlayer::rotate(float   xPosition __attribute__((unused)), float yPo
     center.z = view.z;
     center = glm::normalize(center);
     right = glm::normalize(glm::cross(center, up));
-
-    if(attachedModel != nullptr) {
-        attachedModel->getTransformation()->setOrientation(calculatePlayerRotation());
-    }
 }
 
 void PhysicalPlayer::processPhysicsWorld(const btDiscreteDynamicsWorld *world) {
@@ -205,7 +196,6 @@ void PhysicalPlayer::processPhysicsWorld(const btDiscreteDynamicsWorld *world) {
     LimonTypes::Vec4 movementSpeed = moveSpeedOption.get();
     float jumpFactor = jumpFactorOption.get();
 
-    setAttachedModelTransformation(attachedModel);
     btVector3 linearVelocity = player->getLinearVelocity();
     if( linearVelocity.getX() > movementSpeed.x ) {
         linearVelocity.setX(movementSpeed.x);
@@ -417,35 +407,6 @@ void PhysicalPlayer::processPhysicsWorld(const btDiscreteDynamicsWorld *world) {
     }
 }
 
-glm::quat PhysicalPlayer::calculatePlayerRotation() const {
-    glm::quat temp, temp2;
-    //since we want not right, but front, it is not (right.x, right.z), instead of the following
-    float angle = atan2(right.z, -1 * right.x );
-    temp.x = 0;
-    temp.y = 1 * sin( angle/2 );
-    temp.z = 0;
-    temp.w = 1 * cos( angle/2 );
-
-    if(angle == 0) { //ATTENTION for some reason, GLM is assuming 0,0,0,1 is something else than no rotation
-        temp.w = 0;
-        temp.y = 1;
-    }
-    //this point temp has left/right axis rotation
-
-    float angle2 = acos(dot(up, center)) - 0.5f * options->PI;
-    //angle2 = angle2 / 8;
-
-    temp2.x = 1 * sin(angle2/2);
-    temp2.y = 0;
-    temp2.z = 0;
-    temp2.w = 1 * cos(angle2/2);
-
-    //at this point temp2 has up/down axis rotation
-
-    return glm::normalize(temp * temp2);
-
-}
-
 btGeneric6DofSpring2Constraint * PhysicalPlayer::getSpring(float minY) {
     spring = new btGeneric6DofSpring2Constraint(
             *player,
@@ -464,17 +425,6 @@ btGeneric6DofSpring2Constraint * PhysicalPlayer::getSpring(float minY) {
     return spring;
 }
 
-void PhysicalPlayer::setAttachedModelOffset(const glm::vec3 &attachedModelOffset) {
-    PhysicalPlayer::attachedModelOffset = attachedModelOffset;
-}
-
-void PhysicalPlayer::setAttachedModel(Model *attachedModel) {
-    PhysicalPlayer::attachedModel = attachedModel;
-    if(attachedModel != nullptr) {
-        attachedModel->getTransformation()->setOrientation(calculatePlayerRotation());
-    }
-}
-
 ImGuiResult PhysicalPlayer::addImGuiEditorElements(const ImGuiRequest &request) {
     ImGuiResult imGuiResult;
 
@@ -487,16 +437,14 @@ ImGuiResult PhysicalPlayer::addImGuiEditorElements(const ImGuiRequest &request) 
         imGuiResult.updated = true;
     }
 
-    ImGui::DragFloat3("Attached Model Offsets", glm::value_ptr(attachedModelOffset));
-
-    setAttachedModelTransformation(attachedModel);
-
     this->player->activate(true);
     this->player->setCenterOfMassTransform(btTransform(this->player->getCenterOfMassTransform().getRotation(), GLMConverter::GLMToBlt(tr.getTranslate())));
 
     //orientation update
     center = glm::normalize(tr.getOrientation() * glm::vec3(0,0,1));
     right = glm::normalize(glm::cross(center, up));
+    //in editor this player is not the current one, so play() won't move the attachments for us
+    updateTransformation();
 
     return imGuiResult;
 }
@@ -524,6 +472,9 @@ void PhysicalPlayer::interact(LimonAPI *limonAPI __attribute__((unused)), std::v
 void PhysicalPlayer::registerToPhysicalWorld(btDiscreteDynamicsWorld *world, int collisionGroup, int collisionMaskForSelf,
                                  int collisionMaskForGround, const glm::vec3 &worldAABBMin [[gnu::unused]], const glm::vec3 &worldAABBMax [[gnu::unused]]) {
     world->addRigidBody(getRigidBody(), collisionGroup, collisionMaskForSelf);
+    //hierarchy root for the overlap filter, so attachments never pair with the capsule carrying them
+    // we use User Index in bullet to filter overlaps/collision, so attachments don't collide with the player it is attached to.
+    player->setUserIndex(getWorldObjectID() != 0 ? static_cast<int>(getWorldObjectID()) : -1);
     this->collisionGroup = collisionGroup;
     this->collisionMask = collisionMaskForSelf;
     this->collisionMaskGround = collisionMaskForGround;
@@ -557,9 +508,7 @@ void PhysicalPlayer::ownControl(const glm::vec3& position, const glm::vec3 &look
     spring->setEnabled(false);//don't enable until player is not on air
     cursor->setTranslate(glm::vec2(options->getScreenWidth()/2.0f, options->getScreenHeight()/2.0f));
 
-    if(attachedModel != nullptr) {
-        attachedModel->getTransformation()->setOrientation(calculatePlayerRotation());
-    }
+    updateTransformation();
     dirty = true;
 };
 void PhysicalPlayer::setDead() {

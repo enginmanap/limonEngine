@@ -63,8 +63,7 @@ private:
     bool loadObjectGroupsFromXMLV2(tinyxml2::XMLNode *worldNode, World *world) const;
     bool loadObjectsFromXML(tinyxml2::XMLNode *objectsNode, World *world, LimonAPI *limonAPI, int saveVersion) const;
     bool loadObjectsFromXMLV2(tinyxml2::XMLNode *objectsNode, World *world, LimonAPI *limonAPI) const;
-    void loadPlayerAttachmentV1(tinyxml2::XMLElement* attachmentNode, Model*& attachedModel, LimonAPI* limonAPI) const;
-    void loadPlayerAttachmentV2(tinyxml2::XMLElement* attachmentNode, Model*& attachedModel, LimonAPI* limonAPI) const;
+    void loadPlayerAttachmentV1(tinyxml2::XMLElement* attachmentNode, World* world, LimonAPI* limonAPI) const;
     bool loadSkymap(tinyxml2::XMLNode *skymapNode, World* world) const;
     bool loadLights(tinyxml2::XMLNode *lightsNode, World* world) const;
     bool loadSounds(tinyxml2::XMLNode *worldNode, World* world) const;

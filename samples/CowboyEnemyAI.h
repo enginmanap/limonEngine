@@ -69,6 +69,7 @@ class CowboyEnemyAI : public ActorInterface {
     int shootingStage = 0;
     glm::vec3 lastWalkDirection = glm::vec3(0,0,0);
     bool routeRequested = false;
+    bool simulationActive = false;
 
     float walkSpeed = 0.065;
     float runSpeed = 0.14;
@@ -134,6 +135,8 @@ public:
     void shootPlayer(float playerDistance);
 
     void playShootSound(Gun gunType);
+
+    void updateSimulationActive(bool shouldSimulate);
 };
 
 

@@ -143,6 +143,8 @@ class ModelAsset : public Asset {
 
     void collectBoneHierarchyEdgesRecursive(const std::shared_ptr<BoneNode> &boneNode, std::vector<std::pair<uint32_t, uint32_t>> &edges) const;
 
+    int32_t findBoneIDByNameRecursive(const std::shared_ptr<BoneNode> &boneNode, const std::string &boneName) const;
+
 #ifdef CEREAL_SUPPORT
     friend class cereal::access;
 #endif
@@ -180,6 +182,10 @@ public:
      * @return if last frame of animation is played for not looped animation. Always true for looped ones.
      */
     bool getTransform(float time, bool looped, std::string animationName, std::vector<glm::mat4> &transformMatrix) const; //this method takes vector to avoid copying it
+
+    // only returns if animation finished, without calculating animation itself. Used to skip getTransform which does calculate all bone transforms.
+    // Why do we wanna skip it? because object might be out of view, so we might wanna only activate physics on object, if it is still animating
+    bool isAnimationFinished(const std::string &animationName, float time, bool looped) const;
 
     bool getTransformBlended(std::string animationName1, float time1, bool looped1,
                                          std::string animationName2, float time2, bool looped2,
@@ -258,6 +264,11 @@ public:
     This might be cached, but since it is used for rendering, and we already limit bone count to 128, there is
     virtually no chance this will become a measurable time spent.
     */
+    //-1 if this model has no bone with that name, the names are the ones the editor lists
+    int32_t getBoneIDByName(const std::string &boneName) const {
+        return findBoneIDByNameRecursive(rootNode, boneName);
+    }
+
     std::vector<std::pair<uint32_t, uint32_t>> getBoneHierarchyEdges() const {
         std::vector<std::pair<uint32_t, uint32_t>> edges;
         collectBoneHierarchyEdgesRecursive(rootNode, edges);

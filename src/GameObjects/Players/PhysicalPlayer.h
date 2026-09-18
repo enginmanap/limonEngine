@@ -38,7 +38,6 @@ class PhysicalPlayer : public Player {
     int collisionGroup;
     int collisionMask;
     int collisionMaskGround;
-    uint32_t worldID = 0;
 
     std::vector<btCollisionWorld::ClosestRayResultCallback> rayCallbackArray;
     btCollisionWorld::ClosestRayResultCallback horizontalRayCallback = btCollisionWorld::ClosestRayResultCallback(btVector3(), btVector3());
@@ -50,10 +49,6 @@ class PhysicalPlayer : public Player {
     bool dirty;
     bool skipSpringByJump = false;
     bool whileJump = false;
-    Model* attachedModel = nullptr;
-    glm::vec3 attachedModelOffset = glm::vec3(0,0,0);
-
-    glm::quat calculatePlayerRotation() const;
 
     static const float CAPSULE_HEIGHT;
     static const float CAPSULE_RADIUS;
@@ -121,7 +116,7 @@ public:
     };
 
     glm::quat getLookDirectionQuaternion() const {
-        return calculatePlayerRotation();
+        return calculateLookRotation();
     }
 
     void getWhereCameraLooks(glm::vec3 &fromPosition, glm::vec3 &lookDirection) const override {
@@ -131,8 +126,8 @@ public:
 
     void ownControl(const glm::vec3& position, const glm::vec3 &lookDirection) override;
 
-    PhysicalPlayer(uint32_t worldID, OptionsUtil::Options *options, GUIRenderable *cursor, const glm::vec3 &position,
-                   const glm::vec3 &lookDirection, Model *attachedModel = nullptr);
+    PhysicalPlayer(OptionsUtil::Options *options, GUIRenderable *cursor, const glm::vec3 &position,
+                   const glm::vec3 &lookDirection, uint32_t worldObjectID);
 
     ~PhysicalPlayer() override {
         delete player;
@@ -141,46 +136,11 @@ public:
 
     ImGuiResult addImGuiEditorElements(const ImGuiRequest &request) override;
 
-    void setAttachedModelOffset(const glm::vec3 &attachedModelOffset);
-
-    const glm::vec3& getAttachedModelOffset() const {
-        return attachedModelOffset;
-    }
-
-    void setAttachedModel(Model *attachedModel);
-
-    // this sets where the origin for offset is. Currently roughly chest height
-    glm::vec3 getAttachedModelBasePosition() const {
-        return GLMConverter::BltToGLM(getRigidBody()->getWorldTransform().getOrigin()) + glm::vec3(0, 1, 0);
-    }
-
-   void setAttachedModelTransformation(Model *attachedModel) const {
-        if(attachedModel != nullptr) {
-            attachedModel->getTransformation()->setTranslate(getAttachedModelBasePosition() + getLookDirectionQuaternion() * attachedModelOffset);
-        }
-    }
-
-    /**
-     * reverse of setAttachedModelTransformation, as translate is feed by player.
-     */
-    void adoptAttachedModelTranslateAsOffset(Model *attachedModel) {
-        if(attachedModel == nullptr) {
-            return;
-        }
-        const glm::vec3 worldTranslate = attachedModel->getTransformation()->getTranslate();
-        attachedModelOffset = glm::inverse(getLookDirectionQuaternion()) * (worldTranslate - getAttachedModelBasePosition());
-        setAttachedModelTransformation(attachedModel);
-    }
-
     void processInput(const InputStates &inputHandler, uint32_t time) override;
 
     void interact(LimonAPI *limonAPI, std::vector<LimonTypes::GenericParameter> &interactionData) override;
 
     void setDead() override;
-
-    uint32_t getWorldObjectID() const override {
-        return worldID;
-    }
 
 };
 

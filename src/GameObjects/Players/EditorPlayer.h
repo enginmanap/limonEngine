@@ -15,7 +15,7 @@ class EditorPlayer : public FreeCursorPlayer {
     void rotateFree(float xChange, float yChange);
 public:
     EditorPlayer(OptionsUtil::Options *options, GUIRenderable *cursor, const glm::vec3 &position,
-                 const glm::vec3 &lookDirection, InputHandler* inputHandler);
+                 const glm::vec3 &lookDirection, InputHandler* inputHandler, uint32_t worldObjectID);
 
     void processInput(const InputStates &inputState, uint32_t time) override;
 

@@ -8,6 +8,7 @@
 #include <string>
 #include <iostream>
 #include "../GameObject.h"
+#include "../../Attachable.h"
 #include "limonAPI/InputStates.h"
 #include "limonAPI/Options.h"
 #include "limonAPI/PlayerExtensionInterface.h"
@@ -19,7 +20,7 @@ class GUIRenderable;
 
 // A Player is NOT a camera. It owns a default PlayerCameraAttachment that it feeds its eye pose to; the
 // player camera reads that attachment (or a CameraRig override set via setCameraOverride).
-class Player : public GameObject {
+class Player : public GameObject, public Attachable {
 public:
     enum DebugModes { DEBUG_ENABLED, DEBUG_DISABLED, DEBUG_NOCHANGE };
     struct WorldSettings {
@@ -44,13 +45,17 @@ protected:
     OptionsUtil::Options::Option<double> lookAroundSpeedOption;
 
     bool dead = false;
+    //only the world's starting player owns an ID, the rest are control modes switched into
+    const uint32_t worldID;
+    Transformation transformation;
 public:
     enum moveDirections {
         NONE, FORWARD, BACKWARD, LEFT, RIGHT, LEFT_FORWARD, RIGHT_FORWARD, LEFT_BACKWARD, RIGHT_BACKWARD, UP
     };
 
-    Player(GUIRenderable *cursor, OptionsUtil::Options *options, const glm::vec3 &position [[gnu::unused]], const glm::vec3 &lookDirection [[gnu::unused]])
-            : cursor(cursor), options(options){
+    Player(GUIRenderable *cursor, OptionsUtil::Options *options, const glm::vec3 &position [[gnu::unused]], const glm::vec3 &lookDirection [[gnu::unused]],
+           uint32_t worldObjectID)
+            : cursor(cursor), options(options), worldID(worldObjectID){
 
         moveSpeedOption = options->getOption<LimonTypes::Vec4>(HASH("player_moveSpeed"));
         jumpFactorOption = options->getOption<double>(HASH("player_jumpFactor"));
@@ -125,10 +130,33 @@ public:
         }
     }
 
+    /************ Attachable **************/
+    Transformation* getTransformation() override { return &transformation; }
+    const Transformation* getTransformation() const override { return &transformation; }
+
+    //children follow this, so it has to run where the camera pose is fed or attachments lag the view
+    void updateTransformation() {
+        transformation.setTransformations(getPosition(), calculateLookRotation());
+    }
+
+    glm::quat calculateLookRotation() const {
+        const glm::vec3 up(0.0f, 1.0f, 0.0f);
+        const glm::vec3 lookDirection = glm::normalize(getLookDirection());
+        const glm::vec3 right = glm::normalize(glm::cross(lookDirection, up));
+        //since we want not right, but front, it is not (right.x, right.z)
+        float yawAngle = atan2(right.z, -1 * right.x);
+        glm::quat yaw(cos(yawAngle / 2), 0.0f, sin(yawAngle / 2), 0.0f);
+        if(yawAngle == 0) { //ATTENTION for some reason, GLM is assuming 0,0,0,1 is something else than no rotation
+            yaw = glm::quat(0.0f, 0.0f, 1.0f, 0.0f);
+        }
+        float pitchAngle = acos(glm::dot(up, lookDirection)) - 0.5f * options->PI;
+        glm::quat pitch(cos(pitchAngle / 2), sin(pitchAngle / 2), 0.0f, 0.0f);
+        return glm::normalize(yaw * pitch);
+    }
+
     /************Game Object methods **************/
     uint32_t getWorldObjectID() const override {
-        std::cerr << "Player doesn't have a world object ID, it shouldn't have been needed." << std::endl;
-        return 0;
+        return worldID;
     }
 
     ObjectTypes getTypeID() const override {

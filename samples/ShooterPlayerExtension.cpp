@@ -17,6 +17,20 @@
 
 const glm::quat ShooterPlayerExtension::direction = glm::quat(0.0f, 0.0f, 1.0f, 0.0f);//this is used to reverse hit normal
 
+void ShooterPlayerExtension::setParameters(std::vector<LimonTypes::GenericParameter> parameters) {
+    PlayerExtensionInterface::setParameters(parameters);
+    playerAttachedBodyID = 0;
+    for(const LimonTypes::GenericParameter& parameter : this->parameters) {
+        // Use model IDs, index might be different
+        if(parameter.description == "Body" && parameter.isSet) {
+            playerAttachedBodyID = static_cast<uint32_t>(parameter.value.longValue);
+        }
+    }
+    if(playerAttachedBodyID == 0) {
+        std::cerr << "ShooterPlayerExtension: Body model is not set, pick it in the player properties." << std::endl;
+    }
+}
+
 void ShooterPlayerExtension::processInput(const InputStates &inputState, const PlayerExtensionInterface::PlayerInformation &playerInformation,
                                           uint32_t time [[gnu::unused]]) {
 
@@ -24,7 +38,7 @@ void ShooterPlayerExtension::processInput(const InputStates &inputState, const P
         return;
     }
 
-    if (playerAttachedModelID == 0) {
+    if (playerAttachedBodyID == 0) {
         return;
     }
 
@@ -37,8 +51,8 @@ void ShooterPlayerExtension::processInput(const InputStates &inputState, const P
     }
 
     if(inputState.getInputEvents(InputActions::MOUSE_BUTTON_LEFT) && inputState.getInputStatus(InputActions::MOUSE_BUTTON_LEFT)) {
-        if((limonAPI->getModelAnimationName(playerAttachedModelID) != "Shoot" ||  limonAPI->getModelAnimationFinished(playerAttachedModelID))) {
-            limonAPI->setModelAnimation(playerAttachedModelID, "Shoot", false);
+        if((limonAPI->getModelAnimationName(playerAttachedBodyID) != "Shoot" ||  limonAPI->getModelAnimationFinished(playerAttachedBodyID))) {
+            limonAPI->setModelAnimation(playerAttachedBodyID, "Shoot", false);
             limonAPI->playSound("./Data/Sounds/EasyFPS/shot.wav", glm::vec3(0, 0, 0), false, false);
             glm::vec3 scale(10.0f,10.0f,10.0f);//it is actually 0,1 * 1/baseScale
             if(removeCounter!=0) {
@@ -47,7 +61,7 @@ void ShooterPlayerExtension::processInput(const InputStates &inputState, const P
             }
 
             addedElement = limonAPI->addObject("./Data/Models/Muzzle/Muzzle.obj", 0, false, muzzleFlashOffset * 100.0f, scale, direction);
-            bool isAttached = limonAPI->attachObjectToObject(addedElement, playerAttachedModelID);
+            bool isAttached = limonAPI->attachObjectToObject(addedElement, playerAttachedBodyID);
             if(!isAttached) {
                 std::cerr << "attachment failed!" << std::endl;
             }
@@ -166,21 +180,23 @@ void ShooterPlayerExtension::processInput(const InputStates &inputState, const P
         }
     } else {
         if (inputState.getInputEvents(InputActions::MOUSE_BUTTON_RIGHT)) {
-            LimonTypes::Vec4 newOffset = LimonTypes::Vec4(0.075f, 0.03f,-0.045f);
-            LimonTypes::Vec4 attachedModelOffset = limonAPI->getPlayerAttachedModelOffset();
+            glm::vec3 aimOffset(0.075f, 0.03f, -0.045f);
             if(inputState.getInputStatus(InputActions::MOUSE_BUTTON_RIGHT)) {
-                limonAPI->setModelAnimationWithBlend(playerAttachedModelID, "AimPose", true);
-
-                attachedModelOffset = attachedModelOffset + newOffset;
+                limonAPI->setModelAnimationWithBlend(playerAttachedBodyID, "AimPose", true);
             } else {
-                limonAPI->setModelAnimationWithBlend(playerAttachedModelID, "AimPose", false);
-                attachedModelOffset = attachedModelOffset - newOffset;
+                limonAPI->setModelAnimationWithBlend(playerAttachedBodyID, "AimPose", false);
+                aimOffset = -aimOffset;
             }
-            limonAPI->setPlayerAttachedModelOffset(attachedModelOffset);
+            std::vector<LimonTypes::GenericParameter> armsTransformation = limonAPI->getObjectTransformation(playerAttachedBodyID);
+            if(armsTransformation.size() == 3) {
+                const LimonTypes::Vec4& armsOrientation = armsTransformation[2].value.vectorValue;
+                glm::quat armsRotation(armsOrientation.w, armsOrientation.x, armsOrientation.y, armsOrientation.z);
+                limonAPI->addObjectTranslate(playerAttachedBodyID, LimonConverter::GLMToLimon(armsRotation * aimOffset));
+            }
         }
 
-        bool isAnimationFinished = limonAPI->getModelAnimationFinished(playerAttachedModelID);
-        std::string currentAnimationName = limonAPI->getModelAnimationName(playerAttachedModelID);
+        bool isAnimationFinished = limonAPI->getModelAnimationFinished(playerAttachedBodyID);
+        std::string currentAnimationName = limonAPI->getModelAnimationName(playerAttachedBodyID);
 
         if(!inputState.getInputStatus(InputActions::MOVE_FORWARD) &&
            !inputState.getInputStatus(InputActions::MOVE_BACKWARD) &&
@@ -197,7 +213,7 @@ void ShooterPlayerExtension::processInput(const InputStates &inputState, const P
             if((currentAnimationName == "Run" ||
                 currentAnimationName == "Walk") ||
                isAnimationFinished) {
-                limonAPI->setModelAnimationWithBlend(playerAttachedModelID, "Idle", true);
+                limonAPI->setModelAnimationWithBlend(playerAttachedBodyID, "Idle", true);
             }
         } else {
             //we are moving. Set only if we just started.
@@ -206,9 +222,9 @@ void ShooterPlayerExtension::processInput(const InputStates &inputState, const P
                 //we were already moving, handle if player run state changed
                 if (inputState.getInputEvents(InputActions::RUN)) {
                     if (inputState.getInputStatus(InputActions::RUN)) {
-                        limonAPI->setModelAnimationWithBlend(playerAttachedModelID, "Run", true);
+                        limonAPI->setModelAnimationWithBlend(playerAttachedBodyID, "Run", true);
                     } else {
-                        limonAPI->setModelAnimationWithBlend(playerAttachedModelID, "Walk", true);
+                        limonAPI->setModelAnimationWithBlend(playerAttachedBodyID, "Walk", true);
                     }
                 }
             } else {
@@ -216,9 +232,9 @@ void ShooterPlayerExtension::processInput(const InputStates &inputState, const P
                    isAnimationFinished) {
                     //we were standing or some other animation. handle accordingly
                     if (inputState.getInputStatus(InputActions::RUN)) {
-                        limonAPI->setModelAnimationWithBlend(playerAttachedModelID, "Run", true);
+                        limonAPI->setModelAnimationWithBlend(playerAttachedBodyID, "Run", true);
                     } else {
-                        limonAPI->setModelAnimationWithBlend(playerAttachedModelID, "Walk", true);
+                        limonAPI->setModelAnimationWithBlend(playerAttachedBodyID, "Walk", true);
                     }
                 }
             }

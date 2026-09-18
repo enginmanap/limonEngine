@@ -24,7 +24,7 @@ class MenuPlayer: public Player {
 public:
 
     MenuPlayer(OptionsUtil::Options* options, GUIRenderable* cursor, const glm::vec3 &position,
-               const glm::vec3 &lookDirection);
+               const glm::vec3 &lookDirection, uint32_t worldObjectID);
 
     bool isCameraDirty() const override {
         return dirty;

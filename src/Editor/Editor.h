@@ -169,13 +169,15 @@ private:
     void putPickReferencedObjectButton(GameObject* referencedObject, const std::string& label);
     std::unique_ptr<ClosestNotMeConvexResultCallback> convexSweepTestDown(Model * selectedObject) const;
     void addAnimationDefinitionToEditor();
-    void createObjectTreeRecursive(PhysicalRenderable *physicalRenderable, uint32_t pickedObjectID,
+    void createObjectTreeRecursive(Attachable *attachable, uint32_t pickedObjectID,
                                           ImGuiTreeNodeFlags nodeFlags, ImGuiTreeNodeFlags leafFlags,
                                           std::vector<uint32_t> parentage,
                                           const std::string& filterText,
                                           const std::unordered_set<uint32_t>& filteredVisibleIDs);
 
-    bool buildFilteredVisibleIDs(PhysicalRenderable *physicalRenderable, const std::string& filterText,
+    bool isListedUnderParent(const Attachable *attachable) const;
+
+    bool buildFilteredVisibleIDs(Attachable *attachable, const std::string& filterText,
                                  std::unordered_set<uint32_t>& visibleIDs);
 
     void loadNodeGraphFile(const std::string &fileName);

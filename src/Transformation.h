@@ -181,6 +181,10 @@ public:
         return parentTransform;
     }
 
+    Transformation* getParentTransform() {
+        return parentTransform;
+    }
+
     void setParentTransform(Transformation* transformation) {
         if(this->parentTransform == transformation) {
             return; //no op

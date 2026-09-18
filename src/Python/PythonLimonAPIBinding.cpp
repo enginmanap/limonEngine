@@ -38,6 +38,7 @@ void bindLimonAPI(pybind11::module_& m) {
 
     // Bind LimonAPI
     pybind11::class_<LimonAPI> limon(m, "LimonAPI");
+    m.attr("PLAYER_OBJECT_ID") = LimonAPI::PLAYER_OBJECT_ID;
 
     limon.def("get_options", &LimonAPI::getOptions, "Get engine options")
             .def("save_options", &LimonAPI::saveOptions, "Save current options to user options file; returns True on success")
@@ -137,11 +138,13 @@ void bindLimonAPI(pybind11::module_& m) {
                  "Set if an object is temporary",
                  pybind11::arg("object_id"), pybind11::arg("temporary"))
             .def("attach_object_to_object", &LimonAPI::attachObjectToObject,
-                 "Attach child to parent; child's current transform is treated as local offset relative to parent.",
-                 pybind11::arg("object_id"), pybind11::arg("object_to_attach_to_id"))
+                 "Attach child to parent; child's current transform is treated as local offset relative to parent. "
+                 "With bone_name, the child follows that bone of the parent model instead of the model itself.",
+                 pybind11::arg("object_id"), pybind11::arg("object_to_attach_to_id"), pybind11::arg("bone_name") = "")
             .def("attach_object_to_object_at_world_position", &LimonAPI::attachObjectToObjectAtWorldPosition,
-                 "Attach child to parent; child keeps its current world position (local offset is derived automatically).",
-                 pybind11::arg("object_id"), pybind11::arg("object_to_attach_to_id"))
+                 "Attach child to parent; child keeps its current world position (local offset is derived automatically). "
+                 "With bone_name, the child follows that bone of the parent model instead of the model itself.",
+                 pybind11::arg("object_id"), pybind11::arg("object_to_attach_to_id"), pybind11::arg("bone_name") = "")
             .def("detach_object_from_parent", &LimonAPI::detachObjectFromParent,
                  "Detach object from its parent; object stays at its current world position. Returns False if not found or has no parent",
                  pybind11::arg("object_id"))
@@ -156,6 +159,9 @@ void bindLimonAPI(pybind11::module_& m) {
                  pybind11::arg("name"))
             .def("get_object_parent", &LimonAPI::getObjectParent,
                  "Returns the parent object ID of the given object. Returns 0 if no parent or not found",
+                 pybind11::arg("object_id"))
+            .def("get_object_children", &LimonAPI::getObjectChildren,
+                 "Returns the IDs of the object's children, any object including the player. Empty if none or not found. Order is not stable, identify children by ID",
                  pybind11::arg("object_id"))
             .def("is_object_physics_connected", &LimonAPI::isObjectPhysicsConnected,
                  "Returns True if the object is active in the physics simulation",
@@ -217,9 +223,6 @@ void bindLimonAPI(pybind11::module_& m) {
             .def("get_object_transformation_matrix", &LimonAPI::getObjectTransformationMatrix,
                  "Get an object's transformation matrix. Prefer this over get_object_transformation for physical objects",
                  pybind11::arg("object_id"))
-            .def("get_model_children", &LimonAPI::getModelChildren,
-                 "Get child object IDs of a model",
-                 pybind11::arg("model_id"))
 
             // Sound
             .def("play_sound", &LimonAPI::playSound,
@@ -540,8 +543,8 @@ void bindLimonAPI(pybind11::module_& m) {
         );
     }, "Get player position, view direction, up and right vectors");
 
-    limon.def("get_player_attached_model", &LimonAPI::getPlayerAttachedModel,
-              "Get the ID of the model attached to the player");
+    limon.def("get_player_object_id", &LimonAPI::getPlayerObjectID,
+              "Get the world object ID of the player, the parent of player attachments");
 
     // World management
     limon.def("load_and_switch_world", &LimonAPI::loadAndSwitchWorld,

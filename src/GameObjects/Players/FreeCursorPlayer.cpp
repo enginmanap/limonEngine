@@ -141,8 +141,8 @@ void FreeCursorPlayer::getWhereCameraLooks(glm::vec3 &fromPosition, glm::vec3 &t
 }
 
 FreeCursorPlayer::FreeCursorPlayer(OptionsUtil::Options *options, GUIRenderable *cursor, const glm::vec3 &position,
-                                   const glm::vec3 &lookDirection) :
-        Player(cursor, options, position, lookDirection),
+                                   const glm::vec3 &lookDirection, uint32_t worldObjectID) :
+        Player(cursor, options, position, lookDirection, worldObjectID),
         dirty(true),
         position(position),
         center(lookDirection),

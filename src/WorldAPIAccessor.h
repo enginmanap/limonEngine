@@ -19,9 +19,15 @@
 
 class World;
 class Light;
+class Attachable;
+class Model;
+class PhysicalRenderable;
 
 class WorldAPIAccessor {
     World* world;
+
+    //an empty name means the object itself, a name that is not a bone of this parent fails the attachment
+    bool resolveAttachmentBone(const Attachable *parent, const std::string &boneName, int32_t &boneID) const;
 public:
     WorldAPIAccessor(World* world, LimonAPI* limonAPI);
 
@@ -50,9 +56,32 @@ public:
     uint32_t addModelApi(const std::string& modelFilePath, float modelWeight, bool physical,
                          const glm::vec3& position, const glm::vec3& scale, const glm::quat& orientation);
     bool setModelTemporaryAPI(uint32_t modelID, bool temporary);
-    bool attachObjectToObject(uint32_t objectID, uint32_t objectToAttachToID);
-    bool attachObjectToObjectAtWorldPosition(uint32_t objectID, uint32_t objectToAttachToID);
+    bool attachObjectToObject(uint32_t objectID, uint32_t objectToAttachToID, const std::string& boneName);
+    bool attachObjectToObjectAtWorldPosition(uint32_t objectID, uint32_t objectToAttachToID, const std::string& boneName);
     bool detachObjectFromParent(uint32_t objectID);
+
+    enum class BodyTypes { STATIC, DYNAMIC, KINEMATIC };
+    /**
+     * Every parent change goes through these two, never Attachable::attachTo/detach directly. A child's body type
+     * and its collision pairs depend on its parent, and nothing else would update them. Editor and WorldLoader
+     * come in here instead of the ID taking calls above, their bone is an index they already hold.
+     */
+    void attach(Attachable *child, Attachable *parent, int32_t boneID, bool keepWorldPosition);
+    void detach(Attachable *child);
+
+    BodyTypes calculateBodyType(const Model *model) const;
+    BodyTypes calculateParentBodyType(const Attachable *parent) const;
+    //recurses to children, a parent switching between static and moving changes theirs too
+    void applyBodyType(PhysicalRenderable *renderable);
+    //writes the user index World's HierarchyFilterCallback reads, so one hierarchy doesn't collide with itself
+    void setHierarchyRootIndex(Attachable *subtreeRoot, int rootIndex);
+    /**
+     * Changes a model's mass, reloading its collision shape (mass 0 = static triangle mesh, >0 = dynamic convex hull).
+     * Removes the body from the dynamics world, reloads the shape, then re-adds it with the collision group matching
+     * its new static/dynamic state, and drops its stale visibility-culling membership. No-op for animated models.
+     * @return false if the object does not exist, is not a Model, or is animated.
+     */
+    bool changeModelMass(uint32_t objectID, float newMass);
     bool removeObject(uint32_t objectID, const bool& removeChildren = true);
     bool removeTriggerObject(uint32_t triggerobjectID);
 
@@ -60,7 +89,9 @@ public:
     bool isInsideTrigger(uint32_t triggerID) const;
     uint32_t getObjectByName(const std::string& name) const;
     uint32_t getObjectParent(uint32_t objectID) const;
+    std::vector<uint32_t> getObjectChildren(uint32_t objectID) const;
     bool isObjectPhysicsConnected(uint32_t objectID) const;
+    bool setPhysicsSimulationActive(uint32_t objectID, bool active);
 
     // Physics
     LimonTypes::Vec4 getObjectLinearVelocity(uint32_t objectID) const;
@@ -110,10 +141,7 @@ public:
     LimonTypes::Vec4 getPlayerLookDirectionAPI();
     LimonTypes::Vec4 getCameraPositionAPI();
     LimonTypes::Vec4 getCameraLookDirectionAPI();
-    uint32_t getPlayerAttachedModelAPI();
-    std::vector<uint32_t> getModelChildrenAPI(uint32_t modelID);
-    LimonTypes::Vec4 getPlayerModelOffsetAPI();
-    bool setPlayerModelOffsetAPI(LimonTypes::Vec4 newOffset);
+    uint32_t getPlayerObjectIDAPI() const;
     void killPlayerAPI();
 
     // Animation queries / control

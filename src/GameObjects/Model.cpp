@@ -95,53 +95,65 @@ Model::Model(uint32_t objectID,  std::shared_ptr<AssetManager> assetManager, con
 }
 
 void Model::setupForTime(uint32_t time) {
+    advanceAnimationClock(time);
+    evaluatePose();
+}
+
+void Model::advanceAnimationClock(uint32_t time) {
     if(animated && !animationLastFramePlayed) {
-        //check if we need to blend
+        animationTime = animationTime + (time - lastSetupTime) * animationTimeScale;
         if(animationBlend) {
-            //we need 2 animation times, and a factor
-            animationTime = animationTime + (time - lastSetupTime) * animationTimeScale;
-
             animationTimeOld = animationTimeOld + (time - lastSetupTime) * animationTimeScale;
-
-            float blendFactor = std::min(1.0f, (float)animationTime / (float)animationBlendTime);//don't blend after 1.0
-
-            if(blendFactor == 1) {
-                animationBlend = false; // no need to blend anymore.
+            if((float)animationTime >= (float)animationBlendTime) {
+                animationBlend = false; // no need to blend anymore, the pose is fully the new animation.
             }
-            animationLastFramePlayed = modelAsset->getTransformBlended(animationNameOld, animationTimeOld, animationLoopedOld,
-                                                                       animationName, animationTime, animationLooped,
-                                                                       blendFactor, boneTransforms);
-            //std::cout << "blend " << animationNameOld << " with " << animationName << " for " << blendFactor << " factor" << std::endl;
+            //getTransformBlended reports a missing name as not finished
+            animationLastFramePlayed = !animationNameOld.empty() && !animationName.empty() &&
+                                       modelAsset->isAnimationFinished(animationNameOld, animationTimeOld, animationLoopedOld) &&
+                                       modelAsset->isAnimationFinished(animationName, animationTime, animationLooped);
         } else {
-            animationTime = animationTime + (time - lastSetupTime) * animationTimeScale;
-            animationLastFramePlayed = modelAsset->getTransform(animationTime, animationLooped, animationName, boneTransforms);
+            animationLastFramePlayed = modelAsset->isAnimationFinished(animationName, animationTime, animationLooped);
         }
-        if(disconnected) {
-            for (unsigned int i = 0; i < boneTransforms.size(); ++i) {
-                if (boneIdCompoundChildMap.find(i) != boneIdCompoundChildMap.end()) {
-                    boneTransforms[i] = centerOffsetMatrix * boneTransforms[i];
-                }
-            }
+        posePending = true;
+    }
+    lastSetupTime = time;
+}
+
+void Model::evaluatePose() {
+    // we might need to evaluate a pose, if an attachment to a bone exists. In that case, parent pose needs to be updated for child to actually follow
+    Model* boneParentModel = parentBoneID != -1 ? dynamic_cast<Model*>(parentObject) : nullptr;
+    if(boneParentModel != nullptr) {
+        boneParentModel->evaluatePose();
+    }
+    if(posePending) {
+        if(animationBlend) {
+            float blendFactor = std::min(1.0f, (float)animationTime / (float)animationBlendTime);
+            modelAsset->getTransformBlended(animationNameOld, animationTimeOld, animationLoopedOld,
+                                            animationName, animationTime, animationLooped,
+                                            blendFactor, boneTransforms);
         } else {
-            btVector3 scale;
-            if(isScaled) {
-                scale = this->getRigidBody()->getCollisionShape()->getLocalScaling();
-                this->getRigidBody()->getCollisionShape()->setLocalScaling(btVector3(1, 1, 1));
-            }
-            for (unsigned int i = 0; i < boneTransforms.size(); ++i) {
-                if (boneIdCompoundChildMap.find(i) != boneIdCompoundChildMap.end()) {
-                    btTransform transform;
-                    transform.setFromOpenGLMatrix(glm::value_ptr(boneTransforms[i]));
-                    compoundShape->updateChildTransform(boneIdCompoundChildMap[i], transform, false);
-                    boneTransforms[i] = centerOffsetMatrix * boneTransforms[i];
-                }
-            }
-            if(isScaled) {
-                this->getRigidBody()->getCollisionShape()->setLocalScaling(scale);
-            }
-            compoundShape->recalculateLocalAabb();
+            modelAsset->getTransform(animationTime, animationLooped, animationName, boneTransforms);
         }
+        //written even while disconnected, reconnecting would otherwise bring back the bind pose shape
+        btVector3 scale;
+        if(isScaled) {
+            scale = this->getRigidBody()->getCollisionShape()->getLocalScaling();
+            this->getRigidBody()->getCollisionShape()->setLocalScaling(btVector3(1, 1, 1));
+        }
+        for (unsigned int i = 0; i < boneTransforms.size(); ++i) {
+            if (boneIdCompoundChildMap.find(i) != boneIdCompoundChildMap.end()) {
+                btTransform transform;
+                transform.setFromOpenGLMatrix(glm::value_ptr(boneTransforms[i]));
+                compoundShape->updateChildTransform(boneIdCompoundChildMap[i], transform, false);
+                boneTransforms[i] = centerOffsetMatrix * boneTransforms[i];
+            }
+        }
+        if(isScaled) {
+            this->getRigidBody()->getCollisionShape()->setLocalScaling(scale);
+        }
+        compoundShape->recalculateLocalAabb();
         updateAABB();
+        posePending = false;
     }
 
     for (auto boneIterator = exposedBoneTransforms.begin();
@@ -154,8 +166,6 @@ void Model::setupForTime(uint32_t time) {
         glm::decompose(this->transformation.getWorldTransform() * boneTransforms[boneIterator->first], scale, orientation, translate, temp1, temp2);
         exposedBoneTransforms[boneIterator->first]->setTransformations(translate,scale, orientation);
     }
-
-    lastSetupTime = time;
 }
 
 void Model::renderWithProgram(std::shared_ptr<GraphicsProgram> program, uint32_t lodLevel) {
@@ -244,16 +254,18 @@ bool Model::fillObjects(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *o
         currentElement->SetText(stepOnSound->getName().c_str());
         objectElement->InsertEndChild(currentElement);
     }
-    if(!customAnimation) {
-        if(parentBoneID != -1) {
-            transformation.serializeLocal(document, objectElement);
-        } else {
-            transformation.serialize(document, objectElement);
-        }
+    // We can save world transform, or transform relative to parent. But the decision is not as simple as
+    // If parent -> local because we have 2 other concerns,
+    // 1) Model groups don't actually have a parent, they are located by averaging all objects in group
+    // 2) Custom animation is not a parent, but it changes the transform by acting as if
+    const GameObject* parentGameObject = dynamic_cast<const GameObject*>(this->parentObject);
+    const bool saveLocal = parentGameObject != nullptr && parentGameObject->getTypeID() != GameObject::ObjectTypes::MODEL_GROUP;
+    //if part of custom animation, the original position is at the transform parent. Serialize that
+    const Transformation* transformationToSave = customAnimation ? transformation.getParentTransform() : &transformation;
+    if(saveLocal) {
+        transformationToSave->serializeLocal(document, objectElement);
     } else {
-        //if part of custom animation, it means the original position is at the parent. Serialize that
-        const Transformation* parent = transformation.getParentTransform();
-        parent->serialize(document, objectElement);
+        transformationToSave->serialize(document, objectElement);
     }
 
     //Material customizations

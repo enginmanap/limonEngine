@@ -238,6 +238,17 @@ void CowboyEnemyAI::play(uint32_t time, ActorInterface::ActorInformation &inform
         }
     }
 
+    //We don't need physics activation when idling or dead. If another active object comes close, it activates automatically
+    bool shouldSimulate = currentState != State::IDLE && currentState != State::SCRIPTED &&
+                          !(currentState == State::DEAD && currentAnimationFinished);
+    updateSimulationActive(shouldSimulate);
+}
+
+void CowboyEnemyAI::updateSimulationActive(bool shouldSimulate) {
+    if(shouldSimulate != simulationActive) {
+        limonAPI->setPhysicsSimulationActive(modelID, shouldSimulate);
+        simulationActive = shouldSimulate;
+    }
 }
 
 bool CowboyEnemyAI::interaction(std::vector<LimonTypes::GenericParameter> &interactionInformation) {

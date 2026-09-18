@@ -41,12 +41,12 @@ uint32_t LimonAPI::addObject(const std::string &modelFilePath, float modelWeight
     return worldAddModel(modelFilePath, modelWeight, physical, position, scale, orientation);
 }
 
-bool LimonAPI::attachObjectToObject(uint32_t objectID, uint32_t objectToAttachToID) {
-    return worldAttachObjectToObject(objectID, objectToAttachToID);
+bool LimonAPI::attachObjectToObject(uint32_t objectID, uint32_t objectToAttachToID, const std::string &boneName) {
+    return worldAttachObjectToObject(objectID, objectToAttachToID, boneName);
 }
 
-bool LimonAPI::attachObjectToObjectAtWorldPosition(uint32_t objectID, uint32_t objectToAttachToID) {
-    return worldAttachObjectToObjectAtWorldPosition(objectID, objectToAttachToID);
+bool LimonAPI::attachObjectToObjectAtWorldPosition(uint32_t objectID, uint32_t objectToAttachToID, const std::string &boneName) {
+    return worldAttachObjectToObjectAtWorldPosition(objectID, objectToAttachToID, boneName);
 }
 
 bool LimonAPI::detachObjectFromParent(uint32_t objectID) {
@@ -90,8 +90,16 @@ uint32_t LimonAPI::getObjectParent(uint32_t objectID) {
     return worldGetObjectParent(objectID);
 }
 
+std::vector<uint32_t> LimonAPI::getObjectChildren(uint32_t objectID) {
+    return worldGetObjectChildren(objectID);
+}
+
 bool LimonAPI::isObjectPhysicsConnected(uint32_t objectID) {
     return worldIsObjectPhysicsConnected(objectID);
+}
+
+bool LimonAPI::setPhysicsSimulationActive(uint32_t objectID, bool active) {
+    return worldSetPhysicsSimulationActive(objectID, active);
 }
 
 bool LimonAPI::removeObject(uint32_t objectID, const bool &removeChildren) {
@@ -417,20 +425,8 @@ LimonTypes::Vec4 LimonAPI::getCameraLookDirection() {
     return worldGetCameraLookDirection();
 }
 
-LimonTypes::Vec4 LimonAPI::getPlayerAttachedModelOffset() {
-    return worldGetPlayerAttachmentOffset();
-}
-
-bool LimonAPI::setPlayerAttachedModelOffset(LimonTypes::Vec4 newOffset) {
-    return worldSetPlayerAttachmentOffset(newOffset);
-}
-
-uint32_t LimonAPI::getPlayerAttachedModel() {
-    return worldGetPlayerAttachedModel();
-}
-
-std::vector<uint32_t> LimonAPI::getModelChildren(uint32_t modelID) {
-    return worldGetModelChildren(modelID);
+uint32_t LimonAPI::getPlayerObjectID() {
+    return worldGetPlayerObjectID();
 }
 
 std::string LimonAPI::getModelAnimationName(uint32_t modelID) {

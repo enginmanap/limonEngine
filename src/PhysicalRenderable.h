@@ -37,11 +37,6 @@ public:
     Transformation* getTransformation() override { return &transformation; }
     const Transformation* getTransformation() const override { return &transformation; }
 
-    // Covariant override — callers that hold PhysicalRenderable* still get a typed pointer back.
-    PhysicalRenderable* getParentObject() const override {
-        return dynamic_cast<PhysicalRenderable*>(parentObject);
-    }
-
     // --- Physics ---
     btRigidBody *getRigidBody() { return rigidBody; };
 

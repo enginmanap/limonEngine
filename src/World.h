@@ -37,6 +37,7 @@ static const int SKIP_LOD_LEVEL = 9999;
 class Editor;
 class PreviewRenderer;
 class btGhostPairCallback;
+struct btOverlapFilterCallback;
 class Camera;
 class PerspectiveCamera;
 class CameraAttachment;
@@ -116,7 +117,6 @@ public:
         Types type = Types::PHYSICAL_PLAYER;
         glm::vec3 position = glm::vec3(0,0,0);
         glm::vec3 orientation = glm::vec3(0,0,-1);
-        Model* attachedModel = nullptr;
         std::string extensionName;
         std::vector<LimonTypes::GenericParameter> parameters;
 
@@ -184,8 +184,6 @@ private:
         bool originChange = false;
         uint32_t startTime;
         Transformation originalTransformation;
-        bool wasKinematic;
-        bool wasPhysical = false;
         std::unique_ptr<Sound> sound;
     };
 
@@ -237,9 +235,11 @@ private:
     uint32_t nextWorldID = 2;
     uint32_t nextRigID = 1;
     std::queue<uint32_t> unusedIDs;
-    std::unordered_map<uint32_t, PhysicalRenderable *> objects;
+    std::unordered_map<uint32_t, Model *> objects;
     std::unordered_map<uint32_t, const std::vector<glm::mat4>*> changedBoneTransforms;//These are used for uploading to GPU. Don't put in if not passing culling.
     std::unordered_set<uint32_t> tempRenderedObjectsSet;
+    std::vector<uint32_t> physicsActivatedModels;//refilled every tick, kept to reuse the allocation
+    std::unordered_set<uint32_t> physicsSimulationActiveModels;//requested through LimonAPI, usually by AI
     std::set<uint32_t> disconnectedModels;
     std::map<uint32_t, ModelGroup*> modelGroups;
 
@@ -314,7 +314,8 @@ private:
     std::vector<std::unique_ptr<CameraRig>> cameraRigs;
     CameraRig* activeCameraRig = nullptr;
 
-    Player* getStartingPlayer();
+    //the one player that owns ID 1 and carries the attachments, whichever player is current
+    Player* getStartingPlayer() const;
     void addCameraRig(std::unique_ptr<CameraRig> rig);
     CameraRig* findCameraRigByID(uint32_t id) const;
     // Make rig the active camera (nullptr deactivates, reverting to the player's own camera).
@@ -330,6 +331,7 @@ private:
     GUITextDynamic* debugOutputGUI;
 
     btGhostPairCallback *ghostPairCallback;
+    btOverlapFilterCallback *hierarchyFilterCallback;
     btDiscreteDynamicsWorld *dynamicsWorld;
     std::vector<btRigidBody *> rigidBodies;
 
@@ -360,9 +362,6 @@ private:
     std::map<uint32_t, std::shared_ptr<GPUParticleEmitter>> gpuParticleEmitters;
     std::unique_ptr<VisibilityManager> visibilityManager;
 
-    static bool addPlayerAttachmentUsedIDs(const Attachable *attachment, std::set<uint32_t> &usedIDs, uint32_t &maxID);
-    static Attachable* findAttachableInSubtree(Attachable *root, uint32_t objectID);
-
     /**
          * This method checks, if IDs assigned without any empty space, and any collision
          * and sets the totalObjectCount accordingly.
@@ -381,29 +380,21 @@ private:
 
     bool addModelToWorld(Model *xmlModel);
 
-    /**
-     * Iteration for player attachments
-     */
-    void forEachAttachmentModel(Model *attachment, const std::function<void(Model *)> &operation);
-
-    /**
-     * Base for model registry
-     */
-    void registerModelCommon(Model *model);
-
     void untrackRigidBody(const btRigidBody *body);
 
-    /**
-     * Extension of base for player attachment
-     */
-    void addPlayerAttachmentToWorld(Model *attachment);
-
-    /**
-     * reverse of player attachment
-     */
-    void returnPlayerAttachmentToWorld(Model *attachment);
-
+    //the body joins with the collision group its current static/kinematic/dynamic state demands
     bool connectModelToPhysics(Model *model);
+
+    //animated models near an awake dynamic body, their pose matters for physics this tick
+    void collectPhysicsActivatedModels();
+    void markActivatedByPair(const btCollisionObject *candidate, const btCollisionObject *other);
+    void evaluatePoseOnce(uint32_t modelID);
+    void updateAnimatedSleepStates();
+
+    //ends a custom animation but keeps the object on its real parent
+    void finishCustomAnimation(AnimationStatus *animationStatus);
+    static void composeAnimationLocal(const Transformation &originalTransformation, const Transformation &animatedTransformation,
+                                      glm::vec3 &translate, glm::vec3 &scale, glm::quat &orientation);
 
     //swaps in whatever this world overrides, for every mesh of the model
     void applyMaterialOverrides(Model *model);
@@ -427,16 +418,7 @@ private:
     const std::unordered_map<uint32_t, std::shared_ptr<Material>>& getMaterialOverrides() const {
         return materialOverrides;
     }
-    /**
-     * Changes a model's mass, reloading its collision shape (mass 0 = static triangle mesh, >0 = dynamic convex hull).
-     * Removes the body from the dynamics world, reloads the shape, then re-adds it with the collision group matching
-     * its new static/dynamic state, and drops its stale visibility-culling membership. No-op for animated models.
-     * @return false if the object does not exist, is not a Model, or is animated.
-     */
-    bool changeModelMass(uint32_t objectID, float newMass);
     bool addGUIElementToWorld(GUIRenderable *guiRenderable, GUILayer *guiLayer);
-
-    void setPlayerAttachmentsForChangedBoneTransforms(Model *playerAttachment);
 
     btVector3 extendRayToWorldAABB(glm::vec3 from, glm::vec3 direction) const;
     GameObject* rayCastClosest(glm::vec3 from, glm::vec3 direction,int collisionType, int filterMask,
@@ -478,7 +460,7 @@ private:
     std::vector<LimonTypes::GenericParameter>
     fillRouteInformation(std::vector<LimonTypes::GenericParameter> parameters) const;
     /**
-     * Clean up before an object becomes player attachment, or removal
+     * Clean up before a model is removed
      */
     void clearWorldRefsBeforeAttachment(PhysicalRenderable *attachment, bool removeChildren, bool forRemoval);
     void onModelMaterialChanged(uint32_t modelID);
@@ -504,8 +486,6 @@ private:
     void renderSky(const std::shared_ptr<GraphicsProgram>& renderProgram, const std::string &cameraName [[gnu::unused]], const std::vector<HashUtil::HashedString> &tags [[gnu::unused]]) const;
     void renderDebug(const std::shared_ptr<GraphicsProgram>& renderProgram, const std::string &cameraName [[gnu::unused]], const std::vector<HashUtil::HashedString> &tags [[gnu::unused]]) const;
 
-    void renderPlayerAttachmentsRecursiveByTag(PhysicalRenderable *attachment, uint64_t renderTag, const std::shared_ptr<GraphicsProgram> &renderProgram,
-                                               std::vector<uint32_t> &alreadyRenderedModelIds) const;
 
     std::vector<std::shared_ptr<GraphicsProgram>> getAllAvailablePrograms();
     void getAllAvailableProgramsRecursive(const AssetManager::AvailableAssetsNode * currentNode, std::vector<std::shared_ptr<GraphicsProgram>> &programs);
@@ -557,7 +537,7 @@ public:
     void uploadActiveLightsToGPU() const;
 
     void
-    removeActiveCustomAnimation(const AnimationCustom &animationToRemove, const AnimationStatus *animationStatusToRemove,
+    removeActiveCustomAnimation(const AnimationCustom &animationToRemove, AnimationStatus *animationStatusToRemove,
                                 float animationTime);
 
     static bool getNameOfTexture(void* data, int index, const char** outText) {

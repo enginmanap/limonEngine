@@ -619,6 +619,21 @@ bool ModelAsset::getTransform(float time, bool looped, std::string animationName
     return result;
 }
 
+bool ModelAsset::isAnimationFinished(const std::string &animationName, float time, bool looped) const {
+    if (animationName.empty()) {
+        return true;//bind pose
+    }
+    std::shared_ptr<const AnimationInterface> currentAnimation;
+    if (animations.find(animationName) != animations.end()) {
+        currentAnimation = animations.at(animationName);
+    } else {
+        currentAnimation = animations.begin()->second;
+    }
+    float ticksPerSecond = currentAnimation->getTicksPerSecond() != 0 ? currentAnimation->getTicksPerSecond() : TICK_PER_SECOND;
+    float requestedTime = (time / 1000.0f) * ticksPerSecond;
+    return requestedTime >= currentAnimation->getDuration() && !looped;
+}
+
 void ModelAsset::getJointTransforms(float time, bool looped, const std::string &animationName, std::vector<glm::mat4> &outJointTransforms) const {
     if (animationName.empty()) {
         glm::mat4 parentTransform(1.0f);
@@ -982,6 +997,22 @@ void ModelAsset::collectBoneHierarchyEdgesRecursive(const std::shared_ptr<BoneNo
         edges.emplace_back(boneNode->children[i]->boneID, boneNode->boneID);
         collectBoneHierarchyEdgesRecursive(boneNode->children[i], edges);
     }
+}
+
+int32_t ModelAsset::findBoneIDByNameRecursive(const std::shared_ptr<BoneNode> &boneNode, const std::string &boneName) const {
+    if (boneNode == nullptr) {
+        return -1;
+    }
+    if (boneNode->name == boneName) {
+        return static_cast<int32_t>(boneNode->boneID);
+    }
+    for (size_t i = 0; i < boneNode->children.size(); ++i) {
+        int32_t foundBoneID = findBoneIDByNameRecursive(boneNode->children[i], boneName);
+        if (foundBoneID != -1) {
+            return foundBoneID;
+        }
+    }
+    return -1;
 }
 
 bool ModelAsset::isTransparent() const {

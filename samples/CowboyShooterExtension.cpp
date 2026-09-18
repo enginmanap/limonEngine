@@ -29,11 +29,11 @@ void CowboyShooterExtension::processInput(const InputStates &inputState, const P
     }
 
     this->latestPlayerInformation = playerInformation;
-    if (playerAttachedModelID == 0) {
+    if (playerAttachedBodyID == 0) {
         return;
     }
-    currentAnimationName = limonAPI->getModelAnimationName(playerAttachedModelID);
-    currentAnimationFinished = limonAPI->getModelAnimationFinished(playerAttachedModelID);
+    currentAnimationName = limonAPI->getModelAnimationName(playerAttachedBodyID);
+    currentAnimationFinished = limonAPI->getModelAnimationFinished(playerAttachedBodyID);
 
     if(hitReaction) {
         processHitReaction();
@@ -87,7 +87,7 @@ void CowboyShooterExtension::walkingTransition() {
         break;
         case State::SHOOTING:
             if(currentAnimationFinished) {
-                limonAPI->setModelAnimationSpeed(playerAttachedModelID, 1.0);
+                limonAPI->setModelAnimationSpeed(playerAttachedBodyID, 1.0);
                 transitionValidate = true;
             } else {
                 //if shooting animation is playing, we do nothing. state transition fails.
@@ -100,10 +100,10 @@ void CowboyShooterExtension::walkingTransition() {
         currentState = State::WALKING;
         switch (currentGun) {
             case Gun::PISTOL:
-                limonAPI->setModelAnimationWithBlend(playerAttachedModelID, "Pistol Walk|", true);
+                limonAPI->setModelAnimationWithBlend(playerAttachedBodyID, "Pistol Walk|", true);
                 break;
             case Gun::RIFLE:
-                limonAPI->setModelAnimationWithBlend(playerAttachedModelID, "Rifle Walk|", true);
+                limonAPI->setModelAnimationWithBlend(playerAttachedBodyID, "Rifle Walk|", true);
                 break;
         }
     }
@@ -123,7 +123,7 @@ void CowboyShooterExtension::runningTransition() {
             break;
         case State::SHOOTING:
             if(currentAnimationFinished) {
-                limonAPI->setModelAnimationSpeed(playerAttachedModelID, 1.0);
+                limonAPI->setModelAnimationSpeed(playerAttachedBodyID, 1.0);
                 transitionValidate = true;
             } else {
                 //if shooting animation is playing, we do nothing. state transition fails.
@@ -136,10 +136,10 @@ void CowboyShooterExtension::runningTransition() {
         currentState = State::RUNNING;
         switch (currentGun) {
             case Gun::PISTOL:
-                limonAPI->setModelAnimationWithBlend(playerAttachedModelID, "Pistol Run|", true);
+                limonAPI->setModelAnimationWithBlend(playerAttachedBodyID, "Pistol Run|", true);
                 break;
             case Gun::RIFLE:
-                limonAPI->setModelAnimationWithBlend(playerAttachedModelID, "Rifle Run|", true);
+                limonAPI->setModelAnimationWithBlend(playerAttachedBodyID, "Rifle Run|", true);
                 break;
         }
     }
@@ -159,7 +159,7 @@ void CowboyShooterExtension::idleTransition() {
             break;
         case State::SHOOTING:
             if(currentAnimationFinished) {
-                limonAPI->setModelAnimationSpeed(playerAttachedModelID, 1.0);
+                limonAPI->setModelAnimationSpeed(playerAttachedBodyID, 1.0);
                 transitionValidate = true;
             } else {
                 //if shooting animation is playing, we do nothing. state transition fails.
@@ -172,10 +172,10 @@ void CowboyShooterExtension::idleTransition() {
         currentState = State::IDLE;
         switch (currentGun) {
             case Gun::PISTOL:
-                limonAPI->setModelAnimationWithBlend(playerAttachedModelID, "Pistol Idle|", true);
+                limonAPI->setModelAnimationWithBlend(playerAttachedBodyID, "Pistol Idle|", true);
                 break;
             case Gun::RIFLE:
-                limonAPI->setModelAnimationWithBlend(playerAttachedModelID, "Rifle Idle|", true);
+                limonAPI->setModelAnimationWithBlend(playerAttachedBodyID, "Rifle Idle|", true);
                 break;
         }
     }
@@ -188,14 +188,14 @@ void CowboyShooterExtension::shootingTransition() {
 
     //SHOOTING has priority over all other states, so no need to check state
     /*************** Set animation and play sound ************/
-    limonAPI->setModelAnimationSpeed(playerAttachedModelID, 1.5);
+    limonAPI->setModelAnimationSpeed(playerAttachedBodyID, 1.5);
     switch(currentGun) {
         case Gun::PISTOL:
-            limonAPI->setModelAnimationWithBlend(playerAttachedModelID, "Shooting|", false, 50);
+            limonAPI->setModelAnimationWithBlend(playerAttachedBodyID, "Shooting|", false, 50);
             limonAPI->playSound("./Data/Sounds/guns/pistol3.wav", glm::vec3(0, 0, 0), true, false);
             break;
         case Gun::RIFLE:
-            limonAPI->setModelAnimationWithBlend(playerAttachedModelID, "Shoot Rifle|", false, 50);
+            limonAPI->setModelAnimationWithBlend(playerAttachedBodyID, "Shoot Rifle|", false, 50);
             limonAPI->playSound("./Data/Sounds/guns/rifle.wav", glm::vec3(0, 0, 0), true, false);
             break;
     }

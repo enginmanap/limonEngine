@@ -25,6 +25,8 @@ void HumanEnemy::play(uint32_t time, ActorInterface::ActorInformation &informati
             limonAPI->setModelAnimationWithBlend(modelID, "death from the front|mixamo.com", false);
             dieAnimationStartTime = time;
         }
+        //we should wait until dead animation finishes
+        updateSimulationActive(!limonAPI->getModelAnimationFinished(modelID));
         return;
     }
 
@@ -134,6 +136,15 @@ void HumanEnemy::play(uint32_t time, ActorInterface::ActorInformation &informati
         if(information.isPlayerDown) {
             //std::cout << "Down." << std::endl;
         }
+    }
+    // Don't activate if idle
+    updateSimulationActive(playerPursuitStartTime != 0);
+}
+
+void HumanEnemy::updateSimulationActive(bool shouldSimulate) {
+    if(shouldSimulate != simulationActive) {
+        limonAPI->setPhysicsSimulationActive(modelID, shouldSimulate);
+        simulationActive = shouldSimulate;
     }
 }
 

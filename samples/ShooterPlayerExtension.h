@@ -11,7 +11,7 @@
 class ShooterPlayerExtension : public  PlayerExtensionInterface {
     static const glm::quat direction;
     glm::vec3 muzzleFlashOffset = glm::vec3(-0.18f,2.85f,0.5750f);
-    uint32_t playerAttachedModelID;
+    uint32_t playerAttachedBodyID = 0;
     uint32_t addedElement = 0;
 
     uint32_t removeCounter = 0;
@@ -20,8 +20,15 @@ class ShooterPlayerExtension : public  PlayerExtensionInterface {
 public:
 
     ShooterPlayerExtension(LimonAPI* limonAPI) : PlayerExtensionInterface(limonAPI) {
-        playerAttachedModelID = limonAPI->getPlayerAttachedModel();
+        LimonTypes::GenericParameter bodyParameter;
+        bodyParameter.requestType = LimonTypes::GenericParameter::RequestParameterTypes::MODEL;
+        bodyParameter.valueType = LimonTypes::GenericParameter::ValueTypes::LONG;
+        bodyParameter.description = "Body";
+        bodyParameter.isSet = false;
+        this->parameters.push_back(bodyParameter);
     }
+
+    void setParameters(std::vector<LimonTypes::GenericParameter> parameters) override;
     void removeDamageIndicator(std::vector<LimonTypes::GenericParameter> parameters);
     void processInput(const InputStates &inputState, const PlayerExtensionInterface::PlayerInformation &playerInformation,
                           uint32_t time) override;

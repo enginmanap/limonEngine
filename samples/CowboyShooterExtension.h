@@ -41,9 +41,9 @@ class CowboyShooterExtension : public  PlayerExtensionInterface {
     const glm::vec3 pistolMuzzleFlashOffset = glm::vec3(0.010f, 0.173f, 0.844f);
     const glm::vec3 rifleMuzzleFlashOffset = glm::vec3(-4.140f, 44.759f, 8.279f);
     glm::vec3 currentMuzzleFlashOffset = pistolMuzzleFlashOffset;
-    uint32_t playerAttachedModelID;
-    uint32_t playerAttachedPistolID;
-    uint32_t playerAttachedRifleID;
+    uint32_t playerAttachedBodyID = 0;
+    uint32_t playerAttachedPistolID = 0;
+    uint32_t playerAttachedRifleID = 0;
     uint32_t lastInputTime = 0;
     uint32_t hitTime = 0;
 
@@ -67,21 +67,36 @@ class CowboyShooterExtension : public  PlayerExtensionInterface {
 
     bool changeGuns();
 
+    const LimonTypes::GenericParameter* findParameter(const std::string &description) const {
+        for(const LimonTypes::GenericParameter& parameter : this->parameters) {
+            if(parameter.description == description) {
+                return &parameter;
+            }
+        }
+        return nullptr;
+    }
+
+    void addModelParameter(const std::string &description) {
+        LimonTypes::GenericParameter modelParameter;
+        modelParameter.requestType = LimonTypes::GenericParameter::RequestParameterTypes::MODEL;
+        modelParameter.valueType = LimonTypes::GenericParameter::ValueTypes::LONG;
+        modelParameter.description = description;
+        modelParameter.isSet = false;
+        this->parameters.push_back(modelParameter);
+    }
+
+    uint32_t readModelParameter(const std::string &description) const {
+        const LimonTypes::GenericParameter* modelParameter = findParameter(description);
+        if(modelParameter == nullptr || !modelParameter->isSet) {
+            std::cerr << "CowboyShooterExtension: " << description << " model is not set, pick it in the player properties." << std::endl;
+            return 0;
+        }
+        return static_cast<uint32_t>(modelParameter->value.longValue);
+    }
+
 public:
 
     CowboyShooterExtension(LimonAPI* limonAPI) : PlayerExtensionInterface(limonAPI) {
-        playerAttachedModelID = limonAPI->getPlayerAttachedModel();
-        std::vector<uint32_t > children = limonAPI->getModelChildren(playerAttachedModelID);
-        if(children.size() == 0) {
-            std::cerr << "player attachment has no child, it should have a gun!" << std::endl;
-            playerAttachedPistolID = 0;
-        } else {
-            playerAttachedPistolID = children[0];
-            if(children.size() > 1) {
-                playerAttachedRifleID = children[1];
-                currentGun = Gun::PISTOL;
-            }
-        }
         //seed the editor-configurable default parameters
         LimonTypes::GenericParameter healthParameter;
         healthParameter.requestType = LimonTypes::GenericParameter::RequestParameterTypes::FREE_NUMBER;
@@ -90,6 +105,10 @@ public:
         healthParameter.value.longValue = 100;
         healthParameter.isSet = true;//optional: editor allows saving with the default
         this->parameters.push_back(healthParameter);
+        //after Health, the editor matches saved values to parameters by index
+        addModelParameter("Body");
+        addModelParameter("Pistol");
+        addModelParameter("Rifle");
     }
 
     /**
@@ -98,9 +117,14 @@ public:
      */
     void setParameters(std::vector<LimonTypes::GenericParameter> parameters) override {
         PlayerExtensionInterface::setParameters(parameters);//keep the base parameters member in sync
-        if(!this->parameters.empty() && this->parameters[0].valueType == LimonTypes::GenericParameter::ValueTypes::LONG) {
-            this->hitPoints = static_cast<int>(this->parameters[0].value.longValue);
+        const LimonTypes::GenericParameter* healthParameter = findParameter("Health");
+        if(healthParameter != nullptr && healthParameter->valueType == LimonTypes::GenericParameter::ValueTypes::LONG) {
+            this->hitPoints = static_cast<int>(healthParameter->value.longValue);
         }
+        //by ID, child order changes across save/load
+        playerAttachedBodyID = readModelParameter("Body");
+        playerAttachedPistolID = readModelParameter("Pistol");
+        playerAttachedRifleID = readModelParameter("Rifle");
     }
 
     void removeDamageIndicator(std::vector<LimonTypes::GenericParameter> parameters);
