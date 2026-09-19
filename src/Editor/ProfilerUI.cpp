@@ -12,19 +12,26 @@
 #include "FlameGraph.h"
 
 namespace ProfilerUI {
+    static void drawOptionCheckbox(const char* label, OptionsUtil::Options::Option<bool>& option, bool currentValue) {
+        bool value = currentValue;
+        if (ImGui::Checkbox(label, &value)) {
+            option.set(value);
+        }
+    }
+
     void DrawProfilerUI(ProfilerSystem* profilerSystem) {
 #ifdef TRACY_ENABLE
         static FlameGraph profilerGraph;
         static std::vector<ProfileEvent> capturedFlameData;
 
         // Master tracing toggle — drives zone activation via ProfilerMacros.
-        ImGui::Checkbox("Enable Tracing", &ProfilerState::traceOverallFrameTime);
-        if (ProfilerState::traceOverallFrameTime) {
+        drawOptionCheckbox("Enable Tracing", ProfilerState::tracingEnabledOption, ProfilerState::isTracingEnabled());
+        if (ProfilerState::isTracingEnabled()) {
             ImGui::Indent();
-            ImGui::Checkbox("Trace Simulation",      &ProfilerState::traceSimulation);
-            ImGui::Checkbox("Trace Visibility",       &ProfilerState::traceVisibility);
-            ImGui::Checkbox("Trace Rendering (CPU)", &ProfilerState::traceRendering);
-            ImGui::Checkbox("Trace Rendering (GPU)", &ProfilerState::traceGpuRendering);
+            drawOptionCheckbox("Trace Simulation",      ProfilerState::traceSimulationOption,   ProfilerState::isTracingSimulation());
+            drawOptionCheckbox("Trace Visibility",      ProfilerState::traceVisibilityOption,   ProfilerState::isTracingVisibility());
+            drawOptionCheckbox("Trace Rendering (CPU)", ProfilerState::traceRenderingOption,    ProfilerState::isTracingRendering());
+            drawOptionCheckbox("Trace Rendering (GPU)", ProfilerState::traceGpuRenderingOption, ProfilerState::isTracingGpuRendering());
             ImGui::Unindent();
         }
 
@@ -38,15 +45,12 @@ namespace ProfilerUI {
             profilerSystem->getTracingServerOption()->set(serverEnabled);
         }
 
-        // Flame graph is active whenever the embedded server is on.
-        ProfilerState::showFlameGraph = serverEnabled;
-
         if (serverEnabled) {
 
             // ── Hierarchical stats ────────────────────────────────────────
             if (ImGui::TreeNodeEx("Frame Time", ImGuiTreeNodeFlags_DefaultOpen)) {
 
-                if (ProfilerState::traceOverallFrameTime) {
+                if (ProfilerState::isTracingEnabled()) {
                     const auto& frame_times = profilerSystem->GetFrameTimeHistory();
                     if (!frame_times.empty()) {
                         ImGui::Text("Frame -> Avg: %.3f ms  Min: %.3f ms  Max: %.3f ms  1%% Low: %.3f ms",
@@ -59,10 +63,10 @@ namespace ProfilerUI {
                     }
                 }
 
-                if (ProfilerState::traceSimulation || ProfilerState::traceVisibility || ProfilerState::traceRendering) {
+                if (ProfilerState::isTracingSimulation() || ProfilerState::isTracingVisibility() || ProfilerState::isTracingRendering()) {
                     if (ImGui::TreeNodeEx("CPU", ImGuiTreeNodeFlags_DefaultOpen)) {
 
-                        if (ProfilerState::traceSimulation) {
+                        if (ProfilerState::isTracingSimulation()) {
                             if (!profilerSystem->GetZoneTimeHistory("World::play").empty()) {
                                 ImGui::Text("Simulation -> Avg: %.3f ms  Min: %.3f ms  Max: %.3f ms  1%% Low: %.3f ms",
                                     profilerSystem->GetZoneAverageFrameTime("World::play"),
@@ -74,7 +78,7 @@ namespace ProfilerUI {
                             }
                         }
 
-                        if (ProfilerState::traceVisibility) {
+                        if (ProfilerState::isTracingVisibility()) {
                             if (!profilerSystem->GetZoneTimeHistory("VisibilityManager::update").empty()) {
                                 ImGui::Text("Visibility -> Avg: %.3f ms  Min: %.3f ms  Max: %.3f ms  1%% Low: %.3f ms",
                                     profilerSystem->GetZoneAverageFrameTime("VisibilityManager::update"),
@@ -99,7 +103,7 @@ namespace ProfilerUI {
                             }
                         }
 
-                        if (ProfilerState::traceRendering) {
+                        if (ProfilerState::isTracingRendering()) {
                             if (!profilerSystem->GetZoneTimeHistory("Render").empty()) {
                                 ImGui::Text("Render -> Avg: %.3f ms  Min: %.3f ms  Max: %.3f ms  1%% Low: %.3f ms",
                                     profilerSystem->GetZoneAverageFrameTime("Render"),
@@ -115,7 +119,7 @@ namespace ProfilerUI {
                     }
                 }
 
-                if (ProfilerState::traceGpuRendering) {
+                if (ProfilerState::isTracingGpuRendering()) {
                     const auto gpuZoneNames = profilerSystem->GetGpuZoneNames();
                     if (gpuZoneNames.empty()) {
                         ImGui::Text("Collecting GPU render data...");
@@ -139,21 +143,21 @@ namespace ProfilerUI {
             }
 
             // ── Plots ─────────────────────────────────────────────────────
-            if (ProfilerState::traceOverallFrameTime) {
+            if (ProfilerState::isTracingEnabled()) {
                 const auto& frame_times = profilerSystem->GetFrameTimeHistory();
                 if (!frame_times.empty()) {
                     const float frameMax = profilerSystem->GetMaxFrameTime() * 1.2f;
                     ImGui::PlotLines("Frame Times (ms)", frame_times.data(), static_cast<int>(frame_times.size()), 0, nullptr, 0.0f, frameMax, ImVec2(0, 80));
                 }
             }
-            if (ProfilerState::traceRendering) {
+            if (ProfilerState::isTracingRendering()) {
                 const auto& render_times = profilerSystem->GetZoneTimeHistory("Render");
                 if (!render_times.empty()) {
                     const float renderMax = profilerSystem->GetZoneMaxFrameTime("Render") * 1.2f;
                     ImGui::PlotLines("Render Times (ms)", render_times.data(), static_cast<int>(render_times.size()), 0, nullptr, 0.0f, renderMax, ImVec2(0, 80));
                 }
             }
-            if (ProfilerState::traceVisibility) {
+            if (ProfilerState::isTracingVisibility()) {
                 static const char* visStatNames[] = {
                     "Frustum Culled", "LOD Skipped", "Occluders", "Occluded", "Total Visible"
                 };

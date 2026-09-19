@@ -4,6 +4,8 @@
 #include <mutex>
 #include <array>
 #include <unordered_map>
+#include <map>
+#include <limits>
 #include <chrono>
 #include "Profiler/ProfilerState.h"
 #include "limonAPI/Options.h"
@@ -35,9 +37,12 @@ int16_t ProfilerSystem::getSourceLocation(const char* name) {
 #endif
 
 ProfilerSystem::ProfilerSystem(const OptionsUtil::Options* options) {
-#ifdef TRACY_ENABLE
-    enableTracingServerOption = options->getOption<bool>(HASH("profiler_enableServer"));
-#endif
+    ProfilerState::tracingEnabledOption    = options->getOption<bool>(HASH("profiler_enableTracing"));
+    ProfilerState::traceSimulationOption   = options->getOption<bool>(HASH("profiler_traceSimulation"));
+    ProfilerState::traceVisibilityOption   = options->getOption<bool>(HASH("profiler_traceVisibility"));
+    ProfilerState::traceRenderingOption    = options->getOption<bool>(HASH("profiler_traceRendering"));
+    ProfilerState::traceGpuRenderingOption = options->getOption<bool>(HASH("profiler_traceGpuRendering"));
+    ProfilerState::enableServerOption      = options->getOption<bool>(HASH("profiler_enableServer"));
 }
 
 ProfilerSystem::~ProfilerSystem() {
@@ -59,7 +64,7 @@ tracy::Worker* ProfilerSystem::GetWorker() const {
 
 OptionsUtil::Options::Option<bool>* ProfilerSystem::getTracingServerOption() {
 #ifdef TRACY_ENABLE
-    return &enableTracingServerOption;
+    return &ProfilerState::enableServerOption;
 #else
     return nullptr;
 #endif
@@ -78,8 +83,8 @@ void ProfilerSystem::Update() {
 
 #ifdef TRACY_ENABLE
 
-    if (enableTracingServerOption.getOrDefault(true)) {
-        if (ProfilerState::traceOverallFrameTime || ProfilerState::traceSimulation || ProfilerState::traceVisibility || ProfilerState::traceRendering || ProfilerState::traceGpuRendering) {
+    if (ProfilerState::isEmbeddedServerEnabled()) {
+        if (ProfilerState::isTracingEnabled()) {
             if (!tracyWorker) {
                 tracyWorker = new tracy::Worker("127.0.0.1", 8086, -1);
             }
@@ -154,13 +159,13 @@ void ProfilerSystem::Update() {
         }
     };
 
-    collectZoneTime("Frame", ProfilerState::traceOverallFrameTime);
-    collectZoneTime("World::play", ProfilerState::traceSimulation);
-    collectZoneTime("VisibilityManager::update", ProfilerState::traceVisibility);
-    collectPerThreadZoneTime("fillVisibleObjectPerCamera", ProfilerState::traceVisibility);
-    collectZoneTime("Render", ProfilerState::traceRendering);
-    collectAllGpuZones(ProfilerState::traceGpuRendering);
-    collectAllUserPlots(ProfilerState::traceVisibility);
+    collectZoneTime("Frame", ProfilerState::isTracingEnabled());
+    collectZoneTime("World::play", ProfilerState::isTracingSimulation());
+    collectZoneTime("VisibilityManager::update", ProfilerState::isTracingVisibility());
+    collectPerThreadZoneTime("fillVisibleObjectPerCamera", ProfilerState::isTracingVisibility());
+    collectZoneTime("Render", ProfilerState::isTracingRendering());
+    collectAllGpuZones(ProfilerState::isTracingGpuRendering());
+    collectAllUserPlots(ProfilerState::isTracingVisibility());
 #endif
 }
 
@@ -580,11 +585,17 @@ std::vector<ProfileEvent> ProfilerSystem::GetLastFrameEvents(FrameFilter filter)
         return maxLocal + 1;
     };
 
-    // Collect GPU zones. Tracy calibrates GpuStart/GpuEnd to the same CPU nanosecond epoch,
-    // so (GpuStart - frameStart) gives the correct frame-relative position directly.
     // Forward scan with continue (not break) because GPU zones are sorted by GpuStart,
     // not CpuStart, so a break on CpuStart would terminate early.
+    std::map<uint16_t, std::vector<ProfileEvent>> gpuBands;
     if (tracyWorker->AreGpuSourceLocationZonesReady()) {
+        struct RawGpuZone {
+            const char* name;
+            int64_t cpuStart;
+            int64_t gpuStart;
+            int64_t gpuEnd;
+        };
+        std::unordered_map<uint16_t, std::vector<RawGpuZone>> rawZonesPerBand;
         const auto& gpuSrcLocs = tracyWorker->GetGpuSourceLocationZones();
         for (const auto& [srcLocId, gpuZoneData] : gpuSrcLocs) {
             const auto& srcLoc   = tracyWorker->GetSourceLocation(srcLocId);
@@ -598,22 +609,48 @@ std::vector<ProfileEvent> ProfilerSystem::GetLastFrameEvents(FrameFilter filter)
                 if (ev->GpuEnd() <= ev->GpuStart()) continue;
 
                 const uint16_t gpuKey = static_cast<uint16_t>(0x8000u + ztd.Thread());
+                rawZonesPerBand[gpuKey].push_back({zoneName, ev->CpuStart(), ev->GpuStart(), ev->GpuEnd()});
+            }
+        }
+        // Tracy calibrates the GL clock once at context creation, so GpuStart carries an unknown offset from the CPU clock.
+        // The GPU can't start a zone before the CPU submitted it, so the smallest offset satisfying every zone is our estimate.
+        for (std::pair<const uint16_t, std::vector<RawGpuZone>>& band : rawZonesPerBand) {
+            int64_t gpuToCpuOffset = std::numeric_limits<int64_t>::min();
+            for (const RawGpuZone& rawZone : band.second) {
+                gpuToCpuOffset = std::max(gpuToCpuOffset, rawZone.cpuStart - rawZone.gpuStart);
+            }
+            std::sort(band.second.begin(), band.second.end(), [](const RawGpuZone& a, const RawGpuZone& b) {
+                if (a.gpuStart != b.gpuStart) return a.gpuStart < b.gpuStart;
+                return (a.gpuEnd - a.gpuStart) > (b.gpuEnd - b.gpuStart);
+            });
+            std::vector<int64_t> gpuEndStack;
+            for (const RawGpuZone& rawZone : band.second) {
+                while (!gpuEndStack.empty() && gpuEndStack.back() <= rawZone.gpuStart) {
+                    gpuEndStack.pop_back();
+                }
                 ProfileEvent gev;
-                gev.Name      = zoneName;
-                // GpuStart calibration has a systematic epoch offset vs the CPU clock,
-                // so use CpuStart (a real CPU timestamp) for position and GPU duration for width.
-                const double gpuDuration = (ev->GpuEnd() - ev->GpuStart()) * nsToMs;
-                gev.StartTime = (ev->CpuStart() - frameStart) * nsToMs;
-                gev.EndTime   = gev.StartTime + gpuDuration;
-                gev.Depth     = 0;
-                perThread[gpuKey].push_back(std::move(gev));
+                gev.Name      = rawZone.name;
+                gev.StartTime = (rawZone.gpuStart + gpuToCpuOffset - frameStart) * nsToMs;
+                gev.EndTime   = (rawZone.gpuEnd   + gpuToCpuOffset - frameStart) * nsToMs;
+                gev.Depth     = static_cast<uint32_t>(gpuEndStack.size());//local, band base is added below
+                gpuEndStack.push_back(rawZone.gpuEnd);
+                gpuBands[band.first].push_back(std::move(gev));
             }
         }
     }
 
-    // Main thread first, then other CPU threads, then GPU context bands (keys ≥ 0x8000).
+    // GPU bands on top like the Tracy server, then the main thread, then other CPU threads.
     // Each band is separated by one blank row.
     uint32_t base = 0;
+    for (std::pair<const uint16_t, std::vector<ProfileEvent>>& band : gpuBands) {
+        uint32_t bandRows = 0;
+        for (ProfileEvent& gpuEvent : band.second) {
+            bandRows = std::max(bandRows, gpuEvent.Depth + 1);
+            gpuEvent.Depth += base;
+            result.push_back(std::move(gpuEvent));
+        }
+        base += bandRows + 1;
+    }
     if (auto it = perThread.find(mainThread); it != perThread.end()) {
         base += assignDepths(it->second, base);
         for (auto& e : it->second) result.push_back(std::move(e));

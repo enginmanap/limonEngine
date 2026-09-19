@@ -1870,24 +1870,34 @@ void OpenGLESGraphics::initGpuContext() {
 
 void OpenGLESGraphics::beginGpuProfileZone(const char* name, bool active) {
 #ifdef TRACY_ENABLE
-    if (!active || !isTimerQuerySupported) return;
-    currentGpuZone = new tracy::GpuCtxScope(TracyLine,
-                                            TracyFile, strlen(TracyFile),
-                                            TracyFunction, strlen(TracyFunction),
-                                            name, strlen(name),
-                                            active);
+    if (!active || !isTimerQuerySupported) {
+        gpuZoneStack.push_back(nullptr);
+        return;
+    }
+    gpuZoneStack.push_back(new tracy::GpuCtxScope(TracyLine,
+                                                  TracyFile, strlen(TracyFile),
+                                                  TracyFunction, strlen(TracyFunction),
+                                                  name, strlen(name),
+                                                  active));
 #endif
 }
 
 void OpenGLESGraphics::endGpuProfileZone() {
 #ifdef TRACY_ENABLE
-    delete currentGpuZone;
-    currentGpuZone = nullptr;
+    if (gpuZoneStack.empty()) {
+        std::cerr << "GPU profile zone ended without a matching begin." << std::endl;
+        return;
+    }
+    delete gpuZoneStack.back();
+    gpuZoneStack.pop_back();
 #endif
 }
 
 void OpenGLESGraphics::collectGpuProfilingData() {
 #ifdef TRACY_ENABLE
+    if (!gpuZoneStack.empty()) {
+        std::cerr << gpuZoneStack.size() << " GPU profile zones still open at frame end, a begin has no matching end." << std::endl;
+    }
     if (isTimerQuerySupported) {
         TracyGpuCollect;
     }

@@ -201,7 +201,7 @@ private:
     GLint maxTextureImageUnits;
     OpenglState *state;
 #ifdef TRACY_ENABLE
-    tracy::GpuCtxScope* currentGpuZone = nullptr;
+    std::vector<tracy::GpuCtxScope*> gpuZoneStack;//inactive begins push nullptr, so toggling tracing mid-frame can't unbalance the ends
 #endif
 
     unsigned int screenHeight, screenWidth;
@@ -248,6 +248,10 @@ public:
 
     const RenderStats& getFrameStats() const override {
         return lastFrameStats;
+    }
+
+    const RenderStats& getCurrentFrameStats() const override {
+        return frameStats;
     }
 
     void reportBatch(uint32_t materialSwitchCount) override {

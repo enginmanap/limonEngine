@@ -430,7 +430,7 @@ void VisibilityManager::fillVisibleObjectPerCamera(const VisibilityRequest* visi
 #ifdef TRACY_ENABLE
     // If we did not process, because camera is not changed, values are partial, don't update.
     const bool fullProcessingPass = !skipOcclusionCulling || visibilityRequest->cameraIsDirty;
-    if (ProfilerState::traceVisibility && fullProcessingPass) {
+    if (ProfilerState::isTracingVisibility() && fullProcessingPass) {
         // Tracy requires static names for plot. Multithreading requires thread_local
         thread_local static std::unordered_map<std::string, std::string> plotNameCache;
         // Directional light has single name, multiple cameras, because of CSM

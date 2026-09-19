@@ -112,6 +112,8 @@ public:
     };
 
     virtual const RenderStats& getFrameStats() const = 0;
+    //counters of the frame still being rendered, only meaningful as the difference of two reads
+    virtual const RenderStats& getCurrentFrameStats() const = 0;
     //batches and material switches are decided above the backend, RenderList reports them here
     virtual void reportBatch(uint32_t materialSwitchCount) = 0;
     explicit GraphicsInterface(OptionsUtil::Options *options [[gnu::unused]]) {};
@@ -238,6 +240,7 @@ public:
     // GPU profiling hooks. Default no-ops so backends without GPU profiling support compile unchanged.
     // Vulkan backend should override these using TracyVkZone / vkCmdWriteTimestamp internally.
     virtual void initGpuContext() {}
+    //zones nest, every begin needs exactly one end even when active is false
     virtual void beginGpuProfileZone(const char* name [[gnu::unused]], bool active [[gnu::unused]]) {}
     virtual void endGpuProfileZone() {}
     virtual void collectGpuProfilingData() {}

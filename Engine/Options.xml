@@ -285,6 +285,46 @@
     </Parameter>
     <Parameter>
         <RequestType>FreeText</RequestType>
+        <Description>profiler_enableTracing</Description>
+        <Value>True</Value>
+        <valueType>Boolean</valueType>
+        <IsSet>True</IsSet>
+        <Index>54</Index>
+    </Parameter>
+    <Parameter>
+        <RequestType>FreeText</RequestType>
+        <Description>profiler_traceSimulation</Description>
+        <Value>True</Value>
+        <valueType>Boolean</valueType>
+        <IsSet>True</IsSet>
+        <Index>55</Index>
+    </Parameter>
+    <Parameter>
+        <RequestType>FreeText</RequestType>
+        <Description>profiler_traceVisibility</Description>
+        <Value>True</Value>
+        <valueType>Boolean</valueType>
+        <IsSet>True</IsSet>
+        <Index>56</Index>
+    </Parameter>
+    <Parameter>
+        <RequestType>FreeText</RequestType>
+        <Description>profiler_traceRendering</Description>
+        <Value>True</Value>
+        <valueType>Boolean</valueType>
+        <IsSet>True</IsSet>
+        <Index>57</Index>
+    </Parameter>
+    <Parameter>
+        <RequestType>FreeText</RequestType>
+        <Description>profiler_traceGpuRendering</Description>
+        <Value>True</Value>
+        <valueType>Boolean</valueType>
+        <IsSet>True</IsSet>
+        <Index>58</Index>
+    </Parameter>
+    <Parameter>
+        <RequestType>FreeText</RequestType>
         <Description>render_backend</Description>
         <Value>libOpenGLGraphicsBackend</Value>
         <valueType>String</valueType>

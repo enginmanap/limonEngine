@@ -111,12 +111,20 @@ public:
         exit(1);
     }
 
-    const std::map<GraphicsInterface::FrameBufferAttachPoints, std::shared_ptr<Texture>>& getOutputs() {
+    const std::map<GraphicsInterface::FrameBufferAttachPoints, std::shared_ptr<Texture>>& getOutputs() const {
         return outputs;
     }
 
-    const std::map<uint32_t, std::shared_ptr<Texture>>& getInputs() {
+    const std::map<uint32_t, std::shared_ptr<Texture>>& getInputs() const {
         return inputs;
+    }
+
+    uint32_t getRenderWidth() const {
+        return renderWidth;
+    }
+
+    uint32_t getRenderHeight() const {
+        return renderHeight;
     }
 
     uint32_t getLastPresetIndex() const {

@@ -293,7 +293,10 @@ void GameEngine::run() {
         while (ticksToRun > 0 && !worldQuit) {
             --ticksToRun;
             //we don't need to check for input, if we won't update world state
-            inputHandler->mapInput();
+            {
+                PROFILE_OVERALL("Input");
+                inputHandler->mapInput();
+            }
 
             currentWorld->play(*inputHandler, (uint32_t)SDL2Helper::getTicks());
             ++ticksRun;
@@ -301,6 +304,7 @@ void GameEngine::run() {
 
             bool worldSwitched = false;
             if (pendingSwitch.type != PendingSwitchType::NONE && !worldQuit) {
+                PROFILE_OVERALL("WorldSwitch");
                 applyPendingSwitch();
                 worldSwitched = true;
             }
@@ -342,8 +346,11 @@ void GameEngine::run() {
             PROFILE_RENDERING("swap");
             sdlHelper->swap();
         }
-        graphicsWrapper->collectGpuProfilingData();
-        if (profilerSystem) profilerSystem->Update();
+        {
+            PROFILE_OVERALL("ProfilerUpdate");
+            graphicsWrapper->collectGpuProfilingData();
+            if (profilerSystem) profilerSystem->Update();
+        }
         PROFILE_FRAME();
     }
 }

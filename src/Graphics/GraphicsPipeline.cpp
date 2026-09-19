@@ -7,7 +7,7 @@
 #include "GraphicsProgramLoader.h"
 #include "limonAPI/Graphics/RenderMethodInterface.h"
 #include "Utils/StringUtils.hpp"
-#include "../Profiler/ProfilerState.h"
+#include "../Profiler/RenderProfileScope.h"
 #include "../GamePlay/APISerializer.h"
 
 //Static initialize of the vector
@@ -29,15 +29,12 @@ void GraphicsPipeline::initialize() {
 void GraphicsPipeline::render() {
     for(auto& stageInfo:pipelineStages) {
         lastStageInfo = &stageInfo;
-        if (graphicsWrapper) {
-            graphicsWrapper->beginGpuProfileZone(stageInfo.stage->getFoundName().c_str(), ProfilerState::traceGpuRendering);
-        }
+        RenderProfileScope stageScope(graphicsWrapper, *stageInfo.stage, stageInfo.clear);
         stageInfo.stage->activate(stageInfo.clear);
         for(auto& renderMethod:stageInfo.renderMethods) {
+            RenderProfileScope methodScope(graphicsWrapper, renderMethod.getName(), renderMethod.getGlslProgram().get(),
+                                           renderMethod.getCameraName(), renderMethod.getRenderTags());
             renderMethod();
-        }
-        if (graphicsWrapper) {
-            graphicsWrapper->endGpuProfileZone();
         }
     }
 }

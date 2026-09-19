@@ -74,8 +74,6 @@ private:
     std::unordered_map<std::string, size_t> plotCount;
     std::unordered_map<std::string, size_t> plotLastProcessed;
 
-    OptionsUtil::Options::Option<bool> enableTracingServerOption;
-
     int16_t getSourceLocation(const char* name);
     void collectPerThreadZoneTime(const std::string& zoneName, bool enabled);
     void collectAllGpuZones(bool enabled);

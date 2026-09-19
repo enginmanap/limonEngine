@@ -39,6 +39,7 @@
 #include "Occlusion/RenderList.h"
 #include "Occlusion/VisibilityManager.h"
 #include "Profiler/ProfilerMacros.h"
+#include "Profiler/RenderProfileScope.h"
 #include "Utils/FrameTimeTracker.h"
 
 const std::map<World::PlayerInfo::Types, std::string> World::PlayerInfo::typeNames =
@@ -254,7 +255,10 @@ void World::applyAudioVolumeOptionsIfChanged() {
   */
  void World::play(InputHandler &inputHandler, uint32_t wallTimeMs) {
     PROFILE_SIMULATION("World::play");
-     editor->update(inputHandler);
+     {
+         PROFILE_SIMULATION("World::play::PlayerInput");
+         editor->update(inputHandler);
+     }
 
      this->wallTime = wallTimeMs;
      //Seperating physics step and visibility, because physics is used by camera, and camera is used by visibility
@@ -266,33 +270,50 @@ void World::applyAudioVolumeOptionsIfChanged() {
              PROFILE_SIMULATION("World::play::PhysicsSimulation");
              dynamicsWorld->stepSimulation(1.0f / TICK_PER_SECOND, 0);
          }
-         currentPlayer->processPhysicsWorld(dynamicsWorld);
+         {
+             PROFILE_SIMULATION("World::play::PlayerPhysicsSync");
+             currentPlayer->processPhysicsWorld(dynamicsWorld);
+         }
      }
-     checkAndRunTimedEvents();//no londer requires to be in world simulation, because it checks both game time and wall time now
+     {
+         PROFILE_SIMULATION("World::play::TimedEvents");
+         checkAndRunTimedEvents();//no londer requires to be in world simulation, because it checks both game time and wall time now
+     }
      applyAudioVolumeOptionsIfChanged();
      currentPlayer->updateTransformation();
      // Feed the active rig its attachment-target transform, or sync the player's default camera if no rig is active.
      feedActiveCameraRig();
      if(currentPlayersSettings->worldSimulation) {
-         for(const auto& emitter:emitters) {
-             emitter.second->setupForTime(gameTime);
-         }
+         {
+             PROFILE_SIMULATION("World::play::Emitters");
+             for(const auto& emitter:emitters) {
+                 emitter.second->setupForTime(gameTime);
+             }
 
-         for(const auto& gpuEmitter:gpuParticleEmitters) {
-             gpuEmitter.second->setupForTime(gameTime);
+             for(const auto& gpuEmitter:gpuParticleEmitters) {
+                 gpuEmitter.second->setupForTime(gameTime);
+             }
          }
-
-         for(auto trigger = triggers.begin(); trigger != triggers.end(); trigger++) {
-             trigger->second->checkAndTrigger();
+         {
+             PROFILE_SIMULATION("World::play::Triggers");
+             for(auto trigger = triggers.begin(); trigger != triggers.end(); trigger++) {
+                 trigger->second->checkAndTrigger();
+             }
          }
          animateCustomAnimations();
-         for(auto actorIt = actors.begin(); actorIt != actors.end(); ++actorIt) {
-             ActorInterface::ActorInformation information = fillActorInformation(actorIt->second);
-             actorIt->second->play(gameTime, information);
+         {
+             PROFILE_SIMULATION("World::play::Actors");//self time here is the actor code, fillActorInformation has its own zone
+             for(auto actorIt = actors.begin(); actorIt != actors.end(); ++actorIt) {
+                 ActorInterface::ActorInformation information = fillActorInformation(actorIt->second);
+                 actorIt->second->play(gameTime, information);
+             }
          }
-         for (auto it = objects.begin(); it != objects.end(); ++it) {
-             if (!it->second->getRigidBody()->isStaticOrKinematicObject() && it->second->getRigidBody()->isActive()) {
-                 it->second->updateTransformFromPhysics();
+         {
+             PROFILE_SIMULATION("World::play::TransformFromPhysics");
+             for (auto it = objects.begin(); it != objects.end(); ++it) {
+                 if (!it->second->getRigidBody()->isStaticOrKinematicObject() && it->second->getRigidBody()->isActive()) {
+                     it->second->updateTransformFromPhysics();
+                 }
              }
          }
 
@@ -327,42 +348,48 @@ void World::applyAudioVolumeOptionsIfChanged() {
                  evaluatePoseOnce(modelID);
              }
          }
-         updateAnimatedSleepStates();
+         {
+             PROFILE_SIMULATION("World::play::AnimatedSleepStates");
+             updateAnimatedSleepStates();
+         }
      }
 
-    for (unsigned int i = 0; i < guiLayers.size(); ++i) {
-        guiLayers[i]->setupForTime(gameTime);
-    }
-    debugOutputGUI->setupForTime(wallTime);//logger is global, so no game time for it
-
-    if(currentPlayersSettings->menuInteraction) {
-        GUIButton* button = nullptr;
-
-        GameObject* pointed = this->getPointedObject(COLLIDE_EVERYTHING, ~(COLLIDE_NOTHING));
-        if(pointed != nullptr && pointed->getTypeID() == GameObject::ObjectTypes::GUI_BUTTON) {
-            button = dynamic_cast<GUIButton*>(pointed);
+    {
+        PROFILE_SIMULATION("World::play::GUI");//menu interaction raycasts every tick
+        for (unsigned int i = 0; i < guiLayers.size(); ++i) {
+            guiLayers[i]->setupForTime(gameTime);
         }
+        debugOutputGUI->setupForTime(wallTime);//logger is global, so no game time for it
 
-        if(button != nullptr) {
-            if(this->hoveringButton != button) {
+        if(currentPlayersSettings->menuInteraction) {
+            GUIButton* button = nullptr;
+
+            GameObject* pointed = this->getPointedObject(COLLIDE_EVERYTHING, ~(COLLIDE_NOTHING));
+            if(pointed != nullptr && pointed->getTypeID() == GameObject::ObjectTypes::GUI_BUTTON) {
+                button = dynamic_cast<GUIButton*>(pointed);
+            }
+
+            if(button != nullptr) {
+                if(this->hoveringButton != button) {
+                    if(this->hoveringButton != nullptr) {
+                        this->hoveringButton->setOnHover(false);
+                        this->hoveringButton->setOnClick(false);
+                    }
+                }
+                this->hoveringButton = button;
+                button->setOnHover(true);
+                if(inputHandler.getInputStates().getInputStatus(InputActions::MOUSE_BUTTON_LEFT)) {
+                    if(inputHandler.getInputStates().getInputEvents(InputActions::MOUSE_BUTTON_LEFT)) {
+                        button->setOnClick(true);
+                    }
+                } else {
+                    button->setOnClick(false);
+                }
+            } else {
                 if(this->hoveringButton != nullptr) {
                     this->hoveringButton->setOnHover(false);
                     this->hoveringButton->setOnClick(false);
                 }
-            }
-            this->hoveringButton = button;
-            button->setOnHover(true);
-            if(inputHandler.getInputStates().getInputStatus(InputActions::MOUSE_BUTTON_LEFT)) {
-                if(inputHandler.getInputStates().getInputEvents(InputActions::MOUSE_BUTTON_LEFT)) {
-                    button->setOnClick(true);
-                }
-            } else {
-                button->setOnClick(false);
-            }
-        } else {
-            if(this->hoveringButton != nullptr) {
-                this->hoveringButton->setOnHover(false);
-                this->hoveringButton->setOnClick(false);
             }
         }
     }
@@ -856,6 +883,7 @@ void World::renderLight(unsigned int lightIndex, unsigned int renderLayer, const
     Light* selectedLight = activeLights[lightIndex];
     Camera* lightCamera = selectedLight->getCameras()[renderLayer];
     if (lightCamera->isDirty()) {
+        RenderProfileScope lightScope(graphicsWrapper, *selectedLight, renderLayer);
         //TODO: following check fixes the point lights, but it is a hack, meaning we need to handle this properly.
          if (lightCamera->getType() == Camera::CameraTypes::ORTHOGRAPHIC) {
         graphicsWrapper->clearDepthBuffer();

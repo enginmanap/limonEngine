@@ -1774,26 +1774,37 @@ void OpenGLGraphics::initGpuContext() {
 
 void OpenGLGraphics::beginGpuProfileZone(const char* name [[gnu::unused]], bool active [[gnu::unused]]) {
 #if defined(TRACY_ENABLE) && !defined(__APPLE__) //Apple doesn't expose ARB_timer_query, tracy depends on it.
-    if (!active) return;
-    currentGpuZone = new tracy::GpuCtxScope(TracyLine,
-                                            TracyFile, strlen(TracyFile),
-                                            TracyFunction, strlen(TracyFunction),
-                                            name, strlen(name),
-                                            active);
+    if (!active) {
+        gpuZoneStack.push_back(nullptr);
+        return;
+    }
+    gpuZoneStack.push_back(new tracy::GpuCtxScope(TracyLine,
+                                                  TracyFile, strlen(TracyFile),
+                                                  TracyFunction, strlen(TracyFunction),
+                                                  name, strlen(name),
+                                                  active));
 #endif
 }
 
 void OpenGLGraphics::endGpuProfileZone() {
 #if defined(TRACY_ENABLE) && !defined(__APPLE__)
-    if (!currentGpuZone) return;
+    if (gpuZoneStack.empty()) {
+        std::cerr << "GPU profile zone ended without a matching begin." << std::endl;
+        return;
+    }
     // Destructor records glQueryCounter at end
-    delete currentGpuZone;
-    currentGpuZone = nullptr;
+    delete gpuZoneStack.back();
+    gpuZoneStack.pop_back();
 #endif
 }
 
 void OpenGLGraphics::collectGpuProfilingData() {
 #ifdef TRACY_ENABLE
+#ifndef __APPLE__
+    if (!gpuZoneStack.empty()) {
+        std::cerr << gpuZoneStack.size() << " GPU profile zones still open at frame end, a begin has no matching end." << std::endl;
+    }
+#endif
     // Drain completed GL timestamp queries into the Tracy ring buffer.
     // Must be called every frame to prevent the 64K query pool overflowing.
     TracyGpuCollect;
