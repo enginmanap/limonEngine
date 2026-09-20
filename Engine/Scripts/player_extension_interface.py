@@ -39,7 +39,9 @@ class PlayerExtensionInterface:
 
     def get_parameters(self) -> List[GenericParameter]:
         """
-        Configurable parameters of this extension, shown in the editor and saved with the world.
+        Default parameters of this extension, shown in the editor and saved with the world. Called only
+        once, when the extension is created; the engine keeps the edited or loaded values and hands them
+        to set_parameters().
         Returns:
             List[GenericParameter]: List of extension parameters
         """

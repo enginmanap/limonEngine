@@ -261,7 +261,7 @@ void bindLimonAPI(pybind11::module_& m) {
                  "Get the current music asset path, or empty string if none")
             .def("is_music_playing", &LimonAPI::isMusicPlaying,
                  "Returns True if level music is currently playing")
-            // Channel volumes are global options ("soundVolumeMaster/Music/SFX/Speech"); change them
+            // Channel volumes are global options ("audio_volumeMaster/Music/SFX/Speech/Ambient"); change them
             // via get_options()/save_options() and the engine applies them to the audio mixer.
 
             // AI / Player Interaction

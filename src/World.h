@@ -313,6 +313,7 @@ private:
     // Many camera rigs may exist in a world; at most one is active (drives the player camera) at a time.
     std::vector<std::unique_ptr<CameraRig>> cameraRigs;
     CameraRig* activeCameraRig = nullptr;
+    CameraAttachment::ProjectionParameters activeProjectionParameters;//what the player camera was built with, prepareFrame compares against it
 
     //the one player that owns ID 1 and carries the attachments, whichever player is current
     Player* getStartingPlayer() const;

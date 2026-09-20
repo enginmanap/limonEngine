@@ -19,6 +19,15 @@ class TriggerInterface:
         """
         return []
 
+    def set_parameters(self, parameters: List[GenericParameter]) -> None:
+        """
+        Called with the edited or loaded values, so they can be applied to your own members.
+        The engine keeps the values itself and passes them to run() too, so this is optional.
+        Args:
+            parameters: List of GenericParameter objects with values
+        """
+        pass
+
     def run(self, parameters: List[GenericParameter]) -> bool:
         """
         Execute the trigger's action.

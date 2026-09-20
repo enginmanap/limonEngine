@@ -9,13 +9,15 @@ class InformationRequest:
 
     Inside play(), set route_to_player (or route_to_custom_position together with custom_position)
     to ask the engine to compute a navigation route. The engine consumes the request once per tick,
-    exactly like the C++ getRequests() path.
+    exactly like the C++ getRequests() path. maximum_route_node_count is the search depth; unlike the
+    flags it is not cleared, so set it once.
     """
 
     def __init__(self):
         self.route_to_player = False
         self.route_to_custom_position = False
         self.custom_position = Vec3(0.0, 0.0, 0.0)
+        self.maximum_route_node_count = 128
 
 
 class ActorInterface:
@@ -87,7 +89,8 @@ class ActorInterface:
 
     def get_parameters(self) -> List[GenericParameter]:
         """
-        Get the current parameters of this actor.
+        Returns the default parameters of this actor. Called only once, when the actor is created;
+        the engine keeps the edited or loaded values and hands them to set_parameters().
         Returns:
             List[GenericParameter]: List of actor parameters
         """

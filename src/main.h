@@ -66,6 +66,8 @@ class GameEngine {
 
     void applyPendingSwitch();
 
+    void unloadWorldForReload(const std::string &worldFile);
+
 public:
     GameEngine();
     ~GameEngine();

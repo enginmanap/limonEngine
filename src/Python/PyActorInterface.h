@@ -15,7 +15,15 @@ private:
 
 public:
     PyActorInterface(uint32_t id, LimonAPI* api, pybind11::object obj)
-        : ActorInterface(id, api), pyObj(obj) {}
+        : ActorInterface(id, api), pyObj(obj) {
+        // seeded once, same as C++ extensions; the base getParameters() returns this member from here on
+        try {
+            this->parameters = GenericParameterConverter::convertPythonListToGenericParameterVector(pyObj.attr("get_parameters")());
+        } catch (const std::exception& e) {
+            std::cerr << "[PyActor] get_parameters: " << e.what() << std::endl;
+            PyErr_Clear();
+        }
+    }
 
     ~PyActorInterface() override {
         pyObj = pybind11::none();
@@ -50,6 +58,7 @@ public:
             pybind11::object request = pyObj.attr("information_request");
             this->informationRequest.routeToPlayer = request.attr("route_to_player").cast<bool>();
             this->informationRequest.routeToCustomPosition = request.attr("route_to_custom_position").cast<bool>();
+            this->informationRequest.maximumRouteNodeCount = request.attr("maximum_route_node_count").cast<uint32_t>();
             if (this->informationRequest.routeToCustomPosition) {
                 pybind11::object customPosition = request.attr("custom_position");
                 this->informationRequest.customPosition = glm::vec3(
@@ -78,18 +87,8 @@ public:
         }
     }
 
-    std::vector<LimonTypes::GenericParameter> getParameters() const noexcept override {
-        try {
-            forwardModelID();
-            return GenericParameterConverter::convertPythonListToGenericParameterVector(pyObj.attr("get_parameters")());
-        } catch (const std::exception& e) {
-            std::cerr << "[PyActor] get_parameters: " << e.what() << std::endl;
-            PyErr_Clear();
-            return {};
-        }
-    }
-
     void setParameters(std::vector<LimonTypes::GenericParameter> parameters) noexcept override {
+        this->parameters = parameters;
         try {
             forwardModelID();
             pyObj.attr("set_parameters")(GenericParameterConverter::convertGenericParameterVectorToObjects(parameters));

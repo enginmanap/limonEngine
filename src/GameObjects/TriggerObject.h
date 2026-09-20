@@ -29,7 +29,6 @@ class TriggerObject : public GameObject, public Attachable {
 
     bool triggered = false;
     bool inside = false;
-    bool enterSuccessful = false;
     bool enabledAny = false;
     bool enabledFirstTrigger = false;
     bool enabledEnterTrigger = false;
@@ -135,21 +134,18 @@ public:
 
             if(!triggered && firstEnterTriggerCode != nullptr) {
                 this->triggered = true;
-                  enterSuccessful = this->firstEnterTriggerCode->run(firstEnterTriggerCode->getParameters());
-                return enterSuccessful;
+                  return this->firstEnterTriggerCode->run(firstEnterTriggerCode->getParameters());
             }
             //now we are sure first is not called, either because it was before, or because
             // first is not defined, both cases, call enter trigger
             if(enterTriggerCode != nullptr) {
                 this->triggered = true;
-                enterSuccessful = this->enterTriggerCode->run(enterTriggerCode->getParameters());
-                return enterSuccessful;
+                return this->enterTriggerCode->run(enterTriggerCode->getParameters());
             }
         } else {
-            inside = false; //assume it was true
-            if(this->exitTriggerCode != nullptr) {
-                if(enterSuccessful) {
-                    enterSuccessful = false;
+            if (inside) {
+                inside = false;
+                if(this->exitTriggerCode != nullptr) {
                     return this->exitTriggerCode->run(exitTriggerCode->getParameters());
                 }
             }

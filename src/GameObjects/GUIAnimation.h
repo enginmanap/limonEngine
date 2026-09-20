@@ -15,7 +15,6 @@ class GUIAnimation : public GUIImageBase, public GameObject{
     std::string name;
     uint32_t creationTime;
     uint32_t imagePerFrame;
-    uint32_t duration;
     bool looped;
     std::vector<GUILayer*> parentLayers;
     //ATTENTION don't use imageFile variable use this one

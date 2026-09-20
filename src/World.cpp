@@ -397,6 +397,10 @@ void World::applyAudioVolumeOptionsIfChanged() {
 
 void World::prepareFrame() {
     PROFILE_VISIBILITY("World::prepareFrame");
+    CameraAttachment* playerCameraAttachment = currentPlayer->getCameraAttachment();
+    if (playerCameraAttachment->isDirty() && playerCameraAttachment->getProjection() != activeProjectionParameters) {
+        activateCameraAttachment(playerCameraAttachment);//otherwise fov/zoom/type changes are only seen when a rig is activated
+    }
     if(playerCamera->isDirty()) {
         // update player camera and upload the ubo
         const glm::mat4& cameraMatrix = playerCamera->getCameraMatrix();
@@ -635,7 +639,7 @@ ActorInterface::ActorInformation World::fillActorInformation(ActorInterface *act
             parameters.push_back(LimonTypes::GenericParameter());
             parameters[1].value.longValues[0] = 2;
             parameters[1].value.longValues[1] = actor->getWorldID();
-            parameters[1].value.longValues[2] = information.maximumRouteDistance;
+            parameters[1].value.longValues[2] = requests.maximumRouteNodeCount;
             parameters.push_back(LimonTypes::GenericParameter());
             parameters[2].value.vectorValue = GLMConverter::GLMToLimon(destination);
 
@@ -1319,7 +1323,8 @@ void World::feedActiveCameraRig() {
 }
 
 void World::activateCameraAttachment(CameraAttachment* attachment) {
-    const bool wantOrthographic = (attachment->getProjection().type == CameraAttachment::ProjectionType::ORTHOGRAPHIC);
+    activeProjectionParameters = attachment->getProjection();
+    const bool wantOrthographic = (activeProjectionParameters.type == CameraAttachment::ProjectionType::ORTHOGRAPHIC);
     const bool haveOrthographic = (playerCamera != nullptr && playerCamera->getType() == Camera::CameraTypes::ORTHOGRAPHIC);
 
     if (playerCamera != nullptr && wantOrthographic == haveOrthographic) {

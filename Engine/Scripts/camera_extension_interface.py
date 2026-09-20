@@ -25,7 +25,8 @@ class CameraExtensionInterface:
         raise NotImplementedError("get_name() not implemented")
 
     def get_parameters(self) -> List[GenericParameter]:
-        """Configurable parameters of this rig - drives editor editing and world-file round-trip."""
+        """Default parameters of this rig. Called only once, when the rig is created; the engine keeps the
+        edited or loaded values and hands them to set_parameters()."""
         return []
 
     def set_parameters(self, parameters: List[GenericParameter]) -> None:

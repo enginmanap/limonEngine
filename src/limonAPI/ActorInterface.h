@@ -23,6 +23,7 @@ public:
         bool routeToPlayer = false;
         bool routeToCustomPosition = false;
         glm::vec3 customPosition;
+        uint32_t maximumRouteNodeCount = 128;//search depth, not cleared by getRequests() so it stays set
     };
 
 private:
@@ -54,7 +55,6 @@ public:
         float playerDistance = 0.0f;
         float cosineBetweenPlayerForSide;
         std::vector<glm::vec3> routeToRequest;
-        uint32_t maximumRouteDistance = 128;//in node count
         bool routeFound = false;
         bool routeReady = false;
         bool playerDead = false;

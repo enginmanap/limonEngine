@@ -103,6 +103,9 @@ void bindInterfaces(pybind11::module_& m) {
             .def_readonly_static("LOOK_X",              &InputActionsExport::LOOK_X)
             .def_readonly_static("LOOK_Y",              &InputActionsExport::LOOK_Y);
 
+    // same function inputBindings.xml action names go through, so custom actions match
+    m.def("hash", &::hash, pybind11::arg("text"));
+
     pybind11::enum_<InputStates::ActiveDevice>(m, "ActiveDevice")
             .value("KEYBOARD_MOUSE", InputStates::ActiveDevice::KEYBOARD_MOUSE)
             .value("GAMEPAD",        InputStates::ActiveDevice::GAMEPAD);
@@ -206,7 +209,6 @@ void bindInterfaces(pybind11::module_& m) {
             .def_readwrite("player_distance", &ActorInterface::ActorInformation::playerDistance)
             .def_readwrite("cosine_between_player_for_side", &ActorInterface::ActorInformation::cosineBetweenPlayerForSide)
             .def_readwrite("route_to_request", &ActorInterface::ActorInformation::routeToRequest)
-            .def_readwrite("maximum_route_distance", &ActorInterface::ActorInformation::maximumRouteDistance)
             .def_readwrite("route_found", &ActorInterface::ActorInformation::routeFound)
             .def_readwrite("route_ready", &ActorInterface::ActorInformation::routeReady)
             .def_readwrite("player_dead", &ActorInterface::ActorInformation::playerDead);

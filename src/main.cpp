@@ -14,6 +14,7 @@
 #include "Profiler/ProfilerMacros.h"
 #include "Utils/FrameTimeTracker.h"
 #include "Material.h"
+#include <algorithm>
 
 const std::string PROGRAM_NAME = "LimonEngine";
 const std::string RELEASE_FILE = "./Data/Release.xml";
@@ -31,6 +32,9 @@ bool GameEngine::loadAndChangeWorld(const std::string &worldFile) {
     if(currentWorld != nullptr) {
         currentWorld->setupForPauseOrStop();//We have to make sure occlusion threads stopped before interpreter change
     }
+    if(loadedWorlds.find(worldFile) != loadedWorlds.end()) {
+        unloadWorldForReload(worldFile);//must go before createWorldInterpreter, which would destroy the old interpreter under the same name
+    }
 #ifdef PYTHON_DEBUGGING
     std::cout << "[ScriptManager] calling create world Interpreter for " << worldFile << std::endl;
 #endif
@@ -40,16 +44,11 @@ bool GameEngine::loadAndChangeWorld(const std::string &worldFile) {
     World* newWorld = worldLoader->loadWorld(worldFile, apiInstance);
     
     if(newWorld == nullptr) {
-        delete apiInstance;
-        scriptManager->removeWorldInterpreter(worldFile);
-        return false;
+        //the current world is already paused and its interpreter deactivated, carrying on would hide a broken world
+        std::cerr << "World load for file " << worldFile << " failed. Exiting." << std::endl;
+        exit(-1);
     }
 
-    if(loadedWorlds.find(worldFile) != loadedWorlds.end()) {
-        delete loadedWorlds[worldFile].second;
-        delete loadedWorlds[worldFile].first;
-        scriptManager->removeWorldInterpreter(worldFile);
-    }
     currentWorld = newWorld;
     scriptManager->setActiveSubInterpreter(worldFile);
     currentWorld->setupForPlay(*inputHandler);
@@ -60,6 +59,20 @@ bool GameEngine::loadAndChangeWorld(const std::string &worldFile) {
     simulationStartWallTime = SDL2Helper::getTicks();
     ticksRun = 0;
     return true;
+}
+
+void GameEngine::unloadWorldForReload(const std::string &worldFile) {
+    World* oldWorld = loadedWorlds[worldFile].first;
+    LimonAPI* oldAPI = loadedWorlds[worldFile].second;
+    scriptManager->setActiveSubInterpreter(worldFile);//its Python objects must be released inside their own interpreter
+    delete oldAPI;
+    delete oldWorld;
+    scriptManager->removeWorldInterpreter(worldFile);
+    loadedWorlds.erase(worldFile);
+    returnWorldStack.erase(std::remove(returnWorldStack.begin(), returnWorldStack.end(), oldWorld), returnWorldStack.end());
+    if(currentWorld == oldWorld) {
+        currentWorld = nullptr;
+    }
 }
 
 void GameEngine::renderLoadingImage() const {
@@ -97,9 +110,9 @@ bool GameEngine::returnOrLoadMap(const std::string &worldFile) {
         scriptManager->setActiveSubInterpreter(worldFile);
         World* newWorld = worldLoader->loadWorld(worldFile, apiInstance);
         if(newWorld == nullptr) {
-            delete apiInstance;
-            scriptManager->removeWorldInterpreter(worldFile);
-            return false;
+            //the current world is already paused and its interpreter deactivated, carrying on would hide a broken world
+            std::cerr << "World load for file " << worldFile << " failed. Exiting." << std::endl;
+            exit(-1);
         }
 
         currentWorld = newWorld;
@@ -123,20 +136,13 @@ bool GameEngine::LoadNewAndRemoveCurrent(const std::string &worldFile) {
     LimonAPI* tempAPI = loadedWorlds[temp->getName()].second;
     std::string oldWorldName = temp->getName();
     loadedWorlds.erase(oldWorldName);
-    if(returnOrLoadMap(worldFile)) {
-        //means success
-        returnWorldStack.clear();
-        returnWorldStack.push_back(currentWorld);
-        // Defer deletion: if this was called from inside World::play() (e.g. via a
-        // trigger), deleting temp here would free the object whose play() is still
-        // on the stack.  Queue it for deletion after play() returns instead.
-        pendingWorldDeletes.push_back({oldWorldName, temp, tempAPI});
-    } else {
-        //means new world load failed
-        std::cerr << "World load for file " << worldFile << " failed" << std::endl;
-        loadedWorlds[oldWorldName].first = temp;
-        loadedWorlds[oldWorldName].second = tempAPI;
-    }
+    returnOrLoadMap(worldFile);//exits on failure
+    returnWorldStack.clear();
+    returnWorldStack.push_back(currentWorld);
+    // Defer deletion: if this was called from inside World::play() (e.g. via a
+    // trigger), deleting temp here would free the object whose play() is still
+    // on the stack.  Queue it for deletion after play() returns instead.
+    pendingWorldDeletes.push_back({oldWorldName, temp, tempAPI});
     simulationStartWallTime = SDL2Helper::getTicks();
     ticksRun = 0;
     return true;

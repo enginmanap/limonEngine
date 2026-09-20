@@ -17,7 +17,15 @@ private:
 
 public:
     PyPlayerExtensionInterface(LimonAPI* api, pybind11::object obj)
-        : PlayerExtensionInterface(api), pyObj(obj) {}
+        : PlayerExtensionInterface(api), pyObj(obj) {
+        // seeded once, same as C++ extensions; the base getParameters() returns this member from here on
+        try {
+            this->parameters = GenericParameterConverter::convertPythonListToGenericParameterVector(pyObj.attr("get_parameters")());
+        } catch (const std::exception& e) {
+            std::cerr << "[PyPlayer] get_parameters: " << e.what() << std::endl;
+            PyErr_Clear();
+        }
+    }
 
     ~PyPlayerExtensionInterface() override {
         pyObj = pybind11::none();
@@ -51,17 +59,8 @@ public:
         }
     }
 
-    std::vector<LimonTypes::GenericParameter> getParameters() const noexcept override {
-        try {
-            return GenericParameterConverter::convertPythonListToGenericParameterVector(pyObj.attr("get_parameters")());
-        } catch (const std::exception& e) {
-            std::cerr << "[PyPlayer] get_parameters: " << e.what() << std::endl;
-            PyErr_Clear();
-            return {};
-        }
-    }
-
     void setParameters(std::vector<LimonTypes::GenericParameter> parameters) noexcept override {
+        this->parameters = parameters;
         try {
             pyObj.attr("set_parameters")(GenericParameterConverter::convertGenericParameterVectorToObjects(parameters));
         } catch (const std::exception& e) {

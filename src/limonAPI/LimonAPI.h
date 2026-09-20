@@ -90,7 +90,7 @@ public:
     std::string getMusicName();
     bool isMusicPlaying();
     // Channel (bus) volumes are not set directly through the API. They are global options
-    // ("soundVolumeMaster/Music/SFX/Speech"); change them via getOptions()/saveOptions() and
+    // ("audio_volumeMaster/Music/SFX/Speech/Ambient"); change them via getOptions()/saveOptions() and
     // the engine applies them to the audio mixer.
 
     bool interactWithAI(uint32_t AIID, std::vector<LimonTypes::GenericParameter> &interactionInformation);

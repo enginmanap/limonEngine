@@ -25,7 +25,15 @@ private:
 
 public:
     PyCameraExtensionInterface(LimonAPI* api, pybind11::object obj)
-        : CameraExtensionInterface(api), pyObj(obj) {}
+        : CameraExtensionInterface(api), pyObj(obj) {
+        // seeded once, same as C++ extensions; the base getParameters() returns this member from here on
+        try {
+            this->parameters = GenericParameterConverter::convertPythonListToGenericParameterVector(pyObj.attr("get_parameters")());
+        } catch (const std::exception& e) {
+            std::cerr << "[PyCameraRig] get_parameters: " << e.what() << std::endl;
+            PyErr_Clear();
+        }
+    }
 
     ~PyCameraExtensionInterface() override {
         pyObj = pybind11::none();
@@ -41,17 +49,8 @@ public:
         }
     }
 
-    std::vector<LimonTypes::GenericParameter> getParameters() const override {
-        try {
-            return GenericParameterConverter::convertPythonListToGenericParameterVector(pyObj.attr("get_parameters")());
-        } catch (const std::exception& e) {
-            std::cerr << "[PyCameraRig] get_parameters: " << e.what() << std::endl;
-            PyErr_Clear();
-            return {};
-        }
-    }
-
     void setParameters(std::vector<LimonTypes::GenericParameter> parameters) override {
+        this->parameters = parameters;
         try {
             pyObj.attr("set_parameters")(GenericParameterConverter::convertGenericParameterVectorToObjects(parameters));
         } catch (const std::exception& e) {

@@ -26,7 +26,6 @@ GUIAnimation::GUIAnimation(uint32_t worldID,  std::shared_ptr<AssetManager> asse
     for (size_t i = 1; i < this->imageFiles.size(); ++i) {//starts from 1 because 0 is handled by base
         this->images.push_back(assetManager->loadAsset<TextureAsset>({imageFiles[i]}));
     }
-    this->duration = this->imagePerFrame * this->images.size();
 }
 
 
@@ -224,7 +223,7 @@ void GUIAnimation::setupForTime(uint32_t time) {
     if(looped) {
         currentElement = static_cast<uint32_t >(std::floor(currentTime)) % this->images.size();
     } else {
-        if(currentTime >= this->duration) {
+        if(currentTime >= this->images.size()) {//currentTime is in frames
             currentElement = this->images.size()-1;
         } else {
             currentElement = static_cast<uint32_t >(std::floor(currentTime));
