@@ -7,7 +7,6 @@
 
 #include <string>
 #include <list>
-#include <Utils/HardCodedTags.h>
 
 #include "limonAPI/LimonAPI.h"
 #include "Editor/ImGuiRequest.h"
@@ -31,23 +30,23 @@ public:
     virtual uint32_t getWorldObjectID() const = 0;
     virtual ~GameObject() = default;
 
-    virtual void addTag(const std::string& text) {
+    virtual bool addTag(const std::string& text) {
         HashUtil::HashedString tag(text);
-        bool found = false;
         for (const HashUtil::HashedString& hashedString:tags) {
             if(hashedString.hash == tag.hash) {
                 if(hashedString.text != tag.text) {
-                    std::cerr << "Hash collision found between " << hashedString.text << " and " << tag.text << " exiting." << std::endl;
+                    std::cerr << "Hash collision found between " << hashedString.text << " and " << tag.text << std::endl;
+                    //On debug builds, we kill as soon as a collision is found, so it would be easy to catch.
+#ifndef NDEBUG
                     std::exit(-1);
+#endif
+                    return false;
                 }
-                //found case
-                found = true;
-                break;
+                return true;//already have that tag, no need to add again.
             }
         }
-        if(!found) {
-            tags.emplace_back(tag);
-        }
+        tags.emplace_back(tag);
+        return true;
     }
 
     bool hasTag(uint64_t hash) const {
@@ -67,34 +66,16 @@ public:
         return tags;
     }
 
-    /**
-     * This method is here only for Editor. Don't use in game code, or refactor to remove rehashing of tags
-     * @return list of tags, filtered by HardCodedTags list.
-     */
-    std::list<HashUtil::HashedString> getTagsCustomOnly() const {
-        std::list<HashUtil::HashedString> filteredTags;
-        for (const auto& currentTag: tags) {
-            if (std::find(HardCodedTags::ALL_TAGS.begin(), HardCodedTags::ALL_TAGS.end(), currentTag.text) == HardCodedTags::ALL_TAGS.end()) {
-                filteredTags.emplace_back(currentTag.text);
-            }
-        }
-        return filteredTags;
-    }
-
-    virtual void removeTag(const std::string& text) {
+    virtual bool removeTag(const std::string& text) {
         HashUtil::HashedString tag(text);
-        bool found = false;
         for (std::list<HashUtil::HashedString>::const_iterator it = tags.begin(); it != tags.end(); ++it) {
             if(it->hash == tag.hash) {
-                //found case
-                found = true;
                 tags.erase(it);
-                break;
+                return true;
             }
         }
-        if(!found) {
-            std::cerr << "Tag removal fail because tag is not found " << text  << std::endl;
-        }
+        std::cerr << "Tag removal fail because tag is not found " << text  << std::endl;
+        return false;
     }
 private:
     std::list<HashUtil::HashedString> tags;

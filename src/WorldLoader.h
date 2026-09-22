@@ -89,6 +89,7 @@ public:
                                                                        PhysicalRenderable *parentObject);
     static std::vector<std::unique_ptr<ObjectInformation>> loadObjectV2(std::shared_ptr<AssetManager> assetManager, tinyxml2::XMLElement *objectNode,
                                                                         std::unordered_map<std::string, std::shared_ptr<Sound>> &requiredSounds, LimonAPI *limonAPI);
+    static void loadObjectTags(tinyxml2::XMLElement *objectNode, Model *model);
 };
 
 

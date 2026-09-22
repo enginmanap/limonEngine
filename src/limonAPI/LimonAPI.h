@@ -59,6 +59,9 @@ public:
     bool attachObjectToObject(uint32_t objectID, uint32_t objectToAttachToID, const std::string &boneName = "");
     bool attachObjectToObjectAtWorldPosition(uint32_t objectID, uint32_t objectToAttachToID, const std::string &boneName = "");
     bool detachObjectFromParent(uint32_t objectID);
+    bool addObjectTag(uint32_t objectID, const std::string& tag);
+    bool removeObjectTag(uint32_t objectID, const std::string& tag);
+    std::vector<std::string> getObjectTags(uint32_t objectID);
     bool removeTriggerObject(uint32_t triggerObjectID);
     LimonTypes::Vec4 getObjectLinearVelocity(uint32_t objectID);
     bool setObjectLinearVelocity(uint32_t objectID, const LimonTypes::Vec4& velocity);
@@ -350,6 +353,9 @@ private:
     std::function<bool (uint32_t, uint32_t, const std::string&)> worldAttachObjectToObject;
     std::function<bool (uint32_t, uint32_t, const std::string&)> worldAttachObjectToObjectAtWorldPosition;
     std::function<bool (uint32_t)> worldDetachObjectFromParent;
+    std::function<bool (uint32_t, const std::string&)> worldAddObjectTag;
+    std::function<bool (uint32_t, const std::string&)> worldRemoveObjectTag;
+    std::function<std::vector<std::string> (uint32_t)> worldGetObjectTags;
     std::function<bool (uint32_t)> worldRemoveTriggerObject;
     std::function<LimonTypes::Vec4 (uint32_t)> worldGetObjectLinearVelocity;
     std::function<bool (uint32_t, const LimonTypes::Vec4&)> worldSetObjectLinearVelocity;

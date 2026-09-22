@@ -22,6 +22,7 @@
 #include "Graphics/Particles/Emitter.h"
 #include "GameObjects/CameraRig.h"
 #include "limonAPI/CameraExtensionInterface.h"
+#include "Utils/HardCodedTags.h"
 
 #ifdef TRACY_ENABLE
 #include <cstring>
@@ -52,6 +53,9 @@ WorldAPIAccessor::WorldAPIAccessor(World* world, LimonAPI* limonAPI) : world(wor
     limonAPI->worldAttachObjectToObject           = std::bind(&WorldAPIAccessor::attachObjectToObject,               this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
     limonAPI->worldAttachObjectToObjectAtWorldPosition = std::bind(&WorldAPIAccessor::attachObjectToObjectAtWorldPosition, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
     limonAPI->worldDetachObjectFromParent         = std::bind(&WorldAPIAccessor::detachObjectFromParent,             this, std::placeholders::_1);
+    limonAPI->worldAddObjectTag                   = std::bind(&WorldAPIAccessor::addObjectTagAPI,                    this, std::placeholders::_1, std::placeholders::_2);
+    limonAPI->worldRemoveObjectTag                = std::bind(&WorldAPIAccessor::removeObjectTagAPI,                 this, std::placeholders::_1, std::placeholders::_2);
+    limonAPI->worldGetObjectTags                  = std::bind(&WorldAPIAccessor::getObjectTagsAPI,                   this, std::placeholders::_1);
     limonAPI->worldRemoveTriggerObject            = std::bind(&WorldAPIAccessor::removeTriggerObject,                this, std::placeholders::_1);
     limonAPI->worldGetObjectLinearVelocity        = std::bind(&WorldAPIAccessor::getObjectLinearVelocity,            this, std::placeholders::_1);
     limonAPI->worldSetObjectLinearVelocity        = std::bind(&WorldAPIAccessor::setObjectLinearVelocity,            this, std::placeholders::_1, std::placeholders::_2);
@@ -484,6 +488,34 @@ bool WorldAPIAccessor::detachObjectFromParent(uint32_t objectID) {
     return true;
 }
 
+bool WorldAPIAccessor::addObjectTagAPI(uint32_t objectID, const std::string &tag) {
+    Model* model = world->findModelByID(objectID);
+    if(model == nullptr) {
+        return false;
+    }
+    return model->addTag(tag);
+}
+
+bool WorldAPIAccessor::removeObjectTagAPI(uint32_t objectID, const std::string &tag) {
+    Model* model = world->findModelByID(objectID);
+    if(model == nullptr) {
+        return false;
+    }
+    return model->removeTag(tag);
+}
+
+std::vector<std::string> WorldAPIAccessor::getObjectTagsAPI(uint32_t objectID) const {
+    std::vector<std::string> tags;
+    Model* model = world->findModelByID(objectID);
+    if(model == nullptr) {
+        return tags;
+    }
+    for(const HashUtil::HashedString& currentTag:model->getTags()) {
+        tags.emplace_back(currentTag.text);
+    }
+    return tags;
+}
+
 void WorldAPIAccessor::attach(Attachable *child, Attachable *parent, int32_t boneID, bool keepWorldPosition) {
     if(child->getParentObject() != nullptr) {
         //attachTo doesn't leave the old parent, its children list would keep a stale entry
@@ -514,6 +546,7 @@ void WorldAPIAccessor::attach(Attachable *child, Attachable *parent, int32_t bon
     }
     GameObject* rootObject = dynamic_cast<GameObject*>(root);
     setHierarchyRootIndex(root, rootObject != nullptr ? static_cast<int>(rootObject->getWorldObjectID()) : -1);
+    refreshPlayerAttachmentTags(child, root == world->getStartingPlayer());
 }
 
 void WorldAPIAccessor::detach(Attachable *child) {
@@ -529,6 +562,29 @@ void WorldAPIAccessor::detach(Attachable *child) {
     }
     GameObject* childObject = dynamic_cast<GameObject*>(child);
     setHierarchyRootIndex(child, childObject != nullptr && child->hasChildren() ? static_cast<int>(childObject->getWorldObjectID()) : -1);
+    refreshPlayerAttachmentTags(child, false);
+}
+
+void WorldAPIAccessor::refreshPlayerAttachmentTags(Attachable *subtreeRoot, bool underPlayer) {
+    Model* model = dynamic_cast<Model*>(subtreeRoot);
+    if(model != nullptr) {
+        setPlayerAttachmentTag(model, HardCodedTags::OBJECT_MODEL_BASIC, HardCodedTags::OBJECT_PLAYER_BASIC, underPlayer);
+        setPlayerAttachmentTag(model, HardCodedTags::OBJECT_MODEL_ANIMATED, HardCodedTags::OBJECT_PLAYER_ANIMATED, underPlayer);
+        setPlayerAttachmentTag(model, HardCodedTags::OBJECT_MODEL_TRANSPARENT, HardCodedTags::OBJECT_PLAYER_TRANSPARENT, underPlayer);
+    }
+    for(Attachable* child : subtreeRoot->getChildren()) {
+        refreshPlayerAttachmentTags(child, underPlayer);
+    }
+}
+
+void WorldAPIAccessor::setPlayerAttachmentTag(Model *model, const std::string &kindTag, const std::string &playerTag, bool underPlayer) {
+    //mirrors the kind tag, so removing basic_model_object opts the model out of basic_player_attachment too
+    const bool shouldHaveTag = underPlayer && model->hasTag(HashUtil::hashString(kindTag));
+    if(shouldHaveTag) {
+        model->addTag(playerTag);
+    } else if(model->hasTag(HashUtil::hashString(playerTag))) {
+        model->removeTag(playerTag);
+    }
 }
 
 WorldAPIAccessor::BodyTypes WorldAPIAccessor::calculateBodyType(const Model *model) const {

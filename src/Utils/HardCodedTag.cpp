@@ -22,7 +22,7 @@ const std::string HardCodedTags::CAMERA_PLAYER              = "player_camera";
 
 const std::string HardCodedTags::PICKED_OBJECT              = "picked_object";
 
-const std::vector<std::string> HardCodedTags::ALL_TAGS              = {
+const std::vector<std::string> HardCodedTags::ALL_INTERNAL_TAGS              = {
     HardCodedTags::OBJECT_MODEL_STATIC          ,
     HardCodedTags::OBJECT_MODEL_PHYSICAL        ,
 

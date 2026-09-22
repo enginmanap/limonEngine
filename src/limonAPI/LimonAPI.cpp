@@ -53,6 +53,18 @@ bool LimonAPI::detachObjectFromParent(uint32_t objectID) {
     return worldDetachObjectFromParent(objectID);
 }
 
+bool LimonAPI::addObjectTag(uint32_t objectID, const std::string &tag) {
+    return worldAddObjectTag(objectID, tag);
+}
+
+bool LimonAPI::removeObjectTag(uint32_t objectID, const std::string &tag) {
+    return worldRemoveObjectTag(objectID, tag);
+}
+
+std::vector<std::string> LimonAPI::getObjectTags(uint32_t objectID) {
+    return worldGetObjectTags(objectID);
+}
+
 bool LimonAPI::updateGuiText(uint32_t guiTextID, const std::string &newText) {
     return worldUpdateGuiText(guiTextID, newText);
 }

@@ -74,7 +74,18 @@ Model::Model(uint32_t objectID,  std::shared_ptr<AssetManager> assetManager, con
         this->setupForTime(0);
     }
 
-    //FIXME temporarily set the tags as hard coded
+    addDefaultTags();
+}
+
+//FIXME temporarily set the tags as hard coded
+void Model::addDefaultTags() {
+    bool hasAmbientMapInAnyMesh = false;
+    for (const MeshMeta* meshMeta:meshMetaData) {
+        if (meshMeta->material->hasAmbientMap()) {
+            hasAmbientMapInAnyMesh = true;
+            break;
+        }
+    }
     if(animated && !hasAmbientMapInAnyMesh) {
         this->addTag(HardCodedTags::OBJECT_MODEL_ANIMATED);
     }
@@ -92,6 +103,23 @@ Model::Model(uint32_t objectID,  std::shared_ptr<AssetManager> assetManager, con
     } else {
         this->addTag(HardCodedTags::OBJECT_MODEL_STATIC);
     }
+}
+
+void Model::setTags(const std::vector<std::string> &tagList) {
+    std::list<HashUtil::HashedString> previousTags = this->getTags();//first get a copy of old tags
+    //If we don't add before clean up, the automatic fall back will add defaults
+    for (const std::string& tagToSet:tagList) {
+        this->addTag(tagToSet);
+    }
+    for (const HashUtil::HashedString& previousTag:previousTags) {
+        if (previousTag.text == HardCodedTags::PICKED_OBJECT) {
+            continue;//editor selection state, nobody sets it through a tag list
+        }
+        if (std::find(tagList.begin(), tagList.end(), previousTag.text) == tagList.end()) {
+            this->removeTag(previousTag.text);
+        }
+    }
+    this->dirtyForFrustum = true;// incase we did not remove any tags
 }
 
 void Model::setupForTime(uint32_t time) {
@@ -284,17 +312,22 @@ bool Model::fillObjects(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *o
         }
     }
 
-    std::list<HashUtil::HashedString> customTags = getTagsCustomOnly();
-    if (!customTags.empty()) {
-        tinyxml2::XMLElement *customTagsNode = document.NewElement("CustomTags");
-        tinyxml2::XMLElement *customTagsCountNode = document.NewElement("Count");
-        customTagsCountNode->SetText(std::to_string(customTags.size()).c_str());
-        customTagsNode->InsertEndChild(customTagsCountNode);
-        objectElement->InsertEndChild(customTagsNode);
-        for (auto& customTag:customTags) {
-            tinyxml2::XMLElement *customTagNode = document.NewElement("CustomTag");
-            customTagNode->SetText(customTag.text.c_str());
-            customTagsNode->InsertEndChild(customTagNode);
+    std::vector<std::string> tagsToSave;
+    for (const HashUtil::HashedString& currentTag:getTags()) {
+        if (currentTag.text != HardCodedTags::PICKED_OBJECT) {//editor selection, it is not part of the object
+            tagsToSave.emplace_back(currentTag.text);
+        }
+    }
+    if (!tagsToSave.empty()) {
+        tinyxml2::XMLElement *tagsNode = document.NewElement("Tags");
+        tinyxml2::XMLElement *tagsCountNode = document.NewElement("Count");
+        tagsCountNode->SetText(std::to_string(tagsToSave.size()).c_str());
+        tagsNode->InsertEndChild(tagsCountNode);
+        objectElement->InsertEndChild(tagsNode);
+        for (const std::string& tagToSave:tagsToSave) {
+            tinyxml2::XMLElement *tagNode = document.NewElement("Tag");
+            tagNode->SetText(tagToSave.c_str());
+            tagsNode->InsertEndChild(tagNode);
         }
     }
 
@@ -328,25 +361,26 @@ ImGuiResult Model::addImGuiEditorElements(const ImGuiRequest &request) {
         ImGui::EndTooltip();
     }
     ImGui::NewLine();
-    static char tempTagsBuffer[512] = {0};
-    std::string joinedTags = StringUtils::join(this->getTagsCustomOnly(), ",");
-    strncpy(tempTagsBuffer, joinedTags.c_str(), std::min(joinedTags.length(), sizeof(tempTagsBuffer) - 1));
-    tempTagsBuffer[std::min(joinedTags.length(), sizeof(tempTagsBuffer) - 1)] = 0;
-    std::vector<std::string> internalTags;
-    for (auto currentTag : this->getTags()) {
-        if (std::find(HardCodedTags::ALL_TAGS.begin(), HardCodedTags::ALL_TAGS.end(), currentTag.text) != HardCodedTags::ALL_TAGS.end()) {
-            internalTags.emplace_back(currentTag.text);
+    static char tagsBuffer[512] = {0};
+    std::vector<std::string> editableTags;
+    for (const HashUtil::HashedString& currentTag : this->getTags()) {
+        if (currentTag.text != HardCodedTags::PICKED_OBJECT) {//selection state, the next click sets it again anyway
+            editableTags.emplace_back(currentTag.text);
         }
     }
-    char internalTagsBuffer[512] = {0};
-    std::string internalTagsJoined = StringUtils::join(internalTags, ",");
-    strncpy(internalTagsBuffer, internalTagsJoined.c_str(), std::min(internalTagsJoined.length(), sizeof(internalTagsBuffer) - 1));
-    tempTagsBuffer[std::min(internalTagsJoined.length(), sizeof(internalTagsBuffer) - 1)] = 0;
+    std::string joinedTags = StringUtils::join(editableTags, ",");
+    strncpy(tagsBuffer, joinedTags.c_str(), std::min(joinedTags.length(), sizeof(tagsBuffer) - 1));
+    tagsBuffer[std::min(joinedTags.length(), sizeof(tagsBuffer) - 1)] = 0;
 
-    ImGui::InputText("Automatic Tags##ForModelObject", internalTagsBuffer, sizeof(internalTagsBuffer), ImGuiInputTextFlags_ReadOnly);
-    ImGui::InputText("Custom Tags##ForModelObject",tempTagsBuffer, sizeof(tempTagsBuffer), ImGuiInputTextFlags_CharsNoBlank);
-    joinedTags = tempTagsBuffer;
-    this->setTagsCustomOnly(StringUtils::split(joinedTags, ","));
+    ImGui::InputText("Tags##ForModelObject", tagsBuffer, sizeof(tagsBuffer), ImGuiInputTextFlags_CharsNoBlank);
+    if(ImGui::IsItemHovered()) {
+        ImGui::BeginTooltip();
+        ImGui::Text("Render stages pick objects by these tags. The engine set ones can be removed,");
+        ImGui::Text("but clearing all of them puts them back, an object with no tags renders nowhere.");
+        ImGui::EndTooltip();
+    }
+    joinedTags = tagsBuffer;
+    this->setTags(StringUtils::split(joinedTags, ","));
 
     if (isAnimated()) {
         ImGui::TextDisabled("Mass: animated objects are kinematic");
@@ -649,9 +683,13 @@ Model::Model(const Model &otherModel, uint32_t objectID) :
         this->setPlayerStepOnSound(std::make_shared<Sound>(0, assetManager, otherModel.stepOnSound->getName()));
     }
 
-    for (const auto& customTag : otherModel.getTagsCustomOnly()) {
-        this->addTag(customTag.text);
+    std::vector<std::string> otherTags;
+    for (const HashUtil::HashedString& otherTag : otherModel.getTags()) {
+        if (otherTag.text != HardCodedTags::PICKED_OBJECT) {//the copy is not the selected object, the original is
+            otherTags.emplace_back(otherTag.text);
+        }
     }
+    this->setTags(otherTags);//setTags, so a default tag the original had removed stays removed on the copy
 
     for (const auto& materialOverride : otherModel.getNewMeshMaterials()) {
         for (size_t meshIndex = 0; meshIndex < this->meshMetaData.size(); ++meshIndex) {
@@ -880,10 +918,17 @@ void Model::reloadPhysicsShape() {
     rigidBody->updateInertiaTensor();
     rigidBody->activate();
 
-    //the STATIC/PHYSICAL tags drive render and visibility bucketing, keep them in sync with the mass
-    this->removeTag(HardCodedTags::OBJECT_MODEL_PHYSICAL);
-    this->removeTag(HardCodedTags::OBJECT_MODEL_STATIC);
-    this->addTag(this->mass > 0 ? HardCodedTags::OBJECT_MODEL_PHYSICAL : HardCodedTags::OBJECT_MODEL_STATIC);
+    // We want to keep the physics tags match the physics state, but if user removed them, we don't object
+    const bool hasPhysicalTag = this->hasTag(HashUtil::hashString(HardCodedTags::OBJECT_MODEL_PHYSICAL));
+    const bool hasStaticTag = this->hasTag(HashUtil::hashString(HardCodedTags::OBJECT_MODEL_STATIC));
+    if (this->mass > 0 && hasStaticTag) {
+        //add before remove, removing the last tag would refill the list with the defaults
+        this->addTag(HardCodedTags::OBJECT_MODEL_PHYSICAL);
+        this->removeTag(HardCodedTags::OBJECT_MODEL_STATIC);
+    } else if (this->mass <= 0 && hasPhysicalTag) {
+        this->addTag(HardCodedTags::OBJECT_MODEL_STATIC);
+        this->removeTag(HardCodedTags::OBJECT_MODEL_PHYSICAL);
+    }
 }
 
 void Model::convertAssetToLimon(std::set<std::vector<std::string>> &convertedModels [[gnu::unused]]) {

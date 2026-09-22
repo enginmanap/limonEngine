@@ -6,11 +6,10 @@
 #define LIMONENGINE_HARDCODEDTAGS_H
 
 #include <string>
-#include <vector>
 
 /**
- * This class is here because we don't allow adding tags yet.
- * After that is introduced, it might be removed.
+ * The tags the engine sets and the render pipeline knows by name. Games are free to add their own,
+ * and to remove these from an object, so nothing may assume an object carries them.
  */
 
 class HardCodedTags {
@@ -33,7 +32,7 @@ public:
 
     static const std::string PICKED_OBJECT;
 
-    static const std::vector<std::string> ALL_TAGS;//all tags
+    static const std::vector<std::string> ALL_INTERNAL_TAGS;//all tags
 };
 
 #endif //LIMONENGINE_HARDCODEDTAGS_H

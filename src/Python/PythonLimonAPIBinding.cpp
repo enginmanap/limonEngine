@@ -148,6 +148,15 @@ void bindLimonAPI(pybind11::module_& m) {
             .def("detach_object_from_parent", &LimonAPI::detachObjectFromParent,
                  "Detach object from its parent; object stays at its current world position. Returns False if not found or has no parent",
                  pybind11::arg("object_id"))
+            .def("add_object_tag", &LimonAPI::addObjectTag,
+                 "Add a render tag to an object. Render stages select what they draw by these tags. Returns False if not found",
+                 pybind11::arg("object_id"), pybind11::arg("tag"))
+            .def("remove_object_tag", &LimonAPI::removeObjectTag,
+                 "Remove a render tag, engine set ones included. Removing the last tag puts the engine set ones back. Returns False if not found, or the object had no such tag",
+                 pybind11::arg("object_id"), pybind11::arg("tag"))
+            .def("get_object_tags", &LimonAPI::getObjectTags,
+                 "Returns all render tags of an object, engine set ones included",
+                 pybind11::arg("object_id"))
             .def("remove_trigger_object", &LimonAPI::removeTriggerObject,
                  "Remove a trigger object",
                  pybind11::arg("trigger_object_id"))

@@ -666,22 +666,40 @@ WorldLoader::loadObject( std::shared_ptr<AssetManager> assetManager, tinyxml2::X
         loadedObjectInformation->model->loadOverriddenMeshMaterial(custumizedMeshMaterialList);
     }
 
-    tinyxml2::XMLElement* customTagsNode = objectNode->FirstChildElement("CustomTags");
-    if (customTagsNode != nullptr) {
-        tinyxml2::XMLElement *customTagNode = customTagsNode->FirstChildElement("CustomTag");
-        while (customTagNode != nullptr) {
-            if (customTagNode->GetText() != nullptr) {
-                loadedObjectInformation->model->addTag(customTagNode->GetText());
-            }
-            customTagNode = customTagNode->NextSiblingElement("CustomTag");
-        }
-    }
+    loadObjectTags(objectNode, loadedObjectInformation->model);
 
 
     loadedObjects.push_back(std::move(loadedObjectInformation));
 
 
     return loadedObjects;
+}
+
+void WorldLoader::loadObjectTags(tinyxml2::XMLElement *objectNode, Model *model) {
+    tinyxml2::XMLElement* tagsNode = objectNode->FirstChildElement("Tags");
+    if (tagsNode != nullptr) {
+        std::vector<std::string> tags;
+        tinyxml2::XMLElement* tagNode = tagsNode->FirstChildElement("Tag");
+        while (tagNode != nullptr) {
+            if (tagNode->GetText() != nullptr) {
+                tags.emplace_back(tagNode->GetText());
+            }
+            tagNode = tagNode->NextSiblingElement("Tag");
+        }
+        model->setTags(tags);//the saved list is the whole truth, a default tag the map removed has to stay removed
+        return;
+    }
+    //maps saved before tags became one list carry only what Model does not derive itself, so these add on top
+    tinyxml2::XMLElement* customTagsNode = objectNode->FirstChildElement("CustomTags");
+    if (customTagsNode != nullptr) {
+        tinyxml2::XMLElement* customTagNode = customTagsNode->FirstChildElement("CustomTag");
+        while (customTagNode != nullptr) {
+            if (customTagNode->GetText() != nullptr) {
+                model->addTag(customTagNode->GetText());
+            }
+            customTagNode = customTagNode->NextSiblingElement("CustomTag");
+        }
+    }
 }
 
 // V2 object loader: loads a single object with no parent/children handling.
@@ -786,16 +804,7 @@ WorldLoader::loadObjectV2(std::shared_ptr<AssetManager> assetManager, tinyxml2::
         loadedObjectInformation->model->loadOverriddenMeshMaterial(custumizedMeshMaterialList);
     }
 
-    tinyxml2::XMLElement* customTagsNode = objectNode->FirstChildElement("CustomTags");
-    if (customTagsNode != nullptr) {
-        tinyxml2::XMLElement *customTagNode = customTagsNode->FirstChildElement("CustomTag");
-        while (customTagNode != nullptr) {
-            if (customTagNode->GetText() != nullptr) {
-                loadedObjectInformation->model->addTag(customTagNode->GetText());
-            }
-            customTagNode = customTagNode->NextSiblingElement("CustomTag");
-        }
-    }
+    loadObjectTags(objectNode, loadedObjectInformation->model);
 
     loadedObjects.push_back(std::move(loadedObjectInformation));
     return loadedObjects;

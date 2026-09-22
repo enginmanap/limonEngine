@@ -375,32 +375,29 @@ public:
         return materials;
     }
 
-    void addTag(const std::string& text) override {
+    bool addTag(const std::string& text) override {
         this->dirtyForFrustum = true;
-        GameObject::addTag(text);
+        return GameObject::addTag(text);
     }
 
-    void removeTag(const std::string& text) override {
+    bool removeTag(const std::string& text) override {
         this->dirtyForFrustum = true;
-        GameObject::removeTag(text);
+        bool removed = GameObject::removeTag(text);
+        if(getTags().empty()) {
+            addDefaultTags();//a model with no tags matches no render stage at all, it would be invisible everywhere
+        }
+        return removed;
     }
 
-private:
     /**
-     * This method is causing rehashing of all new tags. Don't use in game mode, only intended for Editor
-     * @param tagList custom tags to be set.
+     * Rehashes the whole list, don't call per frame from game code. An empty list leaves the default tags in place.
      */
-    void setTagsCustomOnly(const std::vector<std::string> & tagList) {
-        std::list<HashUtil::HashedString> currentTags = this->getTagsCustomOnly();
-        for (auto current_tag: currentTags) {
-            this->removeTag(current_tag.text);
-        }
-        for (auto it = tagList.begin(); it != tagList.end(); ++it) {
-            this->addTag(*it);
-        }
-        this->dirtyForFrustum = true;
-    }
+    void setTags(const std::vector<std::string>& tagList);
 
+    /**
+     * The tags Model derives from its asset and mass. Also used to refill an emptied tag list.
+     */
+    void addDefaultTags();
 };
 
 #endif //LIMONENGINE_MODEL_H

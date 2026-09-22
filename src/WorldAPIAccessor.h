@@ -28,6 +28,9 @@ class WorldAPIAccessor {
 
     //an empty name means the object itself, a name that is not a bone of this parent fails the attachment
     bool resolveAttachmentBone(const Attachable *parent, const std::string &boneName, int32_t &boneID) const;
+    //attachments are ordinary objects, these tags are the only thing that lets a stage render the player's own parts apart
+    void refreshPlayerAttachmentTags(Attachable *subtreeRoot, bool underPlayer);
+    void setPlayerAttachmentTag(Model *model, const std::string &kindTag, const std::string &playerTag, bool underPlayer);
 public:
     WorldAPIAccessor(World* world, LimonAPI* limonAPI);
 
@@ -59,6 +62,9 @@ public:
     bool attachObjectToObject(uint32_t objectID, uint32_t objectToAttachToID, const std::string& boneName);
     bool attachObjectToObjectAtWorldPosition(uint32_t objectID, uint32_t objectToAttachToID, const std::string& boneName);
     bool detachObjectFromParent(uint32_t objectID);
+    bool addObjectTagAPI(uint32_t objectID, const std::string& tag);
+    bool removeObjectTagAPI(uint32_t objectID, const std::string& tag);
+    std::vector<std::string> getObjectTagsAPI(uint32_t objectID) const;
 
     enum class BodyTypes { STATIC, DYNAMIC, KINEMATIC };
     /**

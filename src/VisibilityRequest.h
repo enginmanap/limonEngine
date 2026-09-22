@@ -18,31 +18,25 @@ class Camera;
 
 class VisibilityRequest {
 public:
+    /**
+     * Culling keys one render list per stage, by that stage's own tag list. This answers "is this list mine",
+     * so every tag has to match, one tag in common would hand {basic,static} the {basic,animated} list as well.
+     */
     static bool vectorComparator(const std::vector<uint64_t>& a, const std::vector<HashUtil::HashedString>& b) {
         if (a.size() != b.size()) {
             return false;
         }
-        bool found = false;
         for (uint64_t aValue : a) {
+            bool found = false;
             for (const HashUtil::HashedString& bValue : b) {
                 if (aValue == bValue.hash) {
                     found = true;
+                    break;
                 }
             }
-        }
-        if (found == false) {
-            return false;
-        }
-        found = false;
-        for (const HashUtil::HashedString& bValue : b) {
-            for (uint64_t aValue : a) {
-                if (bValue.hash == aValue) {
-                    found = true;
-                }
+            if (!found) {
+                return false;
             }
-        }
-        if (found == false) {
-            return false;
         }
         return true;
     }
