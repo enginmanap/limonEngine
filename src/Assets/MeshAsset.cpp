@@ -10,6 +10,8 @@
 #include "limonAPI/Graphics/GraphicsInterface.h"
 #include "../../libs/meshoptimizer/src/meshoptimizer.h"
 
+static constexpr float NORMAL_ATTRIBUTE_WEIGHT = 1.0f; //meshopt readme default, raising it keeps shading at the cost of triangles
+
 MeshAsset::MeshAsset(const aiMesh *currentMesh, std::string name, std::shared_ptr<const BoneNode> meshSkeleton,
                      const glm::mat4 &parentTransform, const bool isPartOfAnimated, bool reverseWinding)
         : name(name), parentTransform(parentTransform), isPartOfAnimated(isPartOfAnimated), reverseWinding(reverseWinding) {
@@ -197,66 +199,105 @@ bool MeshAsset::setTriangles(const aiMesh *currentMesh) {
         return false;
     }
 
-    //lets try to simplify
-    float threshold = 0.2f;
-    size_t target_index_count = size_t(faces.size()*3 * threshold);
-    float target_error = 0.001f;
-
-    std::vector<uint16_t> lod(faces.size()*3);
-    lod.resize(meshopt_simplify(&lod[0], &(faces[0].x), faces.size()*3, &vertices[0].x, vertices.size(), sizeof(glm::vec3),
-                                target_index_count, target_error));
-    //now we have new faces. lets assign.
-    for (size_t i = 0; i <lod.size(); i = i+3) {
-        faces.push_back(glm::vec3(lod[i + 0],
-                                  lod[i + 1],
-                                  lod[i + 2]));
-    }
-    triangleCount[1] = lod.size()/3;
-    offsets[1] = triangleCount[0]*3;
-    //std::cerr << "simplification1 result: \t" << triangleCount[0] << "\t->\t" << triangleCount[1] << std::endl;
-
-    //lets try to simplify
-    float threshold2 = 0.1f;
-    size_t target_index_count2 = size_t(triangleCount[0]*3 * threshold2);
-    float target_error2 = 0.01f;
-
-    std::vector<uint16_t> lod2(triangleCount[0]*3);
-    lod2.resize(meshopt_simplify(&lod2[0], &(faces[0].x), triangleCount[0]*3, &vertices[0].x, vertices.size(), sizeof(glm::vec3),
-                                target_index_count2, target_error2));
-    //now we have new faces. lets assign.
-    for (size_t i = 0; i <lod2.size(); i = i+3) {
-        faces.push_back(glm::vec3(lod2[i + 0],
-                                  lod2[i + 1],
-                                  lod2[i + 2]));
-    }
-    triangleCount[2] = lod2.size()/3;
-    offsets[2] = (triangleCount[1]*3) + offsets[1];
-    //std::cerr << "simplification2 result: \t" << triangleCount[1] << "\t->\t" << triangleCount[2] << std::endl;
-
-
-    //lets try to simplify
-    float threshold3 = 0.05f;
-    size_t target_index_count3 = size_t(triangleCount[0]*3 * threshold3);
-    float target_error3 = 0.5f;
-
-    std::vector<uint16_t> lod3(triangleCount[0]*3);
-    lod3.resize(meshopt_simplify(&lod3[0], &(faces[0].x), triangleCount[0]*3, &vertices[0].x, vertices.size(), sizeof(glm::vec3),
-                                 target_index_count3, target_error3));
-    //now we have new faces. lets assign.
-    for (size_t i = 0; i <lod3.size(); i = i+3) {
-        faces.push_back(glm::vec3(lod3[i + 0],
-                                  lod3[i + 1],
-                                  lod3[i + 2]));
-    }
-    triangleCount[3] = lod3.size()/3;
-
-    offsets[3] = (triangleCount[2]*3) + offsets[2];
-    //std::cerr << "simplification3 result: \t" << triangleCount[2] << "\t->\t" << triangleCount[3] << std::endl;
-
-    //std::cerr << "after simplification triangle counts: \t" << triangleCount[0] << ", " << triangleCount[1] << ", " << triangleCount[2] << ", " << triangleCount[3] << std::endl;
-    //std::cerr << "after simplification offsets: \t" << offsets[0] << ", " << offsets[1] << ", " << offsets[2] << ", " << offsets[3] << std::endl;
+    generateLods();
     return true;
 }
+
+// Mesh Opmitimizer locks position with more than copies. Some low poly assets don't simplify in that case. We will pass permissive
+// to let it simplifiy, but we will also build uv seam locks so uv survives.
+void MeshAsset::generateLods() {
+    const float meshScale = meshopt_simplifyScale(&vertices[0].x, vertices.size(), sizeof(glm::vec3));
+    std::vector<float> attributes;
+    std::vector<float> attributeWeights;
+    buildSimplifyAttributes(attributes, attributeWeights, meshScale);
+    std::vector<unsigned char> vertexLock;
+    buildUvSeamLocks(vertexLock);
+
+    const size_t sourceIndexCount = triangleCount[0] * 3;
+    const size_t attributeCount = attributeWeights.size();
+    std::vector<uint16_t> lodIndices;
+    for (uint32_t level = 1; level < LOD_LEVEL_COUNT; ++level) {
+        lodIndices.resize(sourceIndexCount);
+        float relativeError = 0.0f;
+        //every level simplifies LOD0, not the previous level, and target index count 0 leaves target error in charge
+        size_t resultIndexCount = meshopt_simplifyWithAttributes(&lodIndices[0], &(faces[0].x), sourceIndexCount,
+                                                                 &vertices[0].x, vertices.size(), sizeof(glm::vec3),
+                                                                 &attributes[0], attributeCount * sizeof(float),
+                                                                 &attributeWeights[0], attributeCount,
+                                                                 vertexLock.empty() ? nullptr : &vertexLock[0],
+                                                                 0, LOD_TARGET_ERRORS[level],
+                                                                 meshopt_SimplifyPermissive | meshopt_SimplifyPrune,
+                                                                 &relativeError);
+        offsets[level] = offsets[level - 1] + (triangleCount[level - 1] * 3);
+        triangleCount[level] = resultIndexCount / 3;
+        lodError[level] = relativeError * meshScale;
+        for (size_t index = 0; index < resultIndexCount; index = index + 3) {
+            faces.push_back(glm::u16vec3(lodIndices[index + 0],
+                                         lodIndices[index + 1],
+                                         lodIndices[index + 2]));
+        }
+    }
+}
+
+void MeshAsset::buildSimplifyAttributes(std::vector<float> &attributes, std::vector<float> &attributeWeights, float meshScale) const {
+    const bool hasTextureCoordinates = textureCoordinates.size() == vertices.size();
+    const size_t attributeCount = hasTextureCoordinates ? 5 : 3;
+    attributes.resize(vertices.size() * attributeCount);
+    for (size_t vertex = 0; vertex < vertices.size(); ++vertex) {
+        attributes[vertex * attributeCount + 0] = normals[vertex].x;
+        attributes[vertex * attributeCount + 1] = normals[vertex].y;
+        attributes[vertex * attributeCount + 2] = normals[vertex].z;
+        if (hasTextureCoordinates) {
+            attributes[vertex * attributeCount + 3] = textureCoordinates[vertex].x;
+            attributes[vertex * attributeCount + 4] = textureCoordinates[vertex].y;
+        }
+    }
+
+    attributeWeights.assign(attributeCount, NORMAL_ATTRIBUTE_WEIGHT);
+    if (hasTextureCoordinates) {
+        double positionLength = 0, textureLength = 0;
+        for (const glm::u16vec3 &face : faces) {
+            for (int corner = 0; corner < 3; ++corner) {
+                uint16_t first = face[corner], second = face[(corner + 1) % 3];
+                positionLength += glm::length(vertices[first] - vertices[second]);
+                textureLength += glm::length(textureCoordinates[first] - textureCoordinates[second]);
+            }
+        }
+        //meshopt asks for the reciprocal UV density in its own rescaled units, so a stretched atlas doesn't outweigh geometry
+        float uvWeight = (textureLength > 0 && meshScale > 0) ? static_cast<float>(positionLength / textureLength / meshScale) : 0.0f;
+        attributeWeights[3] = uvWeight;
+        attributeWeights[4] = uvWeight;
+    }
+}
+
+void MeshAsset::buildUvSeamLocks(std::vector<unsigned char> &vertexLock) const {
+    if (textureCoordinates.size() != vertices.size()) {
+        return;//nothing to protect, permissive can collapse freely
+    }
+    std::vector<unsigned int> positionRemap(vertices.size());
+    meshopt_generatePositionRemap(&positionRemap[0], &vertices[0].x, vertices.size(), sizeof(glm::vec3));
+    std::vector<unsigned char> seamAtPosition(vertices.size(), 0);
+    for (size_t vertex = 0; vertex < vertices.size(); ++vertex) {
+        if (textureCoordinates[vertex] != textureCoordinates[positionRemap[vertex]]) {
+            seamAtPosition[positionRemap[vertex]] = 1;
+        }
+    }
+    vertexLock.assign(vertices.size(), 0);
+    for (size_t vertex = 0; vertex < vertices.size(); ++vertex) {
+        if (seamAtPosition[positionRemap[vertex]]) {
+            vertexLock[vertex] = meshopt_SimplifyVertex_Protect;
+        }
+    }
+}
+
+#ifdef CEREAL_SUPPORT
+void MeshAsset::checkSerializationMagic(uint32_t magic) const {
+    if (magic != SERIALIZATION_MAGIC) {
+        std::cerr << "This limonmodel file predates per LOD error storage, re-export it with the editor. Exiting..." << std::endl;
+        exit(1);
+    }
+}
+#endif
 
 void MeshAsset::normalizeTextureCoordinates(glm::vec2 &textureCoordinates) const {
     float fractionPart = textureCoordinates.x;

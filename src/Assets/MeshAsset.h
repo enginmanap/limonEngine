@@ -29,8 +29,12 @@ class MeshAsset {
 public:
     static constexpr uint32_t LOD_LEVEL_COUNT = 4;
 private:
+    //level 0 is the original mesh, the rest are driven by target error only, no triangle targets
+    static constexpr float LOD_TARGET_ERRORS[LOD_LEVEL_COUNT] = {0.0f, 0.005f, 0.02f, 0.05f};
+
     uint32_t vao, ebo;
     uint32_t triangleCount[LOD_LEVEL_COUNT], offsets[LOD_LEVEL_COUNT], vertexCount;
+    float lodError[LOD_LEVEL_COUNT] = {0.0f, 0.0f, 0.0f, 0.0f}; //meshopt error in model units, what LOD selection projects to pixels
     glm::vec4 minAABB, maxAABB;
 
     std::vector<glm::vec3> vertices;
@@ -63,6 +67,12 @@ private:
 
     std::vector<uint32_t> bufferObjects;
     bool setTriangles(const aiMesh *currentMesh);
+    void generateLods();
+    void buildSimplifyAttributes(std::vector<float> &attributes, std::vector<float> &attributeWeights, float meshScale) const;
+    void buildUvSeamLocks(std::vector<unsigned char> &vertexLock) const;
+#ifdef CEREAL_SUPPORT
+    void checkSerializationMagic(uint32_t magic) const;
+#endif
 
     void normalizeTextureCoordinates(glm::vec2 &textureCoordinates) const;
 #ifdef CEREAL_SUPPORT
@@ -141,9 +151,15 @@ public:
         return name;
     }
 #ifdef CEREAL_SUPPORT
+    //bumped when lodError joined the format, a file written before that has no way to produce one, so we stop instead of reading garbage
+    static constexpr uint32_t SERIALIZATION_MAGIC = 0x4C4D4632;
+
     template<class Archive>
     void serialize(Archive & archive){
-        archive( vertices, normals, textureCoordinates, faces, vertexCount, triangleCount, offsets, skeleton, bones, boneIDs, boneWeights, boneAttachedMeshes, boneIdMap, name, isPartOfAnimated, parentTransform);
+        uint32_t magic = SERIALIZATION_MAGIC;
+        archive(magic);
+        checkSerializationMagic(magic);
+        archive( vertices, normals, textureCoordinates, faces, vertexCount, triangleCount, offsets, lodError, skeleton, bones, boneIDs, boneWeights, boneAttachedMeshes, boneIdMap, name, isPartOfAnimated, parentTransform);
     }
 #endif
 };
