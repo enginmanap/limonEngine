@@ -132,6 +132,12 @@ public:
     }
 
     void renderOccluder(const Model::MeshMeta* meshMeta, const glm::mat4 &modelMatrix, uint32_t requestedLodLevel) {
+        const std::vector<uint16_t, AlignedAllocator<uint16_t, 64>> &bakedOccluder = meshMeta->mesh->getBakedOccluder(requestedLodLevel);
+        if (!bakedOccluder.empty()) {
+            //SDOC rasterizes at flush, so the bake and the matrix have to outlive this call. The matrix is the model's own
+            sdocRenderBakedOccluder(sdocInstance, const_cast<unsigned short *>(bakedOccluder.data()), glm::value_ptr(modelMatrix));
+            return;
+        }
         uint32_t lodLevel = meshMeta->mesh->getSimplestLodLevel(requestedLodLevel);
         const uint32_t *triangleCounts = meshMeta->mesh->getTriangleCount();
         const uint32_t *offsets = meshMeta->mesh->getOffsets();

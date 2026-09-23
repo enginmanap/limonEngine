@@ -98,12 +98,12 @@
     </Parameter>
     <Parameter>
         <RequestType>FreeNumber</RequestType>
-        <Description>LOD_distanceList</Description>
-        <!-- This variable sets the LOD distances, so 10 is the second lod, 25 is third, etc. we build 3 LODs for 1 model, so 4 levels -->
-        <Value>5, 10, 25, 150, 250</Value>
-        <valueType>LongArray</valueType>
+        <Description>LOD_pixelTolerance</Description>
+        <!-- How many pixels of deviation a LOD may show at its distance. Each mesh stores the error its LOD generation reported, and we pick the coarsest LOD that stays within this. Bigger values save triangles but pop while moving-->
+        <Value>1.0</Value>
+        <valueType>Double</valueType>
         <IsSet>True</IsSet>
-        <Index>12</Index>
+        <Index>59</Index>
     </Parameter>
     <Parameter>
         <RequestType>FreeNumber</RequestType>
@@ -131,6 +131,15 @@
         <valueType>Double</valueType>
         <IsSet>True</IsSet>
         <Index>15</Index>
+    </Parameter>
+    <Parameter>
+        <RequestType>FreeNumber</RequestType>
+        <Description>occlusion_bakeLodLevel</Description>
+        <!--Which LOD occludes in software culling. Every LOD is baked at conversion, so this can be changed without re-exporting. 0 is the full mesh and the most accurate, 2 is about 40% faster to rasterize but over culls more, mostly on ground pieces-->
+        <Value>0</Value>
+        <valueType>Long</valueType>
+        <IsSet>True</IsSet>
+        <Index>60</Index>
     </Parameter>
     <Parameter>
         <RequestType>FreeText</RequestType>

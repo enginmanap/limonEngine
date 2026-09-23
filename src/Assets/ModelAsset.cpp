@@ -169,6 +169,13 @@ void ModelAsset::loadCPUPart() {
 }
 
 
+//only the level the option asks for is baked at load, a limonmodel is expected to carry all of them
+void ModelAsset::bakeAllOccluderLods() {
+    for (auto mesh = meshes.begin(); mesh != meshes.end(); ++mesh) {
+        (*mesh)->bakeAllOccluderLods();
+    }
+}
+
 void ModelAsset::loadGPUPart() {
     // serialize should save these
     // assetID
@@ -381,8 +388,9 @@ void ModelAsset::createMeshes(const aiScene *scene, aiNode *aiNode, glm::mat4 pa
 
         std::shared_ptr<Material> meshMaterial = loadMaterials(scene, currentMesh->mMaterialIndex);
         std::shared_ptr<MeshAsset> mesh;
+        uint32_t bakeOccluderLodLevel = static_cast<uint32_t>(assetManager->getGraphicsWrapper()->getOptions()->getOption<long>(HASH("occlusion_bakeLodLevel")).getOrDefault(0L));
         mesh = std::make_shared<MeshAsset>(currentMesh, aiNode->mName.C_Str(), rootNode,
-                                           parentTransform, hasAnimation, reverseWinding);
+                                           parentTransform, hasAnimation, bakeOccluderLodLevel, reverseWinding);
         meshMaterialMap[mesh] = meshMaterial;
         if((*mesh->getTriangleCount()) == 0) {
             continue;

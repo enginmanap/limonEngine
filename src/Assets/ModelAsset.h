@@ -155,6 +155,7 @@ class ModelAsset : public Asset {
     ModelAsset() : Asset(nullptr, 0, std::vector<std::string>()) {};
 
 public:
+    void bakeAllOccluderLods();//the limonmodel export calls this, load only bakes the level the option asks for
     static std::string stripFlipSuffix(const std::string &path, bool &outFlipX, bool &outFlipY, bool &outFlipZ);
 
     ModelAsset(AssetManager *assetManager, uint32_t assetID, const std::vector<std::string> &fileList);

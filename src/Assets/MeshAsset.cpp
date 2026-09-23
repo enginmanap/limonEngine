@@ -9,11 +9,12 @@
 
 #include "limonAPI/Graphics/GraphicsInterface.h"
 #include "../../libs/meshoptimizer/src/meshoptimizer.h"
+#include "snapdragon-oc/Source/app/FuzzyCulling/API/SDOCAPI.h"
 
 static constexpr float NORMAL_ATTRIBUTE_WEIGHT = 1.0f; //meshopt readme default, raising it keeps shading at the cost of triangles
 
 MeshAsset::MeshAsset(const aiMesh *currentMesh, std::string name, std::shared_ptr<const BoneNode> meshSkeleton,
-                     const glm::mat4 &parentTransform, const bool isPartOfAnimated, bool reverseWinding)
+                     const glm::mat4 &parentTransform, const bool isPartOfAnimated, uint32_t bakeOccluderLodLevel, bool reverseWinding)
         : name(name), parentTransform(parentTransform), isPartOfAnimated(isPartOfAnimated), reverseWinding(reverseWinding) {
     if (!currentMesh->HasPositions()) {
         throw "No position found"; //Not going to process if mesh is empty
@@ -97,6 +98,7 @@ MeshAsset::MeshAsset(const aiMesh *currentMesh, std::string name, std::shared_pt
             this->bones = false;
         }
     }
+    bakeOccluderLod(getSimplestLodLevel(bakeOccluderLodLevel));//after the bone branches above, it needs to know whether this mesh is skinned
     buildBulletMesh();
 }
 
@@ -236,6 +238,34 @@ void MeshAsset::generateLods() {
                                          lodIndices[index + 1],
                                          lodIndices[index + 2]));
         }
+    }
+}
+
+// occluders are rendered from this every frame, so we pay the bake once at load. Only the level the option asks for is
+// baked here, exporting a limonmodel bakes the rest. Animated meshes never occlude, their occluder would need the node
+// transform and the pose, which we don't have at load
+void MeshAsset::bakeOccluderLod(uint32_t lodLevel) {
+    if (isPartOfAnimated || bones || triangleCount[lodLevel] == 0 || !bakedOccluders[lodLevel].empty()) {
+        return;
+    }
+    int bakedShortCount = 0;//SDOC counts uint16s here, SDOCAPI.h says ints
+    unsigned short *bakedData = sdocMeshBake(&bakedShortCount,
+                                             &vertices[0].x,
+                                             (const unsigned short *) &(faces.data()->x) + offsets[lodLevel],
+                                             static_cast<unsigned int>(vertices.size()),
+                                             triangleCount[lodLevel] * 3,
+                                             15.0f, true, true, 0);
+    if (bakedData == nullptr || bakedShortCount <= 0) {
+        return;//baker refused this level, a request for it falls back to the raw index range
+    }
+    bakedOccluders[lodLevel].assign(bakedData, bakedData + bakedShortCount);
+    sdocMeshBake(reinterpret_cast<int *>(bakedData), nullptr, nullptr, 0, 0, 0, false, false, 0);//SDOC's documented free
+}
+
+//a limonmodel carries every level, so the occluder LOD option still works on a map built from converted models
+void MeshAsset::bakeAllOccluderLods() {
+    for (uint32_t level = 0; level < LOD_LEVEL_COUNT; ++level) {
+        bakeOccluderLod(level);
     }
 }
 

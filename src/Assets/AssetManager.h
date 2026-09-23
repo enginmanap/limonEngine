@@ -160,6 +160,20 @@ private:
         }
     };
 
+    //a limonmodel has its flip baked into the exported vertices, so a map asking for one again was hand edited
+    static bool isLimonModelFile(const std::string& file) {
+        size_t flipPosition = file.rfind("?flip");
+        std::string path = flipPosition == std::string::npos ? file : file.substr(0, flipPosition);
+        if (path.substr(path.find_last_of(".") + 1) != "limonmodel") {
+            return false;
+        }
+        if (flipPosition != std::string::npos) {
+            std::cerr << "Flip is not supported on " << path << ", re-export the flipped variant instead. Exiting..." << std::endl;
+            exit(-1);
+        }
+        return true;
+    }
+
     AssetLoadQueue assetLoadCpuQueue;
     AssetLoadQueue assetLoadGPUQueue;
 
@@ -264,8 +278,7 @@ public:
                 bool loaded = false;
                 //check if asset is cereal deserialize file.
                 if(files.size() == 1) {
-                    std::string extension = files[0].substr(files[0].find_last_of(".") + 1);
-                    if (extension == "limonmodel") {
+                    if (isLimonModelFile(files[0])) {
 #ifdef CEREAL_SUPPORT
                         std::ifstream is(files[0], std::ios::binary);
                         cereal::BinaryInputArchive archive(is);
@@ -325,8 +338,7 @@ public:
             bool loaded = false;
             //check if asset is cereal deserialize file.
             if(files.size() == 1) {
-                std::string extension = files[0].substr(files[0].find_last_of(".") + 1);
-                if (extension == "limonmodel") {
+                if (isLimonModelFile(files[0])) {
 #ifdef CEREAL_SUPPORT
                     std::ifstream is(files[0], std::ios::binary);
                     cereal::BinaryInputArchive archive(is);
@@ -380,8 +392,7 @@ public:
                 bool loaded = false;
                 //check if asset is cereal deserialize file.
                 if(files.size() == 1) {
-                    std::string extension = files[0].substr(files[0].find_last_of(".") + 1);
-                    if (extension == "limonmodel") {
+                    if (isLimonModelFile(files[0])) {
 #ifdef CEREAL_SUPPORT
                         std::ifstream is(files[0], std::ios::binary);
                         cereal::BinaryInputArchive archive(is);

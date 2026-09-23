@@ -36,7 +36,9 @@ class VisibilityManager {
 
     static void fillVisibleObjectPerCamera(const VisibilityRequest* request);
     static void staticOcclusionThread(VisibilityRequest* request);
-    static uint32_t getLodLevel(const std::vector<long>& lodDistances, float skipRenderDistance, float skipRenderSize, float maxSkipRenderSize, const glm::mat4 &cameraProjectionMatrix, const glm::vec3& playerPosition, glm::vec3 minAABB, glm::vec3 maxAABB, float &objectAverageDepth, float &objectScreenSize);
+    static bool isSkippedByLodDistance(float skipRenderDistance, float skipRenderSize, float maxSkipRenderSize, const glm::mat4 &cameraProjectionMatrix, const glm::vec3& playerPosition, glm::vec3 minAABB, glm::vec3 maxAABB, float &objectAverageDepth, float &objectScreenSize, float &objectDistance);
+    static uint32_t selectLodLevel(const MeshAsset* mesh, float objectDistance, float objectScale, float pixelScale, float pixelTolerance);
+    static float getLodObjectScale(const Model* model);
 
     std::map<VisibilityRequest*, SDL2MultiThreading::InternalThread*> visibilityThreadPool;
     /*

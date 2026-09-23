@@ -534,7 +534,8 @@ ImGuiResult Model::addImGuiEditorElements(const ImGuiRequest &request) {
             ImGuiHelper::ShowHelpMarker("No sound asset selected");
         }
     }
-    if (!animated) {
+    bool isLimonModel = name.substr(name.find_last_of(".") + 1) == "limonmodel";
+    if (!animated && !isLimonModel) {//a limonmodel carries its flip in the vertices, there is nothing left to toggle
         if (ImGui::CollapsingHeader("Flip axes")) {
             bool flipX = flipAxes.find('X') != std::string::npos;
             bool flipY = flipAxes.find('Y') != std::string::npos;
@@ -935,8 +936,14 @@ void Model::convertAssetToLimon(std::set<std::vector<std::string>> &convertedMod
 #ifdef CEREAL_SUPPORT
     std::vector<std::string> nameVector;
     nameVector.push_back(name);
-    std::string newName = name.substr(0, name.find_last_of(".")) + ".limonmodel";
+    nameVector.push_back(flipAxes);//each flip is different geometry, so it gets its own file
+    std::string newName = name.substr(0, name.find_last_of("."));
+    if (!flipAxes.empty()) {
+        newName += "_flip" + flipAxes;//windows filenames can not hold the ?flip the asset key uses
+    }
+    newName += ".limonmodel";
     if(convertedModels.find(nameVector) == convertedModels.end()) {
+        modelAsset->bakeAllOccluderLods();//load only baked the level the option asked for, the file should carry all of them
         std::ofstream os(newName, std::ios::binary);
         cereal::BinaryOutputArchive archive( os );
 
@@ -944,6 +951,7 @@ void Model::convertAssetToLimon(std::set<std::vector<std::string>> &convertedMod
         convertedModels.insert(nameVector);
     }
     this->name = newName;//change name of self so next time converted file would be used.
+    this->flipAxes.clear();//the mirror is in the exported vertices now, flipping again would undo it
 
     for (auto childIt = children.begin(); childIt != children.end(); ++childIt) {
         Model* modelChild = dynamic_cast<Model*>(*childIt);

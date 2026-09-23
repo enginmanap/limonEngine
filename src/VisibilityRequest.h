@@ -60,7 +60,10 @@ public:
         const Camera* const camera;
         glm::vec3 playerPosition;
         const OptionsUtil::Options* options;
-        const OptionsUtil::Options::Option<std::vector<long>> lodDistancesOption;
+        const OptionsUtil::Options::Option<double> lodPixelToleranceOption;
+        const OptionsUtil::Options::Option<long> displayHeightOption;
+        const OptionsUtil::Options::Option<long> shadowMapDirectionalSizeOption;//shadow cameras project LOD error onto their own map
+        const OptionsUtil::Options::Option<long> shadowMapPointHeightOption;
         const OptionsUtil::Options::Option<double> skipRenderDistanceOption;
         const OptionsUtil::Options::Option<double> skipRenderSizeOption;
         const OptionsUtil::Options::Option<double> maxSkipRenderSizeOption;
@@ -71,6 +74,7 @@ public:
         const OptionsUtil::Options::Option<double> occlusionOccluderSizePerspectiveOption;
         const OptionsUtil::Options::Option<double> occlusionOccluderSizeOrthographicOption;
         const OptionsUtil::Options::Option<bool> occlusionEnabledOption;
+        const OptionsUtil::Options::Option<long> occlusionBakeLodLevelOption;
 
         const std::unordered_map<uint32_t, Model *>* const objects;
         const Attachable* const playerObject;
@@ -83,7 +87,10 @@ public:
 
         VisibilityRequest(Camera* camera, std::unordered_map<uint32_t, Model *>* objects, const Attachable* playerObject, std::unordered_map<std::vector<uint64_t>, RenderList, uint64_vector_hasher> * visibility, const glm::vec3& playerPosition, const OptionsUtil::Options* options, SDL2MultiThreading::Barrier* frameBarrier, const std::string& cameraName) :
                 visibilityLatch(cameraName), frameBarrier(frameBarrier), camera(camera), playerPosition(playerPosition), options(options),
-                lodDistancesOption(options->getOption<std::vector<long>>(HASH("LOD_distanceList"))),
+                lodPixelToleranceOption(options->getOption<double>(HASH("LOD_pixelTolerance"))),
+                displayHeightOption(options->getOption<long>(HASH("display_height"))),
+                shadowMapDirectionalSizeOption(options->getOption<long>(HASH("shadow_mapDirectionalSize"))),
+                shadowMapPointHeightOption(options->getOption<long>(HASH("shadow_mapPointHeight"))),
                 skipRenderDistanceOption(options->getOption<double>(HASH("LOD_skipRenderDistance"))),
                 skipRenderSizeOption(options->getOption<double>(HASH("LOD_skipRenderSize"))),
                 maxSkipRenderSizeOption(options->getOption<double>(HASH("LOD_maxSkipRenderSize"))),
@@ -93,6 +100,7 @@ public:
                 occlusionOccluderSizePerspectiveOption(options->getOption<double>(HASH("occlusion_occluderSizePerspective"))),
                 occlusionOccluderSizeOrthographicOption(options->getOption<double>(HASH("occlusion_occluderSizeOrthographic"))),
                 occlusionEnabledOption(options->getOption<bool>(HASH("occlusion_enabled"))),
+                occlusionBakeLodLevelOption(options->getOption<long>(HASH("occlusion_bakeLodLevel"))),
                 objects(objects), playerObject(playerObject), visibility(visibility),
                 occlusionCuller(options->getOption<long>(HASH("occlusion_renderWidth")),
                 options->getOption<long>(HASH("occlusion_renderHeight"))) {

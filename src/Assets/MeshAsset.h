@@ -16,6 +16,7 @@
 
 #include "../Material.h"
 #include "BoneNode.h"
+#include "../Utils/AlignedAllocator.hpp"
 #ifdef CEREAL_SUPPORT
 #include <cereal/access.hpp>
 #include <cereal/types/memory.hpp>
@@ -65,9 +66,13 @@ private:
 
     bool reverseWinding = false;
 
+    //one per LOD, so the occluder level is a runtime choice. SDOC reads bakes with SIMD loads, hence the alignment
+    std::vector<uint16_t, AlignedAllocator<uint16_t, 64>> bakedOccluders[LOD_LEVEL_COUNT];
+
     std::vector<uint32_t> bufferObjects;
     bool setTriangles(const aiMesh *currentMesh);
     void generateLods();
+    void bakeOccluderLod(uint32_t lodLevel);
     void buildSimplifyAttributes(std::vector<float> &attributes, std::vector<float> &attributeWeights, float meshScale) const;
     void buildUvSeamLocks(std::vector<unsigned char> &vertexLock) const;
 #ifdef CEREAL_SUPPORT
@@ -81,7 +86,8 @@ private:
     MeshAsset(){}
 public:
     MeshAsset(const aiMesh *currentMesh, std::string name, std::shared_ptr<const BoneNode> meshSkeleton,
-              const glm::mat4 &parentTransform, const bool isPartOfAnimated, bool reverseWinding = false);
+              const glm::mat4 &parentTransform, const bool isPartOfAnimated, uint32_t bakeOccluderLodLevel, bool reverseWinding = false);
+    void bakeAllOccluderLods();
     void buildBulletMesh();
     /**
      * This method sets GPU side of the deserialization, and uses AssetManager to access GPU with getGraphicsWrapper
@@ -97,6 +103,20 @@ public:
 
     const uint32_t *getOffsets() const{
         return offsets;
+    }
+
+    // always returns LOD_LEVEL_COUNT elements, in model units, level 0 is always 0
+    const float *getLodErrors() const {
+        return lodError;
+    }
+
+    //empty for animated meshes and for anything the baker rejected, those still go through the raw index range
+    const std::vector<uint16_t, AlignedAllocator<uint16_t, 64>> &getBakedOccluder(uint32_t requestedLodLevel) const {
+        uint32_t lodLevel = requestedLodLevel < LOD_LEVEL_COUNT ? requestedLodLevel : LOD_LEVEL_COUNT - 1;
+        while (lodLevel > 0 && bakedOccluders[lodLevel].empty()) {//a LOD can simplify to nothing, or the baker can refuse it
+            lodLevel--;
+        }
+        return bakedOccluders[lodLevel];
     }
 
     uint32_t getSimplestLodLevel(uint32_t requestedLodLevel) const {
@@ -151,15 +171,15 @@ public:
         return name;
     }
 #ifdef CEREAL_SUPPORT
-    //bumped when lodError joined the format, a file written before that has no way to produce one, so we stop instead of reading garbage
-    static constexpr uint32_t SERIALIZATION_MAGIC = 0x4C4D4632;
+    //bumped whenever the stored LOD data changes, an older file can not produce it, so we stop instead of reading garbage
+    static constexpr uint32_t SERIALIZATION_MAGIC = 0x4C4D4633;
 
     template<class Archive>
     void serialize(Archive & archive){
         uint32_t magic = SERIALIZATION_MAGIC;
         archive(magic);
         checkSerializationMagic(magic);
-        archive( vertices, normals, textureCoordinates, faces, vertexCount, triangleCount, offsets, lodError, skeleton, bones, boneIDs, boneWeights, boneAttachedMeshes, boneIdMap, name, isPartOfAnimated, parentTransform);
+        archive( vertices, normals, textureCoordinates, faces, vertexCount, triangleCount, offsets, lodError, bakedOccluders, skeleton, bones, boneIDs, boneWeights, boneAttachedMeshes, boneIdMap, name, isPartOfAnimated, parentTransform);
     }
 #endif
 };
