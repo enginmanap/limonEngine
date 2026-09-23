@@ -10,11 +10,12 @@ void RenderList::addMeshMaterial(const std::shared_ptr<const Material> &material
     getOrCreateMaterialEntry(material, materialIterator);
     auto meshIterator = materialIterator->second.getOrCreateMeshEntry(meshAsset);
     auto requestedObjectIterator = std::find_if(meshIterator->second.indices.begin(), meshIterator->second.indices.end(), [model](const glm::uvec4& entry) { return entry.x == model->getWorldObjectID(); });
+    //an object already in the list can still have moved, and the mesh renders at the finest level any of its instances wants
+    meshIterator->second.lod = std::min(meshIterator->second.lod, lod);
     if (requestedObjectIterator == meshIterator->second.indices.end()) {
         uint32_t rigId = rigIdOverride >= 0 ? (uint32_t)rigIdOverride : model->getRigId();
         meshIterator->second.indices.emplace_back(model->getWorldObjectID(), material->getMaterialIndex(), rigId, 0);
         meshIterator->second.depth = std::max(meshIterator->second.depth, maxDepth);
-        meshIterator->second.lod = std::min(meshIterator->second.lod, lod);
         meshIterator->second.isAnimated = meshIterator->second.isAnimated || model->isAnimated();
         materialIterator->second.maxDepthPerMesh[meshAsset] = std::max(materialIterator->second.maxDepthPerMesh[meshAsset], maxDepth);//This is the max depth of this material
         materialIterator->second.meshRenderPriorityMap.clear();//Why? because we don't know if we need to sort the list again

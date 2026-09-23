@@ -18,9 +18,11 @@ class MeshAsset;
 class Material;
 class Model;
 
+static constexpr uint32_t NO_LOD_REQUESTED = UINT32_MAX;
+
 struct PerMeshRenderInformation {
     std::vector<glm::uvec4> indices; // x = model object Id. y: material index to use. z and w reserved for texture id usage + bone transform index.
-    uint32_t lod = 0;  //Max level of detail. Since we use instanced rendering, using single LOD for all meshes is faster than multiple draw calls (at least in my testing)
+    uint32_t lod = NO_LOD_REQUESTED;//AddMeshMaterial always lowers it to real value. Max LOD any mesh set. Since we use instanced rendering, using single LOD for all meshes is faster than multiple draw calls (at least in my testing)
     bool isAnimated = false;
     float depth = 0; //max depth for this mesh set
 };
