@@ -105,7 +105,7 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
     apiGUILayer->setDebug(false);
 
     renderCounts = new GUIText(graphicsWrapper, getNextObjectID(), "Render Counts",
-                               fontManager.getFont("./Data/Fonts/Helvetica-Normal.ttf", 16), "0", glm::vec3(204, 204, 0));
+                               fontManager.getFont("./Data/Fonts/Cousine-Regular.ttf", 16), "0", glm::vec3(204, 204, 0));
     renderCounts->set2dWorldTransform(glm::vec2(options->getScreenWidth() - 170, options->getScreenHeight() - 36), 0);
 
     cursor = new GUICursor(graphicsWrapper, assetManager, "./Data/Textures/crosshair.png");
@@ -817,8 +817,10 @@ void World::renderGUITexts(const std::shared_ptr<GraphicsProgram>& renderProgram
     bool renderInformations =renderInformationsOption.getOrDefault(false);
     renderProgram->setUniform("layerDepth", 0.019f / 512.0f);
     if (renderInformations) {
-        renderCounts->updateText(std::to_string((int)frameTimeTracker->getFramesPerSecond()) + " fps, " +
-                                 std::to_string(graphicsWrapper->getFrameStats().triangleCount) + " tris");
+        char renderCountsText[32];
+        snprintf(renderCountsText, sizeof(renderCountsText), "%4d fps, %8u tris",
+                 (int)frameTimeTracker->getFramesPerSecond(), graphicsWrapper->getFrameStats().triangleCount);
+        renderCounts->updateText(renderCountsText);
         renderCounts->renderWithProgram(renderProgram, 0);
         debugOutputGUI->renderWithProgram(renderProgram, 0);
     }
