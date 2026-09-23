@@ -454,7 +454,7 @@ bool OpenGLGraphics::createGraphicsBackend() {
             ++foundExtensionCount;
         }
 
-        if(std::strcmp(extensionNameBuffer, "ARB_framebuffer_no_attachments") == 0) {
+        if(std::strcmp(extensionNameBuffer, "GL_ARB_framebuffer_no_attachments") == 0) {
             isFrameBufferParameterSupported = true;
             ++foundExtensionCount;
         }
@@ -519,7 +519,8 @@ bool OpenGLGraphics::createGraphicsBackend() {
     GLint maxUniformBlockSize = 0;
     glGetIntegerv(GL_MAX_UNIFORM_BLOCK_SIZE, &maxUniformBlockSize);
     // this variable is the max mesh information we would push before running a render loop and clear it up.
-    // Between batches, we need to update the UBO, so there is a write, which force flushes the reads(Previous render) and block    modelIndexBatchCapacity = std::min((uint32_t)NR_MAX_MODELS, (uint32_t)(maxUniformBlockSize / sizeof(glm::uvec4)));
+    // Between batches, we need to update the UBO, so there is a write, which force flushes the reads(Previous render) and block
+    modelIndexBatchCapacity = std::min((uint32_t)NR_MAX_MODELS, (uint32_t)(maxUniformBlockSize / sizeof(glm::uvec4)));
 
     std::cout << "Uniform maxUniformBlockSize is " << maxUniformBlockSize << ", model index batch capacity is " << modelIndexBatchCapacity << std::endl;
 
@@ -1241,22 +1242,26 @@ void OpenGLGraphics::attachDrawTextureToFrameBuffer(uint32_t frameBufferID, Text
         case FrameBufferAttachPoints::DEPTH:  glAttachment = GL_DEPTH_ATTACHMENT;   break;
     }
 
-    int32_t attachmentTemp;
-    unsigned int drawBufferAttachments[6];
     if(attachPoint != OpenGLGraphics::FrameBufferAttachPoints::DEPTH) {
-        for (unsigned int i = 0; i < 6; ++i) {
-            if (i == index) {
-                drawBufferAttachments[i] = glAttachment;
-                if(clear) {
-                    unsigned int tempAttachmentBuffer[1] = {glAttachment};
-                    glDrawBuffers(1, tempAttachmentBuffer);
+        if (index >= (uint32_t)maxDrawBuffers) {
+            std::cerr << "Trying to attach to a color attachment index (" << index << ") that is higher than supported (" << maxDrawBuffers << ")" << std::endl;
+        } else {
+            std::vector<GLenum> drawBufferAttachments(maxDrawBuffers);
+            for (int i = 0; i < maxDrawBuffers; ++i) {
+                if (i == (int)index) {
+                    drawBufferAttachments[i] = glAttachment;
+                    if(clear) {
+                        unsigned int tempAttachmentBuffer[1] = {glAttachment};
+                        glDrawBuffers(1, tempAttachmentBuffer);
+                    }
+                } else {
+                    GLint currentAttachment;
+                    glGetIntegerv(GL_DRAW_BUFFER0 + i, &currentAttachment);
+                    drawBufferAttachments[i] = currentAttachment;
                 }
-            } else {
-                glGetIntegerv(GL_DRAW_BUFFER0 + i, &attachmentTemp);
-                drawBufferAttachments[i] = attachmentTemp;
             }
+            glDrawBuffers(maxDrawBuffers, drawBufferAttachments.data());
         }
-        glDrawBuffers(6, drawBufferAttachments);
     }
 
     switch (textureType) {

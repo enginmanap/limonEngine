@@ -266,6 +266,7 @@ private:
     bool isFrameBufferParameterSupported = false;
     bool isDebugOutputSupported = false;
     bool isTimerQuerySupported = false;
+    bool isIndexedBlendSupported = false;//glEnablei is ES 3.2 or GL_EXT_draw_buffers_indexed, we fall back to the global switch
 
 #ifdef TRACY_ENABLE
     std::vector<tracy::GpuCtxScope*> gpuZoneStack;//inactive begins push nullptr, so toggling tracing mid-frame can't unbalance the ends

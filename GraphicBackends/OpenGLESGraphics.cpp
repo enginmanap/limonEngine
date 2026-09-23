@@ -55,6 +55,8 @@ GLuint OpenGLESGraphics::createShader(GLenum eShaderType, const std::string &str
                   << strInfoLog << "\n--- Shader Code ---\n"
                   << GraphicsInterface::formatShaderCode(strShaderContent) << std::endl;
         delete[] strInfoLog;
+        glDeleteShader(shader);
+        shader = 0;
 
     }
     checkErrors("createShader");
@@ -433,16 +435,7 @@ bool OpenGLESGraphics::createGraphicsBackend() {
             isCubeMapArraySupported = true;
             ++foundExtensionCount;
         }
-        if(std::strcmp(extensionNameBuffer, "GL_ARB_program_interface_query") == 0) {
-            isProgramInterfaceQuerySupported = true;
-            ++foundExtensionCount;
-        }
-
-        if(std::strcmp(extensionNameBuffer, "ARB_framebuffer_no_attachments") == 0) {
-            isFrameBufferParameterSupported = true;
-            ++foundExtensionCount;
-        }
-        if(std::strcmp(extensionNameBuffer, "GL_ARB_debug_output") == 0) {
+        if(std::strcmp(extensionNameBuffer, "GL_KHR_debug") == 0) {
             isDebugOutputSupported = true;
             ++foundExtensionCount;
         }
@@ -450,10 +443,24 @@ bool OpenGLESGraphics::createGraphicsBackend() {
             isTimerQuerySupported = true;
             ++foundExtensionCount;
         }
+        if(std::strcmp(extensionNameBuffer, "GL_EXT_draw_buffers_indexed") == 0) {
+            isIndexedBlendSupported = true;
+            ++foundExtensionCount;
+        }
 
-        if (foundExtensionCount == 5) {
+        if (foundExtensionCount == 4) {
             break;
         }
+    }
+    //program interface query and framebuffer parameters are core in ES 3.1, and verifyContext refuses anything lower.
+    //They used to be tested against ARB names, which an ES driver never reports, so both stayed off on every ES device
+    isProgramInterfaceQuerySupported = true;
+    isFrameBufferParameterSupported = true;
+    GLint contextMajor = 0, contextMinor = 0;
+    glGetIntegerv(GL_MAJOR_VERSION, &contextMajor);
+    glGetIntegerv(GL_MINOR_VERSION, &contextMinor);
+    if (contextMajor > 3 || (contextMajor == 3 && contextMinor >= 2)) {
+        isIndexedBlendSupported = true;//core since ES 3.2
     }
 
     if(!isCubeMapArraySupported) {
@@ -803,9 +810,9 @@ OpenGLESGraphics::switchRenderStage(uint32_t width, uint32_t height, uint32_t fr
         case OpenGLESGraphics::CullModes::NO_CHANGE: break;
     }
     if(blendEnabled) {
-        glEnablei(GL_BLEND, 0);
+        if (isIndexedBlendSupported) { glEnablei(GL_BLEND, 0); } else { glEnable(GL_BLEND); }
     } else {
-        glDisablei(GL_BLEND, 0);
+        if (isIndexedBlendSupported) { glDisablei(GL_BLEND, 0); } else { glDisable(GL_BLEND); }
     }
     checkErrors("switchRenderStage");
 }
@@ -866,9 +873,9 @@ OpenGLESGraphics::switchRenderStage(uint32_t width, uint32_t height, uint32_t fr
         case OpenGLESGraphics::CullModes::NO_CHANGE: break;
     }
     if(blendEnabled) {
-        glEnablei(GL_BLEND, 0);
+        if (isIndexedBlendSupported) { glEnablei(GL_BLEND, 0); } else { glEnable(GL_BLEND); }
     } else {
-        glDisablei(GL_BLEND, 0);
+        if (isIndexedBlendSupported) { glDisablei(GL_BLEND, 0); } else { glDisable(GL_BLEND); }
     }
     checkErrors("switchRenderStageLayer");
 }
@@ -928,7 +935,7 @@ void OpenGLESGraphics::renderInstanced(uint32_t program, uint32_t VAO, uint32_t 
     frameStats.triangleCount += (elementCount / 3) * instanceCount;
     frameStats.instanceCount += instanceCount;
     ++frameStats.drawCallCount;
-    glDrawElementsInstanced(GL_TRIANGLES, elementCount, GL_UNSIGNED_SHORT, (void*)(startOffset*sizeof(GLuint)), instanceCount);
+    glDrawElementsInstanced(GL_TRIANGLES, elementCount, GL_UNSIGNED_SHORT, (void*)(startOffset*sizeof(GLushort)), instanceCount);//indices are u16, GLuint here walked off the end of the LOD range
     glBindVertexArray(0);
     //state->setProgram(0);
     checkErrors("renderInstancedOffset");
@@ -1405,7 +1412,7 @@ uint32_t OpenGLESGraphics::createTexture(int height, int width, TextureTypes typ
         case TextureTypes::TCUBE_MAP_ARRAY: {
             glTextureType = GL_TEXTURE_CUBE_MAP_ARRAY_ARB;
             glBindTexture(glTextureType, texture);
-            glTexImage3D(GL_TEXTURE_CUBE_MAP_ARRAY_ARB, 0, glInternalDataFormat, width,height, textureLayers, 0,glFormat, glDataType, nullptr);
+            glTexImage3D(GL_TEXTURE_CUBE_MAP_ARRAY_ARB, 0, glInternalDataFormat, width,height, textureLayers * 6, 0,glFormat, glDataType, nullptr);//depth counts cubes for cube arrays, GL wants layer-faces
             if(height != width) {
                 std::cerr << "Cubemaps require square textures, this will fail!" << std::endl;
             }
@@ -1558,7 +1565,7 @@ OpenGLESGraphics::loadTextureData(uint32_t textureID, int height, int width, Tex
         case TextureTypes::TCUBE_MAP_ARRAY: {
             glTextureType = GL_TEXTURE_CUBE_MAP_ARRAY_ARB;
             glBindTexture(glTextureType, textureID);
-            glTexImage3D(GL_TEXTURE_CUBE_MAP_ARRAY_ARB, 0, glInternalDataFormat, width,height, depth, 0,glFormat, glDataType, data);
+            glTexImage3D(GL_TEXTURE_CUBE_MAP_ARRAY_ARB, 0, glInternalDataFormat, width,height, depth * 6, 0,glFormat, glDataType, data);//depth counts cubes for cube arrays, GL wants layer-faces
             std::cerr << "This method of loading texture data is not tested." << std::endl;
         }
             break;
@@ -1630,7 +1637,7 @@ void OpenGLESGraphics::createDebugVAOVBO(uint32_t &vao, uint32_t &vbo, uint32_t 
     //glBufferSubData(GL_ARRAY_BUFFER, 0, vertexSize, vertexData);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 28, nullptr); //position
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 28, (void*)12); //color
-    glVertexAttribPointer(2, 1, GL_INT,  GL_FALSE, 28, (void*)24); //needsCameraTransform
+    glVertexAttribIPointer(2, 1, GL_INT, 28, (void*)24); //needsCameraTransform
     glEnableVertexAttribArray(0);
     glEnableVertexAttribArray(1);
     glEnableVertexAttribArray(2);
