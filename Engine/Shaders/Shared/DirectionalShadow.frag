@@ -3,6 +3,7 @@
 #define_option shadow_cascadeCount
 #define_option shadow_cascadeLimitList
 #define_option shadow_directionalSampleCount
+#define_option shadow_cascadeBlendFraction
 
 uniform sampler2DArrayShadow pre_shadowDirectional;
 
@@ -45,7 +46,7 @@ float _SampleCascadeShadow(int lightIndex, int layer, vec3 world_space_frag_pos,
 
     float shadow = 0.0;
     vec2 texelSize = 1.0 / vec2(textureSize(pre_shadowDirectional, 0).xy);
-    float filterRadius = 2.0 + float(layer) * 0.5;
+    float filterRadius = 2.0 + float(layer) * 0.5;// mirrored in OrthographicCamera caster culling padding, change both
     float compareDepth = currentDepth;
 
     // Early-out: center sample is fully lit, skip full PCF loop
@@ -78,7 +79,7 @@ float ShadowCalculationDirectional(int lightIndex, vec3 world_space_frag_pos, ve
     // we calculate normal bias after cascade selection, so we can scale it based on the cascade.
     // The bias needed for first cascade is tiny, compared to last cascade. We would need to pass
     // texel size to calculate it correctly, this is an approxmate.
-    float baseNormalBias = mix(0.01, 0.100, diffuseRate);
+    float baseNormalBias = mix(0.01, 0.100, diffuseRate);// max is mirrored in OrthographicCamera::MAX_NORMAL_BIAS, change both
     vec3 biasedFragPos = world_space_frag_pos + worldNormal * (baseNormalBias * (cascadePlaneDistances[layer] / cascadePlaneDistances[0]));
 
     // Calculate rotation matrix once per directional light
@@ -92,7 +93,7 @@ float ShadowCalculationDirectional(int lightIndex, vec3 world_space_frag_pos, ve
 
     // Blend with the next cascade if within the transition zone
     if (layer < shadow_cascadeCount - 1) {
-        float blendRegion = splitDist * 0.10;
+        float blendRegion = splitDist * shadow_cascadeBlendFraction;
         float threshold = splitDist - blendRegion;
 
         if (precise_view_z > threshold) {

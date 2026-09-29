@@ -43,6 +43,19 @@ protected:
         }
     }
 
+    //normalizing the whole vec4 would scale distances down the further the plane is from origin, breaking the sphere test
+    static void normalizePlane(glm::vec4 &plane) {
+        plane /= glm::length(glm::vec3(plane));
+    }
+
+    //signed distance of the AABB corner furthest along the plane normal, negative means whole box is behind the plane
+    static float distanceOfFurthestCorner(const glm::vec3 &aabbMin, const glm::vec3 &aabbMax, const glm::vec4 &plane) {
+        return (plane.x >= 0.0f ? aabbMax.x : aabbMin.x) * plane.x
+             + (plane.y >= 0.0f ? aabbMax.y : aabbMin.y) * plane.y
+             + (plane.z >= 0.0f ? aabbMax.z : aabbMin.z) * plane.z
+             + plane.w;
+    }
+
     static void calculateFrustumPlanes(const glm::mat4 &cameraMatrix, const glm::mat4 &projectionMatrix, std::vector<glm::vec4> &planes) {
         assert(planes.size() == 6);
         glm::mat4 clipMat;
@@ -63,37 +76,37 @@ protected:
         planes[RIGHT].y = clipMat[1].w - clipMat[1].x;
         planes[RIGHT].z = clipMat[2].w - clipMat[2].x;
         planes[RIGHT].w = clipMat[3].w - clipMat[3].x;
-        planes[RIGHT] = glm::normalize(planes[RIGHT]);
+        normalizePlane(planes[RIGHT]);
 
         planes[LEFT].x = clipMat[0].w + clipMat[0].x;
         planes[LEFT].y = clipMat[1].w + clipMat[1].x;
         planes[LEFT].z = clipMat[2].w + clipMat[2].x;
         planes[LEFT].w = clipMat[3].w + clipMat[3].x;
-        planes[LEFT] = glm::normalize(planes[LEFT]);
+        normalizePlane(planes[LEFT]);
 
         planes[BOTTOM].x = clipMat[0].w + clipMat[0].y;
         planes[BOTTOM].y = clipMat[1].w + clipMat[1].y;
         planes[BOTTOM].z = clipMat[2].w + clipMat[2].y;
         planes[BOTTOM].w = clipMat[3].w + clipMat[3].y;
-        planes[BOTTOM] = glm::normalize(planes[BOTTOM]);
+        normalizePlane(planes[BOTTOM]);
 
         planes[TOP].x = clipMat[0].w - clipMat[0].y;
         planes[TOP].y = clipMat[1].w - clipMat[1].y;
         planes[TOP].z = clipMat[2].w - clipMat[2].y;
         planes[TOP].w = clipMat[3].w - clipMat[3].y;
-        planes[TOP] = glm::normalize(planes[TOP]);
+        normalizePlane(planes[TOP]);
 
         planes[BACK].x = clipMat[0].w - clipMat[0].z;
         planes[BACK].y = clipMat[1].w - clipMat[1].z;
         planes[BACK].z = clipMat[2].w - clipMat[2].z;
         planes[BACK].w = clipMat[3].w - clipMat[3].z;
-        planes[BACK] = glm::normalize(planes[BACK]);
+        normalizePlane(planes[BACK]);
 
         planes[FRONT].x = clipMat[0].w + clipMat[0].z;
         planes[FRONT].y = clipMat[1].w + clipMat[1].z;
         planes[FRONT].z = clipMat[2].w + clipMat[2].z;
         planes[FRONT].w = clipMat[3].w + clipMat[3].z;
-        planes[FRONT] = glm::normalize(planes[FRONT]);
+        normalizePlane(planes[FRONT]);
     }
 
 public:

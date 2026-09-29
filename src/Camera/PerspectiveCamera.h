@@ -136,11 +136,7 @@ public:
         for (int i = 0; i<6; i++) {
             //pick closest point to plane and check if it behind the plane
             //if yes - object outside frustum
-            float d =   std::fmax(aabbMin.x * frustumPlanes[i].x, aabbMax.x * frustumPlanes[i].x)
-                        + std::fmax(aabbMin.y * frustumPlanes[i].y, aabbMax.y * frustumPlanes[i].y)
-                        + std::fmax(aabbMin.z * frustumPlanes[i].z, aabbMax.z * frustumPlanes[i].z)
-                        + frustumPlanes[i].w;
-            inside &= d > 0;
+            inside &= distanceOfFurthestCorner(aabbMin, aabbMax, frustumPlanes[i]) > 0;
             //return false; //with flag works faster
         }
         return inside;

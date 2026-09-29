@@ -458,6 +458,15 @@
     </Parameter>
     <Parameter>
         <RequestType>FreeNumber</RequestType>
+        <Description>shadow_cascadeBlendFraction</Description>
+        <!-- Band below each cascade limit, as a fraction of it, where both cascades are sampled and blended. Directional caster culling keeps casters for this band too. -->
+        <Value>0.1</Value>
+        <valueType>Double</valueType>
+        <IsSet>True</IsSet>
+        <Index>54</Index>
+    </Parameter>
+    <Parameter>
+        <RequestType>FreeNumber</RequestType>
         <Description>shadow_cascadeLimitList</Description>
         <Value>5.0, 20.0, 50.0, 150.0, 250.0</Value>
         <valueType>FloatArray</valueType>

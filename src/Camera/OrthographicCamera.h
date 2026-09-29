@@ -27,6 +27,17 @@ class OrthographicCamera : public Camera {
     long frameCounter = 0;
     mutable bool dirty = true;
     OptionsUtil::Options::Option<bool> debugDrawLinesOption = options->getOption<bool>(HASH("debug_drawLines"));
+    OptionsUtil::Options::Option<double> cascadeBlendFractionOption = options->getOption<double>(HASH("shadow_cascadeBlendFraction"));
+    OptionsUtil::Options::Option<long> shadowMapSizeOption = options->getOption<long>(HASH("shadow_mapDirectionalSize"));
+    std::vector<glm::vec4> playerFrustumPlanes;
+    //only the planes a shadow can't reach by travelling along the light, the rest can never reject a caster
+    glm::vec4 casterPlanes[6];
+    uint32_t casterPlaneCount = 0;
+
+    //these mirror DirectionalShadow.frag, receivers sample this far from themselves so casters there must survive culling
+    static constexpr float MAX_NORMAL_BIAS = 0.1f;
+    static constexpr float PCF_BASE_RADIUS = 2.0f;
+    static constexpr float PCF_RADIUS_PER_CASCADE = 0.5f;
 
     // Behaviour changes based on whether it is a player camera or a shadow camera, so we have a flag
     bool playerMode = false;
@@ -66,7 +77,9 @@ public:
         this->name = name;
 
         frustumPlanes.resize(6);
+        playerFrustumPlanes.resize(6);
         this->frustumCorners.resize(8);
+        cascadeLimits = Camera::readCascadeLimits(options);
     }
 
     // Player-camera constructor: an orthographic player view driven by the attachment's projection.
@@ -108,7 +121,10 @@ public:
     bool isVisible(const PhysicalRenderable& renderable) const override {
         glm::vec3 aabbMin = renderable.getAabbMin();
         glm::vec3 aabbMax = renderable.getAabbMax();
-        return this->isVisible(aabbMin, aabbMax);
+        if (playerMode) {
+            return this->isVisible(aabbMin, aabbMax);//player view casts no shadow, and has no caster planes
+        }
+        return this->isVisible(aabbMin, aabbMax) && isShadowCaster(aabbMin, aabbMax);
     }
 
     bool isVisible(const glm::vec3& aabbMin, const glm::vec3& aabbMax) const override {
@@ -117,14 +133,20 @@ public:
         for (int i = 0; i<6; i++) {
             //pick closest point to plane and check if it behind the plane
             //if yes - object outside frustum
-            float d =   std::fmax(aabbMin.x * frustumPlanes[i].x, aabbMax.x * frustumPlanes[i].x)
-                        + std::fmax(aabbMin.y * frustumPlanes[i].y, aabbMax.y * frustumPlanes[i].y)
-                        + std::fmax(aabbMin.z * frustumPlanes[i].z, aabbMax.z * frustumPlanes[i].z)
-                        + frustumPlanes[i].w;
-            inside &= d > 0;
+            inside &= distanceOfFurthestCorner(aabbMin, aabbMax, frustumPlanes[i]) > 0;
             //return false; //with flag works faster
         }
         return inside;
+    }
+
+    //does the box's shadow, extruded along the light, reach the part of the player view this cascade covers
+    bool isShadowCaster(const glm::vec3& aabbMin, const glm::vec3& aabbMax) const {
+        for (uint32_t i = 0; i < casterPlaneCount; ++i) {
+            if (distanceOfFurthestCorner(aabbMin, aabbMax, casterPlanes[i]) < 0.0f) {
+                return false;
+            }
+        }
+        return true;
     }
 
     bool isVisible(const glm::vec3 &position, float radius) const override {
@@ -208,6 +230,7 @@ public:
         this->orthogonalProjectionMatrix = calculateOrthogonalForCascade(playerFrustumCorners[cascadeIndex], lightView, center);
         this->cameraMatrix = lightView;
         this->cameraProjectionMatrix = orthogonalProjectionMatrix * lightView;
+        calculateCasterPlanes(playerCamera);
         calculateFrustumPlanes(lightView, this->orthogonalProjectionMatrix, this->frustumPlanes);
         calculateFrustumCorners(lightView,this->orthogonalProjectionMatrix,this->frustumCorners);
 
@@ -230,6 +253,37 @@ public:
             frameCounter++;
         }
 
+    }
+
+    //needs orthogonalProjectionMatrix of this frame, the pcf padding is in its texels
+    void calculateCasterPlanes(const Camera* playerCamera) {
+        calculateFrustumPlanes(playerCamera->getCameraMatrixConst(), playerCamera->getProjectionMatrix(), playerFrustumPlanes);
+
+        //shader reads this cascade from blend band below its slice start up to its slice end, so near and far are cut to that
+        const glm::mat4& playerView = playerCamera->getCameraMatrixConst();
+        const glm::vec3 viewZRow(playerView[0][2], playerView[1][2], playerView[2][2]);//view space z = dot(viewZRow, p) + playerView[3][2], looking down -z
+        if (cascadeIndex > 0) {
+            const float nearDepth = cascadeLimits[cascadeIndex] * (1.0f - (float)cascadeBlendFractionOption.getOrDefault(0.1));
+            playerFrustumPlanes[FRONT] = glm::vec4(-viewZRow, -playerView[3][2] - nearDepth);
+        }
+        if (cascadeIndex + 2 < cascadeLimits.size()) {//last cascade also shades everything past its limit, keep the player far plane for it
+            const float farDepth = cascadeLimits[cascadeIndex + 1];
+            playerFrustumPlanes[BACK] = glm::vec4(viewZRow, playerView[3][2] + farDepth);
+        }
+
+        const float cascadeScale = cascadeLimits[cascadeIndex + 1] / cascadeLimits[1];
+        const float texelSize = (2.0f / orthogonalProjectionMatrix[0][0]) / (float)shadowMapSizeOption.getOrDefault(2048);
+        const float padding = MAX_NORMAL_BIAS * cascadeScale
+                            + (PCF_BASE_RADIUS + PCF_RADIUS_PER_CASCADE * cascadeIndex) * texelSize;//poisson disk radius is below 1
+
+        casterPlaneCount = 0;
+        for (const glm::vec4& plane : playerFrustumPlanes) {
+            if (glm::dot(glm::vec3(plane), position) < 0.0f) {//position is the direction light travels
+                casterPlanes[casterPlaneCount] = plane;
+                casterPlanes[casterPlaneCount].w += padding;
+                casterPlaneCount++;
+            }
+        }
     }
 
     void debugDrawFrustum(const std::vector<glm::vec4> &frustumCorners, const glm::vec3 &color, uint32_t &drawLineBufferId, long frameCounter) {

@@ -1179,10 +1179,17 @@ void ModelAsset::buildPhysicsMeshes() {
                 //a convex shape can not be bigger than the points it was built from, so if it is, the wrong points went in
                 btVector3 shapeMin, shapeMax;
                 meshCollisionShape->getAabb(btTransform::getIdentity(), shapeMin, shapeMax);
-                glm::vec4 meshMin = (*iter)->getAabbMin();
-                glm::vec4 meshMax = (*iter)->getAabbMax();
+                //measured off the points themselves. getAabbMin/Max transform two corners as points, so a node
+                //transform that mirrors or rotates leaves min above max and every such mesh trips the check
+                const std::vector<glm::vec3> &collisionPoints = (*iter)->getVertices();
+                glm::vec3 meshMin(std::numeric_limits<float>::max());
+                glm::vec3 meshMax(-std::numeric_limits<float>::max());
+                for (size_t pointIndex = 0; pointIndex < collisionPoints.size(); ++pointIndex) {
+                    meshMin = glm::min(meshMin, collisionPoints[pointIndex]);
+                    meshMax = glm::max(meshMax, collisionPoints[pointIndex]);
+                }
                 btVector3 shapeSize = shapeMax - shapeMin;
-                glm::vec3 meshSize = glm::vec3(meshMax - meshMin);
+                glm::vec3 meshSize = collisionPoints.empty() ? glm::vec3(0.0f) : meshMax - meshMin;
                 float allowed = 1.2f;//margins and the hull's own padding make an exact match unreasonable
                 if (shapeSize.x() > meshSize.x * allowed + 0.2f || shapeSize.y() > meshSize.y * allowed + 0.2f ||
                     shapeSize.z() > meshSize.z * allowed + 0.2f) {

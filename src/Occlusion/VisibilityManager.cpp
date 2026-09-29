@@ -361,6 +361,8 @@ void VisibilityManager::fillVisibleObjectPerCamera(const VisibilityRequest* visi
                 visibilityRequest->setPreviousLodLevel(currentModel->getWorldObjectID(), modelLod);
             }
         }
+        //which meshes occlude doesn't depend on the tag set, so the first matching set submits them. Every other set would rasterize them again
+        bool occludersSubmitted = false;
         for (auto& visibilityEntry: *visibilityRequest->visibility) {
             if (VisibilityRequest::isAnyTagMatch(visibilityEntry.first, currentModel->getTags())) {
                 if(isVisible) {
@@ -373,7 +375,7 @@ void VisibilityManager::fillVisibleObjectPerCamera(const VisibilityRequest* visi
                                 }
                                 occluderCounter += meshMetas.size();
                                 //an animated occluder would need its node transform and pose, which we don't have here, so it only ever occludes itself
-                                if (runOcclusion && !currentModel->isAnimated()) {
+                                if (runOcclusion && !currentModel->isAnimated() && !occludersSubmitted) {
                                     visibilityRequest->occlusionCuller.renderOccluder(currentModel, occluderLodLevel);
                                     //std::cout << currentModel->getName() << ":" << " is occluder " << std::endl;
                                 }
@@ -395,10 +397,10 @@ void VisibilityManager::fillVisibleObjectPerCamera(const VisibilityRequest* visi
                         //for models with more than 10 meshes, we don't wanna add all of them to renderlist, need to re check visibility
                         for (auto& meshMeta:meshMetas) {
                             totalCounter++;
-                            if (visibilityRequest->camera->isVisible(currentModel->getTransformation()->getWorldTransform() * meshMeta->mesh->getAabbMin(),
-                                                                     currentModel->getTransformation()->getWorldTransform() * meshMeta->mesh->getAabbMax())) {
-                                glm::vec3 meshWorldMin, meshWorldMax;
-                                AABBConverter::getWorldSpaceAABB(currentModel->getTransformation()->getWorldTransform(), meshMeta->mesh->getAabbMin(), meshMeta->mesh->getAabbMax(), meshWorldMin, meshWorldMax);
+                            glm::vec3 meshWorldMin, meshWorldMax;
+                            //transforming only min and max corners shrinks the box of a rotated mesh, wrongly culling it
+                            AABBConverter::getWorldSpaceAABB(currentModel->getTransformation()->getWorldTransform(), meshMeta->mesh->getAabbMin(), meshMeta->mesh->getAabbMax(), meshWorldMin, meshWorldMax);
+                            if (visibilityRequest->camera->isVisible(meshWorldMin, meshWorldMax)) {
                                 bool lodSkipped = isSkippedByLodDistance(skipRenderDistance, skipRenderSize, maxSkipRenderSize, cameraProjectionMatrix, visibilityRequest->playerPosition, meshWorldMin, meshWorldMax, objectAverageDepth, objectScreenSize, objectDistance);
                                 lodContext.objectDistance = perspectiveLodProjection ? objectDistance : 1.0f;
                                 lodContext.objectScale = getLodObjectScale(currentModel);
@@ -411,7 +413,7 @@ void VisibilityManager::fillVisibleObjectPerCamera(const VisibilityRequest* visi
                                             maxScreenSize = objectScreenSize;
                                         }
                                         occluderCounter++;
-                                        if (runOcclusion && !currentModel->isAnimated()) {
+                                        if (runOcclusion && !currentModel->isAnimated() && !occludersSubmitted) {
                                             visibilityRequest->occlusionCuller.renderOccluder(meshMeta, currentModel->getTransformation()->getWorldTransform(), occluderLodLevel);
                                         }
                                         visibilityEntry.second.addMeshMaterial(meshMeta->material, meshMeta->mesh, currentModel, lod, objectAverageDepth);
@@ -427,6 +429,7 @@ void VisibilityManager::fillVisibleObjectPerCamera(const VisibilityRequest* visi
                             }
                         }
                     }
+                    occludersSubmitted = true;
                     if (currentModel->isAnimated()) {
                         visibilityRequest->changedBoneTransforms[currentModel->getRigId()] = currentModel->getBoneTransforms();
                     }
