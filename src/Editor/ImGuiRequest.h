@@ -22,11 +22,20 @@ class ImGuiImageWrapper;
 //Implemented by the Editor; injected here as a callback so callers need not depend on the Editor type.
 typedef std::function<bool(std::vector<LimonTypes::GenericParameter> &, uint32_t)> GenerateEditorElementsCallback;
 
-// Renders the selected model with its animation (or t-pose/base), but instead of using game time, uses wall time.
+// Renders the selected model at the requested size, with its animation (or t-pose/base), but instead of using
+// game time, uses wall time. A LOD level past 0 pins that level for this image, -1 renders as selection would.
 // The skeleton overlay (lines+joints, selection highlight) is baked into the same returned image by the editor
 // system, so the caller only ever gets one finished texture to display -- no camera/joint-transform data crosses
 // this boundary.
-typedef std::function<ImGuiImageWrapper*(Model*)> RenderBonePreviewCallback;
+typedef std::function<ImGuiImageWrapper*(Model*, int32_t, uint32_t, uint32_t)> RenderModelPreviewCallback;
+
+//The model rendered at a LOD level's design size, next to the original at that same size. Judging "is this
+//acceptable at 20 px" means looking at 20 px, so these come back small and are magnified by the panel.
+struct LodComparisonImages {
+    ImGuiImageWrapper* levelImage = nullptr;
+    ImGuiImageWrapper* originalImage = nullptr;
+};
+typedef std::function<LodComparisonImages(Model*, int32_t, uint32_t)> RenderLodComparisonCallback;
 
 struct ImGuiRequest {
     const glm::mat4& perspectiveCameraMatrix;
@@ -34,12 +43,15 @@ struct ImGuiRequest {
     const glm::mat4& perspectiveMatrix;
     const glm::mat4& orthogonalMatrix;
 
-    const uint32_t& screenHeight;
-    const uint32_t& screenWidth;
+    //by value, not by reference: Options returns these by value, so a reference member would dangle the moment
+    //the request is built. It read as billions of metres in the LOD panel before anyone noticed
+    const uint32_t screenHeight;
+    const uint32_t screenWidth;
 
     const Camera* playerCamera;
     GenerateEditorElementsCallback generateEditorElementsForParameters;
-    RenderBonePreviewCallback renderBonePreview;
+    RenderModelPreviewCallback renderModelPreview;
+    RenderLodComparisonCallback renderLodComparison;
     ImGuiHelper* imgGuiHelper = nullptr;
     //the material the Editor is currently altering for the picked object, so the object pane can draw its
     //widgets in place. Editor owns it and its edit window, nothing here holds it beyond the frame
@@ -50,11 +62,11 @@ struct ImGuiRequest {
     ImGuiRequest(const glm::mat4 &perspectiveCameraMatrix, const glm::mat4 &perspectiveMatrix,
                  const glm::mat4 &orthogonalMatrix, const uint32_t &screenHeight, const uint32_t &screenWidth,
                  const Camera* playerCamera, GenerateEditorElementsCallback generateEditorElementsForParameters,
-                 RenderBonePreviewCallback renderBonePreview, ImGuiHelper* imgGuiHelper)
+                 RenderModelPreviewCallback renderModelPreview, RenderLodComparisonCallback renderLodComparison, ImGuiHelper* imgGuiHelper)
             : perspectiveCameraMatrix(perspectiveCameraMatrix), perspectiveMatrix(perspectiveMatrix),
               orthogonalMatrix(orthogonalMatrix), screenHeight(screenHeight), screenWidth(screenWidth),
               playerCamera(playerCamera), generateEditorElementsForParameters(std::move(generateEditorElementsForParameters)),
-              renderBonePreview(std::move(renderBonePreview)), imgGuiHelper(imgGuiHelper) {}
+              renderModelPreview(std::move(renderModelPreview)), renderLodComparison(std::move(renderLodComparison)), imgGuiHelper(imgGuiHelper) {}
 };
 
 

@@ -60,7 +60,8 @@ public:
         const Camera* const camera;
         glm::vec3 playerPosition;
         const OptionsUtil::Options* options;
-        const OptionsUtil::Options::Option<double> lodPixelToleranceOption;
+        const OptionsUtil::Options::Option<double> lodToleranceScaleOption;
+        const OptionsUtil::Options::Option<double> lodPixelDeviationOption;
         const OptionsUtil::Options::Option<long> displayHeightOption;
         const OptionsUtil::Options::Option<long> shadowMapDirectionalSizeOption;//shadow cameras project LOD error onto their own map
         const OptionsUtil::Options::Option<long> shadowMapPointHeightOption;
@@ -75,19 +76,24 @@ public:
         const OptionsUtil::Options::Option<double> occlusionOccluderSizeOrthographicOption;
         const OptionsUtil::Options::Option<bool> occlusionEnabledOption;
         const OptionsUtil::Options::Option<long> occlusionBakeLodLevelOption;
+        const OptionsUtil::Options::Option<double> lodSwitchHysteresisOption;
+        const OptionsUtil::Options::Option<double> lodShadowToleranceScaleOption;
+        const OptionsUtil::Options::Option<long> lodForceLevelOption;
 
         const std::unordered_map<uint32_t, Model *>* const objects;
         const Attachable* const playerObject;
         std::unordered_map<std::vector<uint64_t>, RenderList, uint64_vector_hasher>* visibility;
         mutable OcclusionCullerHelper occlusionCuller;
         mutable std::unordered_map<uint32_t, const std::vector<glm::mat4>*> changedBoneTransforms;
+        mutable std::unordered_map<uint32_t, uint32_t> previousLodLevels;
         bool running = true; //non atomic because only used in between latch/barrier. But, must be checked before doing anything (because false means dangling pointers to camera and objects)
         bool cameraIsDirty = true; // cached by main thread before each signal; avoids Python GIL call from background thread
         bool playerDead = false; // same reason, isDead() reaches the player and we cannot touch that from here
 
         VisibilityRequest(Camera* camera, std::unordered_map<uint32_t, Model *>* objects, const Attachable* playerObject, std::unordered_map<std::vector<uint64_t>, RenderList, uint64_vector_hasher> * visibility, const glm::vec3& playerPosition, const OptionsUtil::Options* options, SDL2MultiThreading::Barrier* frameBarrier, const std::string& cameraName) :
                 visibilityLatch(cameraName), frameBarrier(frameBarrier), camera(camera), playerPosition(playerPosition), options(options),
-                lodPixelToleranceOption(options->getOption<double>(HASH("LOD_pixelTolerance"))),
+                lodToleranceScaleOption(options->getOption<double>(HASH("LOD_toleranceScale"))),
+                lodPixelDeviationOption(options->getOption<double>(HASH("LOD_pixelDeviation"))),
                 displayHeightOption(options->getOption<long>(HASH("display_height"))),
                 shadowMapDirectionalSizeOption(options->getOption<long>(HASH("shadow_mapDirectionalSize"))),
                 shadowMapPointHeightOption(options->getOption<long>(HASH("shadow_mapPointHeight"))),
@@ -101,9 +107,23 @@ public:
                 occlusionOccluderSizeOrthographicOption(options->getOption<double>(HASH("occlusion_occluderSizeOrthographic"))),
                 occlusionEnabledOption(options->getOption<bool>(HASH("occlusion_enabled"))),
                 occlusionBakeLodLevelOption(options->getOption<long>(HASH("occlusion_bakeLodLevel"))),
+                lodSwitchHysteresisOption(options->getOption<double>(HASH("LOD_switchHysteresis"))),
+                lodShadowToleranceScaleOption(options->getOption<double>(HASH("LOD_shadowToleranceScale"))),
+                lodForceLevelOption(options->getOption<long>(HASH("LOD_forceLevel"))),
                 objects(objects), playerObject(playerObject), visibility(visibility),
                 occlusionCuller(options->getOption<long>(HASH("occlusion_renderWidth")),
                 options->getOption<long>(HASH("occlusion_renderHeight"))) {
+        }
+
+        //last level this camera chose per object, so a model sitting on a switch point does not flip every frame.
+        //Owned by this camera's culling thread, so it needs no locking
+        uint32_t getPreviousLodLevel(uint32_t objectId) const {
+            std::unordered_map<uint32_t, uint32_t>::const_iterator found = previousLodLevels.find(objectId);
+            return found == previousLodLevels.end() ? 0 : found->second;
+        }
+
+        void setPreviousLodLevel(uint32_t objectId, uint32_t level) const {
+            previousLodLevels[objectId] = level;
         }
 
         std::vector<RenderList> getRenderListsForHashList(const std::vector<HashUtil::HashedString>& hashList) const {

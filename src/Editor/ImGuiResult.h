@@ -32,7 +32,7 @@ struct ImGuiResult {
     bool putOnTop = false;
     bool flipChanged = false;
     bool massChanged = false;
-    struct BonePreviewInput {
+    struct ModelPreviewInput {
         bool clicked = false;      //user clicked inside the bone-exposure preview image; pixel coords are local to it
         float clickPixelX = 0.0f;
         float clickPixelY = 0.0f;
@@ -41,7 +41,20 @@ struct ImGuiResult {
         float orbitDeltaY = 0.0f;
         float zoomDelta = 0.0f;    //raw ImGui.io.MouseWheel for this frame, 0 means no scroll
     };
-    BonePreviewInput bonePreview;
+    ModelPreviewInput modelPreview;
+    /**
+     * What the LOD panel asked for this frame. Nothing here happens in place: rebuilding a model's levels
+     * invalidates the index ranges every render list is holding, so the Editor hands it to World's queue.
+     */
+    struct LodPanelInput {
+        bool recalibrate = false;      //rebuild the levels with the targets it already has
+        bool clearOverrides = false;   //back to the project options
+        bool exportToBinary = false;   //confirmed in the panel, writes this model back over its limonmodel
+        //one step at a time: the developer types a triangle share, the engine derives the budget that hits it
+        int32_t triangleTargetLevel = -1;
+        float triangleTargetRatio = 0.0f;
+    };
+    LodPanelInput lodPanel;
     std::string actorTypeName;
     std::string newFlipAxes;
 };

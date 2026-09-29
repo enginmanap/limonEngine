@@ -9,12 +9,13 @@
 
 #include "limonAPI/Graphics/GraphicsInterface.h"
 #include "../../libs/meshoptimizer/src/meshoptimizer.h"
+#include "Lod/LodGenerator.h"
+#include <cstring>
+#include <iostream>
 #include "snapdragon-oc/Source/app/FuzzyCulling/API/SDOCAPI.h"
 
-static constexpr float NORMAL_ATTRIBUTE_WEIGHT = 1.0f; //meshopt readme default, raising it keeps shading at the cost of triangles
-
 MeshAsset::MeshAsset(const aiMesh *currentMesh, std::string name, std::shared_ptr<const BoneNode> meshSkeleton,
-                     const glm::mat4 &parentTransform, const bool isPartOfAnimated, uint32_t bakeOccluderLodLevel, bool reverseWinding)
+                     const glm::mat4 &parentTransform, const bool isPartOfAnimated, bool reverseWinding)
         : name(name), parentTransform(parentTransform), isPartOfAnimated(isPartOfAnimated), reverseWinding(reverseWinding) {
     if (!currentMesh->HasPositions()) {
         throw "No position found"; //Not going to process if mesh is empty
@@ -98,7 +99,6 @@ MeshAsset::MeshAsset(const aiMesh *currentMesh, std::string name, std::shared_pt
             this->bones = false;
         }
     }
-    bakeOccluderLod(getSimplestLodLevel(bakeOccluderLodLevel));//after the bone branches above, it needs to know whether this mesh is skinned
     buildBulletMesh();
 }
 
@@ -165,7 +165,7 @@ bool MeshAsset::setTriangles(const aiMesh *currentMesh) {
         if (currentMesh->HasTextureCoords(0)) {
             for (unsigned int j = 0; j < currentMesh->mNumVertices; ++j) {
                 vertices.push_back(glm::vec3(parentTransform * glm::vec4(GLMConverter::AssimpToGLM(currentMesh->mVertices[j]), 1.0f)));
-                normals.push_back(glm::vec3(parentTransform * glm::vec4(GLMConverter::AssimpToGLM(currentMesh->mNormals[j]), 1.0f)));
+                normals.push_back(glm::vec3(parentTransform * glm::vec4(GLMConverter::AssimpToGLM(currentMesh->mNormals[j]), 0.0f)));
                 glm::vec2 vectorsTextureCoordinates(currentMesh->mTextureCoords[0][j].x, currentMesh->mTextureCoords[0][j].y);
                 normalizeTextureCoordinates(vectorsTextureCoordinates);
                 textureCoordinates.push_back(vectorsTextureCoordinates);
@@ -174,7 +174,7 @@ bool MeshAsset::setTriangles(const aiMesh *currentMesh) {
         } else {
             for (unsigned int j = 0; j < currentMesh->mNumVertices; ++j) {
                 vertices.push_back(glm::vec3(parentTransform * glm::vec4(GLMConverter::AssimpToGLM(currentMesh->mVertices[j]), 1.0f)));
-                normals.push_back(glm::vec3(parentTransform * glm::vec4(GLMConverter::AssimpToGLM(currentMesh->mNormals[j]), 1.0f)));
+                normals.push_back(glm::vec3(parentTransform * glm::vec4(GLMConverter::AssimpToGLM(currentMesh->mNormals[j]), 0.0f)));
             }
         }
     }
@@ -195,49 +195,69 @@ bool MeshAsset::setTriangles(const aiMesh *currentMesh) {
             }
         }
     }
-    triangleCount[0] = faces.size();
-    offsets[0] = 0;
+    triangleCount.assign(1, (uint32_t) faces.size());
+    offsets.assign(1, 0);
+    builtPlan.clear();
+    bakedOccluders.assign(1, std::vector<uint16_t, AlignedAllocator<uint16_t, 64>>());
     if(faces.empty()) {
         return false;
     }
-
-    generateLods();
     return true;
 }
 
-// Mesh Opmitimizer locks position with more than copies. Some low poly assets don't simplify in that case. We will pass permissive
-// to let it simplifiy, but we will also build uv seam locks so uv survives.
-void MeshAsset::generateLods() {
-    const float meshScale = meshopt_simplifyScale(&vertices[0].x, vertices.size(), sizeof(glm::vec3));
-    std::vector<float> attributes;
-    std::vector<float> attributeWeights;
-    buildSimplifyAttributes(attributes, attributeWeights, meshScale);
-    std::vector<unsigned char> vertexLock;
-    buildUvSeamLocks(vertexLock);
+//the ranges this mesh already holds came from a plan, and a model loaded from a binary arrives with both. Same
+//plan means the meshopt work below would reproduce exactly what is there
+bool MeshAsset::hasLodsFor(const std::vector<LodLadder::LevelPlan> &plan) const {
+    return builtPlan == plan;
+}
 
-    const size_t sourceIndexCount = triangleCount[0] * 3;
-    const size_t attributeCount = attributeWeights.size();
+// the levels themselves are decided per model, by measuring what each one can survive, see LodLadder
+void MeshAsset::buildLods(const LodGenerator *generator, const std::vector<LodLadder::LevelPlan> &plan) {
+    if (triangleCount.empty() || triangleCount[0] == 0 || vertices.empty() || generator == nullptr) {
+        return;
+    }
+    //rebuilding: drop whatever ranges are appended after LOD0 and start again
+    faces.resize(triangleCount[0]);
+    triangleCount.resize(1);
+    offsets.resize(1);
+    builtPlan.clear();
+    bakedOccluders.assign(1, std::vector<uint16_t, AlignedAllocator<uint16_t, 64>>());
+
     std::vector<uint16_t> lodIndices;
-    for (uint32_t level = 1; level < LOD_LEVEL_COUNT; ++level) {
-        lodIndices.resize(sourceIndexCount);
-        float relativeError = 0.0f;
-        //every level simplifies LOD0, not the previous level, and target index count 0 leaves target error in charge
-        size_t resultIndexCount = meshopt_simplifyWithAttributes(&lodIndices[0], &(faces[0].x), sourceIndexCount,
-                                                                 &vertices[0].x, vertices.size(), sizeof(glm::vec3),
-                                                                 &attributes[0], attributeCount * sizeof(float),
-                                                                 &attributeWeights[0], attributeCount,
-                                                                 vertexLock.empty() ? nullptr : &vertexLock[0],
-                                                                 0, LOD_TARGET_ERRORS[level],
-                                                                 meshopt_SimplifyPermissive | meshopt_SimplifyPrune,
-                                                                 &relativeError);
-        offsets[level] = offsets[level - 1] + (triangleCount[level - 1] * 3);
-        triangleCount[level] = resultIndexCount / 3;
-        lodError[level] = relativeError * meshScale;
-        for (size_t index = 0; index < resultIndexCount; index = index + 3) {
+    for (size_t level = 0; level < plan.size() && triangleCount.size() < LOD_MAX_LEVEL_COUNT; ++level) {
+        float ignoredRelativeError = 0.0f;
+        LodGenerator::GeneratorKind kind = plan[level].silhouetteOnly ? LodGenerator::GeneratorKind::SILHOUETTE_ONLY
+                                                                     : LodGenerator::GeneratorKind::STRUCTURE_PRESERVING;
+        //every level simplifies LOD0, not the level before it, so an early level can not compound into a later one
+        size_t resultIndexCount = generator->generate(kind, plan[level].targetError, lodIndices, ignoredRelativeError);
+        uint32_t previousLevel = (uint32_t) triangleCount.size() - 1;
+        offsets.push_back(offsets[previousLevel] + (triangleCount[previousLevel] * 3));
+        triangleCount.push_back((uint32_t) (resultIndexCount / 3));
+        builtPlan.push_back(plan[level]);
+        bakedOccluders.push_back(std::vector<uint16_t, AlignedAllocator<uint16_t, 64>>());
+        for (size_t index = 0; index + 2 < resultIndexCount; index = index + 3) {
+            if (lodIndices[index] >= vertices.size() || lodIndices[index + 1] >= vertices.size() ||
+                lodIndices[index + 2] >= vertices.size()) {
+                //drawing a range that points outside the vertex buffer is what scattered geometry looks like
+                std::cerr << "LOD level " << triangleCount.size() - 1 << " of " << name
+                          << " produced an index outside the vertex buffer, dropping the level" << std::endl;
+                //the triangles already appended for this level have to go with it, or the next level's offset,
+                //which was computed before them, starts inside the leftovers
+                faces.resize(offsets.back() / 3);
+                triangleCount.back() = 0;
+                break;
+            }
             faces.push_back(glm::u16vec3(lodIndices[index + 0],
                                          lodIndices[index + 1],
                                          lodIndices[index + 2]));
         }
+    }
+
+    //every range has to sit inside faces, or a draw reads someone else's triangles
+    uint32_t expectedIndexCount = offsets.back() + (triangleCount.back() * 3);
+    if (expectedIndexCount != faces.size() * 3) {
+        std::cerr << "LOD ranges of " << name << " end at index " << expectedIndexCount
+                  << " but the index buffer holds " << faces.size() * 3 << std::endl;
     }
 }
 
@@ -245,7 +265,8 @@ void MeshAsset::generateLods() {
 // baked here, exporting a limonmodel bakes the rest. Animated meshes never occlude, their occluder would need the node
 // transform and the pose, which we don't have at load
 void MeshAsset::bakeOccluderLod(uint32_t lodLevel) {
-    if (isPartOfAnimated || bones || triangleCount[lodLevel] == 0 || !bakedOccluders[lodLevel].empty()) {
+    if (lodLevel >= triangleCount.size() || isPartOfAnimated || bones ||
+        triangleCount[lodLevel] == 0 || !bakedOccluders[lodLevel].empty()) {
         return;
     }
     int bakedShortCount = 0;//SDOC counts uint16s here, SDOCAPI.h says ints
@@ -264,59 +285,8 @@ void MeshAsset::bakeOccluderLod(uint32_t lodLevel) {
 
 //a limonmodel carries every level, so the occluder LOD option still works on a map built from converted models
 void MeshAsset::bakeAllOccluderLods() {
-    for (uint32_t level = 0; level < LOD_LEVEL_COUNT; ++level) {
+    for (uint32_t level = 0; level < triangleCount.size(); ++level) {
         bakeOccluderLod(level);
-    }
-}
-
-void MeshAsset::buildSimplifyAttributes(std::vector<float> &attributes, std::vector<float> &attributeWeights, float meshScale) const {
-    const bool hasTextureCoordinates = textureCoordinates.size() == vertices.size();
-    const size_t attributeCount = hasTextureCoordinates ? 5 : 3;
-    attributes.resize(vertices.size() * attributeCount);
-    for (size_t vertex = 0; vertex < vertices.size(); ++vertex) {
-        attributes[vertex * attributeCount + 0] = normals[vertex].x;
-        attributes[vertex * attributeCount + 1] = normals[vertex].y;
-        attributes[vertex * attributeCount + 2] = normals[vertex].z;
-        if (hasTextureCoordinates) {
-            attributes[vertex * attributeCount + 3] = textureCoordinates[vertex].x;
-            attributes[vertex * attributeCount + 4] = textureCoordinates[vertex].y;
-        }
-    }
-
-    attributeWeights.assign(attributeCount, NORMAL_ATTRIBUTE_WEIGHT);
-    if (hasTextureCoordinates) {
-        double positionLength = 0, textureLength = 0;
-        for (const glm::u16vec3 &face : faces) {
-            for (int corner = 0; corner < 3; ++corner) {
-                uint16_t first = face[corner], second = face[(corner + 1) % 3];
-                positionLength += glm::length(vertices[first] - vertices[second]);
-                textureLength += glm::length(textureCoordinates[first] - textureCoordinates[second]);
-            }
-        }
-        //meshopt asks for the reciprocal UV density in its own rescaled units, so a stretched atlas doesn't outweigh geometry
-        float uvWeight = (textureLength > 0 && meshScale > 0) ? static_cast<float>(positionLength / textureLength / meshScale) : 0.0f;
-        attributeWeights[3] = uvWeight;
-        attributeWeights[4] = uvWeight;
-    }
-}
-
-void MeshAsset::buildUvSeamLocks(std::vector<unsigned char> &vertexLock) const {
-    if (textureCoordinates.size() != vertices.size()) {
-        return;//nothing to protect, permissive can collapse freely
-    }
-    std::vector<unsigned int> positionRemap(vertices.size());
-    meshopt_generatePositionRemap(&positionRemap[0], &vertices[0].x, vertices.size(), sizeof(glm::vec3));
-    std::vector<unsigned char> seamAtPosition(vertices.size(), 0);
-    for (size_t vertex = 0; vertex < vertices.size(); ++vertex) {
-        if (textureCoordinates[vertex] != textureCoordinates[positionRemap[vertex]]) {
-            seamAtPosition[positionRemap[vertex]] = 1;
-        }
-    }
-    vertexLock.assign(vertices.size(), 0);
-    for (size_t vertex = 0; vertex < vertices.size(); ++vertex) {
-        if (seamAtPosition[positionRemap[vertex]]) {
-            vertexLock[vertex] = meshopt_SimplifyVertex_Protect;
-        }
     }
 }
 
@@ -404,7 +374,8 @@ btTriangleMesh *MeshAsset::getBulletMesh(std::map<uint32_t, btConvexHullShape *>
 void MeshAsset::buildBulletMesh() {
     if(!isPartOfAnimated) {
         //if not part of an animation, than we don't need to split based on bones
-        for (unsigned int j = 0; j < faces.size(); ++j) {
+        //faces holds every LOD's index range after LOD0, collision only wants the original
+        for (unsigned int j = 0; j < triangleCount[0]; ++j) {
             bulletMesh.addTriangle(GLMConverter::GLMToBlt(vertices[faces[j][0]]),
                                    GLMConverter::GLMToBlt(vertices[faces[j][1]]),
                                    GLMConverter::GLMToBlt(vertices[faces[j][2]]));
@@ -446,4 +417,12 @@ void MeshAsset::fillBoneMap(std::shared_ptr<const BoneNode> boneNode) {
     for (unsigned int i = 0; i < boneNode->children.size(); ++i) {
         fillBoneMap(boneNode->children[i]);
     }
+}
+void MeshAsset::reuploadGeometryBuffers(AssetManager *assetManager) {
+    if (bufferObjects.empty()) {
+        return;//never reached the GPU, the next loadGPUPart will upload whatever is current
+    }
+    //bufferObjects[0] is the position buffer loadGPUPart pushed first. Only faces changed, but updateVertexData
+    //is the only call the backend offers, so the positions are re-sent with them
+    assetManager->getGraphicsWrapper()->updateVertexData(vertices, faces, bufferObjects[0], ebo);
 }

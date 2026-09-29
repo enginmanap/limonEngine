@@ -78,6 +78,11 @@ private:
 
     static ImGuiResult putAIonGUI(ActorInterface *actorInterface, std::vector<LimonTypes::GenericParameter> &parameters,
                                   const ImGuiRequest &request, std::string &lastSelectedAIName);
+    //the bone section and the LOD section show the same offscreen image, only the level and the size differ
+    void drawModelPreview(const ImGuiRequest &request, ImGuiResult &result, int32_t forcedLodLevel, uint32_t previewWidth, uint32_t previewHeight);
+    void putLodPanelInGui(ImGuiResult &result, const ImGuiRequest &request, bool animated, bool isLimonModel);
+    //the context the engine would use for this object, so the panel and selection cannot drift apart
+    LodSelectionContext buildLodPanelContext(const ImGuiRequest &request) const;
 
 public:
     /**
@@ -373,6 +378,11 @@ public:
             materials.emplace_back(element.second);
         }
         return materials;
+    }
+
+    //a camera that has not moved only re-checks objects marked dirty, so anything changing shape has to say so
+    void setDirtyForFrustum() {
+        this->dirtyForFrustum = true;
     }
 
     bool addTag(const std::string& text) override {

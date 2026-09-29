@@ -98,8 +98,98 @@
     </Parameter>
     <Parameter>
         <RequestType>FreeNumber</RequestType>
-        <Description>LOD_pixelTolerance</Description>
-        <!-- How many pixels of deviation a LOD may show at its distance. Each mesh stores the error its LOD generation reported, and we pick the coarsest LOD that stays within this. Bigger values save triangles but pop while moving-->
+        <Description>LOD_levelSilhouetteBudgetList</Description>
+        <!--Percent of the model pixels whose outline may differ at each level. Calibration searches the largest simplification error that stays inside this, so it bounds how coarse each mesh may be. Outline damage is the same fraction at every distance, so it says nothing about where the level is used. The first number is the element count, not a value. List length sets how many levels exist besides the original. Changing this invalidates every cached calibration, so the next load recalibrates and regenerates every source model. A limonmodel keeps the levels it was exported with until it is re-exported-->
+        <Value>5, 0.5, 2, 5, 10</Value>
+        <valueType>FloatArray</valueType>
+        <IsSet>True</IsSet>
+        <Index>61</Index>
+    </Parameter>
+    <Parameter>
+        <RequestType>FreeNumber</RequestType>
+        <Description>LOD_pixelDeviation</Description>
+        <!--How much a model may visibly move on screen, in pixels, before a level is dropped for a finer one. This is the quality dial, and the only control that trades quality for triangles: raising it brings every level nearer. Measured against what the scorer rendered, not against the simplifier reported error, which reads about a hundred times high on the western buildings. One value for the whole project: it places levels rather than generating them, so it is never part of the calibration cache and changing it needs no regeneration-->
+        <Value>1.0</Value>
+        <valueType>Double</valueType>
+        <IsSet>True</IsSet>
+        <Index>62</Index>
+    </Parameter>
+    <Parameter>
+        <RequestType>FreeText</RequestType>
+        <Description>LOD_shadowWeldedLevels</Description>
+        <!--Build a second, position welded copy of the coarse levels for shadow cameras. Welding drops normals and UVs, which a depth only pass never samples, and buys about 3x at the coarse end. Nothing that samples a texture can ever pick one. Changing this invalidates every cached calibration, so the next load recalibrates and regenerates every source model. A limonmodel keeps the levels it was exported with until it is re-exported-->
+        <Value>True</Value>
+        <valueType>Boolean</valueType>
+        <IsSet>True</IsSet>
+        <Index>64</Index>
+    </Parameter>
+    <Parameter>
+        <RequestType>FreeText</RequestType>
+        <Description>LOD_calibrate</Description>
+        <!--Measure each model and derive its errors at load. Off uses whatever was cached, or the budgets read as errors, which is what a Raspberry Pi build or a fast iteration loop wants-->
+        <Value>True</Value>
+        <valueType>Boolean</valueType>
+        <IsSet>True</IsSet>
+        <Index>65</Index>
+    </Parameter>
+    <Parameter>
+        <RequestType>FreeNumber</RequestType>
+        <Description>LOD_calibrateSearchSteps</Description>
+        <!--Bisection steps per level. Each step renders the model from 14 directions to measure it, so more steps cost load time and land on a slightly larger error-->
+        <Value>7</Value>
+        <valueType>Long</valueType>
+        <IsSet>True</IsSet>
+        <Index>66</Index>
+    </Parameter>
+    <Parameter>
+        <RequestType>FreeNumber</RequestType>
+        <Description>LOD_switchHysteresis</Description>
+        <!--How far past a switch point an object has to move before switching back, as a fraction. Stops an object sitting on a threshold from flipping every frame-->
+        <Value>0.15</Value>
+        <valueType>Double</valueType>
+        <IsSet>True</IsSet>
+        <Index>67</Index>
+    </Parameter>
+    <Parameter>
+        <RequestType>FreeNumber</RequestType>
+        <Description>LOD_shadowToleranceScale</Description>
+        <!--Shadow cameras render depth only, so they can afford more deviation than the main view. Multiplies every level's allowed deviation for shadow cascades-->
+        <Value>2.0</Value>
+        <valueType>Double</valueType>
+        <IsSet>True</IsSet>
+        <Index>68</Index>
+    </Parameter>
+    <Parameter>
+        <RequestType>FreeNumber</RequestType>
+        <Description>LOD_forceLevel</Description>
+        <!--Forces every model to this LOD level so one level can be inspected everywhere it would appear. -1 picks levels normally-->
+        <Value>-1</Value>
+        <valueType>Long</valueType>
+        <IsSet>True</IsSet>
+        <Index>69</Index>
+    </Parameter>
+    <Parameter>
+        <RequestType>FreeNumber</RequestType>
+        <Description>LOD_shadowWeldedFromLevel</Description>
+        <!--First level to get a welded twin. Welding is only worth it at the coarse end: measured over the corpus it saves about 1.3x at 4% outline damage but 3x at 27%, so below this it costs damage for nothing. Changing this invalidates every cached calibration, so the next load recalibrates and regenerates every source model. A limonmodel keeps the levels it was exported with until it is re-exported-->
+        <Value>3</Value>
+        <valueType>Long</valueType>
+        <IsSet>True</IsSet>
+        <Index>70</Index>
+    </Parameter>
+    <Parameter>
+        <RequestType>FreeNumber</RequestType>
+        <Description>LOD_scorerResolution</Description>
+        <!--How finely the calibration rasterizer samples a model. Depth is float so deviations are exact at any resolution, this only decides how well the surface is sampled and whether thin geometry registers at all. Cost is the same whatever the object's size. Changing this invalidates every cached calibration, so the next load recalibrates and regenerates every source model. A limonmodel keeps the levels it was exported with until it is re-exported-->
+        <Value>256</Value>
+        <valueType>Long</valueType>
+        <IsSet>True</IsSet>
+        <Index>71</Index>
+    </Parameter>
+    <Parameter>
+        <RequestType>FreeNumber</RequestType>
+        <Description>LOD_toleranceScale</Description>
+        <!-- Global quality dial over every level's own allowed deviation. Below one holds finer levels for longer and costs triangles, above one lets coarse levels come closer. Not part of the calibration cache, so it can be changed without recalibrating anything-->
         <Value>1.0</Value>
         <valueType>Double</valueType>
         <IsSet>True</IsSet>
@@ -385,7 +475,7 @@
         <RequestType>FreeNumber</RequestType>
         <Description>shadow_cascadeStaggerIntervals</Description>
         <!-- This variable sets the how often we render the cascade. Cascade 0 updates every frame, so skipped. -->
-        <Value>4, 2, 4, 8</Value>
+        <Value>4, 1, 1, 1</Value>
 <!--        <Value>4, 1, 1, 1</Value> interval 1 is each frame, enable with offset for all cascades each frame-->
         <valueType>LongArray</valueType>
         <IsSet>True</IsSet>
@@ -395,7 +485,7 @@
         <RequestType>FreeNumber</RequestType>
         <Description>shadow_cascadeStaggerOffsets</Description>
         <!-- This variable sets the which frame will render which cascade. Cascade 0 updates every frame, so skipped.-->
-        <Value>4, 1, 2, 4</Value>
+        <Value>4, 0, 0, 0</Value>
 <!--        <Value>4, 0, 0, 0</Value> no offset, for rendering each frame-->
         <valueType>LongArray</valueType>
         <IsSet>True</IsSet>

@@ -16,6 +16,7 @@
 
 #include "../Material.h"
 #include "BoneNode.h"
+#include "Lod/LodLadder.h"
 #include "../Utils/AlignedAllocator.hpp"
 #ifdef CEREAL_SUPPORT
 #include <cereal/access.hpp>
@@ -28,14 +29,17 @@
 
 class MeshAsset {
 public:
-    static constexpr uint32_t LOD_LEVEL_COUNT = 4;
+    //a ceiling for anything that needs a bound, the level count itself comes from the options and is per model
+    static constexpr uint32_t LOD_MAX_LEVEL_COUNT = 16;
 private:
-    //level 0 is the original mesh, the rest are driven by target error only, no triangle targets
-    static constexpr float LOD_TARGET_ERRORS[LOD_LEVEL_COUNT] = {0.0f, 0.005f, 0.02f, 0.05f};
-
     uint32_t vao, ebo;
-    uint32_t triangleCount[LOD_LEVEL_COUNT], offsets[LOD_LEVEL_COUNT], vertexCount;
-    float lodError[LOD_LEVEL_COUNT] = {0.0f, 0.0f, 0.0f, 0.0f}; //meshopt error in model units, what LOD selection projects to pixels
+    uint32_t vertexCount;
+    //index 0 is the original mesh and always exists, the rest are index ranges appended into faces
+    std::vector<uint32_t> triangleCount;
+    std::vector<uint32_t> offsets;
+    //what the ranges above were built from. A model loaded from a binary arrives with both, so matching it is
+    //how a converted model skips simplifying everything again at load
+    std::vector<LodLadder::LevelPlan> builtPlan;
     glm::vec4 minAABB, maxAABB;
 
     std::vector<glm::vec3> vertices;
@@ -67,14 +71,10 @@ private:
     bool reverseWinding = false;
 
     //one per LOD, so the occluder level is a runtime choice. SDOC reads bakes with SIMD loads, hence the alignment
-    std::vector<uint16_t, AlignedAllocator<uint16_t, 64>> bakedOccluders[LOD_LEVEL_COUNT];
+    std::vector<std::vector<uint16_t, AlignedAllocator<uint16_t, 64>>> bakedOccluders;
 
     std::vector<uint32_t> bufferObjects;
     bool setTriangles(const aiMesh *currentMesh);
-    void generateLods();
-    void bakeOccluderLod(uint32_t lodLevel);
-    void buildSimplifyAttributes(std::vector<float> &attributes, std::vector<float> &attributeWeights, float meshScale) const;
-    void buildUvSeamLocks(std::vector<unsigned char> &vertexLock) const;
 #ifdef CEREAL_SUPPORT
     void checkSerializationMagic(uint32_t magic) const;
 #endif
@@ -86,7 +86,17 @@ private:
     MeshAsset(){}
 public:
     MeshAsset(const aiMesh *currentMesh, std::string name, std::shared_ptr<const BoneNode> meshSkeleton,
-              const glm::mat4 &parentTransform, const bool isPartOfAnimated, uint32_t bakeOccluderLodLevel, bool reverseWinding = false);
+              const glm::mat4 &parentTransform, const bool isPartOfAnimated, bool reverseWinding = false);
+
+    /**
+     * Builds the index ranges for the levels ModelAsset calibrated. Separate from the constructor because the
+     * calibration that decides these needs every mesh of the model to exist first.
+     */
+    void buildLods(const LodGenerator *generator, const std::vector<LodLadder::LevelPlan> &plan);
+
+    //true when the ranges this mesh holds were built from exactly this plan, so there is nothing to do
+    bool hasLodsFor(const std::vector<LodLadder::LevelPlan> &plan) const;
+    void bakeOccluderLod(uint32_t lodLevel);
     void bakeAllOccluderLods();
     void buildBulletMesh();
     /**
@@ -95,24 +105,22 @@ public:
      * @param assetManager
      */
     void loadGPUPart(AssetManager *assetManager);
+    //after buildLods rebuilt the ranges, the GPU still holds the old ones until this runs. Positions go along
+    //because the backend has no index only update, not because they changed
+    void reuploadGeometryBuffers(AssetManager *assetManager);
 
-    // always returns LOD_LEVEL_COUNT elements
+    // one entry per LOD, level 0 is the original mesh
     const uint32_t *getTriangleCount() const {
-        return triangleCount;
+        return triangleCount.data();
     }
 
     const uint32_t *getOffsets() const{
-        return offsets;
-    }
-
-    // always returns LOD_LEVEL_COUNT elements, in model units, level 0 is always 0
-    const float *getLodErrors() const {
-        return lodError;
+        return offsets.data();
     }
 
     //empty for animated meshes and for anything the baker rejected, those still go through the raw index range
     const std::vector<uint16_t, AlignedAllocator<uint16_t, 64>> &getBakedOccluder(uint32_t requestedLodLevel) const {
-        uint32_t lodLevel = requestedLodLevel < LOD_LEVEL_COUNT ? requestedLodLevel : LOD_LEVEL_COUNT - 1;
+        uint32_t lodLevel = requestedLodLevel < bakedOccluders.size() ? requestedLodLevel : (uint32_t) bakedOccluders.size() - 1;
         while (lodLevel > 0 && bakedOccluders[lodLevel].empty()) {//a LOD can simplify to nothing, or the baker can refuse it
             lodLevel--;
         }
@@ -120,7 +128,10 @@ public:
     }
 
     uint32_t getSimplestLodLevel(uint32_t requestedLodLevel) const {
-        uint32_t lodLevel = requestedLodLevel < LOD_LEVEL_COUNT ? requestedLodLevel : LOD_LEVEL_COUNT - 1;
+        if (triangleCount.empty()) {
+            return 0;
+        }
+        uint32_t lodLevel = requestedLodLevel < triangleCount.size() ? requestedLodLevel : (uint32_t) triangleCount.size() - 1;
         while (lodLevel > 0 && triangleCount[lodLevel] == 0) {//simplification can bottom out at zero triangles
             lodLevel--;
         }
@@ -135,6 +146,14 @@ public:
 
     const std::vector<glm::u16vec3>& getFaces() {
         return faces;
+    }
+
+    const std::vector<glm::vec3>& getNormals() const {
+        return normals;
+    }
+
+    const std::vector<glm::vec2>& getTextureCoordinates() const {
+        return textureCoordinates;
     }
 
     uint32_t getEbo() const { return ebo; }
@@ -172,14 +191,14 @@ public:
     }
 #ifdef CEREAL_SUPPORT
     //bumped whenever the stored LOD data changes, an older file can not produce it, so we stop instead of reading garbage
-    static constexpr uint32_t SERIALIZATION_MAGIC = 0x4C4D4633;
+    static constexpr uint32_t SERIALIZATION_MAGIC = 0x4C4D463B;
 
     template<class Archive>
     void serialize(Archive & archive){
         uint32_t magic = SERIALIZATION_MAGIC;
         archive(magic);
         checkSerializationMagic(magic);
-        archive( vertices, normals, textureCoordinates, faces, vertexCount, triangleCount, offsets, lodError, bakedOccluders, skeleton, bones, boneIDs, boneWeights, boneAttachedMeshes, boneIdMap, name, isPartOfAnimated, parentTransform);
+        archive( vertices, normals, textureCoordinates, faces, vertexCount, triangleCount, offsets, builtPlan, bakedOccluders, skeleton, bones, boneIDs, boneWeights, boneAttachedMeshes, boneIdMap, name, isPartOfAnimated, parentTransform);
     }
 #endif
 };

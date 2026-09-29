@@ -242,17 +242,30 @@ void VisibilityManager::fillVisibleObjectPerCamera(const VisibilityRequest* visi
     float objectScreenSize;
     float objectDistance = 1.0f;
     const Camera::CameraTypes lodCameraType = visibilityRequest->camera->getType();
+    //an ortho projection does not shrink with distance, so its levels are placed at a fixed distance of one
     const bool perspectiveLodProjection = lodCameraType != Camera::CameraTypes::ORTHOGRAPHIC;
-    const float lodPixelTolerance = static_cast<float>(visibilityRequest->lodPixelToleranceOption.getOrDefault(1.0));
     //error in model units times this is its size in pixels at distance one, shadow cameras render to their own map size
-    float lodPixelScale;
+    LodSelectionContext lodContext;
     if (lodCameraType == Camera::CameraTypes::PERSPECTIVE) {
-        lodPixelScale = visibilityRequest->camera->getProjectionMatrix()[1][1] * static_cast<float>(visibilityRequest->displayHeightOption.getOrDefault(1080)) * 0.5f;
+        lodContext.pixelScale = LodLadder::pixelsPerModelUnit(visibilityRequest->camera->getProjectionMatrix(),
+                                                              static_cast<uint32_t>(visibilityRequest->displayHeightOption.getOrDefault(1080)));
     } else if (lodCameraType == Camera::CameraTypes::ORTHOGRAPHIC) {
-        lodPixelScale = visibilityRequest->camera->getProjectionMatrix()[1][1] * static_cast<float>(visibilityRequest->shadowMapDirectionalSizeOption.getOrDefault(1024)) * 0.5f;
+        lodContext.pixelScale = LodLadder::pixelsPerModelUnit(visibilityRequest->camera->getProjectionMatrix(),
+                                                              static_cast<uint32_t>(visibilityRequest->shadowMapDirectionalSizeOption.getOrDefault(1024)));
     } else {
         //cube faces are 90 degree perspective, so their projection scale is 1. Never ask a cube camera for a matrix, it exits
-        lodPixelScale = static_cast<float>(visibilityRequest->shadowMapPointHeightOption.getOrDefault(512)) * 0.5f;
+        lodContext.pixelScale = static_cast<float>(visibilityRequest->shadowMapPointHeightOption.getOrDefault(512)) * 0.5f;
+    }
+    lodContext.hysteresis = static_cast<float>(visibilityRequest->lodSwitchHysteresisOption.getOrDefault(0.15));
+    lodContext.forceLevel = visibilityRequest->lodForceLevelOption.getOrDefault(-1L);
+    //a depth only pass is the one thing that may use welded levels, and that is the camera role, not its
+    //projection. An orthographic player camera still samples textures
+    static const uint64_t lodPlayerCameraTag = HashUtil::hashString(HardCodedTags::CAMERA_PLAYER);
+    lodContext.isShadowCamera = !visibilityRequest->camera->hasTag(lodPlayerCameraTag);
+    lodContext.allowance = static_cast<float>(visibilityRequest->lodPixelDeviationOption.getOrDefault(1.0)) *
+                           static_cast<float>(visibilityRequest->lodToleranceScaleOption.getOrDefault(1.0));
+    if (lodContext.isShadowCamera) {
+        lodContext.allowance *= static_cast<float>(visibilityRequest->lodShadowToleranceScaleOption.getOrDefault(2.0));
     }
     long splitModelToMeshCount;
     bool softwareOcclusionRenderDump = false;
@@ -332,16 +345,28 @@ void VisibilityManager::fillVisibleObjectPerCamera(const VisibilityRequest* visi
         }
         Model *currentModel = objectIt->second;
         bool isVisible = !isHiddenPlayerAttachment && visibilityRequest->camera->isVisible(*currentModel);//find if visible
+        //the whole model path below depends on the object and the camera, never on the tag set, so it runs once
+        //here instead of once per matching tag set
+        const std::vector<Model::MeshMeta *> &meshMetas = currentModel->getMeshMetaData();
+        const bool wholeModelPath = meshMetas.size() < static_cast<size_t>(splitModelToMeshCount);
+        bool modelLodSkipped = false;
+        uint32_t modelLod = 0;
+        if (isVisible && wholeModelPath) {
+            modelLodSkipped = isSkippedByLodDistance(skipRenderDistance, skipRenderSize, maxSkipRenderSize, cameraProjectionMatrix, visibilityRequest->playerPosition, currentModel->getAabbMin(), currentModel->getAabbMax(), objectAverageDepth, objectScreenSize, objectDistance);
+            if (!modelLodSkipped) {
+                lodContext.objectDistance = perspectiveLodProjection ? objectDistance : 1.0f;
+                lodContext.objectScale = getLodObjectScale(currentModel);
+                modelLod = currentModel->getModelAsset()->getLodLadder().selectLevel(lodContext,
+                                   visibilityRequest->getPreviousLodLevel(currentModel->getWorldObjectID()));
+                visibilityRequest->setPreviousLodLevel(currentModel->getWorldObjectID(), modelLod);
+            }
+        }
         for (auto& visibilityEntry: *visibilityRequest->visibility) {
             if (VisibilityRequest::isAnyTagMatch(visibilityEntry.first, currentModel->getTags())) {
                 if(isVisible) {
-                    const std::vector<Model::MeshMeta *> &meshMetas =currentModel->getMeshMetaData();
-                    if (meshMetas.size() < static_cast<size_t>(splitModelToMeshCount)) {
+                    if (wholeModelPath) {
                         totalCounter += meshMetas.size();
-                        bool lodSkipped = isSkippedByLodDistance(skipRenderDistance, skipRenderSize, maxSkipRenderSize, cameraProjectionMatrix, visibilityRequest->playerPosition, objectIt->second->getAabbMin(), objectIt->second->getAabbMax(), objectAverageDepth, objectScreenSize, objectDistance);
-                        if (!lodSkipped) {
-                            float objectScale = getLodObjectScale(currentModel);
-                            float lodDistance = perspectiveLodProjection ? objectDistance : 1.0f;
+                        if (!modelLodSkipped) {
                             if (objectScreenSize > softwareOcclusionOccluderSize || !runOcclusion) {
                                 if (objectScreenSize > maxScreenSize) {
                                     maxScreenSize = objectScreenSize;
@@ -353,13 +378,11 @@ void VisibilityManager::fillVisibleObjectPerCamera(const VisibilityRequest* visi
                                     //std::cout << currentModel->getName() << ":" << " is occluder " << std::endl;
                                 }
                                 for (auto& meshMeta:meshMetas) {
-                                    uint32_t lod = selectLodLevel(meshMeta->mesh.get(), lodDistance, objectScale, lodPixelScale, lodPixelTolerance);
-                                    visibilityEntry.second.addMeshMaterial(meshMeta->material, meshMeta->mesh, currentModel, lod, objectAverageDepth);
+                                    visibilityEntry.second.addMeshMaterial(meshMeta->material, meshMeta->mesh, currentModel, modelLod, objectAverageDepth);
                                 }
                             } else {
-                                for (auto& meshMeta:meshMetas) {//per mesh, because each mesh carries its own LOD errors
-                                    uint32_t lod = selectLodLevel(meshMeta->mesh.get(), lodDistance, objectScale, lodPixelScale, lodPixelTolerance);
-                                    visibilityRequest->occlusionCuller.addOccludee(meshMeta, currentModel, lod, objectAverageDepth, &visibilityEntry.second);
+                                for (auto& meshMeta:meshMetas) {
+                                    visibilityRequest->occlusionCuller.addOccludee(meshMeta, currentModel, modelLod, objectAverageDepth, &visibilityEntry.second);
                                 }
                             }
                         } else {
@@ -377,7 +400,11 @@ void VisibilityManager::fillVisibleObjectPerCamera(const VisibilityRequest* visi
                                 glm::vec3 meshWorldMin, meshWorldMax;
                                 AABBConverter::getWorldSpaceAABB(currentModel->getTransformation()->getWorldTransform(), meshMeta->mesh->getAabbMin(), meshMeta->mesh->getAabbMax(), meshWorldMin, meshWorldMax);
                                 bool lodSkipped = isSkippedByLodDistance(skipRenderDistance, skipRenderSize, maxSkipRenderSize, cameraProjectionMatrix, visibilityRequest->playerPosition, meshWorldMin, meshWorldMax, objectAverageDepth, objectScreenSize, objectDistance);
-                                uint32_t lod = selectLodLevel(meshMeta->mesh.get(), perspectiveLodProjection ? objectDistance : 1.0f, getLodObjectScale(currentModel), lodPixelScale, lodPixelTolerance);
+                                lodContext.objectDistance = perspectiveLodProjection ? objectDistance : 1.0f;
+                                lodContext.objectScale = getLodObjectScale(currentModel);
+                                uint32_t lod = currentModel->getModelAsset()->getLodLadder().selectLevel(lodContext,
+                                                              visibilityRequest->getPreviousLodLevel(currentModel->getWorldObjectID()));
+                                visibilityRequest->setPreviousLodLevel(currentModel->getWorldObjectID(), lod);
                                 if (!lodSkipped) {
                                     if (objectScreenSize > softwareOcclusionOccluderSize || !runOcclusion) {
                                         if (objectScreenSize > maxScreenSize) {
@@ -503,30 +530,12 @@ float VisibilityManager::getLodObjectScale(const Model* model) {
     return std::max(std::abs(scale.x), std::max(std::abs(scale.y), std::abs(scale.z)));
 }
 
-// the coarsest LOD whose stored error stays under the tolerance once projected to pixels at this distance
-uint32_t VisibilityManager::selectLodLevel(const MeshAsset* mesh, float objectDistance, float objectScale, float pixelScale, float pixelTolerance) {
-    const float *lodErrors = mesh->getLodErrors();
-    const uint32_t *triangleCounts = mesh->getTriangleCount();
-    uint32_t selected = 0;
-    for (uint32_t level = 1; level < MeshAsset::LOD_LEVEL_COUNT; ++level) {
-        if (triangleCounts[level] == 0) {
-            continue;//simplification can bottom out at zero triangles
-        }
-        //ortho cameras pass distance 1, their projection doesn't shrink with distance
-        float projectedPixels = (lodErrors[level] * objectScale * pixelScale) / objectDistance;
-        if (projectedPixels <= pixelTolerance) {
-            selected = level;
-        }
-    }
-    return selected;
-}
-
 bool VisibilityManager::isSkippedByLodDistance(float skipRenderDistance, float skipRenderSize, float maxSkipRenderSize, const glm::mat4 &cameraProjectionMatrix, const glm::vec3& playerPosition, glm::vec3 minAABB, glm::vec3 maxAABB, float &objectAverageDepth, float &objectScreenSize, float &objectDistance) {
     //now we get to calculate the size in screen
     glm::vec3 ndcMin, ndcMax;
     AABBConverter::getNCDAABB(minAABB, maxAABB, cameraProjectionMatrix, ndcMin, ndcMax);
     const float screenSizeX = (ndcMax.x - ndcMin.x) / 2.0f; // since OpenGL NDC is -1, 1 each side can be max 2, but we want 0,1
-    const float screenSizeY = (ndcMax.y - ndcMin.y) / 2.0f;
+    const float screenSizeY = (ndcMax.y - ndcMin.y) / 2.0f;//area below is what the occluder split uses
     objectScreenSize = (screenSizeX * screenSizeY);
 
     objectAverageDepth = (ndcMax.z + ndcMin.z) / -2.0f;

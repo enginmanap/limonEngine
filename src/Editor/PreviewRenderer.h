@@ -7,6 +7,7 @@
 #define LIMONENGINE_PREVIEWRENDERER_H
 
 #include "ImGui/imgui.h"
+#include "ImGuiRequest.h"
 #include <memory>
 #include <set>
 #include <string>
@@ -50,20 +51,21 @@ class PreviewRenderer {
     OrbitState assetPreviewOrbit;
 
     //bone preview's base is already tilted ~11 degrees up, so the pitch clamp needs the real base, not flat
-    static const glm::vec3 BONE_PREVIEW_BASE_DIRECTION;
+    static const glm::vec3 MODEL_PREVIEW_BASE_DIRECTION;
     static const glm::vec3 ASSET_PREVIEW_BASE_DIRECTION;
 
     Model* getModelAndMoveToEnd(const std::string& modelFilePath);
     Model* createRenderAndAddModelToLRU(const std::string &modelFileName, const glm::vec3 &newObjectPosition, std::shared_ptr<GraphicsProgram> graphicsProgram);
     void setTransformToModel(Model *model, const glm::vec3 &newObjectPosition);
     void renderSelectedObject(Model* model, std::shared_ptr<GraphicsProgram> graphicsProgram);
-
-    //single source of truth so the render target, the overlay bake space, and the aspect can't drift apart
-    static constexpr uint32_t BONE_PREVIEW_WIDTH = 640;
-    static constexpr uint32_t BONE_PREVIEW_HEIGHT = 480;
+    //only the size the target starts at, the panel resizes it through ensureModelPreviewTarget
+    static constexpr uint32_t DEFAULT_PREVIEW_WIDTH = 640;
+    static constexpr uint32_t DEFAULT_PREVIEW_HEIGHT = 480;
+    static constexpr uint32_t MIN_PREVIEW_SIZE = 64;
+    static constexpr uint32_t MAX_PREVIEW_SIZE = 2048;
 
     // We can't re-use the background renderer state for animation/bone preview, as editor might have both visible at the same time.
-    struct BonePreviewState {
+    struct ModelPreviewState {
         // We can't use the main context, as it is mid frame, so we create a separate one for this.
         // We do reuse the font atlas, so it is a very lightweight thingy.
         ImGuiContext* imGuiContext = nullptr;
@@ -81,8 +83,10 @@ class PreviewRenderer {
         //always matches the exact pose currently on screen. Local pixel space, same convention as the overlay itself.
         std::vector<std::pair<uint32_t, ImVec2>> boneScreenPositions;
         OrbitState orbit;
+        uint32_t width = DEFAULT_PREVIEW_WIDTH;
+        uint32_t height = DEFAULT_PREVIEW_HEIGHT;
     };
-    BonePreviewState bonePreview;
+    ModelPreviewState modelPreview;
 
     // We might or might not render add object preview, same with animation/bone preview. If neither rendered, we don't need to
     // clean up/restore so we flag if any of them did render.
@@ -95,23 +99,49 @@ class PreviewRenderer {
 
     //needs baseDirection for the pitch clamp, see the .cpp for why
     void applyOrbitDragToState(OrbitState &orbit, const glm::vec3 &baseDirection, float dragDeltaX, float dragDeltaY);
-    void applyZoomToState(OrbitState &orbit, float wheelDelta);
+    void applyZoomToState(OrbitState &orbit, float wheelDelta, float maxZoomFactor);
+    //rebuilds the target when the panel asks for a different size, textures and stage have no resize of their own
+    void ensureModelPreviewTarget(uint32_t width, uint32_t height);
+    //the design size comparison renders into its own pair of targets, so it can sit beside the big preview
+    struct ComparisonTarget {
+        std::shared_ptr<Texture> colorTexture;
+        std::shared_ptr<Texture> depthTexture;
+        std::unique_ptr<GraphicsPipelineStage> renderStage;
+        ImGuiImageWrapper* wrapper = nullptr;
+        uint32_t size = 0;
+    };
+    ComparisonTarget comparisonLevelTarget;
+    ComparisonTarget comparisonOriginalTarget;
+    static constexpr uint32_t MIN_COMPARISON_SIZE = 8;
+    static constexpr uint32_t MAX_COMPARISON_SIZE = 512;
+    void ensureComparisonTarget(ComparisonTarget &target, uint32_t size, const std::string &textureName);
+    static uint32_t clampLodLevel(const Model* model, int32_t forcedLodLevel);
+    void renderModelIntoTarget(Model* model, uint32_t lodLevel, GraphicsPipelineStage* targetStage,
+                               uint32_t width, uint32_t height, const OrbitState &orbit, int32_t rigIdOverride,
+                               std::shared_ptr<GraphicsProgram> graphicsProgram,
+                               glm::mat4 &outCameraMatrix, glm::mat4 &outProjectionMatrix);
+
 
 public:
     PreviewRenderer(World* world, ImGuiHelper* imgGuiHelper);
     ~PreviewRenderer();
 
-    ImGuiImageWrapper* renderBonePreview(Model* model, std::shared_ptr<GraphicsProgram> graphicsProgram);
+    //forcedLodLevel -1 renders the level selection would pick, anything else pins that level for this image only
+    ImGuiImageWrapper* renderModelPreview(Model* model, int32_t forcedLodLevel, uint32_t requestedWidth, uint32_t requestedHeight, std::shared_ptr<GraphicsProgram> graphicsProgram);
+
+    //the model at the level's design size next to the original at the same size, which is the size the
+    //budget was measured at. Shown magnified, so the two can be compared pixel by pixel
+    LodComparisonImages renderLodComparison(Model* model, int32_t forcedLodLevel, uint32_t designSizePixels, std::shared_ptr<GraphicsProgram> graphicsProgram);
 
     //nearest bone within hitRadius pixels, -1 if none. Kept here so boneScreenPositions stays private
     int32_t findClosestBoneAtPixel(float pixelX, float pixelY, float hitRadius) const;
 
     //dragDeltaX/Y are this frame's raw ImGui mouse delta
-    void applyBonePreviewOrbitDrag(float dragDeltaX, float dragDeltaY);
+    void applyModelPreviewOrbitDrag(float dragDeltaX, float dragDeltaY);
     void applyAssetPreviewOrbitDrag(float dragDeltaX, float dragDeltaY);
 
     //wheelDelta is this frame's raw ImGui.io.MouseWheel
-    void applyBonePreviewZoom(float wheelDelta);
+    void applyModelPreviewZoom(float wheelDelta);
     void applyAssetPreviewZoom(float wheelDelta);
 
     //always valid once constructed, shown unconditionally every frame like before extraction
@@ -131,11 +161,11 @@ public:
     [[nodiscard]] std::shared_ptr<Texture> getBackgroundDepthTexture() const {
         return depthTexture;
     }
-    [[nodiscard]] std::shared_ptr<Texture> getBonePreviewColorTexture() const {
-        return bonePreview.colorTexture;
+    [[nodiscard]] std::shared_ptr<Texture> getModelPreviewColorTexture() const {
+        return modelPreview.colorTexture;
     }
-    [[nodiscard]] std::shared_ptr<Texture> getBonePreviewDepthTexture() const {
-        return bonePreview.depthTexture;
+    [[nodiscard]] std::shared_ptr<Texture> getModelPreviewDepthTexture() const {
+        return modelPreview.depthTexture;
     }
 };
 

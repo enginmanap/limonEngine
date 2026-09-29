@@ -14,6 +14,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <glm/glm.hpp>
+#include "Assets/Lod/LodLadder.h"
 #include "Editor/ImGuiRequest.h"
 #include "limonAPI/LimonTypes.h"
 
@@ -117,6 +118,23 @@ public:
     std::unique_ptr<PreviewRenderer> previewRenderer;
     ImGuiRequest* request = nullptr;
 
+    /**
+     * Asset side work that rewrites LOD ranges or writes a model back out. A render list carries a level index
+     * into the mesh and the culling threads read the baked occluders, so none of this may happen while the
+     * panel is being drawn. It is collected here and drained from applyDeferredAssetChanges, which World::play
+     * calls before the tick starts, so the ranges are already rebuilt when culling reads them later that frame.
+     */
+    struct LodRegenerationRequest {
+        std::shared_ptr<ModelAsset> modelAsset;
+        bool clearOverrides = false;//back to the project options, otherwise recalibrate what it already has
+        //-1 when this is not a triangle target request, otherwise the level whose count was typed
+        int32_t triangleTargetLevel = -1;
+        float triangleTargetRatio = 0.0f;
+    };
+    std::vector<LodRegenerationRequest> pendingLodRequests;
+    std::vector<uint32_t> pendingModelExports;
+    bool modelConversionRequested = false;
+
     GameObject* pickedObject = nullptr;
     GameObject* pendingPickedObject = nullptr;
     bool hasPendingPick = false;
@@ -136,7 +154,20 @@ public:
     Editor(World* world);
     ~Editor();
     bool generateEditorElementsForParameters(std::vector<LimonTypes::GenericParameter> &runParameters, uint32_t index);
-    ImGuiImageWrapper* renderBonePreview(Model* model, std::shared_ptr<GraphicsProgram> graphicsProgram);
+
+    //the LOD panel asks for these while it is being drawn, they run at the next frame boundary
+    void requestLodRegeneration(std::shared_ptr<ModelAsset> modelAsset, bool clearOverrides);
+    void requestLodTriangleTarget(std::shared_ptr<ModelAsset> modelAsset, size_t levelIndex, float targetRatio);
+    void requestModelExport(uint32_t objectId);
+
+    void requestModelConversionToBinary() {
+        modelConversionRequested = true;
+    }
+
+    //World calls this between the render and the next culling pass, which is the only safe point for any of it
+    void applyDeferredAssetChanges();
+    ImGuiImageWrapper* renderModelPreview(Model* model, int32_t forcedLodLevel, uint32_t width, uint32_t height, std::shared_ptr<GraphicsProgram> graphicsProgram);
+    LodComparisonImages renderLodComparison(Model* model, int32_t forcedLodLevel, uint32_t designSizePixels, std::shared_ptr<GraphicsProgram> graphicsProgram);
     void renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram);
     void applyPendingPick();
 

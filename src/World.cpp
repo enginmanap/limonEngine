@@ -254,6 +254,9 @@ void World::applyAudioVolumeOptionsIfChanged() {
   * @return
   */
  void World::play(InputHandler &inputHandler, uint32_t wallTimeMs) {
+    // we need to apply the defferred aseet changes, like convertion to limonmodel, or LOD overrides.
+    // If we put it after the editor update, quit request would have skipped the limonModel conversion, so in the beginning.
+    editor->applyDeferredAssetChanges();
     PROFILE_SIMULATION("World::play");
      {
          PROFILE_SIMULATION("World::play::PlayerInput");
@@ -930,11 +933,14 @@ void World::ImGuiFrameSetup(std::shared_ptr<GraphicsProgram> graphicsProgram, co
    GenerateEditorElementsCallback generateEditorElementsForParameters = [editorPointer](std::vector<LimonTypes::GenericParameter> &parameters, uint32_t index) {
        return editorPointer->generateEditorElementsForParameters(parameters, index);
    };
-   RenderBonePreviewCallback renderBonePreview = [editorPointer, graphicsProgram](Model* model) {
-       return editorPointer->renderBonePreview(model, graphicsProgram);
+   RenderModelPreviewCallback renderModelPreview = [editorPointer, graphicsProgram](Model* model, int32_t forcedLodLevel, uint32_t width, uint32_t height) {
+       return editorPointer->renderModelPreview(model, forcedLodLevel, width, height, graphicsProgram);
+   };
+   RenderLodComparisonCallback renderLodComparison = [editorPointer, graphicsProgram](Model* model, int32_t forcedLodLevel, uint32_t designSizePixels) {
+       return editorPointer->renderLodComparison(model, forcedLodLevel, designSizePixels, graphicsProgram);
    };
    editor->request = new ImGuiRequest(playerCamera->getCameraMatrix(), playerCamera->getProjectionMatrix(),
-                              graphicsWrapper->getGUIOrthogonalProjectionMatrix(), options->getScreenHeight(), options->getScreenWidth(), playerCamera, generateEditorElementsForParameters, renderBonePreview, editor->imgGuiHelper);
+                              graphicsWrapper->getGUIOrthogonalProjectionMatrix(), options->getScreenHeight(), options->getScreenWidth(), playerCamera, generateEditorElementsForParameters, renderModelPreview, renderLodComparison, editor->imgGuiHelper);
 
    //Render Trigger volumes
    for (auto it = triggers.begin(); it != triggers.end(); ++it) {

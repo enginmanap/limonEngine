@@ -3,6 +3,8 @@
 //
 
 #include "Model.h"
+
+#include "Camera/Camera.h"
 #include "limonAPI/ActorInterface.h"
 #include "../ImGuiHelper.h"
 #include "GamePlay/APISerializer.h"
@@ -342,6 +344,236 @@ uint32_t Model::getAIID() {
     return this->AIActor->getWorldID();
 }
 
+
+
+//the context the engine would use for this object seen from the player camera, so a distance printed here is
+//the distance it actually switches at rather than a second arithmetic that can drift from it
+LodSelectionContext Model::buildLodPanelContext(const ImGuiRequest &request) const {
+    LodSelectionContext context;
+    OptionsUtil::Options *options = assetManager->getGraphicsWrapper()->getOptions();
+    context.allowance = (float) options->getOption<double>(HASH("LOD_pixelDeviation")).getOrDefault(1.0) *
+                        (float) options->getOption<double>(HASH("LOD_toleranceScale")).getOrDefault(1.0);
+    if (request.playerCamera != nullptr) {
+        context.pixelScale = LodLadder::pixelsPerModelUnit(request.playerCamera->getProjectionMatrix(), request.screenHeight);
+    }
+    glm::vec3 scale = this->transformation.getScale();
+    context.objectScale = std::max(std::abs(scale.x), std::max(std::abs(scale.y), std::abs(scale.z)));
+    return context;
+}
+
+static const char *lodSkipReasonText(LodSkipReason reason) {
+    switch (reason) {
+        case LodSkipReason::NO_GAIN: return "not built: saves too few triangles over the step before it";
+        case LodSkipReason::NOTHING_FITS: return "not built: no simplification stays inside this budget";
+        case LodSkipReason::EMPTY: return "not built: simplifies away to nothing";
+        default: return "not built";
+    }
+}
+
+void Model::putLodPanelInGui(ImGuiResult &result, const ImGuiRequest &request, bool animated, bool isLimonModel) {
+    const LodLadder &ladder = modelAsset->getLodLadder();
+    const std::vector<LodStep> &steps = ladder.getSteps();
+    if (animated) {
+        ImGui::TextWrapped("Animated model. A bind pose score says nothing about a deforming mesh, so these steps are generated but never measured.");
+    }
+    uint32_t originalTriangleCount = ladder.getOriginalTriangleCount();
+    ImGui::Text("Original: %u triangles", originalTriangleCount);
+    if (steps.empty()) {
+        ImGui::Text("No LOD step was configured, everything renders at the original.");
+    }
+
+    LodSelectionContext context = buildLodPanelContext(request);
+    //the steps as configured, not the levels that happened to be built: a step that could not be built is worth
+    //seeing and worth retargeting, and hiding it is how it became unreachable
+    for (size_t step = 0; step < steps.size(); ++step) {
+        const LodStep::Outcome &outcome = steps[step].structure;
+        ImGui::PushID((int) step);
+        if (!outcome.built) {
+            ImGui::TextDisabled("%d: %s", (int) (step + 1), lodSkipReasonText(outcome.skipReason));
+        } else {
+            ImGui::Text("%d: %u tris (%.0f%%), moved %.4f units, costs %.2f%% of the outline", (int) (step + 1),
+                        outcome.triangleCount,
+                        originalTriangleCount == 0 ? 0.0f : 100.0f * (float) outcome.triangleCount / (float) originalTriangleCount,
+                        outcome.modelError, outcome.silhouetteDamage * 100.0f);
+            float switchDistance = ladder.switchDistanceOf(outcome, context);
+            if (switchDistance > 0.0f) {
+                ImGui::Text("   used from %.1f m away", switchDistance);
+            }
+        }
+        if (steps[step].welded.built) {
+            ImGui::Text("   welded twin for shadows: %u tris", steps[step].welded.triangleCount);
+        }
+        ImGui::PopID();
+    }
+
+    //the panel keeps its own copy, so a half typed number never reaches the asset
+    static uint32_t editedObjectID = 0xFFFFFFFF;
+    //what is in the triangle boxes while they are being typed into, so a half finished number never commits
+    static std::vector<float> editedTrianglePercents;
+    static int32_t previewLevel = 0;
+    if (editedObjectID != this->getWorldObjectID()) {
+        editedObjectID = this->getWorldObjectID();
+        editedTrianglePercents.clear();
+        previewLevel = 0;
+    }
+
+    if (!animated) {
+        //the live map switches levels by distance, this is how one level is judged on its own
+        int32_t maximumLevel = (int32_t) ladder.getMeshLodCount() - 1;
+        ImGui::SliderInt("Preview level", &previewLevel, 0, maximumLevel < 0 ? 0 : maximumLevel);
+        uint32_t previewWidth = (uint32_t) std::max(ImGui::GetContentRegionAvail().x, 128.0f);
+        drawModelPreview(request, result, previewLevel, previewWidth, (previewWidth * 3) / 4);
+
+        //the level next to the original at a size the developer picks, magnified so the difference is visible
+        //without resampling it away
+        static int32_t comparisonSize = 48;
+        if (request.renderLodComparison && previewLevel > 0) {
+            ImGui::SliderInt("Compare at px", &comparisonSize, 8, 256);
+            LodComparisonImages comparison = request.renderLodComparison(this, previewLevel, (uint32_t) comparisonSize);
+            float magnifiedSize = std::min(ImGui::GetContentRegionAvail().x * 0.45f, 220.0f);
+            ImVec2 imageSize(magnifiedSize, magnifiedSize);
+            ImGui::Text("Level %d and the original at %d px", previewLevel, comparisonSize);
+            if (comparison.levelImage != nullptr && comparison.levelImage->texture != nullptr) {
+                ImGui::Image((ImTextureID)(intptr_t)comparison.levelImage, imageSize, ImVec2(0.0f, 1.0f), ImVec2(1.0f, 0.0f));
+            }
+            ImGui::SameLine();
+            if (comparison.originalImage != nullptr && comparison.originalImage->texture != nullptr) {
+                ImGui::Image((ImTextureID)(intptr_t)comparison.originalImage, imageSize, ImVec2(0.0f, 1.0f), ImVec2(1.0f, 0.0f));
+            }
+        }
+    }
+
+    if (isLimonModel) {
+        //a converted model carries LOD0, its normals and its UVs, so it retunes like any other. The binary is
+        //rebuilt from the targets beside it on every load until it is written out again
+        if (ladder.isEditedSinceExport()) {
+            ImGui::TextWrapped("Edited since the last export. The file on disk still holds the old levels and is rebuilt at load.");
+        }
+        static bool exportPending = false;
+        if (editedObjectID != this->getWorldObjectID()) {
+            exportPending = false;
+        }
+        if (!exportPending) {
+            if (ImGui::Button("Export to binary")) {
+                exportPending = true;
+            }
+        } else {
+            ImGui::TextWrapped("Overwrites the model in the game data. There is no undo.");
+            if (ImGui::Button("Overwrite the file")) {
+                result.lodPanel.exportToBinary = true;
+                exportPending = false;
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Cancel")) {
+                exportPending = false;
+            }
+        }
+    }
+
+    if (animated) {
+        return;//generated from the budgets read as errors, never measured, so there is nothing to retarget
+    }
+
+    ImGui::Separator();
+    if (ImGui::TreeNode("Triangle counts for this model")) {
+        ImGui::TextWrapped("Set how much of the original each step keeps. The engine finds the simplification that lands there and records what it costs, so the step comes back the same on every load.");
+        //each step has to stay between its neighbours, or the ladder would go backwards. The gain heuristic does
+        //not apply to a number that was typed here, so the bounds are just the neighbours
+        for (size_t step = 0; step < steps.size(); ++step) {
+            ImGui::PushID((int) step);
+            float currentPercent = originalTriangleCount == 0 ? 0.0f
+                                                              : 100.0f * (float) steps[step].structure.triangleCount / (float) originalTriangleCount;
+            float finerPercent = 100.0f;
+            if (step > 0 && originalTriangleCount != 0 && steps[step - 1].structure.built) {
+                finerPercent = 100.0f * (float) steps[step - 1].structure.triangleCount / (float) originalTriangleCount;
+            }
+            float coarserPercent = 0.1f;
+            if (step + 1 < steps.size() && originalTriangleCount != 0 && steps[step + 1].structure.built) {
+                coarserPercent = 100.0f * (float) steps[step + 1].structure.triangleCount / (float) originalTriangleCount;
+            }
+
+            char label[48];
+            snprintf(label, sizeof(label), "Step %d triangles %%", (int) (step + 1));
+            if (editedTrianglePercents.size() <= step) {
+                editedTrianglePercents.resize(step + 1, currentPercent);
+            }
+            ImGui::InputFloat(label, &editedTrianglePercents[step]);
+            //only once the box is finished with. Committing on every keystroke rebuilds the model for the 3 of a
+            //32, and a rebuild measures the whole model from fourteen directions
+            if (ImGui::IsItemDeactivatedAfterEdit()) {
+                //clamped rather than refused, so a number typed past a neighbour still does something sensible
+                float requested = std::min(std::max(editedTrianglePercents[step], coarserPercent), finerPercent);
+                editedTrianglePercents[step] = requested;
+                result.lodPanel.triangleTargetLevel = (int32_t) step;
+                result.lodPanel.triangleTargetRatio = requested / 100.0f;
+            } else if (!ImGui::IsItemActive()) {
+                editedTrianglePercents[step] = currentPercent;//follow the asset while nobody is typing
+            }
+            ImGui::Text("   allowed %.1f%% to %.1f%%", coarserPercent, finerPercent);
+            if (steps[step].requestedRatio > 0.0f &&
+                steps[step].structure.achievedRatio > steps[step].requestedRatio * 1.05f) {
+                ImGui::SameLine();
+                ImGuiHelper::ShowHelpMarker("Asked for less than the simplifier will give. Hard edges, protected UV seams and separate parts put a floor under how far a mesh can go.");
+            }
+            ImGui::PopID();
+        }
+        if (ImGui::Button("Back to project defaults")) {
+            result.lodPanel.clearOverrides = true;
+            editedObjectID = 0xFFFFFFFF;//so the next frame re-reads what the asset ended up with
+        }
+        ImGui::TreePop();
+    }
+    if (ladder.hasOverrides()) {
+        ImGui::Text("Using triangle counts set on this model, not the project defaults.");
+    }
+    if (ImGui::Button("Recalibrate")) {
+        result.lodPanel.recalibrate = true;
+    }
+    ImGui::SameLine();
+    ImGuiHelper::ShowHelpMarker("Rebuilds the steps and rewrites the cached result beside the asset. The map picks them up on the next frame.");
+}
+
+void Model::drawModelPreview(const ImGuiRequest &request, ImGuiResult &result, int32_t forcedLodLevel, uint32_t previewWidth, uint32_t previewHeight) {
+    if (!request.renderModelPreview) {
+        return;
+    }
+    ImGuiImageWrapper* previewWrapper = request.renderModelPreview(this, forcedLodLevel, previewWidth, previewHeight);
+    if (previewWrapper == nullptr || previewWrapper->texture == nullptr) {
+        return;
+    }
+    ImVec2 size(static_cast<float>(previewWrapper->texture->getWidth()), static_cast<float>(previewWrapper->texture->getHeight()));
+    //flipped via uv0/uv1, not a negated size, that would invert the item rect and IsItemClicked
+    //would never fire
+    //Child + oversized dummy claims the wheel from the panel, same trick as FlameGraph::HandleInput's canvas.
+    //SetScrollY(0) every frame cancels the scroll that trick would otherwise leave on the image.
+    //No border/padding: a child adds both by default, and this should sit flush like before the wrapper.
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+    ImGui::BeginChild("ModelPreviewImage", size, false, ImGuiWindowFlags_NoScrollbar);
+    ImGui::SetScrollY(0.0f);
+    ImGui::Image((ImTextureID)(intptr_t)previewWrapper, size, ImVec2(0.0f, 1.0f), ImVec2(1.0f, 0.0f));
+    if (ImGui::IsItemClicked()) {
+        //raw local pixel only, Editor owns bone screen positions and does the hit-test
+        ImVec2 rectMin = ImGui::GetItemRectMin();
+        ImVec2 mouse = ImGui::GetMousePos();
+        result.modelPreview.clicked = true;
+        result.modelPreview.clickPixelX = mouse.x - rectMin.x;
+        result.modelPreview.clickPixelY = mouse.y - rectMin.y;
+    }
+    if (ImGui::IsItemHovered() && ImGui::IsMouseDragging(ImGuiMouseButton_Right)) {
+        //orbits the preview camera, raw delta only, PreviewRenderer applies it
+        ImVec2 mouseDelta = ImGui::GetIO().MouseDelta;
+        result.modelPreview.orbitDragging = true;
+        result.modelPreview.orbitDeltaX = mouseDelta.x;
+        result.modelPreview.orbitDeltaY = mouseDelta.y;
+    }
+    if (ImGui::IsItemHovered() && ImGui::GetIO().MouseWheel != 0.0f) {
+        result.modelPreview.zoomDelta = ImGui::GetIO().MouseWheel;
+    }
+    ImGui::Dummy(ImVec2(1.0f, 1.0f));
+    ImGui::EndChild();
+    ImGui::PopStyleVar();
+}
+
 ImGuiResult Model::addImGuiEditorElements(const ImGuiRequest &request) {
     ImGuiResult result;
 
@@ -426,47 +658,11 @@ ImGuiResult Model::addImGuiEditorElements(const ImGuiRequest &request) {
             if(ImGui::Button("CreateSection")){
                 this->modelAsset->addAnimationAsSubSequence(this->animationName, std::string(newAnimationName), times[0], times[1]);
             }
-
         }
         if (ImGui::CollapsingHeader("Expose Bone for attachment")) {
-            //Editor bakes the model and skeleton overlay into one texture, see PreviewRenderer::renderBonePreview.
+            //Editor bakes the model and skeleton overlay into one texture, see PreviewRenderer::renderModelPreview.
             //Just a display here, no camera/joint logic
-            if (request.renderBonePreview) {
-                ImGuiImageWrapper* previewWrapper = request.renderBonePreview(this);
-                if (previewWrapper != nullptr && previewWrapper->texture != nullptr) {
-                    ImVec2 size(static_cast<float>(previewWrapper->texture->getWidth()), static_cast<float>(previewWrapper->texture->getHeight()));
-                    //flipped via uv0/uv1, not a negated size, that would invert the item rect and IsItemClicked
-                    //would never fire
-                    //Child + oversized dummy claims the wheel from the panel, same trick as FlameGraph::HandleInput's canvas.
-                    //SetScrollY(0) every frame cancels the scroll that trick would otherwise leave on the image.
-                    //No border/padding: a child adds both by default, and this should sit flush like before the wrapper.
-                    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
-                    ImGui::BeginChild("BonePreviewImage", size, false, ImGuiWindowFlags_NoScrollbar);
-                    ImGui::SetScrollY(0.0f);
-                    ImGui::Image((ImTextureID)(intptr_t)previewWrapper, size, ImVec2(0.0f, 1.0f), ImVec2(1.0f, 0.0f));
-                    if (ImGui::IsItemClicked()) {
-                        //raw local pixel only, Editor owns bone screen positions and does the hit-test
-                        ImVec2 rectMin = ImGui::GetItemRectMin();
-                        ImVec2 mouse = ImGui::GetMousePos();
-                        result.bonePreview.clicked = true;
-                        result.bonePreview.clickPixelX = mouse.x - rectMin.x;
-                        result.bonePreview.clickPixelY = mouse.y - rectMin.y;
-                    }
-                    if (ImGui::IsItemHovered() && ImGui::IsMouseDragging(ImGuiMouseButton_Right)) {
-                        //orbits the preview camera, raw delta only, PreviewRenderer applies it
-                        ImVec2 mouseDelta = ImGui::GetIO().MouseDelta;
-                        result.bonePreview.orbitDragging = true;
-                        result.bonePreview.orbitDeltaX = mouseDelta.x;
-                        result.bonePreview.orbitDeltaY = mouseDelta.y;
-                    }
-                    if (ImGui::IsItemHovered() && ImGui::GetIO().MouseWheel != 0.0f) {
-                        result.bonePreview.zoomDelta = ImGui::GetIO().MouseWheel;
-                    }
-                    ImGui::Dummy(ImVec2(1.0f, 1.0f));
-                    ImGui::EndChild();
-                    ImGui::PopStyleVar();
-                }
-            }
+            drawModelPreview(request, result, -1, 640, 480);
 
             ImGui::BeginChild("BoneTreeScrollRegion", ImVec2(0.0f, 200.0f), true);
             int32_t newSelectedBoneID = this->modelAsset->buildEditorBoneTree(selectedBoneID, boneTreeShouldFollowSelection);
@@ -555,6 +751,9 @@ ImGuiResult Model::addImGuiEditorElements(const ImGuiRequest &request) {
                 result.newFlipAxes = newFlipAxes;
             }
         }
+    }
+    if (ImGui::CollapsingHeader("LOD levels")) {
+        putLodPanelInGui(result, request, animated, isLimonModel);
     }
     static int32_t selectedIndex = -1;
     static uint32_t selectedModel = 0;

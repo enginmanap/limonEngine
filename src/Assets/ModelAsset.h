@@ -22,6 +22,7 @@
 #include "../Utils/AssimpUtils.h"
 #include "../Material.h"
 #include "Asset.h"
+#include "Lod/LodLadder.h"
 #include "MeshAsset.h"
 #include "../Utils/GLMConverter.h"
 #include "BoneNode.h"
@@ -30,6 +31,7 @@
 class AnimationAssimp;
 
 class ModelAsset : public Asset {
+private:
     void loadCPUPart() override;
     void loadGPUPart() override;
 
@@ -90,6 +92,7 @@ class ModelAsset : public Asset {
     std::vector<btBvhTriangleMeshShape *>meshCollisionShapesForTriangle;
     std::vector<btCollisionShape *> reusableMeshes;
     bool hasAnimation;
+    LodLadder lodLadder;//this model LOD steps: what was asked, what came out, where each one is used
     bool customizationAfterSave = false;
 
     bool transparentMaterialUsed = false;
@@ -138,6 +141,9 @@ class ModelAsset : public Asset {
     const aiNodeAnim *findNodeAnimation(aiAnimation *pAnimation, std::string basic_string) const;
 
     void deserializeCustomizations();
+    void buildLodLevels(LodLadder::BuildMode buildMode);//measures or reuses, then hands each mesh its plan
+    void buildLodGeometry(std::vector<LodLadder::MeshGeometry> &outGeometry) const;
+    std::string getFlipAxes() const;
 
     int32_t buildEditorBoneTreeRecursive(std::shared_ptr<BoneNode> boneNode, int32_t selectedBoneNodeID, bool followSelection);
 
@@ -156,6 +162,27 @@ class ModelAsset : public Asset {
 
 public:
     void bakeAllOccluderLods();//the limonmodel export calls this, load only bakes the level the option asks for
+
+    //the steps, where they are used, and everything the editor edits about them
+    const LodLadder &getLodLadder() const {
+        return lodLadder;
+    }
+
+    //editing a step is two steps of its own: say what is wanted here, then regenerateLods to act on it
+    LodLadder &getLodLadder() {
+        return lodLadder;
+    }
+
+    //the old ranges are gone the moment this returns, so it may only run between frames, never while a render
+    //list is holding a level index. The Editor drains a queue for it
+    void regenerateLods(LodLadder::BuildMode buildMode);
+
+    void clearLodEditedSinceExport() {
+        lodLadder.clearEditedSinceExport();
+    }
+
+    //true for an asset loaded from a limonmodel, where the file itself is the store rather than a sidecar
+    bool isConvertedAsset() const;
     static std::string stripFlipSuffix(const std::string &path, bool &outFlipX, bool &outFlipY, bool &outFlipZ);
 
     ModelAsset(AssetManager *assetManager, uint32_t assetID, const std::vector<std::string> &fileList);
@@ -164,6 +191,9 @@ public:
             Asset(assetManager, assetID, fileList, binaryArchive) {
         binaryArchive(*this);
         this->assetManager = assetManager;
+        //the same path a source asset takes. The steps arrived with the file, so unless their intent moved
+        //there is nothing to measure and every mesh keeps the ranges it was deserialized with
+        buildLodLevels(LodLadder::BuildMode::NORMAL);
     }
 #endif
     bool addAnimationAsSubSequence(const std::string &baseAnimationName, const std::string newAnimationName,
@@ -286,14 +316,14 @@ public:
             index++;
             embeddedTexture = assetManager->getEmbeddedTextures(name, index);
         }
-        ar(name, boneIDCounter, boneIDCounterPerMesh, textures,                   hasAnimation, rootNode, boundingBoxMax, boundingBoxMin, centerOffset, boneInformationMap, simplifiedMeshes, meshes, animations, animationSections, customizationAfterSave, materialMap, meshMaterialMap, transparentMaterialUsed);
+        ar(name, boneIDCounter, boneIDCounterPerMesh, textures,                   hasAnimation, rootNode, boundingBoxMax, boundingBoxMin, centerOffset, boneInformationMap, simplifiedMeshes, meshes, animations, animationSections, customizationAfterSave, materialMap, meshMaterialMap, transparentMaterialUsed, lodLadder);
     }
 
     template<class Archive>
     void load( Archive & ar ) {
         std::map<std::shared_ptr<MeshAsset>,std::shared_ptr<Material>> tempMeshMaterialMap;
         temporaryEmbeddedTextures = std::make_unique<std::vector<std::shared_ptr<const AssetManager::EmbeddedTexture>>>();
-        ar(name,boneIDCounter, boneIDCounterPerMesh, *temporaryEmbeddedTextures, hasAnimation, rootNode, boundingBoxMax, boundingBoxMin, centerOffset, boneInformationMap, simplifiedMeshes, meshes, animations, animationSections, customizationAfterSave, materialMap, tempMeshMaterialMap, transparentMaterialUsed);
+        ar(name,boneIDCounter, boneIDCounterPerMesh, *temporaryEmbeddedTextures, hasAnimation, rootNode, boundingBoxMax, boundingBoxMin, centerOffset, boneInformationMap, simplifiedMeshes, meshes, animations, animationSections, customizationAfterSave, materialMap, tempMeshMaterialMap, transparentMaterialUsed, lodLadder);
         //now update embedded textures to assetManager
         for (size_t i = 0; i < meshes.size(); ++i) {
             meshes[i]->buildBulletMesh();

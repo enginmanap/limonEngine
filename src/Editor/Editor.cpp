@@ -1343,11 +1343,7 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
         }
 #endif
         if(ImGui::Button("Convert models to binary")) {
-            std::set<std::vector<std::string>> convertedAssets;
-            for (auto objectIt = world->objects.begin(); objectIt != world->objects.end(); ++objectIt) {
-
-                objectIt->second->convertAssetToLimon(convertedAssets);
-            }
+            requestModelConversionToBinary();//baking every occluder LOD rewrites what culling reads
         }
 
         if(ImGui::Button("Change Render Pipeline")) {
@@ -1368,8 +1364,8 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
             std::vector<std::shared_ptr<Texture>> allTextures = world->renderPipeline->getTextures();
             allTextures.emplace_back(previewRenderer->getBackgroundColorTexture());
             allTextures.emplace_back(previewRenderer->getBackgroundDepthTexture());
-            allTextures.emplace_back(previewRenderer->getBonePreviewColorTexture());
-            allTextures.emplace_back(previewRenderer->getBonePreviewDepthTexture());
+            allTextures.emplace_back(previewRenderer->getModelPreviewColorTexture());
+            allTextures.emplace_back(previewRenderer->getModelPreviewDepthTexture());
             if(ImGui::ListBox("Current Textures##Render Debugging", &listbox_item_current, World::getNameOfTexture,
                               static_cast<void *>(&allTextures), allTextures.size(), 10)) {
                 wrapper->layer = 0;
@@ -1522,22 +1518,38 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
             if (objectEditorResult.materialChanged) {
                 world->onModelMaterialChanged(this->pickedObjectID);
             }
-            if (objectEditorResult.bonePreview.clicked && this->pickedObject->getTypeID() == GameObject::ObjectTypes::MODEL) {
-                //previewRenderer's bone screen positions were refreshed this frame by the renderBonePreview() call
+            if (objectEditorResult.modelPreview.clicked && this->pickedObject->getTypeID() == GameObject::ObjectTypes::MODEL) {
+                //previewRenderer's bone screen positions were refreshed this frame by the renderModelPreview() call
                 //already made inside addImGuiEditorElements above, so this is hit-testing the pose actually shown.
                 constexpr float hitRadius = 6.0f;
-                int32_t closestBoneID = previewRenderer->findClosestBoneAtPixel(objectEditorResult.bonePreview.clickPixelX, objectEditorResult.bonePreview.clickPixelY, hitRadius);
+                int32_t closestBoneID = previewRenderer->findClosestBoneAtPixel(objectEditorResult.modelPreview.clickPixelX, objectEditorResult.modelPreview.clickPixelY, hitRadius);
                 if (closestBoneID != -1) {
                     static_cast<Model*>(this->pickedObject)->setSelectedBoneID(closestBoneID);
                 }
             }
-            if (objectEditorResult.bonePreview.orbitDragging) {
+            if (this->pickedObject->getTypeID() == GameObject::ObjectTypes::MODEL) {
+                Model *selectedModel = static_cast<Model *>(this->pickedObject);
+                if (objectEditorResult.lodPanel.exportToBinary) {
+                    requestModelExport(selectedModel->getWorldObjectID());
+                }
+                if (objectEditorResult.lodPanel.triangleTargetLevel >= 0) {
+                    //queued like the rest, it regenerates the meshes the render lists are pointing at
+                    requestLodTriangleTarget(selectedModel->getModelAsset(),
+                                                    (size_t) objectEditorResult.lodPanel.triangleTargetLevel,
+                                                    objectEditorResult.lodPanel.triangleTargetRatio);
+                }
+                if (objectEditorResult.lodPanel.recalibrate || objectEditorResult.lodPanel.clearOverrides) {
+                    //queued, not applied here: this is mid frame and the render lists in hand still index the old levels
+                    requestLodRegeneration(selectedModel->getModelAsset(), objectEditorResult.lodPanel.clearOverrides);
+                }
+            }
+            if (objectEditorResult.modelPreview.orbitDragging) {
                 //One-frame-lag, same as click-to-select above: this drag was detected on the image displayed
                 //this frame (rendered from last frame's orbit state), so it only takes effect next frame.
-                previewRenderer->applyBonePreviewOrbitDrag(objectEditorResult.bonePreview.orbitDeltaX, objectEditorResult.bonePreview.orbitDeltaY);
+                previewRenderer->applyModelPreviewOrbitDrag(objectEditorResult.modelPreview.orbitDeltaX, objectEditorResult.modelPreview.orbitDeltaY);
             }
-            if (objectEditorResult.bonePreview.zoomDelta != 0.0f) {
-                previewRenderer->applyBonePreviewZoom(objectEditorResult.bonePreview.zoomDelta);
+            if (objectEditorResult.modelPreview.zoomDelta != 0.0f) {
+                previewRenderer->applyModelPreviewZoom(objectEditorResult.modelPreview.zoomDelta);
             }
             switch(this->pickedObject->getTypeID()) {
                 case GameObject::ObjectTypes::MODEL: {
@@ -2393,8 +2405,89 @@ void Editor::createObjectTreeRecursive(Attachable *attachable, uint32_t pickedOb
    }
 }
 
-ImGuiImageWrapper* Editor::renderBonePreview(Model* model, std::shared_ptr<GraphicsProgram> graphicsProgram) {
-    return previewRenderer->renderBonePreview(model, graphicsProgram);
+
+void Editor::requestLodRegeneration(std::shared_ptr<ModelAsset> modelAsset, bool clearOverrides) {
+    LodRegenerationRequest request;
+    request.modelAsset = modelAsset;
+    request.clearOverrides = clearOverrides;
+    pendingLodRequests.push_back(request);
+}
+
+void Editor::requestLodTriangleTarget(std::shared_ptr<ModelAsset> modelAsset, size_t levelIndex, float targetRatio) {
+    LodRegenerationRequest request;
+    request.modelAsset = modelAsset;
+    request.triangleTargetLevel = (int32_t) levelIndex;
+    request.triangleTargetRatio = targetRatio;
+    pendingLodRequests.push_back(request);
+}
+
+void Editor::requestModelExport(uint32_t objectId) {
+    pendingModelExports.push_back(objectId);
+}
+
+void Editor::applyDeferredAssetChanges() {
+    //levels first: an export writes whatever the meshes hold, so anything queued for this frame has to be in
+    //them before we write. Clicking the export button deactivates the triangle input, which commits a target in
+    //this same frame, so the two really do arrive together
+    std::set<std::shared_ptr<ModelAsset>> regeneratedAssets;
+    for (size_t requestIndex = 0; requestIndex < pendingLodRequests.size(); ++requestIndex) {
+        LodRegenerationRequest &request = pendingLodRequests[requestIndex];
+        if (request.modelAsset == nullptr) {
+            continue;
+        }
+        if (request.triangleTargetLevel >= 0) {
+            request.modelAsset->getLodLadder().requestTriangleTarget((size_t) request.triangleTargetLevel,
+                                                                     request.triangleTargetRatio);
+            //the targets changed, so the cached meshes are for something else. Rebuild even if calibration is off
+            request.modelAsset->regenerateLods(LodLadder::BuildMode::EDITOR_CHANGE);
+        } else if (request.clearOverrides) {
+            request.modelAsset->getLodLadder().clearOverrides();
+            request.modelAsset->regenerateLods(LodLadder::BuildMode::EDITOR_CHANGE);
+        } else {
+            //the Recalibrate button means measure it again, so the cache is ignored outright
+            request.modelAsset->regenerateLods(LodLadder::BuildMode::FULL_RECALIBRATE);
+        }
+        regeneratedAssets.insert(request.modelAsset);
+    }
+    pendingLodRequests.clear();
+
+    if (modelConversionRequested) {
+        modelConversionRequested = false;
+        //the bake it runs rewrites every mesh's occluder, which culling reads, so it waits for this point too
+        std::set<std::vector<std::string>> convertedAssets;
+        for (auto objectIt = world->objects.begin(); objectIt != world->objects.end(); ++objectIt) {
+            objectIt->second->convertAssetToLimon(convertedAssets);
+        }
+    }
+    for (size_t exportIndex = 0; exportIndex < pendingModelExports.size(); ++exportIndex) {
+        std::unordered_map<uint32_t, Model *>::iterator found = world->objects.find(pendingModelExports[exportIndex]);
+        if (found == world->objects.end()) {
+            continue;//removed between the click and the drain
+        }
+        //looked up now rather than held as a pointer, and it bakes every occluder level before writing
+        std::set<std::vector<std::string>> exportedAssets;
+        found->second->convertAssetToLimon(exportedAssets);
+        found->second->getModelAsset()->clearLodEditedSinceExport();
+    }
+    pendingModelExports.clear();
+
+    //last, because a conversion above re-bakes every occluder level and culling reads those too
+    for (auto objectIt = world->objects.begin(); objectIt != world->objects.end(); ++objectIt) {
+        if (regeneratedAssets.count(objectIt->second->getModelAsset()) == 0) {
+            continue;
+        }
+        //same shape as the flip change path above: take the model out of every render list by id rather than
+        //emptying the lists. Emptying them stranded static objects, because a camera that has not moved only
+        //re-checks objects that have. Marking it dirty is what brings it back with the new levels
+        objectIt->second->setDirtyForFrustum();
+    }
+}
+ImGuiImageWrapper* Editor::renderModelPreview(Model* model, int32_t forcedLodLevel, uint32_t width, uint32_t height, std::shared_ptr<GraphicsProgram> graphicsProgram) {
+    return previewRenderer->renderModelPreview(model, forcedLodLevel, width, height, graphicsProgram);
+}
+
+LodComparisonImages Editor::renderLodComparison(Model* model, int32_t forcedLodLevel, uint32_t designSizePixels, std::shared_ptr<GraphicsProgram> graphicsProgram) {
+    return previewRenderer->renderLodComparison(model, forcedLodLevel, designSizePixels, graphicsProgram);
 }
 
 void Editor::addGUITextControls() {

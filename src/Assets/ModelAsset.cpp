@@ -9,6 +9,9 @@
 #include <assimp/config.h>
 
 #include "ModelAsset.h"
+
+#include <chrono>
+#include "Lod/LodMetadata.h"
 #include "../Utils/GLMUtils.h"
 #include "Animations/AnimationAssimp.h"
 #include "limonAPI/Graphics/GraphicsInterface.h"
@@ -108,6 +111,7 @@ void ModelAsset::loadCPUPart() {
         }
     }
     createMeshes(scene, scene->mRootNode, initialTransform);
+    buildLodLevels(LodLadder::BuildMode::NORMAL);
     if(this->hasAnimation) {
         fillAnimationSet(scene->mNumAnimations, scene->mAnimations);
     }
@@ -170,12 +174,104 @@ void ModelAsset::loadCPUPart() {
 
 
 //only the level the option asks for is baked at load, a limonmodel is expected to carry all of them
+std::string ModelAsset::getFlipAxes() const {
+    std::string flipAxes;
+    if (flipX) flipAxes += 'X';
+    if (flipY) flipAxes += 'Y';
+    if (flipZ) flipAxes += 'Z';
+    return flipAxes;
+}
+
+/**
+ * Decides this model's LOD steps, then hands each mesh its plan. Measuring needs the assembled model, so it can
+ * only run once every mesh exists, and its result is cached beside the asset because measuring is far more
+ * expensive than regenerating from a known error.
+ *
+ * Runs on both load paths. A model that came from a binary arrives with its steps already filled, so this reads
+ * its intent, finds nothing to change, and every mesh keeps the ranges it was deserialized with.
+ */
+void ModelAsset::buildLodLevels(LodLadder::BuildMode buildMode) {
+    OptionsUtil::Options *options = assetManager == nullptr ? nullptr
+                                                           : assetManager->getGraphicsWrapper()->getOptions();
+    //a skinned mesh deforms, so a bind pose score says nothing about what it shows in motion
+    lodLadder.bindAsset(name, getFlipAxes(), !hasAnimation, isConvertedAsset());
+    lodLadder.readSettings(options);
+
+    std::vector<LodLadder::MeshGeometry> geometry;
+    buildLodGeometry(geometry);
+    if (geometry.empty()) {
+        return;
+    }
+    std::vector<LodLadder::LevelPlan> plan;
+    lodLadder.build(geometry, buildMode, plan);
+
+    bool anyMeshNeedsBuild = false;
+    for (size_t meshIndex = 0; meshIndex < meshes.size(); ++meshIndex) {
+        if (!meshes[meshIndex]->hasLodsFor(plan)) {
+            anyMeshNeedsBuild = true;
+        }
+    }
+    if (anyMeshNeedsBuild) {
+        //preparing the simplifier inputs is the expensive part, so it waits until something actually builds
+        lodLadder.prepareGenerators(geometry);
+        for (size_t meshIndex = 0; meshIndex < meshes.size(); ++meshIndex) {
+            if (!meshes[meshIndex]->hasLodsFor(plan)) {
+                meshes[meshIndex]->buildLods(lodLadder.getGenerator(meshIndex), plan);
+            }
+        }
+    }
+
+    uint32_t bakeOccluderLodLevel = 0;
+    if (options != nullptr) {
+        bakeOccluderLodLevel = (uint32_t) options->getOption<long>(HASH("occlusion_bakeLodLevel")).getOrDefault(0L);
+    }
+    for (size_t meshIndex = 0; meshIndex < meshes.size(); ++meshIndex) {
+        meshes[meshIndex]->bakeOccluderLod(meshes[meshIndex]->getSimplestLodLevel(bakeOccluderLodLevel));
+    }
+}
+
+//the geometry the ladder measures and simplifies. One space for the whole model, since every mesh already
+//carries its node transform, and a mesh scored alone measures something the viewer never sees
+void ModelAsset::buildLodGeometry(std::vector<LodLadder::MeshGeometry> &outGeometry) const {
+    outGeometry.clear();
+    outGeometry.reserve(meshes.size());
+    for (size_t meshIndex = 0; meshIndex < meshes.size(); ++meshIndex) {
+        const std::vector<glm::vec3> &meshVertices = meshes[meshIndex]->getVertices();
+        const std::vector<glm::u16vec3> &meshFaces = meshes[meshIndex]->getFaces();
+        size_t lod0IndexCount = meshes[meshIndex]->getTriangleCount()[0] * 3;
+        if (meshVertices.empty() || meshFaces.empty() || lod0IndexCount == 0) {
+            continue;
+        }
+        LodLadder::MeshGeometry entry;
+        entry.vertices = &meshVertices;
+        entry.normals = &meshes[meshIndex]->getNormals();
+        entry.textureCoordinates = &meshes[meshIndex]->getTextureCoordinates();
+        entry.indices = (const uint16_t *) &(meshFaces[0].x);
+        entry.indexCount = lod0IndexCount;
+        entry.aabbMin = glm::vec3(meshes[meshIndex]->getAabbMin());
+        entry.aabbMax = glm::vec3(meshes[meshIndex]->getAabbMax());
+        outGeometry.push_back(entry);
+    }
+}
+
+//the file itself is the store for a converted model, so the panel can say when it has fallen behind
+bool ModelAsset::isConvertedAsset() const {
+    return name.substr(name.find_last_of(".") + 1) == "limonmodel";
+}
+
+void ModelAsset::regenerateLods(LodLadder::BuildMode buildMode) {
+    buildLodLevels(buildMode);
+    for (size_t meshIndex = 0; meshIndex < meshes.size(); ++meshIndex) {
+        meshes[meshIndex]->reuploadGeometryBuffers(assetManager);
+    }
+}
+
+//only the level the option asks for is baked at load, a limonmodel is expected to carry all of them
 void ModelAsset::bakeAllOccluderLods() {
     for (auto mesh = meshes.begin(); mesh != meshes.end(); ++mesh) {
         (*mesh)->bakeAllOccluderLods();
     }
 }
-
 void ModelAsset::loadGPUPart() {
     // serialize should save these
     // assetID
@@ -388,9 +484,8 @@ void ModelAsset::createMeshes(const aiScene *scene, aiNode *aiNode, glm::mat4 pa
 
         std::shared_ptr<Material> meshMaterial = loadMaterials(scene, currentMesh->mMaterialIndex);
         std::shared_ptr<MeshAsset> mesh;
-        uint32_t bakeOccluderLodLevel = static_cast<uint32_t>(assetManager->getGraphicsWrapper()->getOptions()->getOption<long>(HASH("occlusion_bakeLodLevel")).getOrDefault(0L));
         mesh = std::make_shared<MeshAsset>(currentMesh, aiNode->mName.C_Str(), rootNode,
-                                           parentTransform, hasAnimation, bakeOccluderLodLevel, reverseWinding);
+                                           parentTransform, hasAnimation, reverseWinding);
         meshMaterialMap[mesh] = meshMaterial;
         if((*mesh->getTriangleCount()) == 0) {
             continue;
@@ -826,9 +921,23 @@ void ModelAsset::serializeCustomizations() {
         //Since assets are shared, serialize will be called multiple times. This flag is just a block for that.
         return;
     }
+    //the LOD calibration and the overrides live in the same file, writing a fresh document would drop both
+    const std::lock_guard<std::mutex> lock(LodMetadata::getFileMutex());
+    std::string customizationPath = name + ".limon";
     tinyxml2::XMLDocument customizationDocument;
-    tinyxml2::XMLNode * rootNode = customizationDocument.NewElement("ModelCustomizations");
-    customizationDocument.InsertFirstChild(rootNode);
+    tinyxml2::XMLElement * rootNode = nullptr;
+    if (customizationDocument.LoadFile(customizationPath.c_str()) == tinyxml2::XML_SUCCESS) {
+        rootNode = customizationDocument.FirstChildElement("ModelCustomizations");
+    }
+    if (rootNode == nullptr) {
+        customizationDocument.Clear();
+        rootNode = customizationDocument.NewElement("ModelCustomizations");
+        customizationDocument.InsertFirstChild(rootNode);
+    }
+    tinyxml2::XMLElement * previousAnimationsNode = rootNode->FirstChildElement("Animation");
+    if (previousAnimationsNode != nullptr) {
+        rootNode->DeleteChild(previousAnimationsNode);
+    }
 
     tinyxml2::XMLElement * animationsSectionsNode = customizationDocument.NewElement("Animation");
     rootNode->InsertEndChild(animationsSectionsNode);
@@ -853,7 +962,7 @@ void ModelAsset::serializeCustomizations() {
         sectionElement->InsertEndChild(currentElement);
     }
 
-    tinyxml2::XMLError eResult = customizationDocument.SaveFile((name + ".limon").c_str());
+    tinyxml2::XMLError eResult = customizationDocument.SaveFile(customizationPath.c_str());
     if(eResult != tinyxml2::XML_SUCCESS) {
         std::cerr << "ERROR saving model customization: " << eResult << std::endl;
     } else {
@@ -882,8 +991,7 @@ void ModelAsset::deserializeCustomizations() {
 
     tinyxml2::XMLElement* animationsNode =  rootNode->FirstChildElement("Animation");
     if (animationsNode == nullptr) {
-        std::cerr << "Customizations must have a Animation field." << std::endl;
-        return;
+        return;//a metadata file that only carries LOD calibration is normal, there is nothing to read here
     }
     tinyxml2::XMLElement* sectionNode =  animationsNode->FirstChildElement("Section");
 
@@ -1050,18 +1158,38 @@ void ModelAsset::buildPhysicsMeshes() {
                 btBvhTriangleMeshShape* bvhTriangleMeshShape = new btBvhTriangleMeshShape(rawCollisionMesh, true, true);
                 meshCollisionShapesForTriangle.emplace_back(bvhTriangleMeshShape);
 
-                btConvexTriangleMeshShape *convexTriangleMeshShape = new btConvexTriangleMeshShape(rawCollisionMesh);
-                btCollisionShape *meshCollisionShape = convexTriangleMeshShape; //This is needed because we have to keep convex type for hull checks
+                //btConvexTriangleMeshShape only points at the striding mesh, and setLocalScaling writes the scale into
+                //that mesh, so every shape sharing it (including the bvh one above) ends up with the last writer's
+                //scale. Both branches below build a shape that owns its own points instead.
+                btCollisionShape *meshCollisionShape;
                 if (rawCollisionMesh->getNumTriangles() > 24) {
+                    btConvexTriangleMeshShape *convexTriangleMeshShape = new btConvexTriangleMeshShape(rawCollisionMesh);
                     btShapeHull *hull = new btShapeHull(convexTriangleMeshShape);
-                    btScalar margin = convexTriangleMeshShape->getMargin();
-                    hull->buildHull(margin);
-                    delete convexTriangleMeshShape;
-                    convexTriangleMeshShape = nullptr; //this is not needed, but I am leaving here in case I try to use it at a later revision.
-
+                    hull->buildHull(convexTriangleMeshShape->getMargin());
                     meshCollisionShape = new btConvexHullShape(reinterpret_cast<const btScalar *>(hull->getVertexPointer()),
                                                                hull->numVertices());
                     delete hull;
+                    delete convexTriangleMeshShape;
+                } else {
+                    //few enough points for the support function to walk them all, so we skip building a hull
+                    const std::vector<glm::vec3> &meshVertices = (*iter)->getVertices();
+                    meshCollisionShape = new btConvexHullShape(reinterpret_cast<const btScalar *>(meshVertices.data()),
+                                                               (int) meshVertices.size(), sizeof(glm::vec3));
+                }
+                //a convex shape can not be bigger than the points it was built from, so if it is, the wrong points went in
+                btVector3 shapeMin, shapeMax;
+                meshCollisionShape->getAabb(btTransform::getIdentity(), shapeMin, shapeMax);
+                glm::vec4 meshMin = (*iter)->getAabbMin();
+                glm::vec4 meshMax = (*iter)->getAabbMax();
+                btVector3 shapeSize = shapeMax - shapeMin;
+                glm::vec3 meshSize = glm::vec3(meshMax - meshMin);
+                float allowed = 1.2f;//margins and the hull's own padding make an exact match unreasonable
+                if (shapeSize.x() > meshSize.x * allowed + 0.2f || shapeSize.y() > meshSize.y * allowed + 0.2f ||
+                    shapeSize.z() > meshSize.z * allowed + 0.2f) {
+                    std::cerr << "collision shape of " << name << " mesh " << (*iter)->getName()
+                              << " is " << shapeSize.x() << "x" << shapeSize.y() << "x" << shapeSize.z()
+                              << " while the mesh is " << meshSize.x << "x" << meshSize.y << "x" << meshSize.z
+                              << ", triangles " << rawCollisionMesh->getNumTriangles() << std::endl;
                 }
                 compoundShapeForConvex->addChildShape(baseTransform, meshCollisionShape);
                 reusableMeshes.emplace_back(meshCollisionShape);
@@ -1093,9 +1221,8 @@ btCompoundShape * ModelAsset::getCompoundShapeForMass(uint32_t mass, std::map<ui
 
         for(int i= 0; i < compoundShapeForConvex->getNumChildShapes(); ++i) {
             btCollisionShape *newChild;
-            if(compoundShapeForConvex->getChildShape(i)->getShapeType() == CONVEX_TRIANGLEMESH_SHAPE_PROXYTYPE) {
-                newChild = new btConvexTriangleMeshShape(*(static_cast<btConvexTriangleMeshShape *>(compoundShapeForConvex->getChildShape(i))));
-            } else if(compoundShapeForConvex->getChildShape(i)->getShapeType() == CONVEX_HULL_SHAPE_PROXYTYPE) {
+            //no convex triangle mesh shape here on purpose, copies of one would all share a single striding mesh
+            if(compoundShapeForConvex->getChildShape(i)->getShapeType() == CONVEX_HULL_SHAPE_PROXYTYPE) {
                 newChild = new btConvexHullShape(*(static_cast<btConvexHullShape *>(compoundShapeForConvex->getChildShape(i))));
             } else {
                 newChild = new btBoxShape(btVector3(1,1,1));
