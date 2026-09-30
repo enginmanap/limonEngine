@@ -1691,6 +1691,8 @@ void OpenGLGraphics::setModelIndexesUBO(const std::vector<glm::uvec4> &modelIndi
     }
 
     glBindBuffer(GL_UNIFORM_BUFFER, allModelIndexesUBOLocation);
+    //orphan first, a partial write into storage that pending draws still read makes the driver flush and wait
+    glBufferData(GL_UNIFORM_BUFFER, sizeof(glm::uvec4) * modelIndexBatchCapacity, nullptr, GL_DYNAMIC_DRAW);
     glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::uvec4) * modelIndicesList.size(), modelIndicesList.data());
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
     checkErrors("setModelIndexesUBO");
