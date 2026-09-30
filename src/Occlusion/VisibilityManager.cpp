@@ -129,9 +129,11 @@ void VisibilityManager::fillVisibleObjectsUsingTags() {
     //culling depth map and re-evaluates all objects every frame (keyed on the player role, not projection
     //type, so an orthographic player camera is handled the same as a perspective one).
     static const uint64_t playerCameraTag = HashUtil::hashString(HardCodedTags::CAMERA_PLAYER);
-    for (auto &it: cullingResults) {
-        if (it.first->isDirty() || it.first->hasTag(playerCameraTag)) {
-            for(auto& renderEntries:*it.second) {
+    for (const auto &item: visibilityThreadPool) {
+        VisibilityRequest* request = item.first;
+        request->renderListsCleared = request->camera->isDirty() || request->camera->hasTag(playerCameraTag);
+        if (request->renderListsCleared) {
+            for(auto& renderEntries:*request->visibility) {
                 renderEntries.second.clear();
             }
         }
@@ -389,8 +391,10 @@ void VisibilityManager::fillVisibleObjectPerCamera(const VisibilityRequest* visi
                             }
                         } else {
                             lodSkipCounter++;
-                            for (auto& meshMeta : meshMetas) {
-                                visibilityEntry.second.removeMeshMaterial(meshMeta->material, meshMeta->mesh, currentModel->getWorldObjectID());
+                            if (!visibilityRequest->renderListsCleared) {
+                                for (auto& meshMeta : meshMetas) {
+                                    visibilityEntry.second.removeMeshMaterial(meshMeta->material, meshMeta->mesh, currentModel->getWorldObjectID());
+                                }
                             }
                         }
                     } else {
@@ -422,7 +426,9 @@ void VisibilityManager::fillVisibleObjectPerCamera(const VisibilityRequest* visi
                                     }
                                 } else {
                                     lodSkipCounter++;
-                                    visibilityEntry.second.removeMeshMaterial(meshMeta->material, meshMeta->mesh, currentModel->getWorldObjectID());
+                                    if (!visibilityRequest->renderListsCleared) {
+                                        visibilityEntry.second.removeMeshMaterial(meshMeta->material, meshMeta->mesh, currentModel->getWorldObjectID());
+                                    }
                                 }
                             } else {
                                 frustumCulledCount++;
@@ -436,11 +442,13 @@ void VisibilityManager::fillVisibleObjectPerCamera(const VisibilityRequest* visi
                 } else { //if not visible
                     const std::vector<Model::MeshMeta *> &meshMetas =currentModel->getMeshMetaData();
                     frustumCulledCount += static_cast<uint32_t>(meshMetas.size());
-                    for (auto& meshMeta:meshMetas) {
-                        visibilityEntry.second.removeMeshMaterial(meshMeta->material, meshMeta->mesh, currentModel->getWorldObjectID());
+                    if (!visibilityRequest->renderListsCleared) {
+                        for (auto& meshMeta:meshMetas) {
+                            visibilityEntry.second.removeMeshMaterial(meshMeta->material, meshMeta->mesh, currentModel->getWorldObjectID());
+                        }
                     }
                 }
-            } else {
+            } else if (!visibilityRequest->renderListsCleared) {
                 //what if we are not matching a tag, but we at some point did?
                 const std::vector<Model::MeshMeta *> &meshMetas =currentModel->getMeshMetaData();
                 for (auto& meshMeta:meshMetas) {
