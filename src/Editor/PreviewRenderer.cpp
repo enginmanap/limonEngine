@@ -247,6 +247,8 @@ void PreviewRenderer::renderSelectedObject(Model* model, std::shared_ptr<Graphic
 
     world->graphicsWrapper->setPlayerMatrices(previewCameraPosition, previewCameraMatrix, previewProjectionMatrix, world->gameTime);
     beginOffscreenModelPreview(backgroundRenderStage.get(), graphicsProgram);
+    //preview models are not in the world, prepareFrame won't upload them
+    world->graphicsWrapper->setModel(model->getWorldObjectID(), model->getTransformation()->getWorldTransform());
     model->convertToRenderList(0, 0).render(world->graphicsWrapper, graphicsProgram, true);
 
     world->graphicsWrapper->setPlayerMatrices(liveCameraPosition, liveCameraMatrix, liveProjectionMatrix, world->gameTime);

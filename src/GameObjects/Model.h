@@ -8,6 +8,7 @@
 
 #include <vector>
 #include <set>
+#include <unordered_set>
 #include <glm/gtc/type_ptr.hpp>
 
 #include "../PhysicalRenderable.h"
@@ -30,6 +31,7 @@ public:
 private:
     uint32_t objectID;
     uint32_t rigID = 0; //initialize as 0, because thats the value for non animated.
+    std::unordered_set<Model*>* pendingTransformUploads = nullptr;//only set while a world holds this model
 
     ActorInterface *AIActor = nullptr;
     std::shared_ptr<AssetManager> assetManager;
@@ -169,7 +171,7 @@ public:
 
     void transformChangeCallback() {
         PhysicalRenderable::updatePhysicsFromTransform();
-        graphicsWrapper->setModel(this->getWorldObjectID(), this->transformation.getWorldTransform());
+        markTransformChanged();
     }
 
     void onTransformUpdated() noexcept override {
@@ -178,7 +180,18 @@ public:
 
     void updateTransformFromPhysics() override {
         PhysicalRenderable::updateTransformFromPhysics();
-        graphicsWrapper->setModel(this->getWorldObjectID(), this->transformation.getWorldTransform());
+        markTransformChanged();
+    }
+
+    //the world uploads the set in prepareFrame. A model outside a world is uploaded by whoever draws it
+    void setPendingTransformUploads(std::unordered_set<Model*>* pendingUploads) {
+        this->pendingTransformUploads = pendingUploads;
+    }
+
+    void markTransformChanged() {
+        if (pendingTransformUploads != nullptr) {
+            pendingTransformUploads->insert(this);
+        }
     }
 
     bool setupRenderVariables(MeshMeta *meshMetaData);

@@ -1091,7 +1091,7 @@ void Model::reloadWithFlip(const std::string &newFlipAxes) {
     }
 
     this->dirtyForFrustum = true;
-    graphicsWrapper->setModel(this->getWorldObjectID(), this->transformation.getWorldTransform());
+    markTransformChanged();
 }
 
 void Model::reloadPhysicsShape() {

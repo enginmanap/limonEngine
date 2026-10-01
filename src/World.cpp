@@ -426,11 +426,19 @@ void World::prepareFrame() {
         sky->step(playerCamera);
     }
 
+    uploadChangedModelTransforms();
     //the culling pass above filled changedBoneTransforms we upload as a batch.
     for (auto& boneTransformPair: changedBoneTransforms) {
         graphicsWrapper->setBoneTransforms(boneTransformPair.first, *(boneTransformPair.second));
     }
     changedBoneTransforms.clear();
+}
+
+void World::uploadChangedModelTransforms() {
+    for (Model* model : pendingTransformUploads) {
+        graphicsWrapper->setModel(model->getWorldObjectID(), model->getTransformation()->getWorldTransform());
+    }
+    pendingTransformUploads.clear();
 }
 
 void World::animateCustomAnimations() {
@@ -961,6 +969,7 @@ void World::ImGuiFrameSetup(std::shared_ptr<GraphicsProgram> graphicsProgram, co
 
        playerPlaceHolder->getTransformation()->setTransformations(physicalPlayer->getPosition()
        ,physicalPlayer->getLookDirectionQuaternion());
+       graphicsWrapper->setModel(playerPlaceHolder->getWorldObjectID(), playerPlaceHolder->getTransformation()->getWorldTransform());//not in the world, prepareFrame won't upload it
        graphicsProgram->setUniform("renderModelIMGUI", 1);
        playerPlaceHolder->convertToRenderList(0,0).render(graphicsWrapper, graphicsProgram);
        graphicsProgram->setUniform("renderModelIMGUI", 0);
@@ -1155,6 +1164,8 @@ bool World::addModelToWorld(Model *xmlModel) {
         return false;
     }
     objects[xmlModel->getWorldObjectID()] = xmlModel;
+    xmlModel->setPendingTransformUploads(&pendingTransformUploads);
+    pendingTransformUploads.insert(xmlModel);//anything set before joining the world was never uploaded
     if (xmlModel->isAnimated() && xmlModel->getRigId() == 0) {
         xmlModel->setRigId(getNextRigId());
     }
@@ -1902,6 +1913,8 @@ void World::uploadActiveLightsToGPU() const {
            }
            //clear object itself
            objects.erase(modelToClear->getWorldObjectID());
+           pendingTransformUploads.erase(modelToClear);
+           modelToClear->setPendingTransformUploads(nullptr);
            physicsSimulationActiveModels.erase(modelToClear->getWorldObjectID());//the ID is reused, the request must not carry over
            if (forRemoval) {
                unusedIDs.push(modelToClear->getWorldObjectID());

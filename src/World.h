@@ -237,6 +237,7 @@ private:
     std::queue<uint32_t> unusedIDs;
     std::unordered_map<uint32_t, Model *> objects;
     std::unordered_map<uint32_t, const std::vector<glm::mat4>*> changedBoneTransforms;//These are used for uploading to GPU. Don't put in if not passing culling.
+    std::unordered_set<Model*> pendingTransformUploads;//filled by the models during ticks, uploaded in prepareFrame
     std::unordered_set<uint32_t> tempRenderedObjectsSet;
     std::vector<uint32_t> physicsActivatedModels;//refilled every tick, kept to reuse the allocation
     std::unordered_set<uint32_t> physicsSimulationActiveModels;//requested through LimonAPI, usually by AI
@@ -380,6 +381,7 @@ private:
     void updateWorldAABB(glm::vec3 aabbMin, glm::vec3 aabbMax);
 
     bool addModelToWorld(Model *xmlModel);
+    void uploadChangedModelTransforms();
 
     void untrackRigidBody(const btRigidBody *body);
 
