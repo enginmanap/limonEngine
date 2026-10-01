@@ -26,6 +26,7 @@ class InputHandler;
 class Model;
 class Attachable;
 class FrameTimeTracker;
+class TransformTextureRing;
 
 class WorldLoader {
 public:
@@ -56,6 +57,8 @@ private:
     InputHandler* inputHandler;
     ProfilerSystem* profilerSystem;
     FrameTimeTracker* frameTimeTracker;
+    TransformTextureRing* modelTransformRing;
+    TransformTextureRing* boneTransformRing;
 
     World *loadMapFromXML(const std::string &worldFileName, LimonAPI *limonAPI) const;
     bool loadObjectGroupsFromXMLV1(tinyxml2::XMLNode *worldNode, World *world, LimonAPI *limonAPI,
@@ -78,7 +81,7 @@ private:
     bool loadMaterials(tinyxml2::XMLNode *worldNode, World *world) const;
 
 public:
-    WorldLoader(std::shared_ptr<AssetManager> assetManager, InputHandler *inputHandler, OptionsUtil::Options *options, ProfilerSystem* profilerSystem, FrameTimeTracker* frameTimeTracker);
+    WorldLoader(std::shared_ptr<AssetManager> assetManager, InputHandler *inputHandler, OptionsUtil::Options *options, ProfilerSystem* profilerSystem, FrameTimeTracker* frameTimeTracker, TransformTextureRing* modelTransformRing, TransformTextureRing* boneTransformRing);
 
     std::unique_ptr<std::string> getLoadingImage(const std::string &worldFile) const;
 

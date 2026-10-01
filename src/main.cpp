@@ -13,6 +13,7 @@
 #include <pthread.h>
 #include "Profiler/ProfilerMacros.h"
 #include "Utils/FrameTimeTracker.h"
+#include "Graphics/TransformTextureRing.h"
 #include "Material.h"
 #include <algorithm>
 
@@ -226,6 +227,8 @@ GameEngine::GameEngine() {
     }
     graphicsWrapper->initGpuContext();
     graphicsWrapper->reshape();
+    modelTransformRing = new TransformTextureRing(graphicsWrapper.get(), 4 * NR_MAX_MODELS, 2, GraphicsInterface::MODEL_BONE_TRANSFORM_TEXTURE_UNIT_START);
+    boneTransformRing = new TransformTextureRing(graphicsWrapper.get(), 4 * NR_BONE, NR_MAX_MODELS, GraphicsInterface::MODEL_BONE_TRANSFORM_TEXTURE_UNIT_START + 1);
 
 #ifdef _WIN32
     sdlHelper->loadCustomTriggers("libcustomTriggers.dll");
@@ -240,7 +243,7 @@ GameEngine::GameEngine() {
     inputHandler = new InputHandler(sdlHelper->getWindow(), options);
     assetManager = std::make_shared<AssetManager>(graphicsWrapper.get(), alHelper);
 
-    worldLoader = new WorldLoader(assetManager, inputHandler, options, profilerSystem, frameTimeTracker);
+    worldLoader = new WorldLoader(assetManager, inputHandler, options, profilerSystem, frameTimeTracker, modelTransformRing, boneTransformRing);
 }
 
 void GameEngine::applyPendingSwitch() {
@@ -381,6 +384,8 @@ GameEngine::~GameEngine() {
     delete worldLoader;
     delete inputHandler;
     delete alHelper;
+    delete modelTransformRing;//textures, so before the backend goes
+    delete boneTransformRing;
     graphicsWrapper = nullptr;//FIXME this should be part of SdlHelper, because it is created and deleted by it. now it is order dependent because if it.
     delete sdlHelper;
     delete frameTimeTracker;

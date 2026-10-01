@@ -248,7 +248,8 @@ void PreviewRenderer::renderSelectedObject(Model* model, std::shared_ptr<Graphic
     world->graphicsWrapper->setPlayerMatrices(previewCameraPosition, previewCameraMatrix, previewProjectionMatrix, world->gameTime);
     beginOffscreenModelPreview(backgroundRenderStage.get(), graphicsProgram);
     //preview models are not in the world, prepareFrame won't upload them
-    world->graphicsWrapper->setModel(model->getWorldObjectID(), model->getTransformation()->getWorldTransform());
+    world->setModelTransform(model->getWorldObjectID(), model->getTransformation()->getWorldTransform());
+    world->uploadTransformTextures();
     model->convertToRenderList(0, 0).render(world->graphicsWrapper, graphicsProgram, true);
 
     world->graphicsWrapper->setPlayerMatrices(liveCameraPosition, liveCameraMatrix, liveProjectionMatrix, world->gameTime);
@@ -474,7 +475,8 @@ ImGuiImageWrapper* PreviewRenderer::renderModelPreview(Model* model, int32_t for
         // logic for editor. This split is intentional
         model->getModelAsset()->getTransform(previewAnimationTime, true, model->getAnimationName(), skinningMatrices);
         model->getModelAsset()->getJointTransforms(previewAnimationTime, true, model->getAnimationName(), jointTransforms);
-        world->graphicsWrapper->setBoneTransforms(modelPreview.rigId, skinningMatrices);
+        world->setBoneTransforms(modelPreview.rigId, skinningMatrices);
+        world->uploadTransformTextures();//drawn below, before any prepareFrame
     }
 
     glm::mat4 previewCameraMatrix, previewProjectionMatrix;

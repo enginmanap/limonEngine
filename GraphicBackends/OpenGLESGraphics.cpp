@@ -281,14 +281,12 @@ Uniform::VariableTypes OpenGLESGraphics::getSamplerVariableType(const GLint *que
 void OpenGLESGraphics::attachModelTexture(const uint32_t program) {
     GLint allModelsAttachPoint = glGetUniformLocation(program, "allModelTransformsTexture");
     this->setUniform(program, allModelsAttachPoint, GraphicsInterface::MODEL_BONE_TRANSFORM_TEXTURE_UNIT_START);
-    state->attachTexture(allModelTransformsTexture, GraphicsInterface::MODEL_BONE_TRANSFORM_TEXTURE_UNIT_START);
     checkErrors("attachModelTexture");
 }
 
 void OpenGLESGraphics::attachRigTexture(const uint32_t program) {
     GLint allBonesAttachPoint = glGetUniformLocation(program, "allBoneTransformsTexture");
     this->setUniform(program, allBonesAttachPoint, GraphicsInterface::MODEL_BONE_TRANSFORM_TEXTURE_UNIT_START + 1);
-    state->attachTexture(allBoneTransformsTexture, GraphicsInterface::MODEL_BONE_TRANSFORM_TEXTURE_UNIT_START + 1);
     checkErrors("attachRigTexture");
 }
 
@@ -523,7 +521,7 @@ bool OpenGLESGraphics::createGraphicsBackend() {
     glGenBuffers(1, &lightUBOLocation);
     glBindBuffer(GL_UNIFORM_BUFFER, lightUBOLocation);
     std::vector<GLubyte> emptyData(lightUniformSize * this->totalLightCount, 0);
-    glBufferData(GL_UNIFORM_BUFFER, lightUniformSize * this->totalLightCount, &emptyData[0], GL_STATIC_DRAW);
+    glBufferData(GL_UNIFORM_BUFFER, lightUniformSize * this->totalLightCount, &emptyData[0], GL_DYNAMIC_DRAW);
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
     //create player transforms uniform buffer object
@@ -537,22 +535,6 @@ bool OpenGLESGraphics::createGraphicsBackend() {
     glBindBuffer(GL_UNIFORM_BUFFER, allMaterialsUBOLocation);
     glBufferData(GL_UNIFORM_BUFFER, materialUniformSize * NR_MAX_MATERIALS, nullptr, GL_STATIC_DRAW);
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
-
-    glGenTextures(1, &allBoneTransformsTexture);
-    state->activateTextureUnit(GraphicsInterface::MODEL_BONE_TRANSFORM_TEXTURE_UNIT_START + 1);
-    glBindTexture(GL_TEXTURE_2D, allBoneTransformsTexture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, 4 * NR_BONE, NR_MAX_MODELS, 0, GL_RGBA, GL_FLOAT, nullptr);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    state->activateTextureUnit(0);
-
-    glGenTextures(1, &allModelTransformsTexture);
-    state->activateTextureUnit(GraphicsInterface::MODEL_BONE_TRANSFORM_TEXTURE_UNIT_START);
-    glBindTexture(GL_TEXTURE_2D, allModelTransformsTexture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, 4 * NR_MAX_MODELS, 2, 0, GL_RGBA, GL_FLOAT, nullptr);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    state->activateTextureUnit(0);
 
     //create model index uniform buffer object
     glGenBuffers(1, &allModelIndexesUBOLocation);
@@ -1587,6 +1569,30 @@ OpenGLESGraphics::loadTextureData(uint32_t textureID, int height, int width, Tex
 checkErrors("loadTextureData");
 }
 
+void OpenGLESGraphics::updateTextureRegion(uint32_t textureID, int x, int y, int width, int height, FormatTypes format, DataTypes dataType, const void *data) {
+    state->activateTextureUnit(0);//this is the default working texture
+    GLenum glFormat = 0;
+    switch (format) {
+        case FormatTypes::RED: glFormat = GL_RED; break;
+        case FormatTypes::RG: glFormat = GL_RG; break;
+        case FormatTypes::RGB: glFormat = GL_RGB; break;
+        case FormatTypes::RGBA: glFormat = GL_RGBA; break;
+        case FormatTypes::DEPTH: glFormat = GL_DEPTH_COMPONENT; break;
+    }
+    GLenum glDataType = 0;
+    switch (dataType) {
+        case DataTypes::FLOAT: glDataType = GL_FLOAT; break;
+        case DataTypes::HALF_FLOAT: glDataType = GL_HALF_FLOAT; break;
+        case DataTypes::UNSIGNED_BYTE: glDataType = GL_UNSIGNED_BYTE; break;
+        case DataTypes::UNSIGNED_SHORT: glDataType = GL_UNSIGNED_SHORT; break;
+        case DataTypes::UNSIGNED_INT: glDataType = GL_UNSIGNED_INT; break;
+    }
+    glBindTexture(GL_TEXTURE_2D, textureID);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, x, y, width, height, glFormat, glDataType, data);
+    glBindTexture(GL_TEXTURE_2D, 0);
+    checkErrors("updateTextureRegion");
+}
+
 void OpenGLESGraphics::attachTexture(unsigned int textureID, unsigned int attachPoint) {
     state->attachTexture(textureID, attachPoint);
     checkErrors("attachTexture");
@@ -1670,40 +1676,32 @@ void OpenGLESGraphics::drawLines(GraphicsProgram &program, uint32_t vao, uint32_
     checkErrors("drawLines");
 }
 
-void OpenGLESGraphics::setLight(const int lightIndex,
-                              const glm::vec3& attenuation,
-                              const std::vector<glm::mat4>& shadowMatrices,
-                              const glm::vec3& position,
-                              const glm::vec3& color,
-                              const glm::vec3& ambientColor,
-                              const int32_t lightType,
-                              const float radius,
-                              const float intensity,
-                              const float falloffExponent) {
-
-    //std::cout << "light type is " << lightType << std::endl;
+void OpenGLESGraphics::setLights(const std::vector<LightData>& lights) {
+    if (lights.size() > static_cast<size_t>(totalLightCount)) {
+        std::cerr << "Can't upload " << lights.size() << " lights, the light buffer holds " << totalLightCount << ". Extra lights are dropped." << std::endl;
+    }
+    //every byte is rewritten, so the driver can give this data fresh storage instead of waiting for the queued frames reading the old one
+    std::vector<uint8_t> lightBlock(lightUniformSize * totalLightCount, 0);
+    const size_t uploadedLightCount = std::min(lights.size(), static_cast<size_t>(totalLightCount));
+    const size_t afterShadowMatrices = sizeof(glm::mat4) * 6;
+    for (size_t lightIndex = 0; lightIndex < uploadedLightCount; ++lightIndex) {
+        const LightData& light = lights[lightIndex];
+        uint8_t* slot = lightBlock.data() + lightIndex * lightUniformSize;
+        assert(light.shadowMatrices.size() <= 6);
+        memcpy(slot, light.shadowMatrices.data(), sizeof(glm::mat4) * light.shadowMatrices.size());
+        memcpy(slot + afterShadowMatrices, &light.position, sizeof(glm::vec3));
+        memcpy(slot + afterShadowMatrices + sizeof(glm::vec3), &light.radius, sizeof(GLfloat));
+        memcpy(slot + afterShadowMatrices + sizeof(glm::vec4), &light.color, sizeof(glm::vec3));
+        memcpy(slot + afterShadowMatrices + sizeof(glm::vec4) + sizeof(glm::vec3), &light.lightType, sizeof(GLint));
+        memcpy(slot + afterShadowMatrices + 2 * sizeof(glm::vec4), glm::value_ptr(light.attenuation), sizeof(glm::vec3));
+        memcpy(slot + afterShadowMatrices + 2 * sizeof(glm::vec4) + sizeof(glm::vec3), &light.intensity, sizeof(GLfloat));
+        memcpy(slot + afterShadowMatrices + 3 * sizeof(glm::vec4), glm::value_ptr(light.ambientColor), sizeof(glm::vec3));
+        memcpy(slot + afterShadowMatrices + 3 * sizeof(glm::vec4) + sizeof(glm::vec3), &light.falloffExponent, sizeof(GLfloat));
+    }
     glBindBuffer(GL_UNIFORM_BUFFER, lightUBOLocation);
-    assert(shadowMatrices.size() <= 6);
-    glBufferSubData(GL_UNIFORM_BUFFER, lightIndex * lightUniformSize,
-                    sizeof(glm::mat4)*shadowMatrices.size(), shadowMatrices.data());
-    glBufferSubData(GL_UNIFORM_BUFFER, lightIndex * lightUniformSize + sizeof(glm::mat4) * 6,
-                    sizeof(glm::vec3), &position);
-    glBufferSubData(GL_UNIFORM_BUFFER, lightIndex * lightUniformSize + sizeof(glm::mat4) * 6 + sizeof(glm::vec3),
-                    sizeof(GLfloat), &radius);
-    glBufferSubData(GL_UNIFORM_BUFFER, lightIndex * lightUniformSize + sizeof(glm::mat4) * 6 + sizeof(glm::vec4),
-                    sizeof(glm::vec3), &color);
-    glBufferSubData(GL_UNIFORM_BUFFER, lightIndex * lightUniformSize + sizeof(glm::mat4) * 6 + sizeof(glm::vec4) + sizeof(glm::vec3),
-                    sizeof(GLint), &lightType);
-    glBufferSubData(GL_UNIFORM_BUFFER, lightIndex * lightUniformSize + sizeof(glm::mat4) * 6 + 2 * sizeof(glm::vec4),
-                    sizeof(glm::vec3), glm::value_ptr(attenuation));
-    glBufferSubData(GL_UNIFORM_BUFFER, lightIndex * lightUniformSize + sizeof(glm::mat4) * 6 + 2 * sizeof(glm::vec4) + sizeof(glm::vec3),
-                    sizeof(GLfloat), &intensity);
-    glBufferSubData(GL_UNIFORM_BUFFER, lightIndex * lightUniformSize + sizeof(glm::mat4) * 6 + 3 * sizeof(glm::vec4),
-                    sizeof(glm::vec3), glm::value_ptr(ambientColor));
-    glBufferSubData(GL_UNIFORM_BUFFER, lightIndex * lightUniformSize + sizeof(glm::mat4) * 6 + 3 * sizeof(glm::vec4) + sizeof(glm::vec3),
-                    sizeof(GLfloat), &falloffExponent);
+    glBufferData(GL_UNIFORM_BUFFER, lightBlock.size(), lightBlock.data(), GL_DYNAMIC_DRAW);
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
-    checkErrors("setLight");
+    checkErrors("setLights");
 }
 
 void OpenGLESGraphics::setMaterial(const Material& material) {
@@ -1738,31 +1736,6 @@ void OpenGLESGraphics::setMaterial(const Material& material) {
                     sizeof(GLint), &maps);
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
     checkErrors("setMaterial");
-}
-
-void OpenGLESGraphics::setBoneTransforms(uint32_t index, const std::vector<glm::mat4>& boneTransforms) {
-    if (boneTransforms.size() > NR_BONE) {
-        std::cerr << "Too many bones, can't upload more than " << NR_BONE << "ignoring." << std::endl;
-    }
-    if (boneTransforms.size() < NR_BONE) {
-        std::cerr << "too little bones, possible garbage upload " << std::endl;
-    }
-    state->activateTextureUnit(GraphicsInterface::MODEL_BONE_TRANSFORM_TEXTURE_UNIT_START + 1);
-    state->attachTexture(allBoneTransformsTexture, GraphicsInterface::MODEL_BONE_TRANSFORM_TEXTURE_UNIT_START + 1);
-    glTexSubImage2D(GL_TEXTURE_2D,0,0, index, 4*NR_BONE, 1, GL_RGBA, GL_FLOAT, boneTransforms.data());
-    checkErrors("setBoneTransform");
-}
-
-void OpenGLESGraphics::setModel(const uint32_t modelID, const glm::mat4& worldTransform) {
-    state->activateTextureUnit(GraphicsInterface::MODEL_BONE_TRANSFORM_TEXTURE_UNIT_START);
-    state->attachTexture(allModelTransformsTexture, GraphicsInterface::MODEL_BONE_TRANSFORM_TEXTURE_UNIT_START);
-    glm::mat4 transposeInverse = glm::transpose(glm::inverse(worldTransform));
-    float data[32];
-    memcpy(data, glm::value_ptr(worldTransform), sizeof(float)*16);
-    memcpy((data+16), glm::value_ptr(transposeInverse), sizeof(float)*12);
-    glTexSubImage2D(GL_TEXTURE_2D,0,4*modelID, 0, 4, 2, GL_RGBA, GL_FLOAT, data);
-    //std::cout << "setting for model id " << modelID << std::endl;
-    checkErrors("setModel");
 }
 
 void OpenGLESGraphics::setModelIndexesUBO(const std::vector<glm::uvec4> &modelIndicesList) {

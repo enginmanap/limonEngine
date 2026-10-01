@@ -72,6 +72,9 @@ protected:
     virtual void loadTextureData(uint32_t textureID, int height, int width, TextureTypes type, InternalFormatTypes internalFormat, FormatTypes format, DataTypes dataType, uint32_t depth,
                          void *data, void *data2, void *data3, void *data4, void *data5, void *data6) = 0;
 
+    //2D only, data is tightly packed rows of the region
+    virtual void updateTextureRegion(uint32_t textureID, int x, int y, int width, int height, FormatTypes format, DataTypes dataType, const void *data) = 0;
+
     //Should be used by GraphicsProgramOnly
     virtual uint32_t createGraphicsProgram(const std::string &vertexShaderContent, const std::string &vertexShaderName, const std::string &geometryShaderContent, const std::string &geometryShaderName, const std::string &fragmentShaderContent, const std::string &fragmentShaderName) = 0;
 public:
@@ -109,6 +112,18 @@ public:
         uint32_t textureBindRequestCount = 0;
         uint32_t materialSwitchCount = 0;
         uint32_t uniformSetCount = 0;
+    };
+
+    struct LightData {
+        glm::vec3 attenuation;
+        std::vector<glm::mat4> shadowMatrices;
+        glm::vec3 position;
+        glm::vec3 color;
+        glm::vec3 ambientColor;
+        int32_t lightType;
+        float radius;
+        float intensity;
+        float falloffExponent;
     };
 
     virtual const RenderStats& getFrameStats() const = 0;
@@ -189,18 +204,8 @@ public:
     virtual bool setUniform(const uint32_t programID, const uint32_t uniformID, const int value) = 0;
     virtual bool setUniformArray(const uint32_t programID, const uint32_t uniformID, const std::vector<glm::mat4> &matrixArray) = 0;
 
-    virtual void setLight(const int lightIndex,
-                          const glm::vec3& attenuation,
-                          const std::vector<glm::mat4>& shadowMatrices,
-                          const glm::vec3& position,
-                          const glm::vec3& color,
-                          const glm::vec3& ambientColor,
-                          const int32_t lightType,
-                          const float radius,
-                          const float intensity,
-                          const float falloffExponent) = 0;
-
-    virtual void removeLight(const int i) = 0;
+    //rewrites every light slot, the ones past lights.size() get type 0 like a removed light
+    virtual void setLights(const std::vector<LightData>& lights) = 0;
 
     virtual void setPlayerMatrices(const glm::vec3 &cameraPosition, const glm::mat4 &cameraMatrix, const glm::mat4 &cameraProjection, uint32_t currentTimeMs) = 0;
 
@@ -217,8 +222,6 @@ public:
     virtual int getMaxTextureImageUnits() const = 0;
 
     virtual void setMaterial(const Material& material) = 0;
-    virtual void setBoneTransforms(uint32_t index, const std::vector<glm::mat4>& boneTransforms) = 0;
-    virtual void setModel(const uint32_t modelID, const glm::mat4 &worldTransform) = 0;
     virtual void setModelIndexesUBO(const std::vector<glm::uvec4> & modelIndicesList) = 0;
     virtual void attachModelIndicesUBO(const uint32_t programID) = 0;
     //The batch size for model index buffer. If you push more than this limit, it will be dropped because driver can't handle it.

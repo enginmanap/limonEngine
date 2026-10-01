@@ -84,6 +84,7 @@ class IterationExtension;
 class NodeGraph;
 class VisibilityManager;
 class FrameTimeTracker;
+class TransformTextureRing;
 
 /*
  * This is a workaround to access the timedEvent priority queue container.
@@ -232,6 +233,12 @@ private:
     OptionsUtil::Options* options;
     ProfilerSystem* profilerSystem;
     FrameTimeTracker* frameTimeTracker;//owned by GameEngine, ticked at the frame boundary next to clearFrame
+    TransformTextureRing* modelTransformRing;//owned by GameEngine and shared by all worlds, so every upload sends our whole used range
+    TransformTextureRing* boneTransformRing;
+    std::vector<glm::vec4> modelTransformTexels = std::vector<glm::vec4>(2 * 4 * NR_MAX_MODELS);//row 0 world transforms, row 1 normal matrices
+    uint32_t usedModelTransformColumns = 0;
+    std::vector<glm::vec4> boneTransformTexels;//one row per rig, grows with the highest rig written
+    uint32_t usedBoneTransformRows = 0;
     uint32_t nextWorldID = 2;
     uint32_t nextRigID = 1;
     std::queue<uint32_t> unusedIDs;
@@ -381,7 +388,10 @@ private:
     void updateWorldAABB(glm::vec3 aabbMin, glm::vec3 aabbMax);
 
     bool addModelToWorld(Model *xmlModel);
-    void uploadChangedModelTransforms();
+    void uploadChangedTransforms();
+    void setModelTransform(uint32_t modelID, const glm::mat4& worldTransform);
+    void setBoneTransforms(uint32_t rigID, const std::vector<glm::mat4>& boneTransforms);
+    void uploadTransformTextures();
 
     void untrackRigidBody(const btRigidBody *body);
 
@@ -444,6 +454,7 @@ private:
 
     World(const std::string &name, PlayerInfo startingPlayerType, InputHandler *inputHandler,
           std::shared_ptr<AssetManager> assetManager, OptionsUtil::Options *options, ProfilerSystem* profilerSystem, FrameTimeTracker* frameTimeTracker,
+          TransformTextureRing* modelTransformRing, TransformTextureRing* boneTransformRing,
           LimonAPI *limonAPI);
 
     void afterLoadFinished();

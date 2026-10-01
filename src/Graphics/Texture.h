@@ -80,6 +80,10 @@ public:
         graphicsWrapper->loadTextureData(this->textureID, textureInfo.defaultSize[1], textureInfo.defaultSize[0], textureInfo.textureType, textureInfo.internalFormatType, textureInfo.formatType, textureInfo.dataType, textureInfo.depth, data, data2, data3, data4, data5, data6);
     }
 
+    void updateRegion(int x, int y, int regionWidth, int regionHeight, const void *data) {
+        graphicsWrapper->updateTextureRegion(this->textureID, x, y, regionWidth, regionHeight, textureInfo.formatType, textureInfo.dataType, data);
+    }
+
     ~Texture() {
         graphicsWrapper->deleteTexture(textureID);
     }

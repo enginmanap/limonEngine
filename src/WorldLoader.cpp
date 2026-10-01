@@ -35,14 +35,16 @@
 #include "GamePlay/APISerializer.h"
 #include "limonAPI/CameraExtensionInterface.h"
 
-WorldLoader::WorldLoader(std::shared_ptr<AssetManager> assetManager, InputHandler *inputHandler, OptionsUtil::Options *options, ProfilerSystem* profilerSystem, FrameTimeTracker* frameTimeTracker) :
+WorldLoader::WorldLoader(std::shared_ptr<AssetManager> assetManager, InputHandler *inputHandler, OptionsUtil::Options *options, ProfilerSystem* profilerSystem, FrameTimeTracker* frameTimeTracker, TransformTextureRing* modelTransformRing, TransformTextureRing* boneTransformRing) :
         options(options),
         graphicsWrapper(assetManager->getGraphicsWrapper()),
         alHelper(assetManager->getAlHelper()),
         assetManager(assetManager),
         inputHandler(inputHandler),
         profilerSystem(profilerSystem),
-        frameTimeTracker(frameTimeTracker)
+        frameTimeTracker(frameTimeTracker),
+        modelTransformRing(modelTransformRing),
+        boneTransformRing(boneTransformRing)
 {}
 
 void WorldLoader::resolvePendingAttachments(World *world, const std::vector<PendingAttachment> &pending) {
@@ -150,7 +152,7 @@ World * WorldLoader::loadMapFromXML(const std::string &worldFileName, LimonAPI *
 
     }
 
-    World* world = new World(worldNameStr, startingPlayer, inputHandler, assetManager, options, profilerSystem, frameTimeTracker, limonAPI);
+    World* world = new World(worldNameStr, startingPlayer, inputHandler, assetManager, options, profilerSystem, frameTimeTracker, modelTransformRing, boneTransformRing, limonAPI);
     world->loadingImage = loadingImageStr;
 
     // Camera rigs are loaded later (loadCameraRigs), after objects exist, because a rig may attach to one.

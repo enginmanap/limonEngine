@@ -4,6 +4,7 @@
 
 
 #include "World.h"
+#include "Graphics/TransformTextureRing.h"
 #include "WorldAPIAccessor.h"
 #include <Graphics/GraphicsPipeline.h>
 #include "NodeEditorExtensions/PipelineStageExtension.h"
@@ -73,8 +74,10 @@ struct HierarchyFilterCallback : public btOverlapFilterCallback {
 
 World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandler *inputHandler,
                 std::shared_ptr<AssetManager> assetManager, OptionsUtil::Options *options, ProfilerSystem* profilerSystem, FrameTimeTracker* frameTimeTracker,
+                TransformTextureRing* modelTransformRing, TransformTextureRing* boneTransformRing,
                 LimonAPI *limonAPI)
         : assetManager(assetManager), options(options), profilerSystem(profilerSystem), frameTimeTracker(frameTimeTracker),
+        modelTransformRing(modelTransformRing), boneTransformRing(boneTransformRing),
         graphicsWrapper(assetManager->getGraphicsWrapper()), alHelper(assetManager->getAlHelper()), name(name),
         fontManager(graphicsWrapper), startingPlayer(startingPlayerType) {
     // apiAccessor is an indirection, in case someone wants to use it while construction, we need it first
@@ -426,19 +429,61 @@ void World::prepareFrame() {
         sky->step(playerCamera);
     }
 
-    uploadChangedModelTransforms();
-    //the culling pass above filled changedBoneTransforms we upload as a batch.
-    for (auto& boneTransformPair: changedBoneTransforms) {
-        graphicsWrapper->setBoneTransforms(boneTransformPair.first, *(boneTransformPair.second));
-    }
-    changedBoneTransforms.clear();
+    uploadChangedTransforms();
 }
 
-void World::uploadChangedModelTransforms() {
+void World::uploadChangedTransforms() {
     for (Model* model : pendingTransformUploads) {
-        graphicsWrapper->setModel(model->getWorldObjectID(), model->getTransformation()->getWorldTransform());
+        setModelTransform(model->getWorldObjectID(), model->getTransformation()->getWorldTransform());
     }
     pendingTransformUploads.clear();
+    //the culling pass filled changedBoneTransforms, only rigs that passed culling are in it
+    for (auto& boneTransformPair: changedBoneTransforms) {
+        setBoneTransforms(boneTransformPair.first, *(boneTransformPair.second));
+    }
+    changedBoneTransforms.clear();
+    uploadTransformTextures();
+}
+
+void World::setModelTransform(uint32_t modelID, const glm::mat4& worldTransform) {
+    if (modelID >= NR_MAX_MODELS) {
+        std::cerr << "Model ID " << modelID << " is past the model transform texture, it can't be rendered." << std::endl;
+        return;
+    }
+    const uint32_t rowWidth = 4 * NR_MAX_MODELS;
+    const glm::mat4 normalMatrix = glm::transpose(glm::inverse(worldTransform));
+    for (uint32_t column = 0; column < 4; ++column) {
+        modelTransformTexels[4 * modelID + column] = worldTransform[column];
+        modelTransformTexels[rowWidth + 4 * modelID + column] = column < 3 ? normalMatrix[column] : glm::vec4(0.0f);
+    }
+    usedModelTransformColumns = std::max(usedModelTransformColumns, 4 * (modelID + 1));
+}
+
+void World::setBoneTransforms(uint32_t rigID, const std::vector<glm::mat4>& boneTransforms) {
+    if (rigID >= NR_MAX_MODELS) {
+        std::cerr << "Rig ID " << rigID << " is past the bone transform texture, it can't be rendered." << std::endl;
+        return;
+    }
+    if (boneTransforms.size() > NR_BONE) {
+        std::cerr << "Too many bones, can't upload more than " << NR_BONE << " ignoring the rest." << std::endl;
+    }
+    const uint32_t rowWidth = 4 * NR_BONE;
+    if (boneTransformTexels.size() < (rigID + 1) * rowWidth) {
+        boneTransformTexels.resize((rigID + 1) * rowWidth);
+    }
+    const size_t copiedBoneCount = std::min(boneTransforms.size(), static_cast<size_t>(NR_BONE));
+    for (size_t boneIndex = 0; boneIndex < NR_BONE; ++boneIndex) {
+        for (uint32_t column = 0; column < 4; ++column) {
+            boneTransformTexels[rigID * rowWidth + 4 * boneIndex + column] = boneIndex < copiedBoneCount ? boneTransforms[boneIndex][column] : glm::vec4(0.0f);
+        }
+    }
+    usedBoneTransformRows = std::max(usedBoneTransformRows, rigID + 1);
+}
+
+//the rings are shared with other worlds, so this always sends everything we have, not only what changed
+void World::uploadTransformTextures() {
+    modelTransformRing->upload(modelTransformTexels, usedModelTransformColumns, 2);
+    boneTransformRing->upload(boneTransformTexels, 4 * NR_BONE, usedBoneTransformRows);
 }
 
 void World::animateCustomAnimations() {
@@ -969,7 +1014,9 @@ void World::ImGuiFrameSetup(std::shared_ptr<GraphicsProgram> graphicsProgram, co
 
        playerPlaceHolder->getTransformation()->setTransformations(physicalPlayer->getPosition()
        ,physicalPlayer->getLookDirectionQuaternion());
-       graphicsWrapper->setModel(playerPlaceHolder->getWorldObjectID(), playerPlaceHolder->getTransformation()->getWorldTransform());//not in the world, prepareFrame won't upload it
+       //not in the world, prepareFrame won't upload it
+       setModelTransform(playerPlaceHolder->getWorldObjectID(), playerPlaceHolder->getTransformation()->getWorldTransform());
+       uploadTransformTextures();
        graphicsProgram->setUniform("renderModelIMGUI", 1);
        playerPlaceHolder->convertToRenderList(0,0).render(graphicsWrapper, graphicsProgram);
        graphicsProgram->setUniform("renderModelIMGUI", 0);
@@ -1853,25 +1900,21 @@ void World::updateActiveLights(bool forceUpdate) {
     }
 }
 void World::uploadActiveLightsToGPU() const {
+    std::vector<GraphicsInterface::LightData> lights(activeLights.size());
     for (size_t lightIndex = 0; lightIndex < activeLights.size(); ++lightIndex) {
         const Light* currentLight = activeLights[lightIndex];
-        graphicsWrapper->setLight(
-                lightIndex,
-                currentLight->getAttenuation(),
-                currentLight->getShadowMatrices(),
-                currentLight->getPosition(),
-                currentLight->getColor(),
-                currentLight->getAmbientColor(),
-                static_cast<int>(currentLight->getLightType()),
-                currentLight->getActiveDistance(),
-                currentLight->getIntensity(),
-                currentLight->getFalloffExponent()
-                );
+        GraphicsInterface::LightData& light = lights[lightIndex];
+        light.attenuation = currentLight->getAttenuation();
+        light.shadowMatrices = currentLight->getShadowMatrices();
+        light.position = currentLight->getPosition();
+        light.color = currentLight->getColor();
+        light.ambientColor = currentLight->getAmbientColor();
+        light.lightType = static_cast<int32_t>(currentLight->getLightType());
+        light.radius = currentLight->getActiveDistance();
+        light.intensity = currentLight->getIntensity();
+        light.falloffExponent = currentLight->getFalloffExponent();
     }
-
-    for (int i = activeLights.size(); i < static_cast<int>(maxLightsOption.getOrDefault(4)); ++i) {
-        graphicsWrapper->removeLight(i);
-    }
+    graphicsWrapper->setLights(lights);
 }
 
    void World::clearWorldRefsBeforeAttachment(PhysicalRenderable *attachment, const bool removeChildren, const bool forRemoval) {

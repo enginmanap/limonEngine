@@ -221,8 +221,6 @@ private:
     GLuint playerUBOLocation;
     GLuint allMaterialsUBOLocation;
     GLuint allModelIndexesUBOLocation;
-    GLuint allBoneTransformsTexture;
-
     GLuint combineFrameBuffer;
 
     OptionsUtil::Options *options;
@@ -234,8 +232,6 @@ private:
     int32_t modelUniformSize = sizeof(glm::mat4);
     //Set here so checks before initialize don't get garbage. Real value will set after initialization
     uint32_t modelIndexBatchCapacity = NR_MAX_MODELS;
-
-    GLuint allModelTransformsTexture;
 
     glm::mat4 cameraMatrix;
     glm::mat4 perspectiveProjectionMatrix;
@@ -346,6 +342,8 @@ protected:
 
     void loadTextureData(uint32_t textureID, int height, int width, TextureTypes type, InternalFormatTypes internalFormat, FormatTypes format, DataTypes dataType, uint32_t depth,
                          void *data, void *data2, void *data3, void *data4, void *data5, void *data6) override;
+
+    void updateTextureRegion(uint32_t textureID, int x, int y, int width, int height, FormatTypes format, DataTypes dataType, const void *data) override;
 
     uint32_t createGraphicsProgram(const std::string &vertexShaderContent, const std::string &vertexShaderName, const std::string &geometryShaderFileContent, const std::string &geometryShaderFileName, const std::string &fragmentShaderFileContent, const std::string &fragmentShaderFileName) override;
 
@@ -467,25 +465,7 @@ public:
 
     bool setUniformArray(const uint32_t programID, const uint32_t uniformID, const std::vector<glm::mat4> &matrixArray) override;
 
-    void setLight(const int lightIndex,
-                  const glm::vec3& attenuation,
-                  const std::vector<glm::mat4>& shadowMatrices,
-                  const glm::vec3& position,
-                  const glm::vec3& color,
-                  const glm::vec3& ambientColor,
-                  const int32_t lightType,
-                  const float radius,
-                  const float intensity,
-                  const float falloffExponent) override;
-
-    void removeLight(const int i) override {
-        GLint temp = 0;
-        glBindBuffer(GL_UNIFORM_BUFFER, lightUBOLocation);
-        glBufferSubData(GL_UNIFORM_BUFFER, i * lightUniformSize + sizeof(glm::mat4) * 6 + sizeof(glm::vec4) + sizeof(glm::vec3),
-                        sizeof(GLint), &temp);
-        glBindBuffer(GL_UNIFORM_BUFFER, 0);
-        checkErrors("removeLight");
-    }
+    void setLights(const std::vector<LightData>& lights) override;
 
     void setPlayerMatrices(const glm::vec3 &cameraPosition, const glm::mat4 &cameraMatrix, const glm::mat4 &cameraProjection, uint32_t currentTimeMs) override;
 
@@ -507,10 +487,6 @@ public:
     }
 
     void setMaterial(const Material& material) override;
-
-    void setBoneTransforms(uint32_t index, const std::vector<glm::mat4>& boneTransforms) override;
-
-    void setModel(const uint32_t modelID, const glm::mat4 &worldTransform) override;
 
     void setModelIndexesUBO(const std::vector<glm::uvec4> & modelIndicesList) override;
 

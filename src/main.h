@@ -24,6 +24,7 @@ class GUIImage;
 class ScriptManager;
 class ProfilerSystem;
 class FrameTimeTracker;
+class TransformTextureRing;
 
 class GameEngine {
     WorldLoader* worldLoader = nullptr;
@@ -38,6 +39,9 @@ class GameEngine {
     SDL2Helper* sdlHelper = nullptr;
     ProfilerSystem* profilerSystem = nullptr;
     FrameTimeTracker* frameTimeTracker = nullptr;
+    //shared by every world, each world uploads its own full used range whenever it prepares a frame
+    TransformTextureRing* modelTransformRing = nullptr;
+    TransformTextureRing* boneTransformRing = nullptr;
 
     std::unordered_map<std::string, std::pair<World*, LimonAPI*>> loadedWorlds;
 
