@@ -16,20 +16,10 @@ void Material::loadGPUSide(AssetManager *assetManager) {
         return;
     }
     this->assetManager = assetManager;
-    if(this->ambientTexture != nullptr) {
-        assetManager->partialLoadGPUSide(ambientTexture);
-    }
-    if(this->diffuseTexture != nullptr) {
-        assetManager->partialLoadGPUSide(diffuseTexture);
-    }
-    if(this->specularTexture != nullptr) {
-        assetManager->partialLoadGPUSide(specularTexture);
-    }
-    if(this->normalTexture != nullptr) {
-        assetManager->partialLoadGPUSide(normalTexture);
-    }
-    if(this->opacityTexture != nullptr) {
-        assetManager->partialLoadGPUSide(opacityTexture);
+    for (const TextureSlot &slot : getTextureSlots()) {
+        if (this->*slot.texture != nullptr) {
+            assetManager->partialLoadGPUSide(this->*slot.texture);
+        }
     }
     deserialized = true;
 }
@@ -46,56 +36,22 @@ ImGuiResult Material::addImGuiEditorElements(const ImGuiRequest &request) {
     dirty = ImGui::SliderFloat("Refraction Index", &this->refractionIndex, 0, 99999) || dirty;
     ImGui::Text("%s", (std::string("Maps is ") +  std::to_string(this->maps)).c_str());
     static const AssetManager::AvailableAssetsNode* selectedAsset = nullptr;
-    static int selectedTextureIndex = 0;
-    if(this->ambientTexture == nullptr) {
-        ImGui::Text("Ambient Texture: not set");
-    } else {
-        ImGui::Text("%s", (std::string("Ambient Texture: ") + this->ambientTexture->getName().at(0)).c_str());
-    }
-    ImGui::SameLine();
-    if (ImGui::Button("Change##ambientTexture")) {
-        selectedTextureIndex = 1;
-        ImGui::OpenPopup("Select Texture##TextureSelectorPopup");
-    }
-    if(this->diffuseTexture == nullptr) {
-        ImGui::Text("Diffuse Texture: not set");
-    } else {
-        ImGui::Text("%s", (std::string("Diffuse Texture: ") + this->diffuseTexture->getName().at(0)).c_str());
-    }
-    ImGui::SameLine();
-    if (ImGui::Button("Change##diffuseTexture")) {
-        selectedTextureIndex = 2;
-        ImGui::OpenPopup("Select Texture##TextureSelectorPopup");
-    }
-    if(this->specularTexture == nullptr) {
-        ImGui::Text("Specular Texture: not set");
-    } else {
-        ImGui::Text("%s", (std::string("Specular Texture: ") + this->specularTexture->getName().at(0)).c_str());
-    }
-    ImGui::SameLine();
-    if (ImGui::Button("Change##specularTexture")) {
-        selectedTextureIndex = 3;
-        ImGui::OpenPopup("Select Texture##TextureSelectorPopup");
-    }
-    if(this->normalTexture == nullptr) {
-        ImGui::Text("Normal Texture: not set");
-    } else {
-        ImGui::Text("%s", (std::string("Normal Texture: ") + this->normalTexture->getName().at(0)).c_str());
-    }
-    ImGui::SameLine();
-    if (ImGui::Button("Change##normalTexture")) {
-        selectedTextureIndex = 4;
-        ImGui::OpenPopup("Select Texture##TextureSelectorPopup");
-    }
-    if(this->opacityTexture == nullptr) {
-        ImGui::Text("Opacity Texture: not set");
-    } else {
-        ImGui::Text("%s", (std::string("Opacity Texture: ") + this->opacityTexture->getName().at(0)).c_str());
-    }
-    ImGui::SameLine();
-    if (ImGui::Button("Change##opacityTexture")) {
-        selectedTextureIndex = 5;
-        ImGui::OpenPopup("Select Texture##TextureSelectorPopup");
+    static int32_t selectedSlotIndex = -1;
+    const std::array<TextureSlot, TEXTURE_SLOT_COUNT> &textureSlots = getTextureSlots();
+    for (size_t slotIndex = 0; slotIndex < textureSlots.size(); ++slotIndex) {
+        const TextureSlot &slot = textureSlots[slotIndex];
+        if (this->*slot.texture == nullptr) {
+            ImGui::Text("%s Texture: not set", slot.displayName);
+        } else {
+            ImGui::Text("%s Texture: %s", slot.displayName, (this->*slot.texture)->getName().at(0).c_str());
+        }
+        ImGui::SameLine();
+        if (ImGui::Button((std::string("Change##") + slot.imGuiIDSuffix).c_str())) {
+            selectedSlotIndex = static_cast<int32_t>(slotIndex);
+            ImGui::OpenPopup("Select Texture##TextureSelectorPopup");
+        }
+        ImGui::SameLine();
+        dirty = putRemoveTextureButton(slot) || dirty;
     }
     ImGui::SetNextWindowSize(ImVec2(400.0f, 400.0f));
     if (ImGui::BeginPopup("Select Texture##TextureSelectorPopup", ImGuiWindowFlags_AlwaysAutoResize)) {
@@ -107,27 +63,12 @@ ImGuiResult Material::addImGuiEditorElements(const ImGuiRequest &request) {
                                                       ImGuiHelper::PreviewMode::Preview);
         }
         if(selectedAsset != nullptr) {
-            switch(selectedTextureIndex) {
-                case 1:
-                    this->ambientTexture = assetManager->loadAsset<TextureAsset>({selectedAsset->name});
-                    break;
-                case 2:
-                    this->diffuseTexture = assetManager->loadAsset<TextureAsset>({selectedAsset->name});
-                    break;
-                case 3:
-                    this->specularTexture = assetManager->loadAsset<TextureAsset>({selectedAsset->name});
-                    break;
-                case 4:
-                    this->normalTexture = assetManager->loadAsset<TextureAsset>({selectedAsset->name});
-                    break;
-                case 5:
-                    this->opacityTexture = assetManager->loadAsset<TextureAsset>({selectedAsset->name});
-                    break;
-                default: ;
+            if (selectedSlotIndex >= 0) {
+                assignTexture(textureSlots[selectedSlotIndex], assetManager->loadAsset<TextureAsset>({selectedAsset->name}));
             }
             dirty = true;//without it the edit stays on the asset's material, never splits into a world override
             selectedAsset = nullptr;
-            selectedTextureIndex = 0;
+            selectedSlotIndex = -1;
             ImGui::CloseCurrentPopup();
         }
         ImGui::EndPopup();
@@ -137,6 +78,36 @@ ImGuiResult Material::addImGuiEditorElements(const ImGuiRequest &request) {
         result.materialDirty = true;//the pane needs to know before this edit can reach anything shared
     }
     return result;
+}
+
+void Material::assignTexture(const TextureSlot &slot, const std::shared_ptr<TextureAsset> &acquiredTexture) {
+    if (this->*slot.texture != nullptr) {
+        assetManager->freeAsset((this->*slot.texture)->getName());
+    }
+    this->*slot.texture = acquiredTexture;
+    //activateTextures binds by the flag, a set flag on an empty slot dereferences null on the next draw
+    this->*slot.isMap = acquiredTexture != nullptr;
+    if (acquiredTexture != nullptr) {
+        maps |= slot.mapBit;
+    } else {
+        maps &= ~slot.mapBit;
+    }
+}
+
+bool Material::putRemoveTextureButton(const TextureSlot &slot) {
+    bool isEmpty = this->*slot.texture == nullptr;//captured, the click empties it before EndDisabled
+    bool removed = false;
+    if (isEmpty) {
+        ImGui::BeginDisabled();
+    }
+    if (ImGui::Button((std::string("Remove##") + slot.imGuiIDSuffix).c_str())) {
+        assignTexture(slot, nullptr);
+        removed = true;
+    }
+    if (isEmpty) {
+        ImGui::EndDisabled();
+    }
+    return removed;
 }
 
 void Material::configureProgram(const std::shared_ptr<GraphicsProgram>& program) {
@@ -201,34 +172,13 @@ bool Material::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *
         materialNode->InsertEndChild(materialOriginalHashNode);
 
         //now the textures. They might or might not exist, we need to check
-        if (this->getAmbientTexture() != nullptr) {
-            tinyxml2::XMLElement *materialAmbientTextureNode = document.NewElement("AmbientTexture");
-            materialAmbientTextureNode->SetText(StringUtils::join(this->getAmbientTexture()->getName(), ",").c_str());
-            materialNode->InsertEndChild(materialAmbientTextureNode);
-        }
-
-        if (this->getDiffuseTexture() != nullptr) {
-            tinyxml2::XMLElement *materialDiffuseTextureNode = document.NewElement("DiffuseTexture");
-            materialDiffuseTextureNode->SetText(StringUtils::join(this->getDiffuseTexture()->getName(), ",").c_str());
-            materialNode->InsertEndChild(materialDiffuseTextureNode);
-        }
-
-        if (this->getSpecularTexture() != nullptr) {
-            tinyxml2::XMLElement *materialSpecularTextureNode = document.NewElement("SpecularTexture");
-            materialSpecularTextureNode->SetText(StringUtils::join(this->getSpecularTexture()->getName(), ",").c_str());
-            materialNode->InsertEndChild(materialSpecularTextureNode);
-        }
-
-        if (this->getNormalTexture() != nullptr) {
-            tinyxml2::XMLElement *materialNormalTextureNode = document.NewElement("NormalTexture");
-            materialNormalTextureNode->SetText(StringUtils::join(this->getNormalTexture()->getName(), ",").c_str());
-            materialNode->InsertEndChild(materialNormalTextureNode);
-        }
-
-        if (this->getOpacityTexture() != nullptr) {
-            tinyxml2::XMLElement *materialOpacityTextureNode = document.NewElement("OpacityTexture");
-            materialOpacityTextureNode->SetText(StringUtils::join(this->getOpacityTexture()->getName(), ",").c_str());
-            materialNode->InsertEndChild(materialOpacityTextureNode);
+        for (const TextureSlot &slot : getTextureSlots()) {
+            if (this->*slot.texture == nullptr) {
+                continue;
+            }
+            tinyxml2::XMLElement *materialTextureNode = document.NewElement(slot.xmlElementName);
+            materialTextureNode->SetText(StringUtils::join((this->*slot.texture)->getName(), ",").c_str());
+            materialNode->InsertEndChild(materialTextureNode);
         }
     return true;
 }
@@ -259,70 +209,19 @@ std::shared_ptr<Material> Material::deserialize(AssetManager* assetManager, tiny
         std::shared_ptr<Material> material = std::make_shared<Material>(assetManager, name, materialIndex, specularExponent, ambientColor, diffuseColor, specularColor,
                                                                         refractionIndex);
 
-        tinyxml2::XMLElement *textureNode = materialNode->FirstChildElement("AmbientTexture");
-        if (textureNode) {
-            std::vector<std::string> textureNames = StringUtils::split(textureNode->GetText(), ",");
-            if(textureNames.size() == 1) {
-                material->setAmbientTexture(textureNames[0]);
-            } else if (textureNames.size() == 2) {
-                material->setAmbientTexture(textureNames[0], &textureNames[1]);
-            }
-        }
-        textureNode = materialNode->FirstChildElement("DiffuseTexture");
-        if (textureNode) {
-            std::vector<std::string> textureNames = StringUtils::split(textureNode->GetText(), ",");
-            if(textureNames.size() == 1) {
-                material->setDiffuseTexture(textureNames[0]);
-            } else if (textureNames.size() == 2) {
-                material->setDiffuseTexture(textureNames[0], &textureNames[1]);
-            }
-        }
-
-        textureNode = materialNode->FirstChildElement("SpecularTexture");
-        if (textureNode) {
-            std::vector<std::string> textureNames = StringUtils::split(textureNode->GetText(), ",");
-            if(textureNames.size() == 1) {
-                material->setSpecularTexture(textureNames[0]);
-            } else if (textureNames.size() == 2) {
-                material->setSpecularTexture(textureNames[0], &textureNames[1]);
-            }
-        }
-
-        textureNode = materialNode->FirstChildElement("NormalTexture");
-        if (textureNode) {
-            std::vector<std::string> textureNames = StringUtils::split(textureNode->GetText(), ",");
-            if(textureNames.size() == 1) {
-                material->setNormalTexture(textureNames[0]);
-            } else if (textureNames.size() == 2) {
-                material->setNormalTexture(textureNames[0], &textureNames[1]);
-            }
-        }
-
-        textureNode = materialNode->FirstChildElement("OpacityTexture");
-        if (textureNode) {
-            std::vector<std::string> textureNames = StringUtils::split(textureNode->GetText(), ",");
-            if(textureNames.size() == 1) {
-                material->setOpacityTexture(textureNames[0]);
-            } else if (textureNames.size() == 2) {
-                material->setOpacityTexture(textureNames[0], &textureNames[1]);
-            }
-        }
         uint32_t maps = 0;
-
-        if(material->hasNormalMap()) {
-            maps +=16;
-        }
-        if(material->hasAmbientMap()) {
-            maps +=8;
-        }
-        if(material->hasDiffuseMap()) {
-            maps +=4;
-        }
-        if(material->hasSpecularMap()) {
-            maps +=2;
-        }
-        if(material->hasOpacityMap()) {
-            maps +=1;
+        for (const TextureSlot &slot : getTextureSlots()) {
+            tinyxml2::XMLElement *textureNode = materialNode->FirstChildElement(slot.xmlElementName);
+            if (textureNode) {
+                //texture file, then the model it is embedded in, if it is
+                std::vector<std::string> textureNames = StringUtils::split(textureNode->GetText(), ",");
+                if (textureNames.size() == 1 || textureNames.size() == 2) {
+                    material->loadTextureIntoSlot(slot, textureNames);
+                }
+            }
+            if ((*material).*slot.isMap) {
+                maps |= slot.mapBit;
+            }
         }
         material->originalHash = originalHash;
         material->setMaps(maps);

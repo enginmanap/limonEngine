@@ -9,6 +9,7 @@
 #include <cereal/access.hpp>
 #endif
 
+#include <array>
 #include <atomic>
 
 #include "glm/glm.hpp"
@@ -119,6 +120,36 @@ private:
             assetManager->freeAsset(previousTexture->getName());
         }
     }
+
+    struct TextureSlot {
+        const char *displayName;
+        const char *imGuiIDSuffix;
+        const char *xmlElementName;
+        std::shared_ptr<TextureAsset> Material::*texture;
+        bool Material::*isMap;
+        uint32_t mapBit;
+    };
+    static constexpr size_t TEXTURE_SLOT_COUNT = 5;
+    //function local static for the same shared library reason as nextRegistrationID
+    static const std::array<TextureSlot, TEXTURE_SLOT_COUNT> &getTextureSlots() {
+        //never reorder: the cereal texture name layout and every saved OriginalHash follow this order
+        static const std::array<TextureSlot, TEXTURE_SLOT_COUNT> textureSlots = {{
+            {"Ambient",  "ambientTexture",  "AmbientTexture",  &Material::ambientTexture,  &Material::isAmbientMap,  8},
+            {"Diffuse",  "diffuseTexture",  "DiffuseTexture",  &Material::diffuseTexture,  &Material::isDiffuseMap,  4},
+            {"Specular", "specularTexture", "SpecularTexture", &Material::specularTexture, &Material::isSpecularMap, 2},
+            {"Normal",   "normalTexture",   "NormalTexture",   &Material::normalTexture,   &Material::isNormalMap,   16},
+            {"Opacity",  "opacityTexture",  "OpacityTexture",  &Material::opacityTexture,  &Material::isOpacityMap,  1},
+        }};
+        return textureSlots;
+    }
+    //for loading by name, doesn't touch maps or free what the slot held, same as the public setters
+    void loadTextureIntoSlot(const TextureSlot &slot, const std::vector<std::string> &textureFiles) {
+        this->*slot.texture = assetManager->partialLoadAssetAsync<TextureAsset>(textureFiles);
+        this->*slot.isMap = true;
+    }
+    //acquiredTexture already holds its reference, nullptr empties the slot
+    void assignTexture(const TextureSlot &slot, const std::shared_ptr<TextureAsset> &acquiredTexture);
+    bool putRemoveTextureButton(const TextureSlot &slot);
 public:
     Material(AssetManager *assetManager, const std::string &name, uint32_t materialIndex, float specularExponent, const glm::vec3 &ambientColor,
              const glm::vec3 &diffuseColor, const glm::vec3 &specularColor, float refractionIndex)//FIXME: this should not use raw pointer
@@ -152,19 +183,13 @@ public:
         this->specularExponent = other.specularExponent;
         this->refractionIndex = other.refractionIndex;
 
-        this->isAmbientMap = other.isAmbientMap;
-        this->isDiffuseMap = other.isDiffuseMap;
-        this->isSpecularMap = other.isSpecularMap;
-        this->isNormalMap = other.isNormalMap;
-        this->isOpacityMap = other.isOpacityMap;
         this->maps = other.maps;
 
         //assetManager is assigned above, acquireCopiedTexture needs it
-        this->ambientTexture = acquireCopiedTexture(other.ambientTexture);
-        this->diffuseTexture = acquireCopiedTexture(other.diffuseTexture);
-        this->specularTexture = acquireCopiedTexture(other.specularTexture);
-        this->normalTexture = acquireCopiedTexture(other.normalTexture);
-        this->opacityTexture = acquireCopiedTexture(other.opacityTexture);
+        for (const TextureSlot &slot : getTextureSlots()) {
+            this->*slot.isMap = other.*slot.isMap;
+            this->*slot.texture = acquireCopiedTexture(other.*slot.texture);
+        }
 
         this->materialIndex = 0;
         this->originalHash = other.originalHash;
@@ -186,18 +211,12 @@ public:
         this->specularExponent = other.specularExponent;
         this->refractionIndex = other.refractionIndex;
 
-        this->isAmbientMap = other.isAmbientMap;
-        this->isDiffuseMap = other.isDiffuseMap;
-        this->isSpecularMap = other.isSpecularMap;
-        this->isNormalMap = other.isNormalMap;
-        this->isOpacityMap = other.isOpacityMap;
         this->maps = other.maps;
 
-        replaceTexture(this->ambientTexture, other.ambientTexture);
-        replaceTexture(this->diffuseTexture, other.diffuseTexture);
-        replaceTexture(this->specularTexture, other.specularTexture);
-        replaceTexture(this->normalTexture, other.normalTexture);
-        replaceTexture(this->opacityTexture, other.opacityTexture);
+        for (const TextureSlot &slot : getTextureSlots()) {
+            this->*slot.isMap = other.*slot.isMap;
+            replaceTexture(this->*slot.texture, other.*slot.texture);
+        }
     }
 
     void loadGPUSide(AssetManager *assetManager);
@@ -356,25 +375,11 @@ public:
          * Because otherwise Asset manager detects the texture has a
          * shared_ptr to it and logs an error.
          */
-        if (ambientTexture != nullptr) {
-            assetManager->freeAsset({ambientTexture->getName()});
-            this->ambientTexture = nullptr;
-        }
-        if (diffuseTexture != nullptr) {
-            assetManager->freeAsset({diffuseTexture->getName()});
-            this->diffuseTexture = nullptr;
-        }
-        if (specularTexture != nullptr) {
-            assetManager->freeAsset({specularTexture->getName()});
-            this->specularTexture = nullptr;
-        }
-        if (opacityTexture != nullptr) {
-            assetManager->freeAsset({opacityTexture->getName()});
-            this->opacityTexture = nullptr;
-        }
-        if (normalTexture != nullptr) {
-            assetManager->freeAsset({normalTexture->getName()});
-            this->normalTexture = nullptr;
+        for (const TextureSlot &slot : getTextureSlots()) {
+            if (this->*slot.texture != nullptr) {
+                assetManager->freeAsset({(this->*slot.texture)->getName()});
+                this->*slot.texture = nullptr;
+            }
         }
     }
 
@@ -420,49 +425,19 @@ public:
 #ifdef CEREAL_SUPPORT
     template<class Archive>
     void save(Archive & archive) const {
-        std::string textureNameArray[10];
-
-        std::vector<std::string> tempName;
-        if(ambientTexture != nullptr) {
-            tempName = ambientTexture->getName();
-
-            textureNameArray[0] = tempName[0];
-            if(tempName.size() == 2) {
-                textureNameArray[1] = tempName[1];
+        //per slot: texture file, then the model it is embedded in, if it is
+        std::string textureNameArray[TEXTURE_SLOT_COUNT * 2];
+        for (size_t slotIndex = 0; slotIndex < TEXTURE_SLOT_COUNT; ++slotIndex) {
+            const std::shared_ptr<TextureAsset> &texture = this->*getTextureSlots()[slotIndex].texture;
+            if (texture == nullptr) {
+                continue;
+            }
+            const std::vector<std::string> &textureName = texture->getName();
+            textureNameArray[slotIndex * 2] = textureName[0];
+            if (textureName.size() == 2) {
+                textureNameArray[slotIndex * 2 + 1] = textureName[1];
             }
         }
-        if(diffuseTexture != nullptr) {
-            tempName = diffuseTexture->getName();
-
-            textureNameArray[2] = tempName[0];
-            if(tempName.size() == 2) {
-                textureNameArray[3] = tempName[1];
-            }
-        }
-        if(specularTexture != nullptr) {
-            tempName = specularTexture->getName();
-
-            textureNameArray[4] = tempName[0];
-            if(tempName.size() == 2) {
-                textureNameArray[5] = tempName[1];
-            }
-        };
-        if(normalTexture != nullptr) {
-            tempName = normalTexture->getName();
-
-            textureNameArray[6] = tempName[0];
-            if(tempName.size() == 2) {
-                textureNameArray[7] = tempName[1];
-            }
-        };
-        if(opacityTexture != nullptr) {
-            tempName = opacityTexture->getName();
-
-            textureNameArray[8] = tempName[0];
-            if(tempName.size() == 2) {
-                textureNameArray[9] = tempName[1];
-            }
-        };
 
         archive(name, specularExponent, maps, ambientColor, diffuseColor, specularColor, isAmbientMap, isDiffuseMap, isSpecularMap, isNormalMap, isOpacityMap, refractionIndex, originalHash,
             textureNameArray);
@@ -471,7 +446,7 @@ public:
     template<class Archive>
     void load(Archive & archive)  {
 
-        std::string textureNameArray[10];
+        std::string textureNameArray[TEXTURE_SLOT_COUNT * 2];
 
         archive(name, specularExponent, maps, ambientColor, diffuseColor, specularColor, isAmbientMap, isDiffuseMap, isSpecularMap, isNormalMap, isOpacityMap, refractionIndex, originalHash,
             textureNameArray);
@@ -484,38 +459,14 @@ public:
             }
         }
         if(isTextureNamePresent) {
-            this->textureNames = std::make_shared<std::vector<std::vector<std::string>>>(5);
-            for (int i = 0; i < 5; ++i) {
-                (*this->textureNames).emplace_back();
-            }
-            if(!textureNameArray[0].empty()) {
-                (*this->textureNames)[0].emplace_back(textureNameArray[0]);
-                if(!textureNameArray[1].empty()) {
-                    (*this->textureNames)[0].emplace_back(textureNameArray[1]);
+            this->textureNames = std::make_shared<std::vector<std::vector<std::string>>>(TEXTURE_SLOT_COUNT);
+            for (size_t slotIndex = 0; slotIndex < TEXTURE_SLOT_COUNT; ++slotIndex) {
+                if (textureNameArray[slotIndex * 2].empty()) {
+                    continue;
                 }
-            }
-            if(!textureNameArray[2].empty()) {
-                (*this->textureNames)[1].emplace_back(textureNameArray[2]);
-                if(!textureNameArray[3].empty()) {
-                    (*this->textureNames)[1].emplace_back(textureNameArray[3]);
-                }
-            }
-            if(!textureNameArray[4].empty()) {
-                (*this->textureNames)[2].emplace_back(textureNameArray[4]);
-                if(!textureNameArray[5].empty()) {
-                    (*this->textureNames)[2].emplace_back(textureNameArray[5]);
-                }
-            }
-            if(!textureNameArray[6].empty()) {
-                (*this->textureNames)[3].emplace_back(textureNameArray[6]);
-                if(!textureNameArray[7].empty()) {
-                    (*this->textureNames)[3].emplace_back(textureNameArray[7]);
-                }
-            }
-            if(!textureNameArray[8].empty()) {
-                (*this->textureNames)[4].emplace_back(textureNameArray[8]);
-                if(!textureNameArray[9].empty()) {
-                    (*this->textureNames)[4].emplace_back(textureNameArray[9]);
+                (*this->textureNames)[slotIndex].emplace_back(textureNameArray[slotIndex * 2]);
+                if (!textureNameArray[slotIndex * 2 + 1].empty()) {
+                    (*this->textureNames)[slotIndex].emplace_back(textureNameArray[slotIndex * 2 + 1]);
                 }
             }
         }
@@ -528,39 +479,9 @@ public:
     void afterLoad(AssetManager* assetManager) {
         this->assetManager = assetManager;
         if (textureNames != nullptr) {
-            if (!(*textureNames)[0].empty()) {
-                if ((*textureNames)[0].size() > 1) {
-                    this->setAmbientTexture((*textureNames)[0][0], &(*textureNames)[0][1]);
-                } else {
-                    this->setAmbientTexture((*textureNames)[0][0]);
-                }
-            }
-            if (!(*textureNames)[1].empty()) {
-                if ((*textureNames)[1].size() > 1) {
-                    this->setDiffuseTexture((*textureNames)[1][0], &(*textureNames)[1][1]);
-                } else {
-                    this->setDiffuseTexture((*textureNames)[1][0]);
-                }
-            }
-            if (!(*textureNames)[2].empty()) {
-                if ((*textureNames)[2].size() > 1) {
-                    this->setSpecularTexture((*textureNames)[2][0], &(*textureNames)[2][1]);
-                } else {
-                    this->setSpecularTexture((*textureNames)[2][0]);
-                }
-            }
-            if (!(*textureNames)[3].empty()) {
-                if ((*textureNames)[3].size() > 1) {
-                    this->setNormalTexture((*textureNames)[3][0], &(*textureNames)[3][1]);
-                } else {
-                    this->setNormalTexture((*textureNames)[3][0]);
-                }
-            }
-            if (!(*textureNames)[4].empty()) {
-                if ((*textureNames)[4].size() > 1) {
-                    this->setOpacityTexture((*textureNames)[4][0], &(*textureNames)[4][1]);
-                } else {
-                    this->setOpacityTexture((*textureNames)[4][0]);
+            for (size_t slotIndex = 0; slotIndex < TEXTURE_SLOT_COUNT; ++slotIndex) {
+                if (!(*textureNames)[slotIndex].empty()) {
+                    loadTextureIntoSlot(getTextureSlots()[slotIndex], (*textureNames)[slotIndex]);
                 }
             }
         }
@@ -615,30 +536,13 @@ namespace std {
             //std::cout << "for material " << m.getName() << " hash is calculated as " << hash << std::endl;
             //a deserialized material is registered before afterLoad attaches its textures, so until then the names it
             //will attach stand in. Without them limonmodel materials differing only in textures merged into one
-            if(m.getAmbientTexture() != nullptr) {
-                hash_combine(hash, m.getAmbientTexture()->getName());
-            } else if (m.textureNames != nullptr && !(*m.textureNames)[0].empty()) {
-                hash_combine(hash, (*m.textureNames)[0]);
-            }
-            if(m.getDiffuseTexture() != nullptr) {
-                hash_combine(hash, m.getDiffuseTexture()->getName());
-            } else if (m.textureNames != nullptr && !(*m.textureNames)[1].empty()) {
-                hash_combine(hash, (*m.textureNames)[1]);
-            }
-            if(m.getSpecularTexture() != nullptr) {
-                hash_combine(hash, m.getSpecularTexture()->getName());
-            } else if (m.textureNames != nullptr && !(*m.textureNames)[2].empty()) {
-                hash_combine(hash, (*m.textureNames)[2]);
-            }
-            if(m.getNormalTexture() != nullptr) {
-                hash_combine(hash, m.getNormalTexture()->getName());
-            } else if (m.textureNames != nullptr && !(*m.textureNames)[3].empty()) {
-                hash_combine(hash, (*m.textureNames)[3]);
-            }
-            if(m.getOpacityTexture() != nullptr) {
-                hash_combine(hash, m.getOpacityTexture()->getName());
-            } else if (m.textureNames != nullptr && !(*m.textureNames)[4].empty()) {
-                hash_combine(hash, (*m.textureNames)[4]);
+            for (size_t slotIndex = 0; slotIndex < Material::TEXTURE_SLOT_COUNT; ++slotIndex) {
+                const std::shared_ptr<TextureAsset> &texture = m.*Material::getTextureSlots()[slotIndex].texture;
+                if (texture != nullptr) {
+                    hash_combine(hash, texture->getName());
+                } else if (m.textureNames != nullptr && !(*m.textureNames)[slotIndex].empty()) {
+                    hash_combine(hash, (*m.textureNames)[slotIndex]);
+                }
             }
             return hash;
         }
