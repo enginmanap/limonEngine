@@ -110,12 +110,12 @@ bool GraphicsPipelineStage::serialize(tinyxml2::XMLDocument &document, tinyxml2:
     }
     stageNode->InsertEndChild(currentElement);
 
-    //now serialize inputs
+    //now serialize inputs. Units are not saved, the machine that loads the pipeline assigns them
     currentElement = document.NewElement("Inputs");
     stageNode->InsertEndChild(currentElement);
-    for(auto input:inputs) {
+    for(const std::pair<const std::string, std::shared_ptr<Texture>>& input:namedInputs) {
         tinyxml2::XMLElement *inputElement = document.NewElement("Input");
-        inputElement->SetAttribute("Index", input.first);
+        inputElement->SetAttribute("Uniform", input.first.c_str());
         inputElement->SetAttribute("textureID", input.second->getSerializeID());
         currentElement->InsertEndChild(inputElement);
     }
@@ -143,7 +143,14 @@ bool GraphicsPipelineStage::serialize(tinyxml2::XMLDocument &document, tinyxml2:
     return true;
 }
 
-std::shared_ptr<GraphicsPipelineStage> GraphicsPipelineStage::deserialize(tinyxml2::XMLElement *stageNode, GraphicsInterface* graphicsWrapper, const std::vector<std::shared_ptr<Texture>>& textures) {
+static std::shared_ptr<GraphicsPipelineStage> failStageLoad(std::vector<std::string>& errors, const std::string& message) {
+    std::cerr << message << std::endl;
+    errors.emplace_back(message);
+    return nullptr;
+}
+
+std::shared_ptr<GraphicsPipelineStage> GraphicsPipelineStage::deserialize(tinyxml2::XMLElement *stageNode, GraphicsInterface* graphicsWrapper, const std::vector<std::shared_ptr<Texture>>& textures,
+                                                                          std::map<uint32_t, std::shared_ptr<Texture>>& legacyInputs, std::vector<std::string>& errors) {
     tinyxml2::XMLElement* stageNodeAttribute = nullptr;
 
     uint32_t defaultRenderHeight, defaultRenderWidth;
@@ -155,24 +162,20 @@ std::shared_ptr<GraphicsPipelineStage> GraphicsPipelineStage::deserialize(tinyxm
 
     stageNodeAttribute = stageNode->FirstChildElement("DefaultRenderHeight");
     if (stageNodeAttribute == nullptr) {
-        std::cerr << "Pipeline stage must have Render Height. Skipping" << std::endl;
-        return nullptr;
+        return failStageLoad(errors, "Pipeline stage must have Render Height. Cancelling");
     }
     if(stageNodeAttribute->GetText() == nullptr) {
-        std::cerr << "Pipeline stage Render Height has no text, skipping! " << std::endl;
-        return nullptr;
+        return failStageLoad(errors, "Pipeline stage Render Height has no text, cancelling! ");
     }
     std::string heightString = stageNodeAttribute->GetText();
     defaultRenderHeight = std::stoi(heightString);
 
     stageNodeAttribute = stageNode->FirstChildElement("DefaultRenderWidth");
     if (stageNodeAttribute == nullptr) {
-        std::cerr << "Pipeline stage must have Render Width. Skipping" << std::endl;
-        return nullptr;
+        return failStageLoad(errors, "Pipeline stage must have Render Width. Cancelling");
     }
     if(stageNodeAttribute->GetText() == nullptr) {
-        std::cerr << "Pipeline stage Render Width has no text, skipping! " << std::endl;
-        return nullptr;
+        return failStageLoad(errors, "Pipeline stage Render Width has no text, cancelling! ");
     }
     std::string widthString = stageNodeAttribute->GetText();
     defaultRenderWidth = std::stoi(widthString);
@@ -322,8 +325,7 @@ std::shared_ptr<GraphicsPipelineStage> GraphicsPipelineStage::deserialize(tinyxm
     stageNodeAttribute = stageNode->FirstChildElement("ToScreen");
     if (stageNodeAttribute != nullptr) {
         if(stageNodeAttribute->GetText() == nullptr) {
-            std::cerr << "Pipeline Stage to screen setting has no text, skipping!" << std::endl;
-            return nullptr;
+            return failStageLoad(errors, "Pipeline Stage to screen setting has no text, cancelling!");
         } else {
             std::string toScreenString = stageNodeAttribute->GetText();
             if(toScreenString == "True") {
@@ -331,13 +333,11 @@ std::shared_ptr<GraphicsPipelineStage> GraphicsPipelineStage::deserialize(tinyxm
             } else if(toScreenString == "False") {
                 toScreen = false;
             } else {
-                std::cerr << "Pipeline Stage to screen setting is unknown, skipping!" << std::endl;
-                return nullptr;
+                return failStageLoad(errors, "Pipeline Stage to screen setting is unknown, cancelling!");
             }
         }
     } else {
-        std::cerr << "Pipeline Stage To screen setting couldn't be found, skipping!" << std::endl;
-        return nullptr;
+        return failStageLoad(errors, "Pipeline Stage To screen setting couldn't be found, cancelling!");
     }
 
     std::shared_ptr<GraphicsPipelineStage> newStage = std::make_shared<GraphicsPipelineStage>(graphicsWrapper, defaultRenderWidth, defaultRenderHeight, widthOption, heightOption, blendEnabled, depthTestEnabled, depthWriteEnabled, scissorEnabled, toScreen);
@@ -378,28 +378,32 @@ std::shared_ptr<GraphicsPipelineStage> GraphicsPipelineStage::deserialize(tinyxm
     stageNodeAttribute = stageNode->FirstChildElement("Inputs");
     tinyxml2::XMLElement *inputElement = stageNodeAttribute->FirstChildElement("Input");
     while (inputElement != nullptr) {
+        const char* uniformRaw = inputElement->Attribute("Uniform");
         const char* indexRaw = inputElement->Attribute("Index");
-        if(indexRaw == nullptr) {
-            std::cerr << "Input index for Pipeline Stage can't be read, skipping" << std::endl;
-        } else {
-            int index = std::stoi(indexRaw);
-            const char* textureIDRaw = inputElement->Attribute("textureID");
-            std::string textureID = textureIDRaw == nullptr ? "" : textureIDRaw;
-            if(textureID.empty()) {
-                std::cerr << "Texture ID for index " << index << " can't be read, skipping" << std::endl;
-            } else {
-                bool found = false;
-                for (const auto& texture:textures) {
-                    if (texture->getSerializeID() == (uint32_t)stoi(textureID)) {
-                        newStage->setInput(index, texture);
-                        found = true;
-                        break;
-                    }
-                }
-                if(!found) {
-                    std::cerr << "Texture ID "<< std::stoi(textureID) << " for index " << index << " can't be found" << std::endl;
-                }
+        const char* textureIDRaw = inputElement->Attribute("textureID");
+        std::string inputName = uniformRaw != nullptr ? uniformRaw : (indexRaw != nullptr ? std::string("index ") + indexRaw : std::string("unnamed"));
+        if(uniformRaw == nullptr && indexRaw == nullptr) {
+            return failStageLoad(errors, "Pipeline stage input has neither Uniform nor Index, cancelling!");
+        }
+        if(textureIDRaw == nullptr) {
+            return failStageLoad(errors, "Pipeline stage input " + inputName + " has no texture ID, cancelling!");
+        }
+        std::shared_ptr<Texture> inputTexture = nullptr;
+        for (const std::shared_ptr<Texture>& texture:textures) {
+            if (texture->getSerializeID() == (uint32_t)std::stoul(textureIDRaw)) {
+                inputTexture = texture;
+                break;
             }
+        }
+        if(inputTexture == nullptr) {
+            return failStageLoad(errors, "Pipeline stage input " + inputName + " uses texture ID " + textureIDRaw + " which can't be found, cancelling!");
+        }
+        if(uniformRaw != nullptr) {
+            if (!newStage->setNamedInput(uniformRaw, inputTexture)) {
+                return failStageLoad(errors, "Pipeline stage input " + inputName + " is set to two different textures, cancelling!");
+            }
+        } else {
+            legacyInputs[(uint32_t)std::stoul(indexRaw)] = inputTexture;//unit is thrown away once matched to a sampler name
         }
         inputElement = inputElement->NextSiblingElement("Input");
     }

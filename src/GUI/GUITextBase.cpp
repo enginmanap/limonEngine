@@ -48,8 +48,10 @@ void GUITextBase::renderWithProgram(std::shared_ptr<GraphicsProgram> renderProgr
 
     float totalAdvance = 0.0f;
 
-    //FIXME requires weird texture unit selection, because we don't have anything else
-    glyphAttachPoint = graphicsWrapper->getMaxTextureImageUnits() - 7;
+    glyphAttachPoint = renderProgram->getTextureUnit("GUISampler");
+    if (glyphAttachPoint < 0) {
+        return;
+    }
 
     renderProgram->setUniform("inColor", color);
 
@@ -109,9 +111,6 @@ void GUITextBase::renderWithProgram(std::shared_ptr<GraphicsProgram> renderProgr
             continue;
         }
 
-        if (!renderProgram->setUniform("GUISampler", glyphAttachPoint)) {
-            std::cerr << "failed to set uniform \"GUISampler\"" << std::endl;
-        }
         graphicsWrapper->attachTexture(glyph->getTextureID(), glyphAttachPoint);
         graphicsWrapper->render(renderProgram->getID(), vao, ebo, (uint32_t) (faces.size() * 3));
 

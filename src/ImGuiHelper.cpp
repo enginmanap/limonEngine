@@ -41,10 +41,12 @@ void ImGuiHelper::RenderDrawLists(std::shared_ptr<GraphicsProgram> graphicsProgr
         {-1.0f,                  1.0f,                   0.0f, 1.0f },
     };
 
-    //FIXME requires weird texture unit selection, because we don't have anything else
-    graphicsProgram->setUniform("Texture", graphicsWrapper->getMaxTextureImageUnits() - 1);
-    graphicsProgram->setUniform("TextureArray", graphicsWrapper->getMaxTextureImageUnits() - 2);
-    graphicsProgram->setUniform("TextureCubeArray", graphicsWrapper->getMaxTextureImageUnits() - 3);
+    int32_t textureUnit = graphicsProgram->getTextureUnit("Texture");
+    int32_t textureArrayUnit = graphicsProgram->getTextureUnit("TextureArray");
+    int32_t textureCubeArrayUnit = graphicsProgram->getTextureUnit("TextureCubeArray");
+    if (textureUnit < 0 || textureArrayUnit < 0 || textureCubeArrayUnit < 0) {
+        return;
+    }
     graphicsProgram->setUniform("ProjMtx",ortho_projection);
     for (int n = 0; n < draw_data->CmdListsCount; n++) {
         const ImDrawList* cmd_list = draw_data->CmdLists[n];
@@ -89,16 +91,16 @@ void ImGuiHelper::RenderDrawLists(std::shared_ptr<GraphicsProgram> graphicsProgr
                     ImGuiImageWrapper* imGuiImageWrapper = reinterpret_cast<ImGuiImageWrapper*>((pcmd->TextureId));
                     switch (imGuiImageWrapper->texture->getType()) {
                         case GraphicsInterface::TextureTypes::T2D:
-                            graphicsWrapper->attachTexture(imGuiImageWrapper->texture->getTextureID(), graphicsWrapper->getMaxTextureImageUnits() - 1);
+                            graphicsWrapper->attachTexture(imGuiImageWrapper->texture->getTextureID(), textureUnit);
                             graphicsProgram->setUniform("isArray", 0);
                             break;
                         case GraphicsInterface::TextureTypes::T2D_ARRAY:
-                            graphicsWrapper->attach2DArrayTexture(imGuiImageWrapper->texture->getTextureID(), graphicsWrapper->getMaxTextureImageUnits() - 2);
+                            graphicsWrapper->attach2DArrayTexture(imGuiImageWrapper->texture->getTextureID(), textureArrayUnit);
                             graphicsProgram->setUniform("isArray", 1);
                             graphicsProgram->setUniform("layer", (float)imGuiImageWrapper->layer);
                             break;
                         case GraphicsInterface::TextureTypes::TCUBE_MAP_ARRAY:
-                            graphicsWrapper->attachCubeMapArrayTexture(imGuiImageWrapper->texture->getTextureID(), graphicsWrapper->getMaxTextureImageUnits() - 3);
+                            graphicsWrapper->attachCubeMapArrayTexture(imGuiImageWrapper->texture->getTextureID(), textureCubeArrayUnit);
                             graphicsProgram->setUniform("isArray", 2);
                             graphicsProgram->setUniform("layer", (float)imGuiImageWrapper->layer);
                             break;

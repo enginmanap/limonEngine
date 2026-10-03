@@ -456,6 +456,14 @@ public:
                                         FrameBufferAttachPoints attachPoint, int32_t layer = 0 , bool clear = false) override;
 
     void attachTexture(unsigned int textureID, unsigned int attachPoint) override;
+
+    void setTextureLabel(uint32_t textureID, const std::string& label) override {
+#ifndef NDEBUG
+        if(isDebugOutputSupported) {
+            glObjectLabel(GL_TEXTURE, textureID, (GLsizei)label.length(), label.c_str());
+        }
+#endif
+    }
     void attach2DArrayTexture(unsigned int textureID, unsigned int attachPoint) override;
 
     void attachCubeMap(unsigned int cubeMapID, unsigned int attachPoint) override;

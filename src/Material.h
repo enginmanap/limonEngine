@@ -202,13 +202,23 @@ public:
 
     void loadGPUSide(AssetManager *assetManager);
 
-    // 5,6,7,8,9 would be used by material, so first assignable would be 10
-    static constexpr int32_t MATERIAL_SAMPLER_TEXTURE_UNIT_START = GraphicsInterface::SHADOW_MAP_TEXTURE_UNIT_START + 2; // +2: directional, point
-    static constexpr int32_t FIRST_ASSIGNABLE_TEXTURE_UNIT      = MATERIAL_SAMPLER_TEXTURE_UNIT_START + 5;              // +5: diffuse, ambient, specular, opacity, normal
+    // 5,6,7,8,9 are used by material, 3 and 4 stay assignable in material stages too
+    static constexpr int32_t MATERIAL_SAMPLER_TEXTURE_UNIT_START = GraphicsInterface::FIRST_PIPELINE_TEXTURE_UNIT + 2;
 
     enum class Sampler : int32_t { DIFFUSE = 0, AMBIENT = 1, SPECULAR = 2, OPACITY = 3, NORMAL = 4 };
     static constexpr int32_t samplerUnit(Sampler sampler) {
         return MATERIAL_SAMPLER_TEXTURE_UNIT_START + static_cast<int32_t>(sampler);
+    }
+    static constexpr int32_t SAMPLER_COUNT = 5;
+    static const char* samplerName(Sampler sampler) {
+        switch (sampler) {
+            case Sampler::DIFFUSE:  return "diffuseSampler";
+            case Sampler::AMBIENT:  return "ambientSampler";
+            case Sampler::SPECULAR: return "specularSampler";
+            case Sampler::OPACITY:  return "opacitySampler";
+            case Sampler::NORMAL:   return "normalSampler";
+        }
+        return "";
     }
 
     static void configureProgram(const std::shared_ptr<GraphicsProgram>& program);

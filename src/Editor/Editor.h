@@ -26,6 +26,7 @@ class PhysicalRenderable;
 class ModelAsset;
 class Texture;
 class GraphicsPipelineStage;
+class GraphicsPipeline;
 class Model;
 class GraphicsProgram;
 class ImGuiImageWrapper;
@@ -149,7 +150,8 @@ public:
 
     char cameraExtensionNameBuffer[32] = {0};//selected csm type in the "Add Camera Rig" creation combo
 
-    char nodeGraphFileNameBuffer[512] = {0};//prefilled with currently loaded node graph file, editable to load a different one
+    std::weak_ptr<GraphicsPipeline> fallbackPipeline;//editor only pipeline the world fell back to, reasons are shown while it is the one rendering
+    std::vector<std::string> fallbackReasons;
 
     Editor(World* world);
     ~Editor();
@@ -180,6 +182,8 @@ public:
     void addSkyBoxControls();
     void drawNodeEditor();
     void createNodeGraph();
+    //for when no render pipeline could be loaded, the node editor is where it gets rebuilt
+    void showPipelineFallback(const std::shared_ptr<GraphicsPipeline> &fallbackPipeline, const std::vector<std::string> &reasons);
 
     void update(InputHandler &inputHandler);
 

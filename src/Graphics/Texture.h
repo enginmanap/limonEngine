@@ -60,6 +60,9 @@ public:
         if(textureInfo.borderColorSet) {
             setBorderColor(textureInfo.borderColor[0], textureInfo.borderColor[1], textureInfo.borderColor[2], textureInfo.borderColor[3]);
         }
+        if(!textureInfo.name.empty()) {
+            graphicsWrapper->setTextureLabel(textureID, textureInfo.name);
+        }
     }
 
     Texture(GraphicsInterface* graphicsWrapper, GraphicsInterface::TextureTypes textureType, GraphicsInterface::InternalFormatTypes internalFormat, GraphicsInterface::FormatTypes format, GraphicsInterface::DataTypes dataType, uint32_t width, uint32_t height, uint32_t depth = 0)
@@ -165,6 +168,7 @@ public:
 
     void setName(const std::string &name) {
         textureInfo.name = name;
+        graphicsWrapper->setTextureLabel(textureID, name);
     }
 
     const TextureInfo &getTextureInfo() const {

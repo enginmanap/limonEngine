@@ -12,9 +12,7 @@ class AssetManager;
 class TextureAsset;
 
 class GUIImageBase : public GUIRenderable {
-    //Actual value is (re)computed from getMaxTextureImageUnits() each render (see renderWithProgram);
-    //this default is never used for a real bind.
-    int imageAttachPoint = 0;
+    int imageAttachPoint = 0;//read from the program each render, the pipeline assigns it
 
     static std::shared_ptr<GraphicsProgram> imageRenderProgram;
 protected:

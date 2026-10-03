@@ -53,7 +53,10 @@ SkyBox::SkyBox(uint32_t objectID, std::shared_ptr<AssetManager> assetManager, st
 }
 
 void SkyBox::renderWithProgram(std::shared_ptr<GraphicsProgram> program, uint32_t lodLevel [[gnu::unused]]) {
-    int texturePoint = 1;
+    int32_t texturePoint = program->getTextureUnit("cubeSampler");
+    if (texturePoint < 0) {
+        return;
+    }
 
     graphicsWrapper->attachCubeMap(cubeMap->getID(), texturePoint);
     //this is because we want to remove translate component from cameraMatrix.

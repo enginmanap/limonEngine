@@ -5,7 +5,12 @@
 #include "GraphicsProgramLoader.h"
 #include "Material.h"
 
-std::shared_ptr<GraphicsProgram> GraphicsProgramLoader::deserialize(tinyxml2::XMLElement *programNode, std::shared_ptr<AssetManager> assetManager) {
+bool GraphicsProgramLoader::isSamplerType(Uniform::VariableTypes type) {
+    return type == Uniform::VariableTypes::TEXTURE_2D || type == Uniform::VariableTypes::TEXTURE_2D_ARRAY ||
+           type == Uniform::VariableTypes::CUBEMAP || type == Uniform::VariableTypes::CUBEMAP_ARRAY;
+}
+
+std::shared_ptr<GraphicsProgram> GraphicsProgramLoader::deserialize(tinyxml2::XMLElement *programNode, std::shared_ptr<AssetManager> assetManager, std::map<std::string, uint32_t>& legacySamplerUnits) {
     std::string vertexShader;
     std::string geometryShader;
     std::string fragmentShader;
@@ -57,8 +62,13 @@ std::shared_ptr<GraphicsProgram> GraphicsProgramLoader::deserialize(tinyxml2::XM
             } else {
                 std::string uniformName = nameRaw;
                 std::string value = uniformNode->GetText();
-                if (newProgram->graphicsProgramAsset->getUniformMap().find(uniformName) != newProgram->graphicsProgramAsset->getUniformMap().end()) {
-                    newProgram->addPresetValue(uniformName, value);
+                std::unordered_map<std::string, std::shared_ptr<Uniform>>::const_iterator uniformIterator = newProgram->graphicsProgramAsset->getUniformMap().find(uniformName);
+                if (uniformIterator != newProgram->graphicsProgramAsset->getUniformMap().end()) {
+                    if (isSamplerType(uniformIterator->second->type)) {
+                        legacySamplerUnits[uniformName] = (uint32_t)std::stoul(value);
+                    } else {
+                        newProgram->addPresetValue(uniformName, value);
+                    }
                 }
             }
             uniformNode = uniformNode->NextSiblingElement("Uniform");
@@ -87,6 +97,9 @@ bool GraphicsProgramLoader::serialize(tinyxml2::XMLDocument &document, tinyxml2:
     if(!graphicsProgram->presetUniformValues.empty()) {
         currentElement = document.NewElement("PresetValues");
         for(auto uniformEntry: graphicsProgram->presetUniformValues){
+            if (isSamplerType(uniformEntry.first->type)) {
+                continue;//units are assigned on the machine that loads the pipeline
+            }
             tinyxml2::XMLElement *uniformNode = document.NewElement("Uniform");
             uniformNode->SetAttribute("Name", uniformEntry.first->name.c_str());
             uniformNode->SetText(uniformEntry.second.c_str());

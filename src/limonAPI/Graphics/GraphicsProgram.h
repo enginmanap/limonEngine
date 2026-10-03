@@ -6,6 +6,7 @@
 #define LIMONENGINE_GRAPHICSPROGRAM_H
 
 #include <string>
+#include <iostream>
 #include <vector>
 #include <unordered_map>
 #include <memory>
@@ -21,6 +22,7 @@ class GraphicsProgram {
     GraphicsInterface* graphicsWrapper;
     std::shared_ptr<GraphicsProgramAsset> graphicsProgramAsset;
     std::unordered_map<std::shared_ptr<Uniform>, std::string> presetUniformValues;
+    std::unordered_map<std::string, int32_t> textureUnits;//filled by GraphicsPipeline::assignTextureUnits, for samplers the render method binds itself
     bool materialRequired;
     bool modelBoneTransformUsed;
     bool shadowDirectionalUsed;
@@ -29,9 +31,7 @@ class GraphicsProgram {
     std::string vertexShaderContent, geometryShaderContent, fragmentShaderContent;
 
     void setMaterialRequired();
-    //detects, from the reflected uniform map, whether this program declares the uniforms that make it
-    //depend on the reserved texture-unit bands (model/bone transform and shadow maps; see the layout in
-    //GraphicsInterface.h, GraphicsInterface::MODEL_BONE_TRANSFORM_TEXTURE_UNIT_START)
+    //detects, from the reflected uniform map, whether this program reads the model/bone transform textures or shadow maps
     void detectReservedTextureUnitUsage();
 
 public:
@@ -129,6 +129,20 @@ public:
     }
 
     bool addPresetValue(const std::string& uniformName, const std::string& value);
+
+    void setTextureUnit(const std::string& samplerName, int32_t textureUnit) {
+        textureUnits[samplerName] = textureUnit;
+    }
+
+    //-1 if the pipeline didn't assign one, a program used outside a pipeline has none
+    int32_t getTextureUnit(const std::string& samplerName) const {
+        std::unordered_map<std::string, int32_t>::const_iterator unitIterator = textureUnits.find(samplerName);
+        if (unitIterator == textureUnits.end()) {
+            std::cerr << "No texture unit assigned for sampler " << samplerName << " of program " << getProgramName() << ", it won't be bound." << std::endl;
+            return -1;
+        }
+        return unitIterator->second;
+    }
 
 };
 

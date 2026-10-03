@@ -44,15 +44,13 @@ public:
     enum class FilterModes {NEAREST, LINEAR, TRILINEAR};
     enum class CullModes {FRONT, BACK, NONE, NO_CHANGE};
 
-    //We reserve texture unit 0 as scratch pad. Then shadowmap, model, material etc.
+    //We reserve texture unit 0 as scratch pad, uploads bind there.
     // 1 -> Model transform texture
     // 2 -> Bone transform texture
-    // 3 -> directional light shadow map (Array)
-    // 4 -> Point light shadow map (Array)
-    // 5 to 9 would be material, if used.
-    // Meaning we can only use after 10, to maxTextureUnits
+    // 5 to 9 -> material, only in stages that draw with materials
+    // every other unit is handed out at pipeline load by GraphicsPipeline::assignTextureUnits, never hardcode one
     static constexpr int32_t MODEL_BONE_TRANSFORM_TEXTURE_UNIT_START = 1;
-    static constexpr int32_t SHADOW_MAP_TEXTURE_UNIT_START = MODEL_BONE_TRANSFORM_TEXTURE_UNIT_START + 2; // +2: model, bone
+    static constexpr int32_t FIRST_PIPELINE_TEXTURE_UNIT = MODEL_BONE_TRANSFORM_TEXTURE_UNIT_START + 2; // +2: model, bone
 
 protected:
     friend class Texture;
@@ -185,6 +183,8 @@ public:
     virtual void attach2DArrayTexture(unsigned int textureID, unsigned int attachPoint) = 0;
     virtual void attachCubeMap(unsigned int cubeMapID, unsigned int attachPoint) = 0;
     virtual void attachCubeMapArrayTexture(unsigned int textureID, unsigned int attachPoint) = 0;
+    //debug label only, so GPU debuggers show the pipeline texture name instead of the GL id
+    virtual void setTextureLabel(uint32_t textureID, const std::string& label) = 0;
 
     virtual bool getUniformLocation(const uint32_t programID, const std::string &uniformName, uint32_t &location) = 0;
 

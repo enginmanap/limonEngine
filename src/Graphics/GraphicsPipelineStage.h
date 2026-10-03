@@ -21,12 +21,6 @@ class GraphicsPipelineStage {
     uint32_t renderWidth;
     uint32_t renderHeight;
     uint32_t frameBufferID;
-    //Used by the pipeline builder to auto-assign ordinary "pre_" input texture units. If multiple
-    //programs are set per stage, we might want to attach n to first program, then when building the
-    //second, we should start from n+1. Starts just past the always-reserved model/bone band (i.e. at
-    //SHADOW_MAP_TEXTURE_UNIT_START) since PipelineExtension re-derives the true per-stage floor itself
-    //and only ever raises this value, never lowers it.
-    uint32_t nextPresetIndex = GraphicsInterface::SHADOW_MAP_TEXTURE_UNIT_START;
     std::vector<std::string> cameraTags;//These tags are used to select which cameras are suppose to render in this stage.
     //TODO how multiple cameras will render to same input/output is not clear to me. For lights they can select different layers, but what else? Atlases etc. not clear yet.
     std::vector<std::string> objectTags;//These tags are used to select which cameras are suppose to render in this stage.
@@ -38,7 +32,8 @@ class GraphicsPipelineStage {
     bool depthAttachment = false;
     GraphicsInterface::CullModes cullMode = GraphicsInterface::CullModes::NO_CHANGE;
 
-    std::map<uint32_t, std::shared_ptr<Texture>> inputs;
+    std::map<std::string, std::shared_ptr<Texture>> namedInputs;//sampler uniform name -> texture, this is what gets saved
+    std::map<uint32_t, std::shared_ptr<Texture>> inputs;//unit -> texture, filled by GraphicsPipeline::assignTextureUnits on the running machine, never saved
     std::map<GraphicsInterface::FrameBufferAttachPoints, std::shared_ptr<Texture>> outputs;
 
 public:
@@ -68,8 +63,26 @@ public:
         graphicsWrapper->deleteFrameBuffer(frameBufferID);
     }
 
-    void setInput(uint32_t textureAttachmentPoint, std::shared_ptr<Texture> texture) {
-        this->inputs[textureAttachmentPoint] = texture;
+    //false if the stage already reads a different texture under this name, programs of one stage share the sampler unit
+    bool setNamedInput(const std::string& samplerName, const std::shared_ptr<Texture>& texture) {
+        std::map<std::string, std::shared_ptr<Texture>>::iterator existingInput = namedInputs.find(samplerName);
+        if (existingInput != namedInputs.end() && existingInput->second != texture) {
+            return false;
+        }
+        namedInputs[samplerName] = texture;
+        return true;
+    }
+
+    const std::map<std::string, std::shared_ptr<Texture>>& getNamedInputs() const {
+        return namedInputs;
+    }
+
+    void clearInputUnits() {
+        this->inputs.clear();
+    }
+
+    void setInputUnit(uint32_t textureUnit, const std::shared_ptr<Texture>& texture) {
+        this->inputs[textureUnit] = texture;
     }
     void
     setOutput(GraphicsInterface::FrameBufferAttachPoints attachmentPoint, std::shared_ptr<Texture> texture, bool clear = false, uint32_t layer = -1) {
@@ -125,14 +138,6 @@ public:
 
     uint32_t getRenderHeight() const {
         return renderHeight;
-    }
-
-    uint32_t getLastPresetIndex() const {
-        return nextPresetIndex;
-    }
-
-    void setLastPresetIndex(uint32_t lastPresetIndex) {
-        GraphicsPipelineStage::nextPresetIndex = lastPresetIndex;
     }
 
     bool isBlendEnabled() const {
@@ -192,7 +197,9 @@ public:
 
     bool serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentNode, OptionsUtil::Options *options);
 
-    static std::shared_ptr<GraphicsPipelineStage> deserialize(tinyxml2::XMLElement *stageNode, GraphicsInterface* graphicsWrapper, const std::vector<std::shared_ptr<Texture>>& textures);
+    //legacyInputs gets the unit -> texture entries of files saved before inputs were keyed by sampler name
+    static std::shared_ptr<GraphicsPipelineStage> deserialize(tinyxml2::XMLElement *stageNode, GraphicsInterface* graphicsWrapper, const std::vector<std::shared_ptr<Texture>>& textures,
+                                                              std::map<uint32_t, std::shared_ptr<Texture>>& legacyInputs, std::vector<std::string>& errors);
 
 };
 

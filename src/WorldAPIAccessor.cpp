@@ -1612,11 +1612,10 @@ LimonTypes::Vec4 WorldAPIAccessor::getLightAmbientAPI(uint32_t lightID) const {
     return LimonTypes::Vec4(ambient.r, ambient.g, ambient.b, 1.0f);
 }
 bool WorldAPIAccessor::changeRenderPipeline(const std::string &pipelineFileName) {
-    std::unique_ptr<GraphicsPipeline> newPipeline = GraphicsPipeline::deserialize(pipelineFileName, world->graphicsWrapper, world->assetManager, world->options, world->buildRenderMethods());
+    std::vector<std::string> loadErrors;//already printed, the API caller only gets false
+    std::unique_ptr<GraphicsPipeline> newPipeline = GraphicsPipeline::deserialize(pipelineFileName, world->graphicsWrapper, world->assetManager, world->options, world->buildRenderMethods(), loadErrors);
     if(newPipeline != nullptr) {
-        world->renderPipeline = std::move(newPipeline);
-        world->setupRenderForPipeline();
-        world->visibilityManager->onPipelineChange();
+        world->activateRenderPipeline(std::move(newPipeline));
         return true;
     }
     return false;

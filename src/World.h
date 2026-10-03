@@ -460,6 +460,9 @@ private:
     void afterLoadFinished();
 
     void switchPlayer(Player* targetPlayer, InputHandler &inputHandler);
+    void createEditorPlayerIfMissing(InputHandler &inputHandler);
+    //every swap after construction goes through here, culling keeps per stage tag lists of the old pipeline otherwise
+    void activateRenderPipeline(const std::shared_ptr<GraphicsPipeline> &pipeline);
 
     void setVisibilityAndPutToSets(PhysicalRenderable *PhysicalRenderable, bool removePossible);
 

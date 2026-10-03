@@ -15,8 +15,10 @@ void GUITextDynamic::renderWithProgram(std::shared_ptr<GraphicsProgram> program,
     }
     float totalAdvance = 0.0f;
 
-    //FIXME requires weird texture unit selection, because we don't have anything else
-    glyphAttachPoint = graphicsWrapper->getMaxTextureImageUnits() - 7;
+    glyphAttachPoint = program->getTextureUnit("GUISampler");
+    if (glyphAttachPoint < 0) {
+        return;
+    }
 
     program->setUniform("inColor", color);
 
@@ -94,9 +96,6 @@ void GUITextDynamic::renderWithProgram(std::shared_ptr<GraphicsProgram> program,
                     std::cerr << "failed to set uniform \"worldTransformMatrix\"" << std::endl;
                 }
 
-                if (!program->setUniform("GUISampler", glyphAttachPoint)) {
-                    std::cerr << "failed to set uniform \"GUISampler\"" << std::endl;
-                }
                 graphicsWrapper->attachTexture(glyph->getTextureID(), glyphAttachPoint);
                 graphicsWrapper->render(program->getID(), vao, ebo, (uint32_t) (faces.size() * 3));
 

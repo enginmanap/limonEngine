@@ -10,10 +10,6 @@
 class GraphicsInterface;
 
 class WaterRenderMethod : public RenderMethodInterface {
-    // Reserved bands are model=1, bone=2, shadow=3-4, material=5-9 (see GraphicsInterface.h);
-    // the noise texture is owned entirely by this render method (not a pipeline-graph connection),
-    // so a fixed unit above all reserved bands is used directly.
-    static constexpr int32_t NOISE_TEXTURE_UNIT = 10;
     // Deliberately low-res: each texel holds an independent random value, so GL_LINEAR filtering
     // between them is what gives us smooth "value noise" hills. Too high a resolution here (relative
     // to the vertex shader's WAVE_SCALE) makes adjacent samples uncorrelated, which reads as flicker/

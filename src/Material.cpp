@@ -144,11 +144,10 @@ void Material::configureProgram(const std::shared_ptr<GraphicsProgram>& program)
     }
     //A sampler the shader doesn't declare simply fails to set (harmless) - e.g. a program that pulls in
     //the material UBO but samples the G-buffer directly, not diffuseSampler.
-    program->setUniform("diffuseSampler",  samplerUnit(Sampler::DIFFUSE));
-    program->setUniform("ambientSampler",  samplerUnit(Sampler::AMBIENT));
-    program->setUniform("specularSampler", samplerUnit(Sampler::SPECULAR));
-    program->setUniform("opacitySampler",  samplerUnit(Sampler::OPACITY));
-    program->setUniform("normalSampler",   samplerUnit(Sampler::NORMAL));
+    for (int32_t samplerIndex = 0; samplerIndex < SAMPLER_COUNT; ++samplerIndex) {
+        Sampler sampler = static_cast<Sampler>(samplerIndex);
+        program->setUniform(samplerName(sampler), samplerUnit(sampler));
+    }
 }
 
 void Material::activateTextures(GraphicsInterface* graphicsWrapper) const {

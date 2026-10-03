@@ -131,9 +131,6 @@ bool WaterRenderMethod::initRender(std::shared_ptr<GraphicsProgram> program, std
     generateMesh(startX, startZ, endX, endZ, height, triangleSize);
     generateNoiseTexture();
 
-    if (!program->setUniform("waterNoiseSampler", NOISE_TEXTURE_UNIT)) {
-        std::cerr << "WaterRenderMethod: uniform \"waterNoiseSampler\" couldn't be set" << std::endl;
-    }
     //Surface albedo authoring, tweak here (not related to the scene's actual lights, which are pulled
     //in for real by the fragment shader's calculateLighting() call).
     if (!program->setUniform("shallowColor", glm::vec3(0.15f, 0.55f, 0.55f))) {
@@ -146,7 +143,11 @@ bool WaterRenderMethod::initRender(std::shared_ptr<GraphicsProgram> program, std
 }
 
 void WaterRenderMethod::renderFrame(std::shared_ptr<GraphicsProgram> program) {
-    graphicsInterface->attachTexture(noiseTexture, NOISE_TEXTURE_UNIT);
+    int32_t noiseUnit = program->getTextureUnit("waterNoiseSampler");
+    if (noiseUnit < 0) {
+        return;
+    }
+    graphicsInterface->attachTexture(noiseTexture, noiseUnit);
     graphicsInterface->render(program->getID(), vao, ebo, indexCount);
 }
 

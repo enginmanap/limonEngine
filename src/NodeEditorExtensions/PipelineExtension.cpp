@@ -149,16 +149,18 @@ void PipelineExtension::drawDetailPane(NodeGraph* nodeGraph, const std::vector<c
     if (ImGui::BeginPopup("create_texture_popup")) {
         drawTextureSettings();
     }
-    if(!isNodeGraphValid()) {
-        ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
-        ImGui::Button("Build Pipeline");
-        ImGui::PopStyleVar();
-    } else {
+    ImGui::InputText("##renderPipelineFileName", fileName, sizeof(fileName), ImGuiInputTextFlags_CharsNoBlank);
+    ImGui::SameLine();
+    {
         static bool showVerify = false;
-        if (ImGui::Button("Build Pipeline")) {
+        if (ImGui::Button("Save")) {
             orderedStages.clear();
-            if(!buildRenderPipelineStages(nodes, orderedStages)) {
-                addError("Build failed");
+            if(!isNodeGraphValid()) {
+                saveRenderPipelineFile(nodeGraph, nullptr);
+                addError("Node graph is not valid, saved without a pipeline. It can't be rendered with until it builds.");
+            } else if(!buildRenderPipelineStages(nodes, orderedStages)) {
+                saveRenderPipelineFile(nodeGraph, nullptr);
+                addError("Build failed, saved without a pipeline. It can't be rendered with until it builds.");
             } else {
                 showVerify = true;
                 ImVec2 center = ImGui::GetMainViewport()->GetCenter();
@@ -218,17 +220,19 @@ void PipelineExtension::drawDetailPane(NodeGraph* nodeGraph, const std::vector<c
                     ImGui::GetWindowDrawList()->AddRectFilled(p_min, p_max, newColor);
                     draw_list->ChannelsMerge();
                 }
-                ImGui::InputText("File name:##fileNameToSavePipeline", tempFileName, sizeof (tempFileName)/sizeof (tempFileName[0]), ImGuiInputTextFlags_CharsNoBlank);
-                ImGui::SameLine();
-                if(ImGui::Button("Build with this order")) {
+                if(ImGui::Button("Save with this order")) {
                     std::shared_ptr<GraphicsPipeline> builtPipelineNew = combineStagesToPipeline();
-                    builtPipeline = builtPipelineNew;//old one is auto removed
-                    builtPipeline->serialize(tempFileName, options);
+                    if (builtPipelineNew != nullptr) {
+                        builtPipeline = builtPipelineNew;//old one is auto removed
+                    } else {
+                        addError("Pipeline can't be used on this GPU, saved without a pipeline.");
+                    }
+                    saveRenderPipelineFile(nodeGraph, builtPipelineNew);
                     showVerify = false;
                 }
+                ImGui::SameLine();
                 if(ImGui::Button("Cancel##BuildingPipelineCance")){
-                    showVerify = false;
-                    //we don't actually need to do anything in this case
+                    showVerify = false;//nothing is saved
                 }
 
                 ImGui::EndPopup();
@@ -246,6 +250,22 @@ void PipelineExtension::drawDetailPane(NodeGraph* nodeGraph, const std::vector<c
         nodeGraph->addMessage(message);
     }
     messages.clear();
+}
+
+void PipelineExtension::saveRenderPipelineFile(NodeGraph* nodeGraph, const std::shared_ptr<GraphicsPipeline>& pipeline) {
+    //graph and the pipeline built from it go in one file, so they can't drift apart
+    tinyxml2::XMLDocument document;
+    tinyxml2::XMLElement* renderPipelineElement = document.NewElement("RenderPipeline");
+    document.InsertFirstChild(renderPipelineElement);
+    nodeGraph->serialize(document, renderPipelineElement);
+    if (pipeline != nullptr) {
+        pipeline->serialize(document, renderPipelineElement, options);
+    }
+    if (document.SaveFile(fileName) != tinyxml2::XML_SUCCESS) {
+        addError(std::string("Saving to ") + fileName + " failed: " + document.ErrorName());
+        return;
+    }
+    addMessage(std::string(pipeline != nullptr ? "Saved graph and pipeline to " : "Saved graph to ") + fileName);
 }
 
 void PipelineExtension::drawTextureSettings() {
@@ -1067,26 +1087,6 @@ bool PipelineExtension::buildRenderPipelineRecursive(const Node *node,
             }
         }
 
-        uint32_t location = stageInfo->stage->getLastPresetIndex();
-        {
-            //Ordinary "pre_" inputs must never be auto-assigned into a fixed reservation band (see the
-            //layout comment on GraphicsInterface::MODEL_BONE_TRANSFORM_TEXTURE_UNIT_START in
-            //GraphicsInterface.h). Model/bone transforms are always reserved for every program; a
-            //materialRequired program additionally reserves the shadow + material bands together (the
-            //engine binds the material samplers via Material::configureProgram, and shadow presets sit
-            //just below them), so it starts its ordinary inputs above the whole combined block. Each band
-            //is [its start, the next band's start), so the "floor above band X" is simply the next band's
-            //start constant (no separate size needed).
-            uint32_t requiredFloor = GraphicsInterface::SHADOW_MAP_TEXTURE_UNIT_START; // just above model/bone
-            if (stageProgram->isMaterialRequired()) {
-                requiredFloor = Material::FIRST_ASSIGNABLE_TEXTURE_UNIT;      // above the whole reserved region
-            } else if (stageExtension->getProgramNameInfo().shadowDirectionalUsed || stageExtension->getProgramNameInfo().shadowPointUsed) {
-                requiredFloor = Material::MATERIAL_SAMPLER_TEXTURE_UNIT_START; // above model/bone + shadow
-            }
-            if (location < requiredFloor) {
-                location = requiredFloor;
-            }
-        }
         for (const Connection *connection:node->getInputConnections()) { //connect the inputs to current stage, since all of them now have a Stage build.
             std::shared_ptr<Texture> inputTexture = nullptr;
             for (Connection *inputConnection:connection->getInputConnections()) {
@@ -1116,38 +1116,10 @@ bool PipelineExtension::buildRenderPipelineRecursive(const Node *node,
             if (inputTexture != nullptr) {
                 auto stageProgramUniforms = stageProgram->getUniformMap();
                 if (stageProgramUniforms.find(connection->getName()) != stageProgramUniforms.end()) {
-                    //FIXME these should not be hard coded, but they are because of missing material editor.
-                    //Unit numbers computed here get baked directly into the serialized pipeline (this
-                    //stage's "Input Index" and this program's "PresetValues"), and the machine that builds
-                    //a pipeline in the editor is not guaranteed to be the machine that later loads and runs
-                    //it. They are therefore small, fixed, absolute unit numbers (see GraphicsInterface.h)
-                    //rather than anything computed relative to a hardware maximum (queried or assumed) -
-                    //a fixed low number needs no assumption about the target hardware's real maximum at all,
-                    //unlike a number computed relative to one, which is only as portable as that assumption.
-                    if (connection->getName() == "pre_shadowDirectional") {
-                        stageInfo->stage->setInput(GraphicsInterface::SHADOW_MAP_TEXTURE_UNIT_START, inputTexture);
-                        stageProgram->addPresetValue(connection->getName(),
-                                                     std::to_string(GraphicsInterface::SHADOW_MAP_TEXTURE_UNIT_START));
-                    } else if (connection->getName() == "pre_shadowPoint") {
-                        stageInfo->stage->setInput(GraphicsInterface::SHADOW_MAP_TEXTURE_UNIT_START + 1, inputTexture);
-                        stageProgram->addPresetValue(connection->getName(),
-                                                     std::to_string(GraphicsInterface::SHADOW_MAP_TEXTURE_UNIT_START + 1));
-                    } else {
-                        //This is a live, build-machine-only sanity check (not a baked number), so it is
-                        //fine for it to use the actual reported maximum: it can only catch "this stage
-                        //needs more texture units than even this machine has", not guarantee portability
-                        //to weaker target hardware - a shader that genuinely needs more ordinary texture
-                        //inputs than some target GPU provides is a real hardware requirement mismatch that
-                        //no reservation scheme can paper over.
-                        if (static_cast<int32_t>(location) >= graphicsWrapper->getMaxTextureImageUnits()) {
-                            addError("Node " + node->getDisplayName() + " needs more texture units than this machine reports; connection [" +
-                                      connection->getName() + "] would be assigned unit " + std::to_string(location) +
-                                      " but only " + std::to_string(graphicsWrapper->getMaxTextureImageUnits()) + " are available here.");
-                            return false;
-                        }
-                        stageInfo->stage->setInput(location, inputTexture);
-                        stageProgram->addPresetValue(connection->getName(), std::to_string(location));
-                        location++;
+                    //units are assigned by GraphicsPipeline::assignTextureUnits once the stage order is final
+                    if (!stageInfo->stage->setNamedInput(connection->getName(), inputTexture)) {
+                        addError("Stage of node " + node->getDisplayName() + " already reads a different texture as [" + connection->getName() + "], nodes sharing a stage must agree.");
+                        return false;
                     }
                 } else {
                     addError("Pipeline Stage " + node->getDisplayName() + " tried to set a preset " + connection->getName() + " that is not a uniform in program.");
@@ -1156,7 +1128,6 @@ bool PipelineExtension::buildRenderPipelineRecursive(const Node *node,
             } else {
                 std::cerr << "Pipeline Stage " << node->getDisplayName() << " skipping connection, because of null texture. at connection "<< connection->getName()  << std::endl;
             }
-            stageInfo->stage->setLastPresetIndex(location);
         }
 
         //now handle outputs

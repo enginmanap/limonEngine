@@ -2991,6 +2991,15 @@ void Editor::drawNodeEditor() {
         return;
     }
 
+    //shown while the fallback is what renders: Keep or the API replacing it hides this, Revert brings it back
+    if (!this->fallbackPipeline.expired() && this->fallbackPipeline.lock() == world->renderPipeline) {
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.3f, 0.3f, 1.0f));
+        ImGui::TextUnformatted("No render pipeline could be used, only the editor is rendered. Save a graph that builds and activate it.");
+        for (const std::string &reason : this->fallbackReasons) {
+            ImGui::TextUnformatted(reason.c_str());
+        }
+        ImGui::PopStyleColor();
+    }
     this->nodeGraph->display();
     if (ImGui::IsKeyPressed(ImGuiKey_Delete) && !ImGui::GetIO().WantTextInput) {
         this->nodeGraph->deleteSelectedNode();
@@ -3016,7 +3025,7 @@ void Editor::drawNodeEditor() {
         ImGui::SameLine();
         if (ImGui::Button("Revert", ImVec2(120, 0))) {
             world->apiAccessor->cancelTimedEventAPI(handleId);
-            world->renderPipeline = world->renderPipelineBackup;
+            world->activateRenderPipeline(world->renderPipelineBackup);
             world->renderPipelineBackup = nullptr;
             handleId = 0;
             ImGui::CloseCurrentPopup();
@@ -3036,38 +3045,42 @@ void Editor::drawNodeEditor() {
             std::vector<LimonTypes::GenericParameter> empty;
             handleId = world->apiAccessor->addTimedEventAPI(10000, true,
                                         [&](const std::vector<LimonTypes::GenericParameter> &) {
-                                            world->renderPipeline = world->renderPipelineBackup;
+                                            world->activateRenderPipeline(world->renderPipelineBackup);
                                             world->renderPipelineBackup = nullptr;
                                             handleId = 0;
                                         },
                                         empty);
             world->renderPipelineBackup = world->renderPipeline;
-            world->renderPipeline = builtRenderPipeline;
-            world->setupRenderForPipeline();
+            world->activateRenderPipeline(builtRenderPipeline);
         }
     }
 
-    if(ImGui::Button("Save")) {
-        this->nodeGraph->serialize("./Data/nodeGraph.xml");
-        this->nodeGraph->addMessage("Serialization done.");
+    //the file name field next to Save in the detail pane is what Load reads
+    if(ImGui::Button("Load")) {
+        this->loadNodeGraphFile(this->pipelineExtension->getFileName());
     }
     ImGui::SameLine();
     if(ImGui::Button("Cancel")){
         this->showNodeGraph = false;
     }
-
-    ImGui::InputText("##NodeGraphFileName", nodeGraphFileNameBuffer, sizeof(nodeGraphFileNameBuffer));
-    ImGui::SameLine();
-    if(ImGui::Button("Load another")) {
-        this->loadNodeGraphFile(std::string(nodeGraphFileNameBuffer));
-    }
     ImGui::End();
 }
 
-static void copyToBuffer(char* buffer, size_t bufferSize, const std::string& value) {
-    size_t copyLength = std::min(value.size(), bufferSize - 1);
-    value.copy(buffer, copyLength);
-    buffer[copyLength] = '\0';
+static NodeGraph* deserializeNodeGraphOfRenderPipeline(const std::string &fileName,
+                                                       const std::unordered_map<std::string, std::function<EditorExtension*()>> &possibleEditorExtensions,
+                                                       const std::unordered_map<std::string, std::function<NodeExtension*(const NodeType*)>> &possibleNodeExtensions) {
+    tinyxml2::XMLDocument document;
+    if (document.LoadFile(fileName.c_str()) != tinyxml2::XML_SUCCESS) {
+        std::cerr << "Error loading render pipeline file " << fileName << ": " << document.ErrorName() << std::endl;
+        return nullptr;
+    }
+    tinyxml2::XMLElement* renderPipelineElement = document.FirstChildElement("RenderPipeline");
+    tinyxml2::XMLElement* nodeGraphElement = renderPipelineElement == nullptr ? nullptr : renderPipelineElement->FirstChildElement("NodeGraph");
+    if (nodeGraphElement == nullptr) {
+        std::cerr << fileName << " has no node graph in a RenderPipeline root." << std::endl;
+        return nullptr;
+    }
+    return NodeGraph::deserialize(fileName, nodeGraphElement, possibleEditorExtensions, possibleNodeExtensions);
 }
 
 std::vector<NodeType*> Editor::buildAvailableNodeTypes() {
@@ -3224,26 +3237,34 @@ void Editor::createNodeGraph() {
     possibleNodeExtensions["PipelineStageExtension"] = [this](const NodeType* nodeType) ->NodeExtension* {return new PipelineStageExtension(nodeType, this->pipelineExtension);};
     possibleNodeExtensions["IterationExtension"] = [](const NodeType*) -> NodeExtension* {return new IterationExtension();};
 
-    std::string loadedFileName = "./Data/nodeGraph.xml";
-    this->nodeGraph = NodeGraph::deserialize(loadedFileName, possibleEditorExtensions, possibleNodeExtensions);
+    //same order the world loads pipelines in, so a failed pipeline opens with the graph it was built from
+    const std::string configuredFileName = world->options->getOption<std::string>(HASH("render_pipeline")).getOrDefault("");
+    std::string loadedFileName = configuredFileName;
+    this->nodeGraph = deserializeNodeGraphOfRenderPipeline(loadedFileName, possibleEditorExtensions, possibleNodeExtensions);
 
     bool freshNodeGraphCreated = false;
     if(this->nodeGraph == nullptr) {
         std::cerr << "No custom Nodegraph found, using the default." << std::endl;
-        loadedFileName = "./Engine/nodeGraph.xml";
-        this->nodeGraph = NodeGraph::deserialize(loadedFileName, possibleEditorExtensions, possibleNodeExtensions);
+        loadedFileName = "./Engine/renderPipeline.xml";
+        this->nodeGraph = deserializeNodeGraphOfRenderPipeline(loadedFileName, possibleEditorExtensions, possibleNodeExtensions);
         if(this->nodeGraph == nullptr) {
             std::cerr << "Default Node deserialize failed too, using empty node graph" << std::endl;
             this->nodeGraph = new NodeGraph(nodeTypeVector, false, this->pipelineExtension);
             freshNodeGraphCreated = true;
-            loadedFileName.clear();
+            loadedFileName = configuredFileName;//so a fresh graph saves where the world will look for it
         }
     }
-    copyToBuffer(nodeGraphFileNameBuffer, sizeof(nodeGraphFileNameBuffer), loadedFileName);
+    this->pipelineExtension->setFileName(loadedFileName);
 
     if(!freshNodeGraphCreated) {
         reconcileNodeTypes(this->nodeGraph, this->pipelineExtension, nodeTypeVector);
     }
+}
+
+void Editor::showPipelineFallback(const std::shared_ptr<GraphicsPipeline> &fallbackPipeline, const std::vector<std::string> &reasons) {
+    this->fallbackPipeline = fallbackPipeline;
+    this->fallbackReasons = reasons;
+    this->showNodeGraph = true;
 }
 
 void Editor::loadNodeGraphFile(const std::string &fileName) {
@@ -3256,7 +3277,7 @@ void Editor::loadNodeGraphFile(const std::string &fileName) {
     possibleNodeExtensions["PipelineStageExtension"] = [this](const NodeType* nodeType) ->NodeExtension* {return new PipelineStageExtension(nodeType, this->pipelineExtension);};
     possibleNodeExtensions["IterationExtension"] = [](const NodeType*) -> NodeExtension* {return new IterationExtension();};
 
-    NodeGraph* newNodeGraph = NodeGraph::deserialize(fileName, possibleEditorExtensions, possibleNodeExtensions);
+    NodeGraph* newNodeGraph = deserializeNodeGraphOfRenderPipeline(fileName, possibleEditorExtensions, possibleNodeExtensions);
     if(newNodeGraph == nullptr) {
         std::cerr << "Failed to load node graph from \"" << fileName << "\"" << std::endl;
         if(this->nodeGraph != nullptr) {
@@ -3269,7 +3290,7 @@ void Editor::loadNodeGraphFile(const std::string &fileName) {
 
     delete this->nodeGraph;
     this->nodeGraph = newNodeGraph;
-    copyToBuffer(nodeGraphFileNameBuffer, sizeof(nodeGraphFileNameBuffer), fileName);
+    this->pipelineExtension->setFileName(fileName);
 }
 
 void Editor::update(InputHandler &inputHandler) {

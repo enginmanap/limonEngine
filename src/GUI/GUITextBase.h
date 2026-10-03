@@ -20,9 +20,7 @@ protected:
     std::string text;
     glm::vec3 color;
     Face *face;
-    //Actual value is (re)computed from getMaxTextureImageUnits() each render (see renderWithProgram);
-    //this default is never used for a real bind.
-    int glyphAttachPoint = 0;
+    int glyphAttachPoint = 0;//read from the program each render, the pipeline assigns it
     int height, width;
     int bearingUp;
 

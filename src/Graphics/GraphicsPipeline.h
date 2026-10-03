@@ -72,7 +72,8 @@ public:
                     std::shared_ptr<AssetManager> assetManager,
                     std::unique_ptr<GraphicsPipeline> &pipeline,
                     const std::vector<std::shared_ptr<Texture>> &textures,
-                    GraphicsPipeline::StageInfo &newStageInfo);
+                    GraphicsPipeline::StageInfo &newStageInfo,
+                    std::vector<std::string> &errors);
         std::vector<std::shared_ptr<GraphicsProgram>> programs;
     };
 private:
@@ -153,9 +154,17 @@ public:
 
     void finalize();
 
-    bool serialize(const std::string& renderPipelineFileName, OptionsUtil::Options *options);
+    //the file is written by the node editor, which puts the graph this was built from next to it
+    void serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentElement, OptionsUtil::Options *options);
 
-    static std::unique_ptr<GraphicsPipeline> deserialize(const std::string &graphicsPipelineFileName, GraphicsInterface *graphicsWrapper,  std::shared_ptr<AssetManager>, OptionsUtil::Options *options, RenderMethods renderMethods);
+    //nullptr if any stage can't be loaded, a pipeline missing a stage could be missing the one that draws to screen
+    static std::unique_ptr<GraphicsPipeline> deserialize(const std::string &graphicsPipelineFileName, GraphicsInterface *graphicsWrapper,  std::shared_ptr<AssetManager>, OptionsUtil::Options *options, RenderMethods renderMethods,
+                                                         std::vector<std::string> &errors);
+
+    //run after the stage order is final, units are picked so a texture stays put across stages and its binds get skipped
+    bool assignTextureUnits(GraphicsInterface* graphicsInterface, std::string &error);
+
+    void printTextureUnits(GraphicsInterface* graphicsInterface, const std::string &pipelineName) const;
 
     const std::vector<std::shared_ptr<Texture>> &getTextures() {
         return textures;
@@ -172,6 +181,9 @@ public:
     }
 
 private:
+    static bool isEngineOwnedSampler(const std::string &samplerName);
+    static bool isReadByMoreStages(const std::pair<std::shared_ptr<Texture>, std::vector<size_t>> &left, const std::pair<std::shared_ptr<Texture>, std::vector<size_t>> &right);
+
     std::map<std::string, std::vector<std::set<std::string>>> cameraTagToRenderTagMap;//Per stage, we configure camera name(tag) and renderTags(objects to render). We should combine them and make accessible so culling can use the info.
     RenderMethods renderMethods;
     std::vector<StageInfo> pipelineStages;

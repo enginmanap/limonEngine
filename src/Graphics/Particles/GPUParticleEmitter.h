@@ -133,11 +133,13 @@ public:
     }
 
     void renderWithProgram(std::shared_ptr<GraphicsProgram> renderProgram, uint32_t lodLevel[[gnu::unused]]) override {
-        //FIXME requires weird texture unit selection, because we don't have anything else
-        renderProgram->setUniform("sprite", graphicsWrapper->getMaxTextureImageUnits() - 4);
-        graphicsWrapper->attachTexture((int) texture->getTextureID(), graphicsWrapper->getMaxTextureImageUnits() - 4);
-        renderProgram->setUniform("positions", graphicsWrapper->getMaxTextureImageUnits() - 5);
-        graphicsWrapper->attachTexture((int) particleDataTexture->getTextureID(), graphicsWrapper->getMaxTextureImageUnits() - 5);
+        int32_t spriteUnit = renderProgram->getTextureUnit("sprite");
+        int32_t positionsUnit = renderProgram->getTextureUnit("positions");
+        if (spriteUnit < 0 || positionsUnit < 0) {
+            return;
+        }
+        graphicsWrapper->attachTexture((int) texture->getTextureID(), spriteUnit);
+        graphicsWrapper->attachTexture((int) particleDataTexture->getTextureID(), positionsUnit);
         renderProgram->setUniform("size", size.x);
         renderProgram->setUniform("gravity", gravity);
         renderProgram->setUniform("continuousEmit", continuousEmit);

@@ -33,7 +33,7 @@ private:
     char tempName[256] = {0};           //
     char tempHeightOption[256] = {0};   // These 4 are used for ImGui strings.
     char tempWidthOption[256] = {0};    //
-    char tempFileName[512] = {"./Data/renderPipelineBuilt.xml"};       //
+    char fileName[512] = {0};//the render pipeline file the graph came from, Save writes graph and pipeline back to it
     std::map<std::string, std::shared_ptr<Texture>> usedTextures;
     GraphicsInterface* graphicsWrapper = nullptr;
     GenerateEditorElementsCallback generateEditorElementsForParameters;//used to draw GenericParameter editor widgets for render methods
@@ -68,6 +68,8 @@ private:
                     const std::vector<std::pair<std::set<const Node *>, std::set<const Node *>>> &dependencyGroups);
 
     void drawTextureSettings();
+    //pipeline nullptr saves the graph alone, that file can be loaded but not rendered with
+    void saveRenderPipelineFile(NodeGraph* nodeGraph, const std::shared_ptr<GraphicsPipeline>& pipeline);
 
 public:
     PipelineExtension(GraphicsInterface *graphicsWrapper, GenerateEditorElementsCallback generateEditorElementsForParameters, std::shared_ptr<GraphicsPipeline> currentGraphicsPipeline, std::shared_ptr<AssetManager> assetManager, OptionsUtil::Options* options,
@@ -91,6 +93,16 @@ public:
         return "PipelineExtension";
     }
 
+    std::string getFileName() const {
+        return fileName;
+    }
+
+    void setFileName(const std::string& newFileName) {
+        size_t copyLength = std::min(newFileName.size(), sizeof(fileName) - 1);
+        newFileName.copy(fileName, copyLength);
+        fileName[copyLength] = '\0';
+    }
+
     void serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentElement) override;
 
     void deserialize(const std::string &fileName, tinyxml2::XMLElement *editorExtensionElement) override;
@@ -103,7 +115,7 @@ public:
         //only textures the built stages actually reference, usedTextures itself has orphans from old sessions
         std::set<std::shared_ptr<Texture>> referencedTextures;
         for (size_t i = 0; i < orderedStages.size(); ++i) {
-            for(const auto& input:orderedStages[i].second->stage->getInputs()) {
+            for(const auto& input:orderedStages[i].second->stage->getNamedInputs()) {
                 referencedTextures.insert(input.second);
             }
             for(const auto& output:orderedStages[i].second->stage->getOutputs()) {
@@ -118,6 +130,13 @@ public:
         for (size_t i = 0; i < orderedStages.size(); ++i) {
             builtGraphicsPipeline->addNewStage(*(orderedStages[i].second));
         }
+        std::string assignmentError;
+        if (!builtGraphicsPipeline->assignTextureUnits(graphicsWrapper, assignmentError)) {
+            addError(assignmentError);
+            return nullptr;
+        }
+        builtGraphicsPipeline->printTextureUnits(graphicsWrapper, "built in editor");
+        builtGraphicsPipeline->setGraphicsWrapper(graphicsWrapper);
         addMessage("Built new Pipeline");
         return builtGraphicsPipeline;
     }

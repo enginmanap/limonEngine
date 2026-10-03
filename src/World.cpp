@@ -151,18 +151,29 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
     switchPlayer(currentPlayer, *inputHandler); //switching to itself, to set the states properly. It uses camera so done after camera creation
 
     OptionsUtil::Options::Option<std::string> renderPipelineOption = options->getOption<std::string>(HASH("render_pipeline"));
-    renderPipeline = GraphicsPipeline::deserialize(renderPipelineOption.getOrDefault(""), graphicsWrapper, assetManager, options, buildRenderMethods());
+    std::vector<std::string> pipelineLoadErrors;
+    renderPipeline = GraphicsPipeline::deserialize(renderPipelineOption.getOrDefault(""), graphicsWrapper, assetManager, options, buildRenderMethods(), pipelineLoadErrors);
 
     if(renderPipeline == nullptr) {
         //use default if no custom is found
-        std::cerr << "Render pipeline not found, loading default." << std::endl;
-        renderPipeline = GraphicsPipeline::deserialize("./Engine/renderPipeline.xml", graphicsWrapper, assetManager, options, buildRenderMethods());
+        std::cerr << "Render pipeline can't be used, loading default." << std::endl;
+        renderPipeline = GraphicsPipeline::deserialize("./Engine/renderPipeline.xml", graphicsWrapper, assetManager, options, buildRenderMethods(), pipelineLoadErrors);
     }
-    if (renderPipeline == nullptr) {
-        std::cerr << "Default render pipeline not found, please check if your installation is correct. Exiting" << std::endl;
-        std::exit(-1);
+    if(renderPipeline == nullptr) {
+        //only draws ImGui, so the editor is still there to fix the pipeline
+        std::cerr << "Default render pipeline can't be used either, loading the editor only pipeline." << std::endl;
+        renderPipeline = GraphicsPipeline::deserialize("./Engine/imguiOnlyRenderPipeline.xml", graphicsWrapper, assetManager, options, buildRenderMethods(), pipelineLoadErrors);
+        if (renderPipeline == nullptr) {
+            std::cerr << "Editor only render pipeline can't be loaded, please check if your installation is correct. Exiting" << std::endl;
+            std::exit(-1);
+        }
+        setupRenderForPipeline();
+        createEditorPlayerIfMissing(*inputHandler);
+        switchPlayer(editorPlayer, *inputHandler);
+        editor->showPipelineFallback(renderPipeline, pipelineLoadErrors);
+    } else {
+        setupRenderForPipeline();
     }
-    setupRenderForPipeline();
 
     onLoadActions.push_back(new ActionForOnload());//this is here for editor, as if no action is added, editor would fail to allow setting the first one.
 
@@ -790,14 +801,7 @@ World::fillRouteInformation(std::vector<LimonTypes::GenericParameter> parameters
     }
 
     if (inputHandler.getInputStates().getInputEvents(InputActions::EDITOR) && inputHandler.getInputStates().getInputStatus(InputActions::EDITOR)) {
-        if(editorPlayer == nullptr) {
-            editorPlayer = new EditorPlayer(options, cursor, startingPlayer.position, startingPlayer.orientation, &inputHandler, 0);
-            editorPlayer->registerToPhysicalWorld(dynamicsWorld, COLLIDE_PLAYER,
-                                                  COLLIDE_MODELS | COLLIDE_TRIGGER_VOLUME | COLLIDE_EVERYTHING,
-                                                  COLLIDE_MODELS | COLLIDE_EVERYTHING,
-                                                  worldAABBMin, worldAABBMax);
-
-        }
+        createEditorPlayerIfMissing(inputHandler);
         if(!currentPlayersSettings->editorShown) {
             switchPlayer(editorPlayer, inputHandler);
         } else {
@@ -1472,6 +1476,23 @@ void World::removeCameraRig(uint32_t rigID) {
             [rigID](const std::unique_ptr<CameraRig>& rig) { return rig->getWorldObjectID() == rigID; }),
         cameraRigs.end());
     unusedIDs.push(rigID);
+}
+
+void World::activateRenderPipeline(const std::shared_ptr<GraphicsPipeline> &pipeline) {
+    renderPipeline = pipeline;
+    setupRenderForPipeline();
+    visibilityManager->onPipelineChange();
+}
+
+void World::createEditorPlayerIfMissing(InputHandler &inputHandler) {
+    if(editorPlayer != nullptr) {
+        return;
+    }
+    editorPlayer = new EditorPlayer(options, cursor, startingPlayer.position, startingPlayer.orientation, &inputHandler, 0);
+    editorPlayer->registerToPhysicalWorld(dynamicsWorld, COLLIDE_PLAYER,
+                                          COLLIDE_MODELS | COLLIDE_TRIGGER_VOLUME | COLLIDE_EVERYTHING,
+                                          COLLIDE_MODELS | COLLIDE_EVERYTHING,
+                                          worldAABBMin, worldAABBMax);
 }
 
 void World::switchPlayer(Player *targetPlayer, InputHandler &inputHandler) {
