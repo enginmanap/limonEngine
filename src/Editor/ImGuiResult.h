@@ -49,7 +49,7 @@ struct ImGuiResult {
     struct LodPanelInput {
         bool recalibrate = false;      //rebuild the levels with the targets it already has
         bool clearOverrides = false;   //back to the project options
-        bool exportToBinary = false;   //confirmed in the panel, writes this model back over its limonmodel
+        bool saveChanges = false;      //writes the asset's own store, a limonmodel only after the panel confirmed
         //one step at a time: the developer types a triangle share, the engine derives the budget that hits it
         int32_t triangleTargetLevel = -1;
         float triangleTargetRatio = 0.0f;

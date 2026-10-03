@@ -1302,28 +1302,9 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
         ImGui::InputText("##save world name", this->worldSaveNameBuffer, sizeof(this->worldSaveNameBuffer));
         ImGui::SameLine();
         if(ImGui::Button("Save World")) {
-            for(auto animIt = world->loadedAnimations.begin(); animIt != world->loadedAnimations.end(); animIt++) {
-                if(animIt->serializeAnimation("./Data/Animations/")) {
-                    world->options->getLogger()->log(Logger::log_Subsystem_LOAD_SAVE, Logger::log_level_INFO, "Animation saved");
-                } else {
-                    world->options->getLogger()->log(Logger::log_Subsystem_LOAD_SAVE, Logger::log_level_ERROR, "Animation save failed");
-                }
-            }
-            //before saving, set the connection state
-            for (auto objectIt = world->disconnectedModels.begin(); objectIt != world->disconnectedModels.end(); ++objectIt) {
-                world->apiAccessor->disconnectObjectFromPhysics(*objectIt);
-            }
-
-            if(WorldSaver::saveWorld(this->worldSaveNameBuffer, world)) {
-                world->options->getLogger()->log(Logger::log_Subsystem_LOAD_SAVE, Logger::log_level_INFO, "World save successful");
-            } else {
-                world->options->getLogger()->log(Logger::log_Subsystem_LOAD_SAVE, Logger::log_level_ERROR, "World save Failed");
-            }
-            //after save, set the states back
-            for (auto objectIt = world->disconnectedModels.begin(); objectIt != world->disconnectedModels.end(); ++objectIt) {
-                world->apiAccessor->reconnectObjectToPhysics(*objectIt);
-            }
-
+            //runs at the next frame start, a limonmodel save bakes occluders that culling is reading now
+            pendingWorldSaveName = this->worldSaveNameBuffer;
+            worldSaveRequested = true;
         }
         if(ImGui::Button("Save AI walk Grid")) {
             if(world->grid != nullptr) {
@@ -1529,8 +1510,8 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
             }
             if (this->pickedObject->getTypeID() == GameObject::ObjectTypes::MODEL) {
                 Model *selectedModel = static_cast<Model *>(this->pickedObject);
-                if (objectEditorResult.lodPanel.exportToBinary) {
-                    requestModelExport(selectedModel->getWorldObjectID());
+                if (objectEditorResult.lodPanel.saveChanges) {
+                    requestAssetSave(selectedModel->getModelAsset());
                 }
                 if (objectEditorResult.lodPanel.triangleTargetLevel >= 0) {
                     //queued like the rest, it regenerates the meshes the render lists are pointing at
@@ -2421,13 +2402,39 @@ void Editor::requestLodTriangleTarget(std::shared_ptr<ModelAsset> modelAsset, si
     pendingLodRequests.push_back(request);
 }
 
-void Editor::requestModelExport(uint32_t objectId) {
-    pendingModelExports.push_back(objectId);
+void Editor::requestAssetSave(std::shared_ptr<ModelAsset> modelAsset) {
+    pendingAssetSaves.insert(modelAsset);
+}
+
+void Editor::saveWorldFile(const std::string &worldName, bool allAssetsSaved) {
+    for(auto animIt = world->loadedAnimations.begin(); animIt != world->loadedAnimations.end(); animIt++) {
+        if(animIt->serializeAnimation("./Data/Animations/")) {
+            world->options->getLogger()->log(Logger::log_Subsystem_LOAD_SAVE, Logger::log_level_INFO, "Animation saved");
+        } else {
+            world->options->getLogger()->log(Logger::log_Subsystem_LOAD_SAVE, Logger::log_level_ERROR, "Animation save failed");
+        }
+    }
+    //before saving, set the connection state
+    for (auto objectIt = world->disconnectedModels.begin(); objectIt != world->disconnectedModels.end(); ++objectIt) {
+        world->apiAccessor->disconnectObjectFromPhysics(*objectIt);
+    }
+
+    if (!WorldSaver::saveWorld(worldName, world)) {
+        world->options->getLogger()->log(Logger::log_Subsystem_LOAD_SAVE, Logger::log_level_ERROR, "World save Failed");
+    } else if (!allAssetsSaved) {
+        world->options->getLogger()->log(Logger::log_Subsystem_LOAD_SAVE, Logger::log_level_ERROR, "World saved, but some of its assets failed, see above");
+    } else {
+        world->options->getLogger()->log(Logger::log_Subsystem_LOAD_SAVE, Logger::log_level_INFO, "World save successful");
+    }
+    //after save, set the states back
+    for (auto objectIt = world->disconnectedModels.begin(); objectIt != world->disconnectedModels.end(); ++objectIt) {
+        world->apiAccessor->reconnectObjectToPhysics(*objectIt);
+    }
 }
 
 void Editor::applyDeferredAssetChanges() {
-    //levels first: an export writes whatever the meshes hold, so anything queued for this frame has to be in
-    //them before we write. Clicking the export button deactivates the triangle input, which commits a target in
+    //levels first: a save writes whatever the meshes hold, so anything queued for this frame has to be in
+    //them before we write. Clicking the save button deactivates the triangle input, which commits a target in
     //this same frame, so the two really do arrive together
     std::set<std::shared_ptr<ModelAsset>> regeneratedAssets;
     for (size_t requestIndex = 0; requestIndex < pendingLodRequests.size(); ++requestIndex) {
@@ -2459,17 +2466,27 @@ void Editor::applyDeferredAssetChanges() {
             objectIt->second->convertAssetToLimon(convertedAssets);
         }
     }
-    for (size_t exportIndex = 0; exportIndex < pendingModelExports.size(); ++exportIndex) {
-        std::unordered_map<uint32_t, Model *>::iterator found = world->objects.find(pendingModelExports[exportIndex]);
-        if (found == world->objects.end()) {
-            continue;//removed between the click and the drain
+    bool worldSaveThisFrame = worldSaveRequested;
+    worldSaveRequested = false;
+    if (worldSaveThisFrame) {
+        for (std::unordered_map<uint32_t, Model *>::iterator objectIt = world->objects.begin(); objectIt != world->objects.end(); ++objectIt) {
+            if (objectIt->second->getModelAsset()->hasUnsavedChanges()) {
+                pendingAssetSaves.insert(objectIt->second->getModelAsset());
+            }
         }
-        //looked up now rather than held as a pointer, and it bakes every occluder level before writing
-        std::set<std::vector<std::string>> exportedAssets;
-        found->second->convertAssetToLimon(exportedAssets);
-        found->second->getModelAsset()->clearLodEditedSinceExport();
     }
-    pendingModelExports.clear();
+    bool allAssetsSaved = true;
+    for (const std::shared_ptr<ModelAsset> &assetToSave : pendingAssetSaves) {
+        if (!assetToSave->saveChanges()) {
+            allAssetsSaved = false;
+            world->options->getLogger()->log(Logger::log_Subsystem_LOAD_SAVE, Logger::log_level_ERROR,
+                                             "Asset save failed: " + assetToSave->getAssetName());
+        }
+    }
+    pendingAssetSaves.clear();
+    if (worldSaveThisFrame) {
+        saveWorldFile(pendingWorldSaveName, allAssetsSaved);
+    }
 
     //last, because a conversion above re-bakes every occluder level and culling reads those too
     for (auto objectIt = world->objects.begin(); objectIt != world->objects.end(); ++objectIt) {

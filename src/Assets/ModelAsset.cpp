@@ -11,6 +11,10 @@
 #include "ModelAsset.h"
 
 #include <chrono>
+#include <fstream>
+#ifdef CEREAL_SUPPORT
+#include <cereal/archives/binary.hpp>
+#endif
 #include "Lod/LodMetadata.h"
 #include "../Utils/GLMUtils.h"
 #include "Animations/AnimationAssimp.h"
@@ -43,6 +47,7 @@ ModelAsset::ModelAsset(AssetManager *assetManager, uint32_t assetID, const std::
         exit(-1);
     }
     name = stripFlipSuffix(fileList[0], flipX, flipY, flipZ);
+    sourcePath = name;
     reverseWinding = (int(flipX) + int(flipY) + int(flipZ)) % 2 == 1;
     if (fileList.size() > 1) {
         std::cerr << "multiple files are sent to Model constructor, extra elements ignored." << std::endl;
@@ -86,7 +91,7 @@ void ModelAsset::loadCPUPart() {
         textures.push_back(eTexture);
     }
     if(textures.size() > 0 ) {
-        assetManager->addEmbeddedTextures(this->name, textures);
+        assetManager->addEmbeddedTextures(this->sourcePath, textures);
     }
 
     this->hasAnimation = (scene->mNumAnimations != 0);
@@ -254,9 +259,46 @@ void ModelAsset::buildLodGeometry(std::vector<LodLadder::MeshGeometry> &outGeome
     }
 }
 
-//the file itself is the store for a converted model, so the panel can say when it has fallen behind
 bool ModelAsset::isConvertedAsset() const {
     return name.substr(name.find_last_of(".") + 1) == "limonmodel";
+}
+
+bool ModelAsset::saveChanges() {
+    if (isConvertedAsset()) {
+        if (!writeBinary(name)) {
+            return false;
+        }
+        customizationAfterSave = false;
+        lodLadder.clearUnsavedChanges();
+        return true;
+    }
+    bool customizationsSaved = serializeCustomizations();
+    bool lodIntentSaved = lodLadder.saveIntent();
+    return customizationsSaved && lodIntentSaved;
+}
+
+bool ModelAsset::writeBinary(const std::string &path) {
+#ifdef CEREAL_SUPPORT
+    bakeAllOccluderLods();//load only baked the level the option asked for, the file should carry all of them
+    std::ofstream os(path, std::ios::binary);
+    if (!os.is_open()) {
+        std::cerr << "Could not open " << path << " for writing" << std::endl;
+        return false;
+    }
+    {
+        cereal::BinaryOutputArchive archive(os);
+        archive(*this);
+    }
+    os.flush();
+    if (!os.good()) {
+        std::cerr << "Writing " << path << " failed" << std::endl;
+        return false;
+    }
+    return true;
+#else
+    std::cerr << "Cereal support disabled, " << path << " not written" << std::endl;
+    return false;
+#endif
 }
 
 void ModelAsset::regenerateLods(LodLadder::BuildMode buildMode) {
@@ -295,7 +337,7 @@ void ModelAsset::loadGPUPart() {
     // Animations should be
 
     if(temporaryEmbeddedTextures != nullptr && temporaryEmbeddedTextures->size() > 0 ) {
-        assetManager->addEmbeddedTextures(this->name, *temporaryEmbeddedTextures);
+        assetManager->addEmbeddedTextures(this->sourcePath, *temporaryEmbeddedTextures);
     }
     temporaryEmbeddedTextures.reset();
 
@@ -360,7 +402,7 @@ std::shared_ptr<Material> ModelAsset::loadMaterials(const aiScene *scene, unsign
                     std::cout << "set ambient texture " << property.C_Str() << std::endl;
                 } else {
                     //embeddedTexture handling
-                    newMaterial->setAmbientTexture(property.C_Str(), &this->name);
+                    newMaterial->setAmbientTexture(property.C_Str(), &this->sourcePath);
                     std::cout << "set (embedded) ambient texture " << property.C_Str() << "|" << this->name<< std::endl;
                 }
 
@@ -375,7 +417,7 @@ std::shared_ptr<Material> ModelAsset::loadMaterials(const aiScene *scene, unsign
                     newMaterial->setDiffuseTexture(property.C_Str());
                 } else {
                     //embeddedTexture handling
-                    newMaterial->setDiffuseTexture(property.C_Str(), &this->name);
+                    newMaterial->setDiffuseTexture(property.C_Str(), &this->sourcePath);
                 }
             } else {
                 std::cerr << "The model contained diffuse texture information, but texture loading failed. \n" <<
@@ -390,7 +432,7 @@ std::shared_ptr<Material> ModelAsset::loadMaterials(const aiScene *scene, unsign
                     std::cout << "set specular texture " << property.C_Str() << std::endl;
                 } else {
                     //embeddedTexture handling
-                    newMaterial->setSpecularTexture(property.C_Str(), &this->name);
+                    newMaterial->setSpecularTexture(property.C_Str(), &this->sourcePath);
                     std::cout << "set (embedded) setSpecularTexture texture " << property.C_Str() << "|" << this->name<< std::endl;
                 }
             } else {
@@ -406,7 +448,7 @@ std::shared_ptr<Material> ModelAsset::loadMaterials(const aiScene *scene, unsign
                     std::cout << "set normal texture " << property.C_Str() << std::endl;
                 } else {
                     //embeddedTexture handling
-                    newMaterial->setNormalTexture(property.C_Str(), &this->name);
+                    newMaterial->setNormalTexture(property.C_Str(), &this->sourcePath);
                     std::cout << "set (embedded) setNormalTexture texture " << property.C_Str() << "|" << this->name<< std::endl;
                 }
             } else {
@@ -422,7 +464,7 @@ std::shared_ptr<Material> ModelAsset::loadMaterials(const aiScene *scene, unsign
                     newMaterial->setOpacityTexture(property.C_Str());
                 } else {
                     //embeddedTexture handling
-                    newMaterial->setOpacityTexture(property.C_Str(), &this->name);
+                    newMaterial->setOpacityTexture(property.C_Str(), &this->sourcePath);
                     std::cout << "set (embedded) setOpacityTexture texture " << property.C_Str() << "|" << this->name<< std::endl;
                 }
             } else {
@@ -916,10 +958,9 @@ bool ModelAsset::addAnimationAsSubSequence(const std::string &baseAnimationName,
     return true;
 }
 
-void ModelAsset::serializeCustomizations() {
+bool ModelAsset::serializeCustomizations() {
     if(!customizationAfterSave) {
-        //Since assets are shared, serialize will be called multiple times. This flag is just a block for that.
-        return;
+        return true;//nothing changed since the last save
     }
     //the LOD calibration and the overrides live in the same file, writing a fresh document would drop both
     const std::lock_guard<std::mutex> lock(LodMetadata::getFileMutex());
@@ -965,9 +1006,10 @@ void ModelAsset::serializeCustomizations() {
     tinyxml2::XMLError eResult = customizationDocument.SaveFile(customizationPath.c_str());
     if(eResult != tinyxml2::XML_SUCCESS) {
         std::cerr << "ERROR saving model customization: " << eResult << std::endl;
-    } else {
-        customizationAfterSave = false;
+        return false;
     }
+    customizationAfterSave = false;
+    return true;
 }
 
 void ModelAsset::deserializeCustomizations() {

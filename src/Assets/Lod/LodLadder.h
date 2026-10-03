@@ -109,10 +109,7 @@ public:
     //drops the cache outright
     enum class BuildMode { NORMAL, EDITOR_CHANGE, FULL_RECALIBRATE };
 
-    //the asset this ladder belongs to. Set on every path, including after a binary load, since the steps that
-    //arrive in the archive still have to know which file records their intent
-    //storeIsBinary marks an asset whose levels live in its own file rather than beside it, which is the only
-    //kind for which "edited since export" means anything
+    //storeIsBinary marks an asset whose levels live in its own file, so it never reads or writes a sidecar
     void bindAsset(const std::string &newAssetPath, const std::string &newFlipAxes, bool newCanCalibrate,
                    bool newStoreIsBinary);
 
@@ -160,14 +157,18 @@ public:
         return overridesPresent;
     }
 
-    //edited since the model was last written out, so the panel can say the file on disk is behind
-    bool isEditedSinceExport() const {
-        return editedSinceExport;
+    //edits only change memory until the asset is saved, by the panel or by a world save
+    bool hasUnsavedChanges() const {
+        return unsavedChanges;
     }
 
-    void clearEditedSinceExport() {
-        editedSinceExport = false;
+    //a binary is saved by writing the whole asset, so this is cleared from outside
+    void clearUnsavedChanges() {
+        unsavedChanges = false;
     }
+
+    //writes the targets to a source asset's sidecar. Does nothing for a binary or when nothing changed
+    bool saveIntent();
 
     //the prepared simplifier inputs for one mesh, in the order they were handed to build
     const LodGenerator *getGenerator(size_t meshIndex) const {
@@ -235,7 +236,6 @@ private:
     static bool findCachedOutcome(const std::vector<LodStep> &cachedSteps, const LodStep &step,
                                   bool welded, LodStep::Outcome &outOutcome);
     void assignMeshLodIndices(std::vector<LevelPlan> &outPlan);
-    void persistIntent();
 
     //the scorer: renders the candidate against the original from fourteen directions. meshoptimizer's own error
     //is a quadric bound that stops tracking visible damage past about 0.03, so steps are judged against this
@@ -256,8 +256,8 @@ private:
     std::string flipAxes;
     bool canCalibrate = true;       //a skinned mesh deforms, so a bind pose score says nothing about it
     bool overridesPresent = false;
-    bool storeIsBinary = false;   //the levels live in the asset file itself, so an edit leaves that file behind
-    bool editedSinceExport = false;
+    bool storeIsBinary = false;
+    bool unsavedChanges = false;
 
     bool calibrationEnabled = true;
     uint32_t searchSteps = 7;

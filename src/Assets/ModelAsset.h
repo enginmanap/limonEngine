@@ -64,6 +64,7 @@ private:
     };
 
     std::string name;
+    std::string sourcePath;//what embedded textures are keyed by, a limonmodel keeps its source's so the stored materials still find them
     bool flipX = false, flipY = false, flipZ = false;
     bool reverseWinding = false;
 
@@ -177,9 +178,16 @@ public:
     //list is holding a level index. The Editor drains a queue for it
     void regenerateLods(LodLadder::BuildMode buildMode);
 
-    void clearLodEditedSinceExport() {
-        lodLadder.clearEditedSinceExport();
+    bool hasUnsavedChanges() const {
+        return customizationAfterSave || lodLadder.hasUnsavedChanges();
     }
+
+    //a source asset writes its sidecar, a converted one rewrites its limonmodel. Bakes every occluder level for
+    //the latter, so only between frames. Unsaved flags are cleared only for what was actually written
+    bool saveChanges();
+
+    //bakes every occluder level first, so only between frames
+    bool writeBinary(const std::string &path);
 
     //true for an asset loaded from a limonmodel, where the file itself is the store rather than a sidecar
     bool isConvertedAsset() const;
@@ -191,8 +199,10 @@ public:
             Asset(assetManager, assetID, fileList, binaryArchive) {
         binaryArchive(*this);
         this->assetManager = assetManager;
-        //the same path a source asset takes. The steps arrived with the file, so unless their intent moved
-        //there is nothing to measure and every mesh keeps the ranges it was deserialized with
+        name = fileList[0];//the stored name is the source's, keeping it would make this look like a source asset
+        customizationAfterSave = false;//older files stored it set, but the sections came from this file
+        //the same path a source asset takes. The steps arrived with the file, so there is nothing to measure and
+        //every mesh keeps the ranges it was deserialized with
         buildLodLevels(LodLadder::BuildMode::NORMAL);
     }
 #endif
@@ -287,7 +297,7 @@ public:
         return animations;
     }
 
-    void serializeCustomizations();
+    bool serializeCustomizations();
 
     int32_t buildEditorBoneTree(int32_t selectedBoneNodeID, bool followSelection);
 
@@ -310,20 +320,20 @@ public:
     void save( Archive & ar ) const {
         std::vector<std::shared_ptr<const AssetManager::EmbeddedTexture>> textures;
         size_t index = 0;
-        std::shared_ptr<const AssetManager::EmbeddedTexture> embeddedTexture = assetManager->getEmbeddedTextures(name, index);
+        std::shared_ptr<const AssetManager::EmbeddedTexture> embeddedTexture = assetManager->getEmbeddedTextures(sourcePath, index);
         while(embeddedTexture != nullptr) {
             textures.push_back(embeddedTexture);
             index++;
-            embeddedTexture = assetManager->getEmbeddedTextures(name, index);
+            embeddedTexture = assetManager->getEmbeddedTextures(sourcePath, index);
         }
-        ar(name, boneIDCounter, boneIDCounterPerMesh, textures,                   hasAnimation, rootNode, boundingBoxMax, boundingBoxMin, centerOffset, boneInformationMap, simplifiedMeshes, meshes, animations, animationSections, customizationAfterSave, materialMap, meshMaterialMap, transparentMaterialUsed, lodLadder);
+        ar(sourcePath, boneIDCounter, boneIDCounterPerMesh, textures,                   hasAnimation, rootNode, boundingBoxMax, boundingBoxMin, centerOffset, boneInformationMap, simplifiedMeshes, meshes, animations, animationSections, customizationAfterSave, materialMap, meshMaterialMap, transparentMaterialUsed, lodLadder);
     }
 
     template<class Archive>
     void load( Archive & ar ) {
         std::map<std::shared_ptr<MeshAsset>,std::shared_ptr<Material>> tempMeshMaterialMap;
         temporaryEmbeddedTextures = std::make_unique<std::vector<std::shared_ptr<const AssetManager::EmbeddedTexture>>>();
-        ar(name,boneIDCounter, boneIDCounterPerMesh, *temporaryEmbeddedTextures, hasAnimation, rootNode, boundingBoxMax, boundingBoxMin, centerOffset, boneInformationMap, simplifiedMeshes, meshes, animations, animationSections, customizationAfterSave, materialMap, tempMeshMaterialMap, transparentMaterialUsed, lodLadder);
+        ar(sourcePath, boneIDCounter, boneIDCounterPerMesh, *temporaryEmbeddedTextures, hasAnimation, rootNode, boundingBoxMax, boundingBoxMin, centerOffset, boneInformationMap, simplifiedMeshes, meshes, animations, animationSections, customizationAfterSave, materialMap, tempMeshMaterialMap, transparentMaterialUsed, lodLadder);
         //now update embedded textures to assetManager
         for (size_t i = 0; i < meshes.size(); ++i) {
             meshes[i]->buildBulletMesh();

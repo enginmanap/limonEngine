@@ -332,8 +332,6 @@ bool Model::fillObjects(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *o
             tagsNode->InsertEndChild(tagNode);
         }
     }
-
-    modelAsset->serializeCustomizations();
     return true;
 }
 
@@ -443,30 +441,29 @@ void Model::putLodPanelInGui(ImGuiResult &result, const ImGuiRequest &request, b
         }
     }
 
-    if (isLimonModel) {
-        //a converted model carries LOD0, its normals and its UVs, so it retunes like any other. The binary is
-        //rebuilt from the targets beside it on every load until it is written out again
-        if (ladder.isEditedSinceExport()) {
-            ImGui::TextWrapped("Edited since the last export. The file on disk still holds the old levels and is rebuilt at load.");
+    //edits stay in memory until saved here or by a world save. A converted model rewrites its limonmodel
+    if (modelAsset->hasUnsavedChanges()) {
+        ImGui::TextWrapped("Unsaved changes, lost on reload unless saved here or with the world.");
+    }
+    //keyed by object, not reset with editedObjectID: that one is also cleared to re-read after a triangle commit
+    static uint32_t savePendingObjectID = 0xFFFFFFFF;
+    if (savePendingObjectID != this->getWorldObjectID()) {
+        if (ImGui::Button("Save changes to disk")) {
+            if (isLimonModel) {
+                savePendingObjectID = this->getWorldObjectID();
+            } else {
+                result.lodPanel.saveChanges = true;
+            }
         }
-        static bool exportPending = false;
-        if (editedObjectID != this->getWorldObjectID()) {
-            exportPending = false;
+    } else {
+        ImGui::TextWrapped("Overwrites the model in the game data. There is no undo.");
+        if (ImGui::Button("Overwrite the file")) {
+            result.lodPanel.saveChanges = true;
+            savePendingObjectID = 0xFFFFFFFF;
         }
-        if (!exportPending) {
-            if (ImGui::Button("Export to binary")) {
-                exportPending = true;
-            }
-        } else {
-            ImGui::TextWrapped("Overwrites the model in the game data. There is no undo.");
-            if (ImGui::Button("Overwrite the file")) {
-                result.lodPanel.exportToBinary = true;
-                exportPending = false;
-            }
-            ImGui::SameLine();
-            if (ImGui::Button("Cancel")) {
-                exportPending = false;
-            }
+        ImGui::SameLine();
+        if (ImGui::Button("Cancel")) {
+            savePendingObjectID = 0xFFFFFFFF;
         }
     }
 
@@ -1141,16 +1138,15 @@ void Model::convertAssetToLimon(std::set<std::vector<std::string>> &convertedMod
         newName += "_flip" + flipAxes;//windows filenames can not hold the ?flip the asset key uses
     }
     newName += ".limonmodel";
-    if(convertedModels.find(nameVector) == convertedModels.end()) {
-        modelAsset->bakeAllOccluderLods();//load only baked the level the option asked for, the file should carry all of them
-        std::ofstream os(newName, std::ios::binary);
-        cereal::BinaryOutputArchive archive( os );
-
-        archive(*modelAsset);
+    bool written = convertedModels.find(nameVector) != convertedModels.end();
+    if (!written && modelAsset->writeBinary(newName)) {
         convertedModels.insert(nameVector);
+        written = true;
     }
-    this->name = newName;//change name of self so next time converted file would be used.
-    this->flipAxes.clear();//the mirror is in the exported vertices now, flipping again would undo it
+    if (written) {//renaming to a file that was not written would make the next world load exit
+        this->name = newName;
+        this->flipAxes.clear();//the mirror is in the exported vertices now, flipping again would undo it
+    }
 
     for (auto childIt = children.begin(); childIt != children.end(); ++childIt) {
         Model* modelChild = dynamic_cast<Model*>(*childIt);

@@ -383,7 +383,7 @@ void LodLadder::build(const std::vector<MeshGeometry> &meshes, BuildMode buildMo
     //hashing walks every vertex, so it waits until something actually needs the file. A binary whose targets have
     //not moved still holds every outcome, so it never gets here
     uint64_t geometryHash = 0;
-    if (!isLadderComplete() && canCalibrate && buildMode != BuildMode::FULL_RECALIBRATE) {
+    if (!storeIsBinary &&  !isLadderComplete() && canCalibrate && buildMode != BuildMode::FULL_RECALIBRATE) {
         geometryHash = LodMetadata::hashGeometry(meshes);
         LodMetadata::read(assetPath, flipAxes, settingsHash, geometryHash, cachedSteps);
     }
@@ -403,17 +403,18 @@ void LodLadder::build(const std::vector<MeshGeometry> &meshes, BuildMode buildMo
         std::cout << "calibrated " << measuredCount << " LOD steps for " << assetPath << " in "
                   << std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - buildStart).count()
                   << " ms" << std::endl;
-        if (geometryHash == 0) {
-            geometryHash = LodMetadata::hashGeometry(meshes);
+        if (!storeIsBinary) {//a binary keeps its outcomes in its own steps, they reach disk when it is saved
+            if (geometryHash == 0) {
+                geometryHash = LodMetadata::hashGeometry(meshes);
+            }
+            LodMetadata::write(assetPath, flipAxes, settingsHash, geometryHash, steps);
         }
-        LodMetadata::write(assetPath, flipAxes, settingsHash, geometryHash, steps);
     }
-    //a derived budget is only known once the build has run, so this is the first point the file can record it.
-    //Never on a plain load: deriving there reproduces what the file already says, and writing would tell a
-    //converted model it has fallen behind its own binary
+    //never on a plain load: deriving there reproduces what the file already says, and would mark every
+    //converted model unsaved
     if (derivedAnyTarget && buildMode != BuildMode::NORMAL) {
         overridesPresent = true;
-        persistIntent();
+        unsavedChanges = true;
     }
     builtSettingsHash = settingsHash;
     assignMeshLodIndices(outPlan);
@@ -433,6 +434,9 @@ bool LodLadder::isLadderComplete() const {
 }
 
 void LodLadder::loadIntent() {
+    if (storeIsBinary) {
+        return;//the steps came with the archive
+    }
     std::vector<LodStep> overriddenSteps;
     if (!LodMetadata::readOverrides(assetPath, flipAxes, overriddenSteps) || overriddenSteps.empty()) {
         return;
@@ -454,10 +458,15 @@ void LodLadder::loadIntent() {
     overridesPresent = true;
 }
 
-void LodLadder::persistIntent() {
-    //a source asset has no binary to fall behind, so the flag would be permanently true and mean nothing there
-    editedSinceExport = storeIsBinary;
-    LodMetadata::writeOverrides(assetPath, flipAxes, overridesPresent ? steps : std::vector<LodStep>());
+bool LodLadder::saveIntent() {
+    if (storeIsBinary || !unsavedChanges) {
+        return true;
+    }
+    if (!LodMetadata::writeOverrides(assetPath, flipAxes, overridesPresent ? steps : std::vector<LodStep>())) {
+        return false;
+    }
+    unsavedChanges = false;
+    return true;
 }
 
 void LodLadder::requestTriangleTarget(size_t stepIndex, float targetRatio) {
@@ -511,7 +520,7 @@ void LodLadder::clearOverrides() {
         steps[stepIndex].userSet = false;
         steps[stepIndex].requestedRatio = 0.0f;
     }
-    persistIntent();
+    unsavedChanges = true;
     //the project budgets have to come back, and only readSettings knows them
     steps.clear();
 }

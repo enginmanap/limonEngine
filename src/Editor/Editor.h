@@ -133,7 +133,9 @@ public:
         float triangleTargetRatio = 0.0f;
     };
     std::vector<LodRegenerationRequest> pendingLodRequests;
-    std::vector<uint32_t> pendingModelExports;
+    std::set<std::shared_ptr<ModelAsset>> pendingAssetSaves;//a set, a world save and the panel can ask for the same asset
+    bool worldSaveRequested = false;
+    std::string pendingWorldSaveName;//copied at the click, the name box can change before the save runs
     bool modelConversionRequested = false;
 
     GameObject* pickedObject = nullptr;
@@ -160,7 +162,9 @@ public:
     //the LOD panel asks for these while it is being drawn, they run at the next frame boundary
     void requestLodRegeneration(std::shared_ptr<ModelAsset> modelAsset, bool clearOverrides);
     void requestLodTriangleTarget(std::shared_ptr<ModelAsset> modelAsset, size_t levelIndex, float targetRatio);
-    void requestModelExport(uint32_t objectId);
+    void requestAssetSave(std::shared_ptr<ModelAsset> modelAsset);
+    //assets first, so the log only says successful when the world and everything it uses reached disk
+    void saveWorldFile(const std::string &worldName, bool allAssetsSaved);
 
     void requestModelConversionToBinary() {
         modelConversionRequested = true;
