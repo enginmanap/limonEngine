@@ -140,13 +140,12 @@ public:
 
     /**
      * This method returns a copy of compound shape, composed of convex shapes for sweep test. It is used for raycast and other sweep tests.
-     * It is on caller's responsibility to delete the returned shape.
+     * It is on caller's responsibility to delete the returned shape and every shape in childrenPhysicsShapes.
      *
      * @return compound shape with each children being convex
      */
-    btCompoundShape *getCompoundShapeForSweepTest() const {
+    btCompoundShape *getCompoundShapeForSweepTest(std::vector<btCollisionShape *> &childrenPhysicsShapes) const {
         std::map<uint32_t, uint32_t> boneIdCompoundChildMapTemp;
-        std::vector<btCollisionShape *> childrenPhysicsShapes;
         btCompoundShape *compoundShape = this->modelAsset->getCompoundShapeForMass(1, boneIdCompoundChildMapTemp, childrenPhysicsShapes);
         btVector3 scale;
         if(isScaled) {

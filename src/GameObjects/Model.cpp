@@ -32,7 +32,6 @@ Model::Model(uint32_t objectID,  std::shared_ptr<AssetManager> assetManager, con
     this->centerOffset = modelAsset->getCenterOffset();
     this->centerOffsetMatrix = glm::translate(glm::mat4(1.0f), centerOffset);
 
-    compoundShape = new btCompoundShape();
     btTransform baseTransform;
     baseTransform.setIdentity();
     baseTransform.setOrigin(GLMConverter::GLMToBlt(-1.0f * centerOffset));

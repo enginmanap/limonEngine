@@ -1262,9 +1262,11 @@ btCompoundShape * ModelAsset::getCompoundShapeForMass(uint32_t mass, std::map<ui
     btCompoundShape *copyMesh =new btCompoundShape();
     if (!this->isAnimated() && mass==0) {
         for(size_t i= 0; i < meshCollisionShapesForTriangle.size(); ++i) {
-            copyMesh->addChildShape(baseTransform,
-                    new btScaledBvhTriangleMeshShape(
-                            reinterpret_cast<btBvhTriangleMeshShape *>(meshCollisionShapesForTriangle[i]), btVector3(1, 1, 1)));
+            //the wrapper is per instance, the bvh it points to is shared and stays with the asset
+            btScaledBvhTriangleMeshShape *scaledChild = new btScaledBvhTriangleMeshShape(
+                    reinterpret_cast<btBvhTriangleMeshShape *>(meshCollisionShapesForTriangle[i]), btVector3(1, 1, 1));
+            childrenShapes.emplace_back(scaledChild);
+            copyMesh->addChildShape(baseTransform, scaledChild);
         }
     } else {
 

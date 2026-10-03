@@ -609,7 +609,8 @@ std::shared_ptr<Material> Editor::ensureWorldOwnedMaterial(const std::shared_ptr
 
 std::unique_ptr<ClosestNotMeConvexResultCallback> Editor::convexSweepTestDown(Model * selectedObject) const {
     std::unique_ptr<ClosestNotMeConvexResultCallback> resultCallback = std::make_unique<ClosestNotMeConvexResultCallback>(selectedObject->getRigidBody());
-    btCompoundShape *compoundShape = selectedObject->getCompoundShapeForSweepTest();//Creates a new shape, that is convex hull of the compound shape or the shape itself if it is convex.
+    std::vector<btCollisionShape *> sweepChildShapes;
+    btCompoundShape *compoundShape = selectedObject->getCompoundShapeForSweepTest(sweepChildShapes);//Creates a new shape, that is convex hull of the compound shape or the shape itself if it is convex.
     btTransform originalTransform = selectedObject->getRigidBody()->getWorldTransform();
     originalTransform.setOrigin(originalTransform.getOrigin()  + btVector3(0, 1.0f, 0));
     for (int i = 0; i < compoundShape->getNumChildShapes(); ++i) {
@@ -627,6 +628,10 @@ std::unique_ptr<ClosestNotMeConvexResultCallback> Editor::convexSweepTestDown(Mo
         btTransform toTransform = fromTransform;
         toTransform.setOrigin(toTransform.getOrigin() + btVector3(0, -10, 0));
         world->dynamicsWorld->convexSweepTest(childConvexShape, fromTransform, toTransform, *resultCallback);
+    }
+    delete compoundShape;
+    for (btCollisionShape *shape : sweepChildShapes) {
+        delete shape;
     }
     return resultCallback;
 }
