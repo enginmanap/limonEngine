@@ -42,6 +42,8 @@
 #include "Profiler/ProfilerMacros.h"
 #include "Profiler/RenderProfileScope.h"
 #include "Utils/FrameTimeTracker.h"
+#include "XMLHelper.h"
+#include "GamePlay/APISerializer.h"
 
 const std::map<World::PlayerInfo::Types, std::string> World::PlayerInfo::typeNames =
     {
@@ -50,6 +52,32 @@ const std::map<World::PlayerInfo::Types, std::string> World::PlayerInfo::typeNam
             { Types::EDITOR_PLAYER, "Editor"},
             { Types::MENU_PLAYER, "Menu" }
     };
+
+void World::PlayerInfo::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLNode *worldNode) const {
+    tinyxml2::XMLElement *playerNode = document.NewElement("Player");
+    tinyxml2::XMLElement *playerType = document.NewElement("Type");
+    playerType->SetText(typeToString().c_str());
+    playerNode->InsertEndChild(playerType);
+
+    tinyxml2::XMLElement *playerPosition = document.NewElement("Position");
+    XMLHelper::writeVec3(document, playerPosition, position);
+    playerNode->InsertEndChild(playerPosition);
+
+    tinyxml2::XMLElement *playerOrientation = document.NewElement("Orientation");
+    XMLHelper::writeVec3(document, playerOrientation, orientation);
+    playerNode->InsertEndChild(playerOrientation);
+
+    tinyxml2::XMLElement *playerExtension = document.NewElement("ExtensionName");
+    playerExtension->SetText(extensionName.c_str());
+    playerNode->InsertEndChild(playerExtension);
+
+    tinyxml2::XMLElement *playerExtensionParameters = document.NewElement("ExtensionParameters");
+    for (size_t i = 0; i < parameters.size(); ++i) {
+        APISerializer::serializeParameterRequest(parameters[i], document, playerExtensionParameters, i);
+    }
+    playerNode->InsertEndChild(playerExtensionParameters);
+    worldNode->InsertEndChild(playerNode);
+}
 
 void World::setupRenderForPipeline() const {
 }

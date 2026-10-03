@@ -152,6 +152,7 @@ public:
             return isSet;
         }
 
+        void serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLNode *worldNode) const;
     };
 private:
 

@@ -191,14 +191,14 @@ public:
     }
 #ifdef CEREAL_SUPPORT
     //bumped whenever the stored LOD data changes, an older file can not produce it, so we stop instead of reading garbage
-    static constexpr uint32_t SERIALIZATION_MAGIC = 0x4C4D463B;
+    static constexpr uint32_t SERIALIZATION_MAGIC = 0x4C4D463C;
 
     template<class Archive>
     void serialize(Archive & archive){
         uint32_t magic = SERIALIZATION_MAGIC;
         archive(magic);
         checkSerializationMagic(magic);
-        archive( vertices, normals, textureCoordinates, faces, vertexCount, triangleCount, offsets, builtPlan, bakedOccluders, skeleton, bones, boneIDs, boneWeights, boneAttachedMeshes, boneIdMap, name, isPartOfAnimated, parentTransform);
+        archive( vertices, normals, textureCoordinates, faces, vertexCount, triangleCount, offsets, builtPlan, bakedOccluders, skeleton, bones, boneIDs, boneWeights, boneAttachedMeshes, boneIdMap, name, isPartOfAnimated, parentTransform, minAABB, maxAABB);
     }
 #endif
 };

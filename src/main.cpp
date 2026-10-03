@@ -15,7 +15,9 @@
 #include "Utils/FrameTimeTracker.h"
 #include "Graphics/TransformTextureRing.h"
 #include "Material.h"
+#include "Assets/ModelToWorldConverter.h"
 #include <algorithm>
+#include <cstdlib>
 
 const std::string PROGRAM_NAME = "LimonEngine";
 const std::string RELEASE_FILE = "./Data/Release.xml";
@@ -246,6 +248,11 @@ GameEngine::GameEngine() {
     worldLoader = new WorldLoader(assetManager, inputHandler, options, profilerSystem, frameTimeTracker, modelTransformRing, boneTransformRing);
 }
 
+bool GameEngine::convertModelToWorld(const std::string &sourceFile, const std::string &outputDirectory, float scale) {
+    ModelToWorldConverter converter(assetManager, sourceFile, outputDirectory, scale);
+    return converter.convert();
+}
+
 void GameEngine::applyPendingSwitch() {
     PendingSwitch ps = pendingSwitch;
     pendingSwitch = {};
@@ -419,6 +426,44 @@ bool getWorldNameFromReleaseXML(std::string &worldName) {
 }
 
 int main(int argc, char *argv[]) {
+    if(argc >= 2 && std::string(argv[1]) == "--convert") {
+        const std::string usage = "usage: " + PROGRAM_NAME + " --convert <model file> [output directory] [--scale <factor>]";
+        if(argc < 3) {
+            std::cerr << usage << std::endl;
+            return -1;
+        }
+        std::string outputDirectory;
+        float scale = 1.0f;
+        for(int argumentIndex = 3; argumentIndex < argc; ++argumentIndex) {
+            std::string argument = argv[argumentIndex];
+            if(argument == "--scale") {
+                if(argumentIndex + 1 >= argc) {
+                    std::cerr << "--scale needs a value. " << usage << std::endl;
+                    return -1;
+                }
+                char *parseEnd = nullptr;
+                scale = std::strtof(argv[argumentIndex + 1], &parseEnd);
+                if(parseEnd == argv[argumentIndex + 1] || *parseEnd != '\0') {
+                    std::cerr << "--scale value " << argv[argumentIndex + 1] << " is not a number. " << usage << std::endl;
+                    return -1;
+                }
+                ++argumentIndex;
+            } else if(outputDirectory.empty()) {
+                outputDirectory = argument;
+            } else {
+                std::cerr << "unexpected argument " << argument << ". " << usage << std::endl;
+                return -1;
+            }
+        }
+        //checked before the engine starts, so a typo doesn't cost a window and a backend
+        if(!(scale > 0.0f)) {
+            std::cerr << "--scale must be greater than 0, a negative one would mirror the whole map." << std::endl;
+            return -1;
+        }
+        GameEngine converterEngine;
+        return converterEngine.convertModelToWorld(argv[2], outputDirectory, scale) ? 0 : -1;
+    }
+
     std::string worldName;
     if(argc == 1) {
         std::cout << "No world file specified, world select from release settings" << std::endl;

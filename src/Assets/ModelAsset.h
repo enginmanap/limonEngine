@@ -142,6 +142,7 @@ private:
     const aiNodeAnim *findNodeAnimation(aiAnimation *pAnimation, std::string basic_string) const;
 
     void deserializeCustomizations();
+    void computeBoundsFromVertices();
     void buildLodLevels(LodLadder::BuildMode buildMode);//measures or reuses, then hands each mesh its plan
     void buildLodGeometry(std::vector<LodLadder::MeshGeometry> &outGeometry) const;
     std::string getFlipAxes() const;
@@ -194,6 +195,15 @@ public:
     static std::string stripFlipSuffix(const std::string &path, bool &outFlipX, bool &outFlipY, bool &outFlipZ);
 
     ModelAsset(AssetManager *assetManager, uint32_t assetID, const std::vector<std::string> &fileList);
+
+    //one mesh of an imported scene, for the map converter. Never in the asset cache and never sent to the GPU, it
+    //only exists to be written out. The caller must have added the scene's embedded textures under sourcePath
+    ModelAsset(AssetManager *assetManager, const aiScene *scene, uint32_t meshIndex, bool mirrorX,
+               const std::string &sourcePath, const std::string &piecePath, const std::string &meshName);
+
+    //nullptr on failure, the scene lives as long as the importer
+    static const aiScene *importScene(Assimp::Importer &assimpImporter, const std::string &path);
+    static std::vector<std::shared_ptr<const AssetManager::EmbeddedTexture>> readEmbeddedTextures(const aiScene *scene);
 #ifdef CEREAL_SUPPORT
     ModelAsset(AssetManager *assetManager, uint32_t assetID, const std::vector<std::string> &fileList, cereal::BinaryInputArchive& binaryArchive) :
             Asset(assetManager, assetID, fileList, binaryArchive) {

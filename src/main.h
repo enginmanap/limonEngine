@@ -82,6 +82,9 @@ public:
 
     bool loadAndChangeWorld(const std::string &worldFile);
 
+    //empty outputDirectory picks a folder named after the source, next to it
+    bool convertModelToWorld(const std::string &sourceFile, const std::string &outputDirectory, float scale);
+
     void returnPreviousMap();
 
     bool returnOrLoadMap(const std::string &worldFile);

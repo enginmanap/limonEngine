@@ -2,6 +2,7 @@
 // Created by engin on 28/09/2021.
 //
 
+#include <algorithm>
 #include <cmath>
 #include <climits>
 #include <Assets/Animations/AnimationLoader.h>
@@ -555,6 +556,14 @@ void Editor::releaseAlteredMaterialEdit() {
     selectedRegistrationID = alteredMaterialEdit.material->getRegistrationID();//keep the list on what we made
     world->assetManager->getMaterialRegistry().unregisterMaterial(alteredMaterialEdit.material);
     alteredMaterialEdit = AlteredMaterialEdit();
+}
+
+bool Editor::isMaterialListedBefore(const std::pair<uint32_t, std::shared_ptr<Material>> &left,
+                                    const std::pair<uint32_t, std::shared_ptr<Material>> &right) {
+    if (left.second->getName() != right.second->getName()) {
+        return left.second->getName() < right.second->getName();
+    }
+    return left.first < right.first;//base is registered before its override, so it comes first
 }
 
 //points every mesh in this world that uses baseMaterial at overrideMaterial
@@ -1397,6 +1406,7 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
             if (materialsSnapshotVersion != materialRegistry.getMaterialsVersion()) {
                 materialsSnapshotVersion = materialRegistry.getMaterialsVersion();
                 materialRegistry.fillMaterialsSnapshot(materialsSnapshot);
+                std::sort(materialsSnapshot.begin(), materialsSnapshot.end(), isMaterialListedBefore);
             }
             const std::vector<std::pair<uint32_t, std::shared_ptr<Material>>>& allMaterials = materialsSnapshot;
             ImGui::Text("Total material count is %lu", (unsigned long) allMaterials.size());
@@ -1415,6 +1425,13 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
                     if (ImGui::Selectable((rowLabel + " -> " + std::to_string(it->first)).c_str(), isSelected)) {
                         selectedRegistrationID = it->first;
                         selectedMaterial = it->second;
+                    }
+                    //a split or the model selection can pick a row that is scrolled out of view
+                    if (isSelected && lastScrolledRegistrationID != it->first) {
+                        lastScrolledRegistrationID = it->first;
+                        if (!ImGui::IsItemVisible()) {
+                            ImGui::SetScrollHereY(0.5f);
+                        }
                     }
                 }
                 ImGui::EndListBox();

@@ -292,6 +292,9 @@ void LodLadder::buildOneLadder(const std::vector<MeshGeometry> &meshes, LodGener
             previousTriangleCount = outcome.triangleCount;
             continue;//already taken from the steps this ladder arrived with
         }
+        if (outcome.skipReason != LodSkipReason::NONE) {
+            continue;//measured and refused before, searching again only finds the same refusal on every load
+        }
         bool derived = false;
         if (!findCachedOutcome(cachedSteps, step, welded, outcome)) {
             //nothing cached, so derive the budget from the share. The welded twin follows the budget this sets

@@ -82,29 +82,8 @@ bool WorldSaver::saveWorld(const std::string& mapName, const World* world) {
     XMLHelper::writeElement(mapDocument, rootNode, "SaveVersion", 2);
     XMLHelper::writeElement(mapDocument, rootNode, "LoadingImage", world->loadingImage);
 
-    tinyxml2::XMLElement * currentElement = mapDocument.NewElement("Player");
-    tinyxml2::XMLElement *playerType = mapDocument.NewElement("Type");
-    playerType->SetText(world->startingPlayer.typeToString().c_str());
-    currentElement->InsertEndChild(playerType);
-
-    tinyxml2::XMLElement *playerPosition = mapDocument.NewElement("Position");
-    XMLHelper::writeVec3(mapDocument, playerPosition, world->startingPlayer.position);
-    currentElement->InsertEndChild(playerPosition);
-
-    tinyxml2::XMLElement *playerOrientation = mapDocument.NewElement("Orientation");
-    XMLHelper::writeVec3(mapDocument, playerOrientation, world->startingPlayer.orientation);
-    currentElement->InsertEndChild(playerOrientation);
-
-    tinyxml2::XMLElement *playerExtension = mapDocument.NewElement("ExtensionName");
-    playerExtension->SetText(world->startingPlayer.extensionName.c_str());
-    currentElement->InsertEndChild(playerExtension);
-
-    tinyxml2::XMLElement *playerExtensionParameters = mapDocument.NewElement("ExtensionParameters");
-    for (size_t i = 0; i < world->startingPlayer.parameters.size(); ++i) {
-        APISerializer::serializeParameterRequest(world->startingPlayer.parameters[i], mapDocument, playerExtensionParameters, i);
-    }
-    currentElement->InsertEndChild(playerExtensionParameters);
-    rootNode->InsertEndChild(currentElement);
+    world->startingPlayer.serialize(mapDocument, rootNode);
+    tinyxml2::XMLElement * currentElement;
 
     // The world's camera rigs (each a CameraRig GameObject owning a registered CameraExtensionInterface).
     if(!world->cameraRigs.empty()) {

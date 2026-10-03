@@ -54,24 +54,57 @@ ModelAsset::ModelAsset(AssetManager *assetManager, uint32_t assetID, const std::
     }
 }
 
-void ModelAsset::loadCPUPart() {
+ModelAsset::ModelAsset(AssetManager *assetManager, const aiScene *scene, uint32_t meshIndex, bool mirrorX,
+                       const std::string &sourcePath, const std::string &piecePath, const std::string &meshName)
+        : Asset(assetManager, 0, {piecePath}),
+          boneIDCounter(0),
+          boneIDCounterPerMesh(0) {
+    name = piecePath;
+    this->sourcePath = sourcePath;
+    reverseWinding = mirrorX;
+    hasAnimation = false;
+    rootNode = std::make_shared<BoneNode>();
+    rootNode->name = meshName;
+    rootNode->boneID = boneIDCounter++;
+    rootNode->transformation = glm::mat4(1.0f);
 
-    //std::cout << "ASSIMP::Loading::" << name << std::endl;
-    const aiScene *scene;
-    Assimp::Importer assimpImporter;
+    const aiMesh *sourceMesh = scene->mMeshes[meshIndex];
+    std::shared_ptr<Material> meshMaterial = loadMaterials(scene, sourceMesh->mMaterialIndex);
+    //no node transform on purpose, every node using this mesh places it through its own object transform
+    glm::mat4 mirrorTransform = mirrorX ? glm::scale(glm::mat4(1.0f), glm::vec3(-1.0f, 1.0f, 1.0f)) : glm::mat4(1.0f);
+    std::shared_ptr<MeshAsset> mesh = std::make_shared<MeshAsset>(sourceMesh, meshName, rootNode, mirrorTransform, false, reverseWinding);
+    meshMaterialMap[mesh] = meshMaterial;
+    if ((*mesh->getTriangleCount()) == 0) {
+        std::cerr << "Mesh " << meshIndex << " of " << sourcePath << " has no triangles, piece " << piecePath << " is empty." << std::endl;
+        exit(-1);
+    }
+    if (meshMaterial->hasOpacityMap()) {
+        transparentMaterialUsed = true;
+    }
+    meshes.push_back(mesh);
+
+    buildLodLevels(LodLadder::BuildMode::NORMAL);
+    computeBoundsFromVertices();
+    buildPhysicsMeshes();
+}
+
+const aiScene *ModelAsset::importScene(Assimp::Importer &assimpImporter, const std::string &path) {
     assimpImporter.SetPropertyBool("AI_CONFIG_IMPORT_FBX_EMBEDDED_TEXTURES_LEGACY_NAMING", true);
     assimpImporter.SetPropertyInteger(AI_CONFIG_PP_SLM_VERTEX_LIMIT, 65536);//faces are u16vec3, a bigger submesh wraps its indices and scrambles the mesh
     unsigned int flags = (aiProcess_GlobalScale|aiProcess_GenBoundingBoxes | aiProcess_FlipUVs | aiProcessPreset_TargetRealtime_MaxQuality);
 #ifdef ASSIMP_VALIDATE_WORKAROUND
     flags = flags & ~aiProcess_FindInvalidData;
 #endif
-    scene = assimpImporter.ReadFile(name, flags);
+    const aiScene *scene = assimpImporter.ReadFile(path, flags);
 
     if (!scene || scene->mFlags == AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
-        std::cerr << "ERROR::ASSIMP::"<<name<<"::" << assimpImporter.GetErrorString() << std::endl;
-        exit(-1);
+        std::cerr << "ERROR::ASSIMP::" << path << "::" << assimpImporter.GetErrorString() << std::endl;
+        return nullptr;
     }
+    return scene;
+}
 
+std::vector<std::shared_ptr<const AssetManager::EmbeddedTexture>> ModelAsset::readEmbeddedTextures(const aiScene *scene) {
     std::vector<std::shared_ptr<const AssetManager::EmbeddedTexture>> textures;
     for (size_t i = 0; i < scene->mNumTextures; ++i) {
         aiTexture* currentTexture = scene->mTextures[i];
@@ -90,6 +123,31 @@ void ModelAsset::loadCPUPart() {
         }
         textures.push_back(eTexture);
     }
+    return textures;
+}
+
+void ModelAsset::computeBoundsFromVertices() {
+    boundingBoxMin = glm::vec3(std::numeric_limits<float>::max());
+    boundingBoxMax = glm::vec3(std::numeric_limits<float>::lowest());
+    for (const std::shared_ptr<MeshAsset> &mesh : meshes) {
+        for (const glm::vec3 &vertex : mesh->getVertices()) {
+            boundingBoxMin = glm::min(boundingBoxMin, vertex);
+            boundingBoxMax = glm::max(boundingBoxMax, vertex);
+        }
+    }
+    centerOffset = (boundingBoxMin + boundingBoxMax) / 2.0f;
+}
+
+void ModelAsset::loadCPUPart() {
+
+    //std::cout << "ASSIMP::Loading::" << name << std::endl;
+    Assimp::Importer assimpImporter;
+    const aiScene *scene = importScene(assimpImporter, name);
+    if (scene == nullptr) {
+        exit(-1);
+    }
+
+    std::vector<std::shared_ptr<const AssetManager::EmbeddedTexture>> textures = readEmbeddedTextures(scene);
     if(textures.size() > 0 ) {
         assetManager->addEmbeddedTextures(this->sourcePath, textures);
     }
@@ -122,15 +180,7 @@ void ModelAsset::loadCPUPart() {
     }
 
     if ((flipX || flipY || flipZ) && !this->hasAnimation) {
-        boundingBoxMin = glm::vec3(std::numeric_limits<float>::max());
-        boundingBoxMax = glm::vec3(std::numeric_limits<float>::lowest());
-        for (const auto &mesh : meshes) {
-            for (const auto &vertex : mesh->getVertices()) {
-                boundingBoxMin = glm::min(boundingBoxMin, vertex);
-                boundingBoxMax = glm::max(boundingBoxMax, vertex);
-            }
-        }
-        centerOffset = (boundingBoxMin + boundingBoxMax) / 2.0f;
+        computeBoundsFromVertices();
     } else {
         aiVector3D min, max;
         AssimpUtils::get_bounding_box(scene, &min, &max);
@@ -1221,8 +1271,8 @@ void ModelAsset::buildPhysicsMeshes() {
                 //a convex shape can not be bigger than the points it was built from, so if it is, the wrong points went in
                 btVector3 shapeMin, shapeMax;
                 meshCollisionShape->getAabb(btTransform::getIdentity(), shapeMin, shapeMax);
-                //measured off the points themselves. getAabbMin/Max transform two corners as points, so a node
-                //transform that mirrors or rotates leaves min above max and every such mesh trips the check
+                //measured off the points themselves. getAabbMin/Max box the transformed source box, which a rotating
+                //node transform makes larger than the mesh
                 const std::vector<glm::vec3> &collisionPoints = (*iter)->getVertices();
                 glm::vec3 meshMin(std::numeric_limits<float>::max());
                 glm::vec3 meshMax(-std::numeric_limits<float>::max());

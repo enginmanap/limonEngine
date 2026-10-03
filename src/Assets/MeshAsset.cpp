@@ -12,6 +12,7 @@
 #include "Lod/LodGenerator.h"
 #include <cstring>
 #include <iostream>
+#include <limits>
 #include "snapdragon-oc/Source/app/FuzzyCulling/API/SDOCAPI.h"
 
 MeshAsset::MeshAsset(const aiMesh *currentMesh, std::string name, std::shared_ptr<const BoneNode> meshSkeleton,
@@ -27,8 +28,18 @@ MeshAsset::MeshAsset(const aiMesh *currentMesh, std::string name, std::shared_pt
     }
 
     //If model is animated, but mesh has no bones, it is most likely we need to attach to the nearest parent.
-    this->minAABB = parentTransform * glm::vec4(GLMConverter::AssimpToGLM(currentMesh->mAABB.mMin), 1.0f);
-    this->maxAABB = parentTransform * glm::vec4(GLMConverter::AssimpToGLM(currentMesh->mAABB.mMax), 1.0f);
+    //all eight corners, a mirroring or rotating parent transform would otherwise leave min above max
+    glm::vec3 sourceMin = GLMConverter::AssimpToGLM(currentMesh->mAABB.mMin);
+    glm::vec3 sourceMax = GLMConverter::AssimpToGLM(currentMesh->mAABB.mMax);
+    this->minAABB = glm::vec4(std::numeric_limits<float>::max());
+    this->maxAABB = glm::vec4(std::numeric_limits<float>::lowest());
+    for (uint32_t corner = 0; corner < 8; ++corner) {
+        glm::vec4 transformedCorner = parentTransform * glm::vec4((corner & 1) ? sourceMax.x : sourceMin.x,
+                                                                  (corner & 2) ? sourceMax.y : sourceMin.y,
+                                                                  (corner & 4) ? sourceMax.z : sourceMin.z, 1.0f);
+        this->minAABB = glm::min(this->minAABB, transformedCorner);
+        this->maxAABB = glm::max(this->maxAABB, transformedCorner);
+    }
     //loadBoneInformation
     if (currentMesh->HasBones()) {
         this->bones = true;
@@ -293,7 +304,7 @@ void MeshAsset::bakeAllOccluderLods() {
 #ifdef CEREAL_SUPPORT
 void MeshAsset::checkSerializationMagic(uint32_t magic) const {
     if (magic != SERIALIZATION_MAGIC) {
-        std::cerr << "This limonmodel file predates per LOD error storage, re-export it with the editor. Exiting..." << std::endl;
+        std::cerr << "This limonmodel file is from an older format, re-export it from its source model. Exiting..." << std::endl;
         exit(1);
     }
 }

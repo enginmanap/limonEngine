@@ -173,5 +173,5 @@ void TextureAsset::getPossibleTexturesList(const AssetManager::AvailableAssetsNo
 TextureAsset::~TextureAsset() {
     if (cpuSurface)
         SDL_DestroySurface(cpuSurface);
-    std::cout << "Texture asset deleted: " << name[0] << std::endl;
+    std::cout << "Texture asset freed: " << name[0] << std::endl;
 }

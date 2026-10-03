@@ -80,6 +80,11 @@ class Editor {
     //the material list's own copy of the registry, rebuilt only when the registry's version moves
     std::vector<std::pair<uint32_t, std::shared_ptr<Material>>> materialsSnapshot;
     uint32_t materialsSnapshotVersion = 0;
+    //raw name, so a split keeps base_ next to its override instead of reordering the list
+    static bool isMaterialListedBefore(const std::pair<uint32_t, std::shared_ptr<Material>> &left,
+                                       const std::pair<uint32_t, std::shared_ptr<Material>> &right);
+    //once per selection, or the list snaps back every time the user scrolls away from it
+    uint32_t lastScrolledRegistrationID = 0;
     //what the material list currently has picked, handed to the object pane so "Switch material" can apply it
     std::shared_ptr<Material> materialSelectedInList = nullptr;
     //a mesh pick from the object pane, which the list follows. Carried on a member because the object pane
