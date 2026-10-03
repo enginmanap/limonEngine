@@ -613,21 +613,32 @@ namespace std {
                                 m.getRefractionIndex()
                                 );
             //std::cout << "for material " << m.getName() << " hash is calculated as " << hash << std::endl;
-            //now check the texture info
+            //a deserialized material is registered before afterLoad attaches its textures, so until then the names it
+            //will attach stand in. Without them limonmodel materials differing only in textures merged into one
             if(m.getAmbientTexture() != nullptr) {
                 hash_combine(hash, m.getAmbientTexture()->getName());
+            } else if (m.textureNames != nullptr && !(*m.textureNames)[0].empty()) {
+                hash_combine(hash, (*m.textureNames)[0]);
             }
             if(m.getDiffuseTexture() != nullptr) {
                 hash_combine(hash, m.getDiffuseTexture()->getName());
+            } else if (m.textureNames != nullptr && !(*m.textureNames)[1].empty()) {
+                hash_combine(hash, (*m.textureNames)[1]);
             }
             if(m.getSpecularTexture() != nullptr) {
                 hash_combine(hash, m.getSpecularTexture()->getName());
+            } else if (m.textureNames != nullptr && !(*m.textureNames)[2].empty()) {
+                hash_combine(hash, (*m.textureNames)[2]);
             }
             if(m.getNormalTexture() != nullptr) {
                 hash_combine(hash, m.getNormalTexture()->getName());
+            } else if (m.textureNames != nullptr && !(*m.textureNames)[3].empty()) {
+                hash_combine(hash, (*m.textureNames)[3]);
             }
             if(m.getOpacityTexture() != nullptr) {
                 hash_combine(hash, m.getOpacityTexture()->getName());
+            } else if (m.textureNames != nullptr && !(*m.textureNames)[4].empty()) {
+                hash_combine(hash, (*m.textureNames)[4]);
             }
             return hash;
         }

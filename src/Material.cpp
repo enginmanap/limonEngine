@@ -125,6 +125,7 @@ ImGuiResult Material::addImGuiEditorElements(const ImGuiRequest &request) {
                     break;
                 default: ;
             }
+            dirty = true;//without it the edit stays on the asset's material, never splits into a world override
             selectedAsset = nullptr;
             selectedTextureIndex = 0;
             ImGui::CloseCurrentPopup();
