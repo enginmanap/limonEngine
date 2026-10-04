@@ -1554,6 +1554,12 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
                                                     (size_t) objectEditorResult.lodPanel.triangleTargetLevel,
                                                     objectEditorResult.lodPanel.triangleTargetRatio);
                 }
+                if (objectEditorResult.lodPanel.stepSettingsLevel >= 0) {
+                    requestLodStepSettings(selectedModel->getModelAsset(),
+                                           (size_t) objectEditorResult.lodPanel.stepSettingsLevel,
+                                           objectEditorResult.lodPanel.stepDistance,
+                                           objectEditorResult.lodPanel.stepLimits);
+                }
                 if (objectEditorResult.lodPanel.recalibrate || objectEditorResult.lodPanel.clearOverrides) {
                     //queued, not applied here: this is mid frame and the render lists in hand still index the old levels
                     requestLodRegeneration(selectedModel->getModelAsset(), objectEditorResult.lodPanel.clearOverrides);
@@ -2437,6 +2443,16 @@ void Editor::requestLodTriangleTarget(std::shared_ptr<ModelAsset> modelAsset, si
     pendingLodRequests.push_back(request);
 }
 
+void Editor::requestLodStepSettings(std::shared_ptr<ModelAsset> modelAsset, size_t levelIndex, float distance,
+                                    const LodPixels &limits) {
+    LodRegenerationRequest request;
+    request.modelAsset = modelAsset;
+    request.stepSettingsLevel = (int32_t) levelIndex;
+    request.stepDistance = distance;
+    request.stepLimits = limits;
+    pendingLodRequests.push_back(request);
+}
+
 void Editor::requestAssetSave(std::shared_ptr<ModelAsset> modelAsset) {
     pendingAssetSaves.insert(modelAsset);
 }
@@ -2481,6 +2497,10 @@ void Editor::applyDeferredAssetChanges() {
             request.modelAsset->getLodLadder().requestTriangleTarget((size_t) request.triangleTargetLevel,
                                                                      request.triangleTargetRatio);
             //the targets changed, so the cached meshes are for something else. Rebuild even if calibration is off
+            request.modelAsset->regenerateLods(LodLadder::BuildMode::EDITOR_CHANGE);
+        } else if (request.stepSettingsLevel >= 0) {
+            request.modelAsset->getLodLadder().requestStepSettings((size_t) request.stepSettingsLevel,
+                                                                   request.stepDistance, request.stepLimits);
             request.modelAsset->regenerateLods(LodLadder::BuildMode::EDITOR_CHANGE);
         } else if (request.clearOverrides) {
             request.modelAsset->getLodLadder().clearOverrides();

@@ -25,6 +25,16 @@ enum class LodSkipReason : uint8_t {
     EMPTY           //simplified down to no triangles at all
 };
 
+//which of the five limits refused a candidate, so the panel can say what to raise for more simplification
+enum class LodLimitKind : uint8_t {
+    NONE,           //nothing refused, the search reached its coarsest error
+    SURFACE,
+    OUTLINE,
+    HOLES,
+    TEXTURE,
+    NORMAL
+};
+
 //the five ways a level can differ from the original, in screen pixels at the level's own distance. As limits a
 //negative value switches that check off, as a measurement it is what the level actually showed
 struct LodPixels {
@@ -64,11 +74,12 @@ struct LodStep {
         float achievedRatio = 0.0f;
         LodPixels measured;              //zero for a step nothing could measure, animated models included
         bool clipped = false;            //the check ran below screen size because of LOD_calibrationMaxResolution
+        LodLimitKind stoppedBy = LodLimitKind::NONE;//what refused the next coarser candidate the search tried
 
 #ifdef CEREAL_SUPPORT
         template<class Archive>
         void serialize(Archive &archive) {
-            archive(built, skipReason, targetError, triangleCount, meshLodIndex, achievedRatio, measured, clipped);
+            archive(built, skipReason, targetError, triangleCount, meshLodIndex, achievedRatio, measured, clipped, stoppedBy);
         }
 #endif
     };
@@ -143,6 +154,10 @@ public:
     //records the share only, the next build finds the simplification that lands there. Caller rebuilds after
     void requestTriangleTarget(size_t stepIndex, float targetRatio);
 
+    //the step's distance and limits for this model alone. Like a typed share, the first edit hands the whole
+    //ladder to the model: no project option applies to it again until clearOverrides. Caller rebuilds after
+    void requestStepSettings(size_t stepIndex, float distance, const LodPixels &limits);
+
     //back to the project defaults, dropping this model's own targets. Leaves the step list empty, so the caller
     //calls readSettings again before rebuilding
     void clearOverrides();
@@ -164,7 +179,7 @@ public:
         return meshLodCount;
     }
 
-    //true when the triangle shares above came from the metadata file rather than the limits
+    //true once the model owns its steps: distances, limits and shares all its own, the project options ignored
     bool hasOverrides() const {
         return overridesPresent;
     }
@@ -190,7 +205,7 @@ public:
 #ifdef CEREAL_SUPPORT
     template<class Archive>
     void serialize(Archive &archive) {
-        archive(steps, originalTriangleCount, meshLodCount, builtSettingsHash);
+        archive(steps, originalTriangleCount, meshLodCount, builtSettingsHash, overridesPresent);
     }
 #endif
 
@@ -203,6 +218,7 @@ private:
         bool silhouetteOnly = false;     //welded, so its uvs and normals are not what it would be drawn with
         LodPixels measured;
         bool clipped = false;
+        LodLimitKind failedBy = LodLimitKind::NONE;
     };
 
     struct View {
@@ -250,7 +266,7 @@ private:
     bool acceptOutcome(const LodStep &step, size_t previousTriangleCount, LodStep::Outcome &outcome) const;
     void buildOneLadder(const std::vector<MeshGeometry> &meshes, LodGenerator::GeneratorKind kind,
                         size_t originalTriangles, const std::vector<LodStep> &cachedSteps, bool generationAllowed,
-                        uint32_t &outMeasuredCount, bool &outDerivedAnyTarget);
+                        uint32_t &outMeasuredCount);
     //every step either built or carrying a reason it could not be, so nothing is left to look up
     bool isLadderComplete() const;
     //the developer's targets, which outlive any change to the search

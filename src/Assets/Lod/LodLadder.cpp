@@ -18,7 +18,7 @@
 #include "limonAPI/util/HashUtil.h"
 
 //bumped by hand whenever the scorer, the search or a generator changes what it produces
-static const uint32_t LOD_CALIBRATOR_VERSION = 11;
+static const uint32_t LOD_CALIBRATOR_VERSION = 12;
 
 //the tuned defaults: maps keep about 80, 60 and 40 percent of their triangles at these distances
 static const uint32_t LOD_DEFAULT_STEP_COUNT = 3;
@@ -199,6 +199,7 @@ void LodLadder::generateCandidate(const std::vector<MeshGeometry> &meshes, LodGe
     candidate.silhouetteOnly = kind == LodGenerator::GeneratorKind::SILHOUETTE_ONLY;
     candidate.measured = LodPixels();
     candidate.clipped = false;
+    candidate.failedBy = LodLimitKind::NONE;
     for (size_t meshIndex = 0; meshIndex < meshes.size() && meshIndex < generators.size(); ++meshIndex) {
         float ignoredRelativeError = 0.0f;
         generators[meshIndex]->generate(kind, targetError, candidate.meshIndices[meshIndex], ignoredRelativeError);
@@ -244,6 +245,8 @@ bool LodLadder::searchStep(const std::vector<MeshGeometry> &meshes, const LodSte
     float low = LOD_SEARCH_LOW_ERROR;
     float high = LOD_SEARCH_HIGH_ERROR;
     float bestError = 0.0f;
+    //every refusal lowers the ceiling, so the last one is the tightest above what passed: the limit to raise
+    LodLimitKind stoppedBy = LodLimitKind::NONE;
     Candidate best;
     Candidate candidate;
     for (uint32_t iteration = 0; iteration < searchSteps; ++iteration) {
@@ -255,15 +258,18 @@ bool LodLadder::searchStep(const std::vector<MeshGeometry> &meshes, const LodSte
             low = middle;
         } else {
             high = middle;
+            stoppedBy = candidate.failedBy;
         }
     }
     if (bestError <= 0.0f) {
         //even the smallest simplification breaks a limit at this distance. A coarser step has its own distance
         //and its own limits, so it is still searched
         outOutcome.skipReason = LodSkipReason::NOTHING_FITS;
+        outOutcome.stoppedBy = stoppedBy;
         return false;
     }
     fillOutcome(best, bestError, originalTriangles, outOutcome);
+    outOutcome.stoppedBy = stoppedBy;
     return true;
 }
 
@@ -331,7 +337,7 @@ bool LodLadder::findCachedOutcome(const std::vector<LodStep> &cachedSteps, const
 
 void LodLadder::buildOneLadder(const std::vector<MeshGeometry> &meshes, LodGenerator::GeneratorKind kind,
                                size_t originalTriangles, const std::vector<LodStep> &cachedSteps,
-                               bool generationAllowed, uint32_t &outMeasuredCount, bool &outDerivedAnyTarget) {
+                               bool generationAllowed, uint32_t &outMeasuredCount) {
     const bool welded = kind == LodGenerator::GeneratorKind::SILHOUETTE_ONLY;
     size_t previousTriangleCount = originalTriangles;
     for (size_t stepIndex = 0; stepIndex < steps.size(); ++stepIndex) {
@@ -364,7 +370,6 @@ void LodLadder::buildOneLadder(const std::vector<MeshGeometry> &meshes, LodGener
         if (!welded && step.userSet && step.requestedRatio > 0.0f) {
             if (buildForTriangleShare(meshes, step, step.requestedRatio, originalTriangles, canCalibrate, outcome)) {
                 outMeasuredCount++;
-                outDerivedAnyTarget = true;
             } else {
                 //the simplifier will not go that far on this model, so the share is dropped rather than kept as
                 //an intent nothing can satisfy. The limits take the step from the next build
@@ -454,14 +459,13 @@ void LodLadder::build(const std::vector<MeshGeometry> &meshes, BuildMode buildMo
 
     //LOD_calibrate off means nothing new is made: a model uses what its sidecar or limonmodel holds, or the original
     bool generationAllowed = calibrationEnabled || buildMode != BuildMode::NORMAL;
-    bool derivedAnyTarget = false;
     uint32_t measuredCount = 0;
     std::chrono::steady_clock::time_point buildStart = std::chrono::steady_clock::now();
     buildOneLadder(meshes, LodGenerator::GeneratorKind::STRUCTURE_PRESERVING, originalTriangles, cachedSteps,
-                   generationAllowed, measuredCount, derivedAnyTarget);
+                   generationAllowed, measuredCount);
     //welded twins for the coarse steps, used by depth only cameras where no texture is ever sampled
     buildOneLadder(meshes, LodGenerator::GeneratorKind::SILHOUETTE_ONLY, originalTriangles, cachedSteps,
-                   generationAllowed, measuredCount, derivedAnyTarget);
+                   generationAllowed, measuredCount);
 
     if (measuredCount > 0) {
         //only when it actually ran, so a cached load stays quiet and the first load shows what it cost
@@ -474,12 +478,6 @@ void LodLadder::build(const std::vector<MeshGeometry> &meshes, BuildMode buildMo
             }
             LodMetadata::write(assetPath, flipAxes, settingsHash, geometryHash, steps);
         }
-    }
-    //never on a plain load: deriving there reproduces what the file already says, and would mark every
-    //converted model unsaved
-    if (derivedAnyTarget && buildMode != BuildMode::NORMAL) {
-        overridesPresent = true;
-        unsavedChanges = true;
     }
     builtSettingsHash = settingsHash;
     assignMeshLodIndices(outPlan);
@@ -506,14 +504,9 @@ void LodLadder::loadIntent() {
     if (!LodMetadata::readOverrides(assetPath, flipAxes, overriddenSteps) || overriddenSteps.empty()) {
         return;
     }
-    //only the typed shares are stored there, the distances and limits stay the project's
-    for (size_t stepIndex = 0; stepIndex < overriddenSteps.size() && stepIndex < steps.size(); ++stepIndex) {
-        if (!overriddenSteps[stepIndex].userSet) {
-            continue;
-        }
-        steps[stepIndex].requestedRatio = overriddenSteps[stepIndex].requestedRatio;
-        steps[stepIndex].userSet = true;
-    }
+    //the model owns its steps, so the project ones are replaced outright, step count included. Only the asked
+    //half is stored there, the cache finds the outcomes by it
+    steps = overriddenSteps;
     overridesPresent = true;
 }
 
@@ -534,8 +527,22 @@ void LodLadder::requestTriangleTarget(size_t stepIndex, float targetRatio) {
     }
     steps[stepIndex].requestedRatio = targetRatio;
     steps[stepIndex].userSet = true;
+    overridesPresent = true;
+    unsavedChanges = true;
     //an outcome belongs to what was asked when it was made. Leaving the old one attached is how a retarget
     //silently came back with the mesh it was supposed to replace
+    steps[stepIndex].structure = LodStep::Outcome();
+    steps[stepIndex].welded = LodStep::Outcome();
+}
+
+void LodLadder::requestStepSettings(size_t stepIndex, float distance, const LodPixels &limits) {
+    if (stepIndex >= steps.size() || distance <= 0.0f) {
+        return;
+    }
+    steps[stepIndex].distance = distance;
+    steps[stepIndex].limits = limits;
+    overridesPresent = true;
+    unsavedChanges = true;
     steps[stepIndex].structure = LodStep::Outcome();
     steps[stepIndex].welded = LodStep::Outcome();
 }
@@ -777,6 +784,7 @@ bool LodLadder::measureCandidate(const std::vector<MeshGeometry> &meshes, float 
                                  Candidate &candidate) const {
     candidate.measured = LodPixels();
     candidate.clipped = false;
+    candidate.failedBy = LodLimitKind::NONE;
     if (meshes.empty() || distance <= 0.0f) {
         return false;
     }
@@ -903,21 +911,26 @@ bool LodLadder::measureCandidate(const std::vector<MeshGeometry> &meshes, float 
 
     const LodPixels &measured = candidate.measured;
     if (limits.surface >= 0.0f && measured.surface > limits.surface) {
+        candidate.failedBy = LodLimitKind::SURFACE;
         return false;
     }
     if (limits.outline >= 0.0f && measured.outline > limits.outline) {
+        candidate.failedBy = LodLimitKind::OUTLINE;
         return false;
     }
     if (limits.holes >= 0.0f && measured.holes > limits.holes) {
+        candidate.failedBy = LodLimitKind::HOLES;
         return false;
     }
     if (candidate.silhouetteOnly) {
         return true;//a depth pass shows no texture and no shading
     }
     if (limits.texture >= 0.0f && measured.texture > limits.texture) {
+        candidate.failedBy = LodLimitKind::TEXTURE;
         return false;
     }
     if (limits.normal >= 0.0f && measured.normal > limits.normal) {
+        candidate.failedBy = LodLimitKind::NORMAL;
         return false;
     }
     return true;

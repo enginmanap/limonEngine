@@ -6,6 +6,7 @@
 #define LIMONENGINE_MODEL_H
 
 
+#include <array>
 #include <vector>
 #include <set>
 #include <unordered_set>
@@ -83,6 +84,9 @@ private:
     //the bone section and the LOD section show the same offscreen image, only the level and the size differ
     void drawModelPreview(const ImGuiRequest &request, ImGuiResult &result, int32_t forcedLodLevel, uint32_t previewWidth, uint32_t previewHeight);
     void putLodPanelInGui(ImGuiResult &result, const ImGuiRequest &request, bool animated, bool isLimonModel);
+    void putLodTableInGui(ImGuiResult &result, bool animated, int32_t &previewLevel,
+                          std::vector<float> &editedTrianglePercents,
+                          std::vector<std::array<float, 6>> &editedStepSettings);
     //the context the engine would use for this object, so the panel and selection cannot drift apart
     float getLodObjectScale() const;
 

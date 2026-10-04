@@ -137,6 +137,10 @@ public:
         //-1 when this is not a triangle target request, otherwise the level whose count was typed
         int32_t triangleTargetLevel = -1;
         float triangleTargetRatio = 0.0f;
+        //-1 when this is not a step settings request, otherwise the level whose distance or limits were typed
+        int32_t stepSettingsLevel = -1;
+        float stepDistance = 0.0f;
+        LodPixels stepLimits;
     };
     std::vector<LodRegenerationRequest> pendingLodRequests;
     std::set<std::shared_ptr<ModelAsset>> pendingAssetSaves;//a set, a world save and the panel can ask for the same asset
@@ -168,6 +172,7 @@ public:
     //the LOD panel asks for these while it is being drawn, they run at the next frame boundary
     void requestLodRegeneration(std::shared_ptr<ModelAsset> modelAsset, bool clearOverrides);
     void requestLodTriangleTarget(std::shared_ptr<ModelAsset> modelAsset, size_t levelIndex, float targetRatio);
+    void requestLodStepSettings(std::shared_ptr<ModelAsset> modelAsset, size_t levelIndex, float distance, const LodPixels &limits);
     void requestAssetSave(std::shared_ptr<ModelAsset> modelAsset);
     //assets first, so the log only says successful when the world and everything it uses reached disk
     void saveWorldFile(const std::string &worldName, bool allAssetsSaved);

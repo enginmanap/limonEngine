@@ -11,7 +11,7 @@
 #include "consthash/include/consthash/cityhash64.hxx"
 #include <SDL3/SDL_filesystem.h>
 
-static const uint32_t LOD_METADATA_SCHEMA_VERSION = 10;
+static const uint32_t LOD_METADATA_SCHEMA_VERSION = 12;
 //two flip variants of one model load in parallel and share this file, and the animation sections live in it too
 static std::mutex lodMetadataWriteMutex;
 
@@ -166,6 +166,7 @@ void LodMetadata::writeOutcome(tinyxml2::XMLElement *stepNode, const char *prefi
     setFloatAttribute(stepNode, base + "Achieved", outcome.achievedRatio);
     writePixels(stepNode, base + "Measured", outcome.measured);
     stepNode->SetAttribute((base + "Clipped").c_str(), outcome.clipped);
+    stepNode->SetAttribute((base + "StoppedBy").c_str(), (uint32_t) outcome.stoppedBy);
 }
 
 void LodMetadata::readOutcome(const tinyxml2::XMLElement *stepNode, const char *prefix, LodStep::Outcome &outcome) {
@@ -177,6 +178,7 @@ void LodMetadata::readOutcome(const tinyxml2::XMLElement *stepNode, const char *
     outcome.achievedRatio = stepNode->FloatAttribute((base + "Achieved").c_str());
     readPixels(stepNode, base + "Measured", outcome.measured);
     outcome.clipped = stepNode->BoolAttribute((base + "Clipped").c_str());
+    outcome.stoppedBy = (LodLimitKind) stepNode->UnsignedAttribute((base + "StoppedBy").c_str());
     //the mesh index is assigned fresh on every build, since which steps are built decides it
     outcome.meshLodIndex = 0;
 }
@@ -251,11 +253,21 @@ bool LodMetadata::readOverrides(const std::string &assetPath, const std::string 
     for (tinyxml2::XMLElement *stepNode = variantNode->FirstChildElement("Step");
          stepNode != nullptr; stepNode = stepNode->NextSiblingElement("Step")) {
         LodStep step;
+        step.distance = stepNode->FloatAttribute("distance");
+        readPixels(stepNode, "limit", step.limits);
+        step.triangleTarget = stepNode->FloatAttribute("triangleTarget");
         step.userSet = stepNode->BoolAttribute("userSet");
         step.requestedRatio = stepNode->FloatAttribute("requestedRatio");
+        if (step.distance <= 0.0f) {
+            //a level with no distance is never used, so the record is broken rather than strict. Dropping the
+            //whole list would hand the model back to the project behind the developer's back
+            std::cerr << "LOD override step " << outSteps.size() + 1 << " for " << assetPath
+                      << " has no usable distance, skipping that step" << std::endl;
+            continue;
+        }
         if (step.userSet && (step.requestedRatio <= 0.0f || step.requestedRatio >= 1.0f)) {
-            //a share outside zero to one can never be built, so it is a broken record rather than a strict one. Only
-            //this step is dropped: the list is positional, so it keeps its place without a target
+            //a share outside zero to one can never be built, so it is a broken record rather than a strict one. The
+            //step keeps its distance and limits, only the share is dropped
             std::cerr << "LOD override step " << outSteps.size() + 1 << " for " << assetPath
                       << " has no usable triangle share, ignoring it" << std::endl;
             step.userSet = false;
@@ -276,6 +288,9 @@ bool LodMetadata::writeOverrides(const std::string &assetPath, const std::string
     for (size_t stepIndex = 0; stepIndex < steps.size(); ++stepIndex) {
         tinyxml2::XMLElement *stepNode = document.NewElement("Step");
         stepNode->SetAttribute("index", (uint32_t) (stepIndex + 1));
+        setFloatAttribute(stepNode, "distance", steps[stepIndex].distance);
+        writePixels(stepNode, "limit", steps[stepIndex].limits);
+        setFloatAttribute(stepNode, "triangleTarget", steps[stepIndex].triangleTarget);
         stepNode->SetAttribute("userSet", steps[stepIndex].userSet);
         setFloatAttribute(stepNode, "requestedRatio", steps[stepIndex].requestedRatio);
         variantNode->InsertEndChild(stepNode);

@@ -4,6 +4,8 @@
 
 #include "Model.h"
 
+#include <array>
+
 #include "Camera/Camera.h"
 #include "limonAPI/ActorInterface.h"
 #include "../ImGuiHelper.h"
@@ -359,61 +361,301 @@ static const char *lodSkipReasonText(LodSkipReason reason) {
     }
 }
 
+//the name a mesh LOD index has everywhere in the panel, so the table rows and the preview slider read the same.
+//Shadow levels come after every textured one, that is the order the meshes hold them in
+static std::string lodMeshName(const LodLadder &ladder, uint32_t meshIndex) {
+    if (meshIndex == 0) {
+        return "Original";
+    }
+    const std::vector<LodStep> &steps = ladder.getSteps();
+    for (size_t step = 0; step < steps.size(); ++step) {
+        if (steps[step].structure.built && steps[step].structure.meshLodIndex == meshIndex) {
+            return "LOD" + std::to_string(step + 1);
+        }
+        if (steps[step].welded.built && steps[step].welded.meshLodIndex == meshIndex) {
+            return "LOD" + std::to_string(step + 1) + " shadow";
+        }
+    }
+    return "LOD?";
+}
+
+//a number right aligned in a slot as wide as the widest value it can hold, so the boxes after it line up across
+//rows. The default font is not monospaced, padding with spaces would not do it. Only relative steps: inside a
+//table cell SameLine with an x adds the cell offset again and pushes the next item out of the cell
+static void putAlignedValue(const char *text) {
+    const float slotWidth = ImGui::CalcTextSize("000.0*").x;
+    const float textWidth = ImGui::CalcTextSize(text).x;
+    ImGui::Dummy(ImVec2(std::max(0.0f, slotWidth - textWidth), 0.0f));
+    ImGui::SameLine(0.0f, 0.0f);
+    ImGui::TextUnformatted(text);
+    ImGui::SameLine();
+}
+
+//wide enough for a four digit value. Every input in the table gets this, so a narrow panel scrolls the table
+//rather than squeezing a box to nothing
+static float lodInputWidth() {
+    return ImGui::CalcTextSize("0000").x + ImGui::GetStyle().FramePadding.x * 2.0f;
+}
+
+//one limit of one level: what was measured, then the limit. A star marks the limit that refused the next coarser
+//candidate, the one to raise for more simplification. No colours, the marker has to read for everyone
+static void putLodLimitCell(const char *inputId, float measured, bool measuredKnown, bool stoppedHere,
+                            float currentLimit, float *editedLimit, bool &committed) {
+    char text[16];
+    if (!measuredKnown) {
+        snprintf(text, sizeof(text), stoppedHere ? "-*" : "-");
+    } else {
+        snprintf(text, sizeof(text), stoppedHere ? "%.1f*" : "%.1f", measured);
+    }
+    putAlignedValue(text);
+    if (editedLimit == nullptr) {
+        //a shadow level is judged with its textured level's limits, they are edited on that row
+        if (currentLimit < 0.0f) {
+            ImGui::TextDisabled("off");
+        } else {
+            ImGui::TextDisabled("%.0f", currentLimit);
+        }
+        return;
+    }
+    ImGui::SetNextItemWidth(lodInputWidth());
+    ImGui::InputFloat(inputId, editedLimit, 0.0f, 0.0f, currentLimit < 0.0f ? "off" : "%.0f");
+    //only once the box is finished with. Committing on every keystroke rebuilds the model for the 3 of a 32
+    if (ImGui::IsItemDeactivatedAfterEdit()) {
+        committed = true;
+    } else if (!ImGui::IsItemActive()) {
+        *editedLimit = currentLimit;//follow the asset while nobody is typing
+    }
+}
+
+void Model::putLodTableInGui(ImGuiResult &result, bool animated, int32_t &previewLevel,
+                             std::vector<float> &editedTrianglePercents,
+                             std::vector<std::array<float, 6>> &editedStepSettings) {
+    const LodLadder &ladder = modelAsset->getLodLadder();
+    const std::vector<LodStep> &steps = ladder.getSteps();
+    const uint32_t originalTriangleCount = ladder.getOriginalTriangleCount();
+    //fixed widths sized to what a cell holds, and a horizontal scrollbar when the panel is narrower. Stretched
+    //columns shrank the limit boxes to nothing in a narrow inspector
+    const ImGuiStyle &style = ImGui::GetStyle();
+    const float inputWidth = lodInputWidth();
+    const float limitWidth = ImGui::CalcTextSize("000.0*").x + style.ItemSpacing.x + inputWidth;
+    const char *headers[9] = {"Level", "Distance m", "Triangles", "Share %", "Surface", "Outline", "Holes", "Texture", "Normal"};
+    const float contentWidths[9] = {ImGui::CalcTextSize("0: LOD3 shadow ~").x, inputWidth, ImGui::CalcTextSize("0000000").x,
+                                    inputWidth + style.ItemSpacing.x + ImGui::CalcTextSize("forced").x,
+                                    limitWidth, limitWidth, limitWidth, limitWidth, limitWidth};
+    size_t rowCount = 2 + steps.size();//header and original
+    for (size_t step = 0; step < steps.size(); ++step) {
+        if (steps[step].welded.built) {
+            rowCount++;
+        }
+    }
+    const float tableHeight = (float) rowCount * ImGui::GetFrameHeightWithSpacing() + style.ScrollbarSize + style.CellPadding.y * 2.0f;
+    const ImGuiTableFlags flags = ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_SizingFixedFit |
+                                  ImGuiTableFlags_ScrollX;
+    if (!ImGui::BeginTable("lodLevels", 9, flags, ImVec2(0.0f, tableHeight))) {
+        return;
+    }
+    for (uint32_t column = 0; column < 9; ++column) {
+        float width = std::max(contentWidths[column], ImGui::CalcTextSize(headers[column]).x);
+        ImGui::TableSetupColumn(headers[column], ImGuiTableColumnFlags_WidthFixed, width);
+    }
+    ImGui::TableHeadersRow();
+
+    ImGui::TableNextRow();
+    ImGui::TableSetColumnIndex(0);
+    if (ImGui::Selectable("0: Original", previewLevel == 0)) {
+        previewLevel = 0;
+    }
+    ImGui::TableSetColumnIndex(2);
+    ImGui::Text("%u", originalTriangleCount);
+
+    const float objectScale = getLodObjectScale();
+    const LodLimitKind kinds[5] = {LodLimitKind::SURFACE, LodLimitKind::OUTLINE, LodLimitKind::HOLES,
+                                   LodLimitKind::TEXTURE, LodLimitKind::NORMAL};
+    const char *inputIds[5] = {"##surface", "##outline", "##holes", "##texture", "##normal"};
+    //textured levels first and shadow levels after, the order the meshes hold them, so a row's number is the
+    //preview's number. A step that could not be built keeps its row: it is worth seeing and worth retargeting
+    for (size_t pass = 0; pass < 2; ++pass) {
+        const bool shadowPass = pass == 1;
+        for (size_t step = 0; step < steps.size(); ++step) {
+            const LodStep &entry = steps[step];
+            const LodStep::Outcome &outcome = shadowPass ? entry.welded : entry.structure;
+            if (shadowPass && !outcome.built) {
+                continue;//a shadow level only exists once built, its settings live on the textured row
+            }
+            ImGui::PushID((int) (step + pass * steps.size()));
+            ImGui::TableNextRow();
+
+            ImGui::TableSetColumnIndex(0);
+            std::string levelName = "LOD" + std::to_string(step + 1) + (shadowPass ? " shadow" : "");
+            std::string label = outcome.built ? std::to_string(outcome.meshLodIndex) + ": " + levelName : levelName;
+            if (outcome.clipped) {
+                label += " ~";
+            }
+            if (outcome.built) {
+                if (ImGui::Selectable(label.c_str(), previewLevel == (int32_t) outcome.meshLodIndex)) {
+                    previewLevel = (int32_t) outcome.meshLodIndex;
+                }
+                if (outcome.clipped && ImGui::IsItemHovered()) {
+                    ImGui::SetTooltip("Checked below its real screen size, LOD_calibrationMaxResolution capped the render.");
+                }
+            } else {
+                ImGui::TextDisabled("%s", label.c_str());
+                if (ImGui::IsItemHovered()) {
+                    ImGui::SetTooltip("%s", lodSkipReasonText(outcome.skipReason));
+                }
+            }
+
+            const std::array<float, 6> currentSettings = {entry.distance, entry.limits.surface, entry.limits.outline,
+                                                          entry.limits.holes, entry.limits.texture, entry.limits.normal};
+            if (!shadowPass && editedStepSettings.size() <= step) {
+                editedStepSettings.resize(step + 1, currentSettings);
+            }
+            bool settingsCommitted = false;
+
+            ImGui::TableSetColumnIndex(1);
+            if (shadowPass) {
+                ImGui::TextDisabled("%.0f", entry.distance);
+            } else {
+                ImGui::SetNextItemWidth(lodInputWidth());
+                ImGui::InputFloat("##distance", &editedStepSettings[step][0], 0.0f, 0.0f, "%.0f");
+                if (ImGui::IsItemDeactivatedAfterEdit()) {
+                    settingsCommitted = true;
+                } else if (!ImGui::IsItemActive()) {
+                    editedStepSettings[step][0] = currentSettings[0];
+                }
+                if (objectScale != 1.0f && ImGui::IsItemHovered()) {
+                    ImGui::SetTooltip("Used from %.0f m at this object's scale", entry.distance * objectScale);
+                }
+            }
+
+            ImGui::TableSetColumnIndex(2);
+            if (outcome.built) {
+                ImGui::Text("%u", outcome.triangleCount);
+            } else {
+                ImGui::TextDisabled("-");
+            }
+
+            ImGui::TableSetColumnIndex(3);
+            if (shadowPass) {
+                ImGui::Text("%.0f", outcome.achievedRatio * 100.0f);
+            } else {
+                //each step has to stay between its neighbours, or the ladder would go backwards. The gain heuristic
+                //does not apply to a number that was typed here, so the bounds are just the neighbours
+                float currentPercent = outcome.built && originalTriangleCount != 0
+                                       ? 100.0f * (float) outcome.triangleCount / (float) originalTriangleCount : 100.0f;
+                float finerPercent = 100.0f;
+                if (step > 0 && originalTriangleCount != 0 && steps[step - 1].structure.built) {
+                    finerPercent = 100.0f * (float) steps[step - 1].structure.triangleCount / (float) originalTriangleCount;
+                }
+                float coarserPercent = 0.1f;
+                if (step + 1 < steps.size() && originalTriangleCount != 0 && steps[step + 1].structure.built) {
+                    coarserPercent = 100.0f * (float) steps[step + 1].structure.triangleCount / (float) originalTriangleCount;
+                }
+                if (editedTrianglePercents.size() <= step) {
+                    editedTrianglePercents.resize(step + 1, currentPercent);
+                }
+                ImGui::SetNextItemWidth(lodInputWidth());
+                ImGui::InputFloat("##share", &editedTrianglePercents[step], 0.0f, 0.0f, "%.0f");
+                if (ImGui::IsItemDeactivatedAfterEdit()) {
+                    //clamped rather than refused, so a number typed past a neighbour still does something sensible
+                    float requested = std::min(std::max(editedTrianglePercents[step], coarserPercent), finerPercent);
+                    editedTrianglePercents[step] = requested;
+                    result.lodPanel.triangleTargetLevel = (int32_t) step;
+                    result.lodPanel.triangleTargetRatio = requested / 100.0f;
+                } else if (!ImGui::IsItemActive()) {
+                    editedTrianglePercents[step] = currentPercent;
+                }
+                if (ImGui::IsItemHovered()) {
+                    ImGui::SetTooltip("Typing a share forces this level to it, overriding its limits. Allowed %.1f%% to %.1f%%.",
+                                      coarserPercent, finerPercent);
+                }
+                ImGui::SameLine();
+                if (entry.userSet) {
+                    ImGui::TextUnformatted("forced");
+                } else {
+                    ImGui::TextDisabled("/ %.0f", entry.triangleTarget * 100.0f);
+                }
+            }
+
+            //a level that was never measured, animated or forced to a share, has nothing to show. A shadow level
+            //is only judged on what a depth pass can show
+            const bool measuredKnown = outcome.built && !animated;
+            const LodLimitKind stoppedBy = outcome.built || outcome.skipReason == LodSkipReason::NOTHING_FITS
+                                           ? outcome.stoppedBy : LodLimitKind::NONE;
+            const float measuredValues[5] = {outcome.measured.surface, outcome.measured.outline, outcome.measured.holes,
+                                             outcome.measured.texture, outcome.measured.normal};
+            for (uint32_t limit = 0; limit < 5; ++limit) {
+                ImGui::TableSetColumnIndex(4 + (int) limit);
+                if (shadowPass && limit >= 3) {
+                    ImGui::TextDisabled("-");
+                    continue;
+                }
+                putLodLimitCell(inputIds[limit], measuredValues[limit], measuredKnown, stoppedBy == kinds[limit],
+                                currentSettings[limit + 1], shadowPass ? nullptr : &editedStepSettings[step][limit + 1],
+                                settingsCommitted);
+            }
+            if (settingsCommitted) {
+                //the whole step goes, so a request never mixes a typed value with one still being typed elsewhere
+                result.lodPanel.stepSettingsLevel = (int32_t) step;
+                result.lodPanel.stepDistance = editedStepSettings[step][0];
+                result.lodPanel.stepLimits.surface = editedStepSettings[step][1];
+                result.lodPanel.stepLimits.outline = editedStepSettings[step][2];
+                result.lodPanel.stepLimits.holes = editedStepSettings[step][3];
+                result.lodPanel.stepLimits.texture = editedStepSettings[step][4];
+                result.lodPanel.stepLimits.normal = editedStepSettings[step][5];
+            }
+            ImGui::PopID();
+        }
+    }
+    ImGui::EndTable();
+    ImGui::TextDisabled("Measured, then the limit, in pixels at the level's distance. * marks the limit that stopped the level: raise it for more simplification. ~ means it was checked at reduced resolution. Click a level to preview it.");
+}
+
 void Model::putLodPanelInGui(ImGuiResult &result, const ImGuiRequest &request, bool animated, bool isLimonModel) {
     const LodLadder &ladder = modelAsset->getLodLadder();
     const std::vector<LodStep> &steps = ladder.getSteps();
     if (animated) {
         ImGui::TextWrapped("Animated model. A deforming mesh has no pose to render, so its steps keep the project's triangle targets and are never measured.");
     }
-    uint32_t originalTriangleCount = ladder.getOriginalTriangleCount();
-    ImGui::Text("Original: %u triangles", originalTriangleCount);
     if (steps.empty()) {
         ImGui::Text("No LOD step was configured, everything renders at the original.");
-    }
-
-    const float objectScale = getLodObjectScale();
-    //the steps as configured, not the levels that happened to be built: a step that could not be built is worth
-    //seeing and worth retargeting, and hiding it is how it became unreachable
-    for (size_t step = 0; step < steps.size(); ++step) {
-        const LodStep &entry = steps[step];
-        const LodStep::Outcome &outcome = entry.structure;
-        ImGui::PushID((int) step);
-        ImGui::Text("%d: used from %.0f m", (int) (step + 1), entry.distance * objectScale);
-        if (!outcome.built) {
-            ImGui::TextDisabled("   %s", lodSkipReasonText(outcome.skipReason));
-        } else {
-            ImGui::Text("   %u tris (%.0f%%, target %.0f%%)", outcome.triangleCount, outcome.achievedRatio * 100.0f,
-                        entry.triangleTarget * 100.0f);
-            //what the level shows at that distance against what it may show, all in pixels of the reference screen
-            ImGui::Text("   surface %.1f/%.0f  outline %.1f/%.0f  holes %.1f/%.0f  texture %.1f/%.0f  normal %.1f/%.0f px",
-                        outcome.measured.surface, entry.limits.surface, outcome.measured.outline, entry.limits.outline,
-                        outcome.measured.holes, entry.limits.holes, outcome.measured.texture, entry.limits.texture,
-                        outcome.measured.normal, entry.limits.normal);
-            if (outcome.clipped) {
-                ImGui::TextWrapped("   Checked below its real screen size, LOD_calibrationMaxResolution capped the render.");
-            }
-        }
-        if (entry.welded.built) {
-            ImGui::Text("   welded twin for shadows: %u tris", entry.welded.triangleCount);
-        }
-        ImGui::PopID();
     }
 
     //the panel keeps its own copy, so a half typed number never reaches the asset
     static uint32_t editedObjectID = 0xFFFFFFFF;
     //what is in the triangle boxes while they are being typed into, so a half finished number never commits
     static std::vector<float> editedTrianglePercents;
+    //the same for each step's distance and five limits, in that order
+    static std::vector<std::array<float, 6>> editedStepSettings;
     static int32_t previewLevel = 0;
     if (editedObjectID != this->getWorldObjectID()) {
         editedObjectID = this->getWorldObjectID();
         editedTrianglePercents.clear();
+        editedStepSettings.clear();
         previewLevel = 0;
     }
 
     if (!animated) {
+        if (ladder.hasOverrides()) {
+            ImGui::TextWrapped("This model controls its own LOD settings, the project options don't apply to it.");
+            if (ImGui::Button("Back to project defaults")) {
+                result.lodPanel.clearOverrides = true;
+                editedObjectID = 0xFFFFFFFF;//so the next frame re-reads what the asset ended up with
+            }
+        } else {
+            ImGui::TextWrapped("Using the project LOD settings. Editing any value below makes this model control its own.");
+        }
+    }
+    ImGui::BeginDisabled(animated);//nothing to retarget, an animated model is never measured
+    putLodTableInGui(result, animated, previewLevel, editedTrianglePercents, editedStepSettings);
+    ImGui::EndDisabled();
+
+    if (!animated) {
         //the live map switches levels by distance, this is how one level is judged on its own
         int32_t maximumLevel = (int32_t) ladder.getMeshLodCount() - 1;
-        ImGui::SliderInt("Preview level", &previewLevel, 0, maximumLevel < 0 ? 0 : maximumLevel);
+        //the number with the table's name for it, so 4 reads as the shadow level it is
+        std::string previewFormat = "%d: " + lodMeshName(ladder, (uint32_t) std::max(previewLevel, 0));
+        ImGui::SliderInt("Preview level", &previewLevel, 0, maximumLevel < 0 ? 0 : maximumLevel, previewFormat.c_str());
         uint32_t previewWidth = (uint32_t) std::max(ImGui::GetContentRegionAvail().x, 128.0f);
         drawModelPreview(request, result, previewLevel, previewWidth, (previewWidth * 3) / 4);
 
@@ -463,60 +705,7 @@ void Model::putLodPanelInGui(ImGuiResult &result, const ImGuiRequest &request, b
     }
 
     if (animated) {
-        return;//kept at the project triangle targets, never measured, so there is nothing to retarget
-    }
-
-    ImGui::Separator();
-    if (ImGui::TreeNode("Triangle counts for this model")) {
-        ImGui::TextWrapped("Set how much of the original each step keeps, overriding the step's limits for this model. The engine finds the simplification that lands there and records what it costs, so the step comes back the same on every load.");
-        //each step has to stay between its neighbours, or the ladder would go backwards. The gain heuristic does
-        //not apply to a number that was typed here, so the bounds are just the neighbours
-        for (size_t step = 0; step < steps.size(); ++step) {
-            ImGui::PushID((int) step);
-            float currentPercent = originalTriangleCount == 0 ? 0.0f
-                                                              : 100.0f * (float) steps[step].structure.triangleCount / (float) originalTriangleCount;
-            float finerPercent = 100.0f;
-            if (step > 0 && originalTriangleCount != 0 && steps[step - 1].structure.built) {
-                finerPercent = 100.0f * (float) steps[step - 1].structure.triangleCount / (float) originalTriangleCount;
-            }
-            float coarserPercent = 0.1f;
-            if (step + 1 < steps.size() && originalTriangleCount != 0 && steps[step + 1].structure.built) {
-                coarserPercent = 100.0f * (float) steps[step + 1].structure.triangleCount / (float) originalTriangleCount;
-            }
-
-            char label[48];
-            snprintf(label, sizeof(label), "Step %d triangles %%", (int) (step + 1));
-            if (editedTrianglePercents.size() <= step) {
-                editedTrianglePercents.resize(step + 1, currentPercent);
-            }
-            ImGui::InputFloat(label, &editedTrianglePercents[step]);
-            //only once the box is finished with. Committing on every keystroke rebuilds the model for the 3 of a
-            //32, and a rebuild measures the whole model from fourteen directions
-            if (ImGui::IsItemDeactivatedAfterEdit()) {
-                //clamped rather than refused, so a number typed past a neighbour still does something sensible
-                float requested = std::min(std::max(editedTrianglePercents[step], coarserPercent), finerPercent);
-                editedTrianglePercents[step] = requested;
-                result.lodPanel.triangleTargetLevel = (int32_t) step;
-                result.lodPanel.triangleTargetRatio = requested / 100.0f;
-            } else if (!ImGui::IsItemActive()) {
-                editedTrianglePercents[step] = currentPercent;//follow the asset while nobody is typing
-            }
-            ImGui::Text("   allowed %.1f%% to %.1f%%", coarserPercent, finerPercent);
-            if (steps[step].requestedRatio > 0.0f &&
-                steps[step].structure.achievedRatio > steps[step].requestedRatio * 1.05f) {
-                ImGui::SameLine();
-                ImGuiHelper::ShowHelpMarker("Asked for less than the simplifier will give. Hard edges, protected UV seams and separate parts put a floor under how far a mesh can go.");
-            }
-            ImGui::PopID();
-        }
-        if (ImGui::Button("Back to project defaults")) {
-            result.lodPanel.clearOverrides = true;
-            editedObjectID = 0xFFFFFFFF;//so the next frame re-reads what the asset ended up with
-        }
-        ImGui::TreePop();
-    }
-    if (ladder.hasOverrides()) {
-        ImGui::Text("Using triangle counts set on this model, not the project defaults.");
+        return;//kept at the project triangle targets, never measured, so there is nothing to recalibrate
     }
     if (ImGui::Button("Recalibrate")) {
         result.lodPanel.recalibrate = true;

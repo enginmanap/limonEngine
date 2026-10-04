@@ -31,7 +31,7 @@ public:
     static bool write(const std::string &assetPath, const std::string &flipAxes, uint64_t settingsHash,
                       uint64_t geometryHash, const std::vector<LodStep> &steps);
 
-    //the typed half only: per step, the triangle share and whether the developer set it
+    //the asked half only, for a model that owns its steps: distance, limits and any typed share per step
     static bool readOverrides(const std::string &assetPath, const std::string &flipAxes,
                               std::vector<LodStep> &outSteps);
 
