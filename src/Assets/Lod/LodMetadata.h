@@ -31,7 +31,7 @@ public:
     static bool write(const std::string &assetPath, const std::string &flipAxes, uint64_t settingsHash,
                       uint64_t geometryHash, const std::vector<LodStep> &steps);
 
-    //the asked for half only: budgets, triangle targets and whether the developer set them
+    //the typed half only: per step, the triangle share and whether the developer set it
     static bool readOverrides(const std::string &assetPath, const std::string &flipAxes,
                               std::vector<LodStep> &outSteps);
 

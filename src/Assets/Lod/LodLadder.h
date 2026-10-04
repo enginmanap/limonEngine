@@ -21,32 +21,54 @@ namespace OptionsUtil {
 enum class LodSkipReason : uint8_t {
     NONE,
     NO_GAIN,        //it barely improved on the step before it, so it would cost an index range for nothing
-    NOTHING_FITS,   //even the smallest error damages this model past the budget, so no coarser step can fit either
+    NOTHING_FITS,   //even the smallest simplification breaks a limit at this step's distance
     EMPTY           //simplified down to no triangles at all
+};
+
+//the five ways a level can differ from the original, in screen pixels at the level's own distance. As limits a
+//negative value switches that check off, as a measurement it is what the level actually showed
+struct LodPixels {
+    float surface = 0.0f;   //how far the visible surface moved, a uv slide included
+    float outline = 0.0f;   //how far the silhouette moved
+    float holes = 0.0f;     //widest place where something behind shows through
+    float texture = 0.0f;   //widest place where the uv jumped to another part of the texture
+    float normal = 0.0f;    //widest place whose shading changed past LOD_normalDeviation
+
+    bool operator==(const LodPixels &other) const {
+        return surface == other.surface && outline == other.outline && holes == other.holes &&
+               texture == other.texture && normal == other.normal;
+    }
+#ifdef CEREAL_SUPPORT
+    template<class Archive>
+    void serialize(Archive &archive) {
+        archive(surface, outline, holes, texture, normal);
+    }
+#endif
 };
 
 //what was asked of one step and what came out. A welded twin is this step's second outcome, not a step of its own
 struct LodStep {
-    //asked for
-    float silhouetteBudget = 0.02f;  //fraction of pixels that may be wrong in outline, uv or normal, the same at any distance
-    float requestedRatio = 0.0f;     //triangle share typed in the editor, zero when it came from the options
+    //asked for, from the options
+    float distance = 0.0f;           //meters, times the instance scale. The limits are judged at exactly this distance
+    LodPixels limits;
+    float triangleTarget = 0.0f;     //what the project hopes this step keeps, reported but never used to decide
+    float requestedRatio = 0.0f;     //triangle share typed in the editor, overrides the limits for this model
     bool userSet = false;            //the gain rule steps aside for these: a 2% saving may be exactly the point
 
     struct Outcome {
         bool built = false;
         LodSkipReason skipReason = LodSkipReason::NONE;
         float targetError = 0.0f;        //what the generator was handed, so this mesh can be rebuilt exactly
-        float modelError = 0.0f;         //measured, in model units, what places this level
         uint32_t triangleCount = 0;
         uint32_t meshLodIndex = 0;       //the index range every mesh built for it
-        float silhouetteDamage = 0.0f;   //what it cost, for the panel
-        float achievedRatio = 0.0f;      //so the panel can flag a target the simplifier would not reach
+        float achievedRatio = 0.0f;
+        LodPixels measured;              //zero for a step nothing could measure, animated models included
+        bool clipped = false;            //the check ran below screen size because of LOD_calibrationMaxResolution
 
 #ifdef CEREAL_SUPPORT
         template<class Archive>
         void serialize(Archive &archive) {
-            archive(built, skipReason, targetError, modelError, triangleCount, meshLodIndex, silhouetteDamage,
-                    achievedRatio);
+            archive(built, skipReason, targetError, triangleCount, meshLodIndex, achievedRatio, measured, clipped);
         }
 #endif
     };
@@ -56,16 +78,12 @@ struct LodStep {
 #ifdef CEREAL_SUPPORT
     template<class Archive>
     void serialize(Archive &archive) {
-        archive(silhouetteBudget, requestedRatio, userSet, structure, welded);
+        archive(distance, limits, triangleTarget, requestedRatio, userSet, structure, welded);
     }
 #endif
 };
 
 struct LodSelectionContext {
-    float pixelScale = 0.0f;        //model units to pixels at distance one
-    //how much error may show on screen, the shadow scale already folded in. Resolve it once per camera, it was
-    //recomputed for every step of every object when the ingredients lived here
-    float allowance = 1.0f;
     float hysteresis = 0.0f;
     long forceLevel = -1;
     bool isShadowCamera = false;    //depth only, so welded outcomes may be drawn
@@ -122,7 +140,7 @@ public:
     //that changes nothing never gets here
     void prepareGenerators(const std::vector<MeshGeometry> &meshes);
 
-    //records the share only, the budget that reproduces it is measured by the next build. Caller rebuilds after
+    //records the share only, the next build finds the simplification that lands there. Caller rebuilds after
     void requestTriangleTarget(size_t stepIndex, float targetRatio);
 
     //back to the project defaults, dropping this model's own targets. Leaves the step list empty, so the caller
@@ -132,12 +150,6 @@ public:
     //coarsest step this camera admits, as a mesh LOD index. previousLevel is the dead band, so an object sitting
     //on a threshold doesn't flip every frame
     uint32_t selectLevel(const LodSelectionContext &context, uint32_t previousLevel) const;
-
-    //distance at which this outcome's error still projects to no more than the allowance. The one placement rule
-    float switchDistanceOf(const LodStep::Outcome &outcome, const LodSelectionContext &context) const;
-
-    //model units to pixels at distance one, for a projection rendered to a target of this height
-    static float pixelsPerModelUnit(const glm::mat4 &projectionMatrix, uint32_t targetHeight);
 
     const std::vector<LodStep> &getSteps() const {
         return steps;
@@ -152,7 +164,7 @@ public:
         return meshLodCount;
     }
 
-    //true when the budgets above came from the metadata file rather than the project options
+    //true when the triangle shares above came from the metadata file rather than the limits
     bool hasOverrides() const {
         return overridesPresent;
     }
@@ -183,19 +195,14 @@ public:
 #endif
 
 private:
-    //indices and what they cost together, so nothing is re-described between generating and measuring
+    //indices and what they look like at the step's distance, so nothing is re-described between generating and
+    //measuring
     struct Candidate {
         std::vector<std::vector<uint16_t>> meshIndices;
         size_t triangleCount = 0;
-        float silhouette = 0.0f;         //outline changes, holes and wrong uvs or normals together, over covered pixels
-        float modelError = 0.0f;         //the worse of the outline displacement and the surface p95
         bool silhouetteOnly = false;     //welded, so its uvs and normals are not what it would be drawn with
-    };
-
-    //the two tests the search runs. Target error is a multiplicative scale, so the walk is geometric either way
-    enum class SearchGoal {
-        DAMAGE_UNDER_BUDGET,    //measures every candidate, which is what costs
-        TRIANGLES_UNDER_COUNT   //reads the triangle count, which is free
+        LodPixels measured;
+        bool clipped = false;
     };
 
     struct View {
@@ -210,7 +217,7 @@ private:
         std::vector<float> depth;
         std::vector<glm::vec2> textureCoordinates;
         std::vector<glm::vec3> normals;
-        std::vector<float> positionPerUv;   //model units per uv unit of the triangle drawn there, zero for a flat uv
+        std::vector<float> positionPerUv;   //model units per uv unit of the mesh drawn there, zero without uvs
         std::vector<uint8_t> attributeMask;
 
         void reset(uint32_t resolution);
@@ -219,45 +226,50 @@ private:
     static const uint8_t RASTER_HAS_NORMAL = 2;
 
     void appendDefaultSteps();
+    void readStepsFromOptions(OptionsUtil::Options *options);
     void computeSettingsHash();
-    //welding only pays at the coarse end, and only where no texture is ever sampled
+    //the coarse steps get a welded twin, depth cameras use the original and the finer steps as they are
     bool isWeldedStep(size_t stepIndex) const;
 
     static size_t countTriangles(const std::vector<MeshGeometry> &meshes);
     void generateCandidate(const std::vector<MeshGeometry> &meshes, LodGenerator::GeneratorKind kind,
-                           float targetError, bool measure, Candidate &candidate) const;
-    float bisectTargetError(const std::vector<MeshGeometry> &meshes, LodGenerator::GeneratorKind kind,
-                            SearchGoal goal, float limit, Candidate &outBest) const;
-    //fills one outcome from a winning candidate, or records why there is none
+                           float targetError, Candidate &candidate) const;
+    //coarsest target error whose candidate keeps at most this many triangles. Free, nothing is rendered
+    float bisectForTriangleCount(const std::vector<MeshGeometry> &meshes, float wantedTriangles,
+                                 Candidate &outBest) const;
+    //coarsest simplification that passes every limit of the step at its distance, or why there is none
     bool searchStep(const std::vector<MeshGeometry> &meshes, const LodStep &step, LodGenerator::GeneratorKind kind,
                     size_t originalTriangles, LodStep::Outcome &outOutcome) const;
-    //turns a recorded triangle share into the budget that reproduces it, and fills the outcome it measured
-    bool deriveTriangleTarget(const std::vector<MeshGeometry> &meshes, LodStep &step, size_t originalTriangles,
-                              LodStep::Outcome &outOutcome);
-    //what a step gets when nothing may be measured: the budget read as an error, placed by meshopt's own bound
-    void fallbackOutcome(const std::vector<MeshGeometry> &meshes, const LodStep &step,
-                         LodGenerator::GeneratorKind kind, size_t originalTriangles,
-                         LodStep::Outcome &outOutcome) const;
+    //lands on a triangle share instead of the limits: a share typed in the editor, or an animated model that
+    //nothing can measure. Measures what it got when it can, so the panel still shows the cost
+    bool buildForTriangleShare(const std::vector<MeshGeometry> &meshes, const LodStep &step, float share,
+                               size_t originalTriangles, bool measure, LodStep::Outcome &outOutcome) const;
+    static void fillOutcome(const Candidate &candidate, float targetError, size_t originalTriangles,
+                            LodStep::Outcome &outOutcome);
     //the only place that decides whether an outcome is kept
     bool acceptOutcome(const LodStep &step, size_t previousTriangleCount, LodStep::Outcome &outcome) const;
     void buildOneLadder(const std::vector<MeshGeometry> &meshes, LodGenerator::GeneratorKind kind,
-                        size_t originalTriangles, const std::vector<LodStep> &cachedSteps, bool measureAllowed,
+                        size_t originalTriangles, const std::vector<LodStep> &cachedSteps, bool generationAllowed,
                         uint32_t &outMeasuredCount, bool &outDerivedAnyTarget);
     //every step either built or carrying a reason it could not be, so nothing is left to look up
     bool isLadderComplete() const;
     //the developer's targets, which outlive any change to the search
     void loadIntent();
-    //a cached step built from the same budget describes the same mesh, so its outcome is taken as it is
+    //a cached step asked for the same thing describes the same mesh, so its outcome is taken as it is
     static bool findCachedOutcome(const std::vector<LodStep> &cachedSteps, const LodStep &step,
                                   bool welded, LodStep::Outcome &outOutcome);
     void assignMeshLodIndices(std::vector<LevelPlan> &outPlan);
 
-    //the scorer: renders the candidate against the original from fourteen directions. meshoptimizer's own error
-    //is a quadric bound that stops tracking visible damage past about 0.03, so steps are judged against this
-    void measureCandidate(const std::vector<MeshGeometry> &meshes, Candidate &candidate) const;
+    //renders the candidate against the original from fourteen directions, at the size it has on the reference
+    //screen at this distance, and fills what differs. True when every limit holds
+    bool measureCandidate(const std::vector<MeshGeometry> &meshes, float distance, const LodPixels &limits,
+                          Candidate &candidate) const;
     static void buildViews(std::vector<View> &views);
+    static float averagePositionPerUv(const MeshGeometry &mesh);
+    static float largestRegionWidth(std::vector<uint8_t> &damaged, uint32_t resolution);
     static void rasterize(const std::vector<MeshGeometry> &meshes, const Candidate *candidate, const View &view,
-                          const glm::vec3 &center, float scale, uint32_t resolution, RasterTarget &target);
+                          const glm::vec3 &center, float scale, uint32_t resolution,
+                          const std::vector<float> &meshPositionPerUv, RasterTarget &target);
 
     std::vector<LodStep> steps;
     uint32_t originalTriangleCount = 0;
@@ -269,17 +281,19 @@ private:
 
     std::string assetPath;
     std::string flipAxes;
-    bool canCalibrate = true;       //a skinned mesh deforms, so a bind pose score says nothing about it
+    bool canCalibrate = true;       //a skinned mesh deforms, so a bind pose render says nothing about it
     bool overridesPresent = false;
     bool storeIsBinary = false;
     bool unsavedChanges = false;
 
     bool calibrationEnabled = true;
     uint32_t searchSteps = 7;
-    uint32_t scorerResolution = 256;
+    uint32_t maximumResolution = 2048;
+    uint32_t referenceHeight = 1080;
+    float referenceFov = 60.0f;
+    float referencePixelsPerMeter = 935.3f;//at one meter, derived from the two above, never part of the cache key
     bool shadowWeldedLevels = true;
-    uint32_t shadowWeldedFromLevel = 3;
-    float uvDeviation = 1.0f / 2048.0f;
+    uint32_t shadowWeldedFromLevel = 2;
     float normalDeviation = 0.2f;
     uint64_t settingsHash = 0;
     uint64_t builtSettingsHash = 0;//what the outcomes above were produced under, so a settings change drops them

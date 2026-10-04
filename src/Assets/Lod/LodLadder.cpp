@@ -8,6 +8,7 @@
 #include <cfloat>
 #include <chrono>
 #include <cmath>
+#include <cstring>
 #include <cstdio>
 #include <iostream>
 
@@ -17,27 +18,35 @@
 #include "limonAPI/util/HashUtil.h"
 
 //bumped by hand whenever the scorer, the search or a generator changes what it produces
-static const uint32_t LOD_CALIBRATOR_VERSION = 7;
+static const uint32_t LOD_CALIBRATOR_VERSION = 11;
 
-//four steps, each allowed more wrong pixels than the one before it
-static const float LOD_DEFAULT_SILHOUETTE_BUDGETS[4] = {0.005f, 0.02f, 0.05f, 0.10f};
+//the tuned defaults: maps keep about 80, 60 and 40 percent of their triangles at these distances
+static const uint32_t LOD_DEFAULT_STEP_COUNT = 3;
+static const float LOD_DEFAULT_DISTANCES[LOD_DEFAULT_STEP_COUNT] = {50.0f, 100.0f, 200.0f};
+static const float LOD_DEFAULT_TRIANGLE_TARGETS[LOD_DEFAULT_STEP_COUNT] = {80.0f, 60.0f, 40.0f};
+static const float LOD_DEFAULT_SURFACE_PIXELS[LOD_DEFAULT_STEP_COUNT] = {4.0f, 3.0f, 4.0f};
+static const float LOD_DEFAULT_OUTLINE_PIXELS[LOD_DEFAULT_STEP_COUNT] = {4.0f, 3.0f, 4.0f};
+static const float LOD_DEFAULT_HOLE_PIXELS[LOD_DEFAULT_STEP_COUNT] = {2.0f, 6.0f, 8.0f};
+static const float LOD_DEFAULT_TEXTURE_PIXELS[LOD_DEFAULT_STEP_COUNT] = {8.0f, 12.0f, 16.0f};
+static const float LOD_DEFAULT_NORMAL_PIXELS[LOD_DEFAULT_STEP_COUNT] = {8.0f, 12.0f, 16.0f};
 static const uint32_t LOD_MAX_STEPS_FROM_OPTIONS = 7;//LOD0 plus this many, kept under the mesh side ceiling
 
 static const float LOD_SEARCH_LOW_ERROR = 0.0005f;
 static const float LOD_SEARCH_HIGH_ERROR = 0.4f;
 //a step that saves less than this over the one before it is not worth its own index range and its own bake
 static const float LOD_MIN_TRIANGLE_GAIN = 0.05f;
-//the smallest damage the scorer can resolve. A mild triangle target can measure zero, and a budget of zero is
-//a configuration nothing can meet, so it is floored to this instead of refusing the step
-static const float LOD_MIN_BUDGET = 1e-6f;
-//the surface percentile a step is placed by, so a handful of stray pixels cannot set the distance
-static const float LOD_PLACEMENT_QUANTILE = 0.95f;
+//past eight texels of a 2048 texture a uv change samples another part of the atlas rather than sliding
+static const float LOD_UV_JUMP = 8.0f / 2048.0f;
+//the surface number is this percentile of how far the pixels moved, so a single stray pixel can't fail a step
+static const float LOD_SURFACE_QUANTILE = 0.99f;
 
-static const uint32_t LOD_SCORER_MIN_RESOLUTION = 32;
+static const uint32_t LOD_SCORER_MIN_RESOLUTION = 16;
 //a surface that moved stays within a few pixels of where it was. Beyond this the nearest thing at that pixel
 //is a different surface showing through a hole, and the size of that gap says nothing about how visible it is
 static const float LOD_SCORER_SURFACE_JUMP_PIXELS = 4.0f;
 static const uint32_t LOD_SCORER_VIEW_COUNT = 14;
+//rendered at twice the screen size and judged in screen pixels, so a pixel holds what a real one would average
+static const float LOD_SCORER_SUPERSAMPLING = 2.0f;
 
 void LodLadder::bindAsset(const std::string &newAssetPath, const std::string &newFlipAxes, bool newCanCalibrate,
                           bool newStoreIsBinary) {
@@ -49,9 +58,15 @@ void LodLadder::bindAsset(const std::string &newAssetPath, const std::string &ne
 
 void LodLadder::appendDefaultSteps() {
     steps.clear();
-    for (uint32_t step = 0; step < 4; ++step) {
+    for (uint32_t step = 0; step < LOD_DEFAULT_STEP_COUNT; ++step) {
         LodStep entry;
-        entry.silhouetteBudget = LOD_DEFAULT_SILHOUETTE_BUDGETS[step];
+        entry.distance = LOD_DEFAULT_DISTANCES[step];
+        entry.triangleTarget = LOD_DEFAULT_TRIANGLE_TARGETS[step] / 100.0f;
+        entry.limits.surface = LOD_DEFAULT_SURFACE_PIXELS[step];
+        entry.limits.outline = LOD_DEFAULT_OUTLINE_PIXELS[step];
+        entry.limits.holes = LOD_DEFAULT_HOLE_PIXELS[step];
+        entry.limits.texture = LOD_DEFAULT_TEXTURE_PIXELS[step];
+        entry.limits.normal = LOD_DEFAULT_NORMAL_PIXELS[step];
         steps.push_back(entry);
     }
 }
@@ -60,23 +75,67 @@ bool LodLadder::isWeldedStep(size_t stepIndex) const {
     if (!shadowWeldedLevels) {
         return false;
     }
-    //the corpus puts welding at about 1.3x the saving around 4% outline damage and 3x at 27%, so below the
-    //coarse end it costs damage for nothing
     return stepIndex + 1 >= shadowWeldedFromLevel;
 }
 
-//only what changes the meaning of every outcome at once. The budgets are deliberately not in here: a step is
-//matched to a cached outcome by its own budget, so retargeting one step must not discard the other five.
+//only what changes the meaning of every outcome at once. A step's distance and limits are deliberately not in
+//here: a step is matched to a cached outcome by its own, so retargeting one step must not discard the others.
 //LOD_calibrate is out too, a cached result was measured either way.
 void LodLadder::computeSettingsHash() {
-    std::string packed = "v" + std::to_string(LOD_CALIBRATOR_VERSION) + "|s" + std::to_string(searchSteps) +
-                         "|r" + std::to_string(scorerResolution) + "|w" + std::to_string(shadowWeldedLevels ? 1 : 0) +
-                         "," + std::to_string(shadowWeldedFromLevel);
-    char deviations[64];
-    //to_string keeps six decimals, so 1/4096 and 1/4100 would share a cache entry
-    snprintf(deviations, sizeof(deviations), "|u%.9g|n%.9g", uvDeviation, normalDeviation);
-    packed += deviations;
-    settingsHash = consthash::city64(packed.c_str(), packed.length());
+    char packed[192];
+    //the reference as configured, never referencePixelsPerMeter: tan differs in its last digit between C runtimes,
+    //and a binary copied to another machine recalibrated on every load. %.9g round trips the float options
+    snprintf(packed, sizeof(packed), "v%u|s%u|r%u|h%u|f%.9g|w%d,%u|n%.9g", LOD_CALIBRATOR_VERSION, searchSteps,
+             maximumResolution, referenceHeight, referenceFov, shadowWeldedLevels ? 1 : 0, shadowWeldedFromLevel,
+             normalDeviation);
+    settingsHash = consthash::city64(packed, strlen(packed));
+}
+
+//one list per field, one entry per step. An empty distance list is how a project switches levels off
+void LodLadder::readStepsFromOptions(OptionsUtil::Options *options) {
+    steps.clear();
+    OptionsUtil::Options::Option<std::vector<float>> distanceOption =
+            options->getOption<std::vector<float>>(HASH("LOD_levelDistances"));
+    if (!distanceOption.isUsable()) {
+        std::cerr << "LOD_levelDistances is missing, no LOD level is generated" << std::endl;
+        return;
+    }
+    std::vector<float> distances = distanceOption.get();
+    if (distances.empty()) {
+        return;
+    }
+    const char *listNames[6] = {"LOD_levelTriangleTargets", "LOD_levelSurfacePixels", "LOD_levelOutlinePixels",
+                                "LOD_levelHolePixels", "LOD_levelTexturePixels", "LOD_levelNormalPixels"};
+    std::vector<float> lists[6];
+    for (uint32_t list = 0; list < 6; ++list) {
+        OptionsUtil::Options::Option<std::vector<float>> option =
+                options->getOption<std::vector<float>>(consthash::city64(listNames[list], strlen(listNames[list])));
+        if (option.isUsable()) {
+            lists[list] = option.get();
+        }
+        if (lists[list].size() != distances.size()) {
+            //a level judged with another level's limit would be built wrong in silence, so none is built
+            std::cerr << listNames[list] << " has " << lists[list].size() << " entries but LOD_levelDistances has "
+                      << distances.size() << ", no LOD level is generated" << std::endl;
+            return;
+        }
+    }
+    if (distances.size() > LOD_MAX_STEPS_FROM_OPTIONS) {
+        std::cerr << "LOD_levelDistances asks for " << distances.size() << " levels, only the first "
+                  << LOD_MAX_STEPS_FROM_OPTIONS << " are used" << std::endl;
+        distances.resize(LOD_MAX_STEPS_FROM_OPTIONS);
+    }
+    for (size_t step = 0; step < distances.size(); ++step) {
+        LodStep entry;
+        entry.distance = distances[step];
+        entry.triangleTarget = lists[0][step] / 100.0f;//authored as percent, like the panel reads
+        entry.limits.surface = lists[1][step];
+        entry.limits.outline = lists[2][step];
+        entry.limits.holes = lists[3][step];
+        entry.limits.texture = lists[4][step];
+        entry.limits.normal = lists[5][step];
+        steps.push_back(entry);
+    }
 }
 
 void LodLadder::readSettings(OptionsUtil::Options *options) {
@@ -86,42 +145,23 @@ void LodLadder::readSettings(OptionsUtil::Options *options) {
         if (searchSteps < 1) {
             searchSteps = 1;
         }
-        scorerResolution = (uint32_t) options->getOption<long>(HASH("LOD_scorerResolution")).getOrDefault(256L);
+        maximumResolution = (uint32_t) options->getOption<long>(HASH("LOD_calibrationMaxResolution")).getOrDefault(2048L);
+        maximumResolution = std::max(maximumResolution, LOD_SCORER_MIN_RESOLUTION);
         shadowWeldedLevels = options->getOption<bool>(HASH("LOD_shadowWeldedLevels")).getOrDefault(true);
-        shadowWeldedFromLevel = (uint32_t) options->getOption<long>(HASH("LOD_shadowWeldedFromLevel")).getOrDefault(3L);
-        uvDeviation = (float) options->getOption<double>(HASH("LOD_uvDeviation")).getOrDefault(1.0 / 2048.0);
+        shadowWeldedFromLevel = (uint32_t) options->getOption<long>(HASH("LOD_shadowWeldedFromLevel")).getOrDefault(2L);
         normalDeviation = (float) options->getOption<double>(HASH("LOD_normalDeviation")).getOrDefault(0.2);
+        referenceHeight = (uint32_t) options->getOption<long>(HASH("LOD_referenceHeight")).getOrDefault(1080L);
+        referenceFov = (float) options->getOption<double>(HASH("LOD_referenceFov")).getOrDefault(60.0);
+        referencePixelsPerMeter = (float) (0.5 * (double) referenceHeight / std::tan(glm::radians(referenceFov * 0.5)));
     }
 
-    //the steps a binary load brought with it carry their own intent, so the project defaults only fill in an
+    //the steps a binary load brought with it carry their own intent, so the project options only fill in an
     //empty ladder. An override read below replaces them either way
     if (steps.empty()) {
-        std::vector<float> budgets;
-        if (options != nullptr) {
-            OptionsUtil::Options::Option<std::vector<float>> budgetOption =
-                    options->getOption<std::vector<float>>(HASH("LOD_levelSilhouetteBudgetList"));
-            if (budgetOption.isUsable()) {
-                budgets = budgetOption.get();
-            }
-        }
-        if (budgets.empty()) {
-            if (options != nullptr) {
-                std::cerr << "LOD_levelSilhouetteBudgetList is missing or empty, using the measured defaults" << std::endl;
-            }
-            appendDefaultSteps();
+        if (options == nullptr) {
+            appendDefaultSteps();//a scratch tool with no options, the engine always has them
         } else {
-            if (budgets.size() > LOD_MAX_STEPS_FROM_OPTIONS) {
-                std::cerr << "LOD_levelSilhouetteBudgetList asks for " << budgets.size() << " steps, only the first "
-                          << LOD_MAX_STEPS_FROM_OPTIONS << " are used" << std::endl;
-                budgets.resize(LOD_MAX_STEPS_FROM_OPTIONS);
-            }
-            steps.clear();
-            for (size_t step = 0; step < budgets.size(); ++step) {
-                LodStep entry;
-                //budgets are authored as percent, because that is how the report reads
-                entry.silhouetteBudget = budgets[step] / 100.0f;
-                steps.push_back(entry);
-            }
+            readStepsFromOptions(options);
         }
     }
     computeSettingsHash();
@@ -153,96 +193,102 @@ size_t LodLadder::countTriangles(const std::vector<MeshGeometry> &meshes) {
 }
 
 void LodLadder::generateCandidate(const std::vector<MeshGeometry> &meshes, LodGenerator::GeneratorKind kind,
-                                  float targetError, bool measure, Candidate &candidate) const {
+                                  float targetError, Candidate &candidate) const {
     candidate.meshIndices.assign(meshes.size(), std::vector<uint16_t>());
     candidate.triangleCount = 0;
     candidate.silhouetteOnly = kind == LodGenerator::GeneratorKind::SILHOUETTE_ONLY;
-    candidate.silhouette = 0.0f;
-    candidate.modelError = 0.0f;
+    candidate.measured = LodPixels();
+    candidate.clipped = false;
     for (size_t meshIndex = 0; meshIndex < meshes.size() && meshIndex < generators.size(); ++meshIndex) {
         float ignoredRelativeError = 0.0f;
         generators[meshIndex]->generate(kind, targetError, candidate.meshIndices[meshIndex], ignoredRelativeError);
         candidate.triangleCount += candidate.meshIndices[meshIndex].size() / 3;
     }
-    if (measure) {
-        measureCandidate(meshes, candidate);
-    }
 }
 
-//geometric bisection, because target error is a multiplicative scale, not an additive one. The two goals differ
-//only in the test and in whether the candidate has to be rendered to apply it
-float LodLadder::bisectTargetError(const std::vector<MeshGeometry> &meshes, LodGenerator::GeneratorKind kind,
-                                   SearchGoal goal, float limit, Candidate &outBest) const {
-    const bool measure = goal == SearchGoal::DAMAGE_UNDER_BUDGET;
+//geometric bisection, because target error is a multiplicative scale, not an additive one
+float LodLadder::bisectForTriangleCount(const std::vector<MeshGeometry> &meshes, float wantedTriangles,
+                                        Candidate &outBest) const {
     float low = LOD_SEARCH_LOW_ERROR;
     float high = LOD_SEARCH_HIGH_ERROR;
     float bestError = 0.0f;
-    bool foundAny = false;
     Candidate candidate;
     for (uint32_t step = 0; step < searchSteps; ++step) {
         float middle = std::sqrt(low * high);
-        generateCandidate(meshes, kind, middle, measure, candidate);
-        bool fits = measure ? candidate.silhouette <= limit : (float) candidate.triangleCount <= limit;
-        if (fits) {
+        generateCandidate(meshes, LodGenerator::GeneratorKind::STRUCTURE_PRESERVING, middle, candidate);
+        if ((float) candidate.triangleCount <= wantedTriangles) {
             outBest = candidate;
             bestError = middle;
-            foundAny = true;
-            //damage grows with error and triangle count falls with it, so a fit means opposite things to move
-            if (measure) {
-                low = middle;
-            } else {
-                high = middle;
-            }
-        } else if (measure) {
             high = middle;
         } else {
             low = middle;
         }
     }
-    return foundAny ? bestError : 0.0f;
+    return bestError;
 }
 
+void LodLadder::fillOutcome(const Candidate &candidate, float targetError, size_t originalTriangles,
+                            LodStep::Outcome &outOutcome) {
+    outOutcome.targetError = targetError;
+    outOutcome.triangleCount = (uint32_t) candidate.triangleCount;
+    outOutcome.achievedRatio = originalTriangles > 0 ? (float) candidate.triangleCount / (float) originalTriangles : 0.0f;
+    outOutcome.measured = candidate.measured;
+    outOutcome.clipped = candidate.clipped;
+}
+
+//the same geometric walk, but every candidate is rendered: what passes moves the error up, what fails moves it
+//down, so the walk ends on the coarsest simplification seen to pass
 bool LodLadder::searchStep(const std::vector<MeshGeometry> &meshes, const LodStep &step,
                            LodGenerator::GeneratorKind kind, size_t originalTriangles,
                            LodStep::Outcome &outOutcome) const {
-    //a budget of zero is a broken configuration, not a strict one, so it is repaired rather than obeyed
-    float budget = std::max(step.silhouetteBudget, LOD_MIN_BUDGET);
+    float low = LOD_SEARCH_LOW_ERROR;
+    float high = LOD_SEARCH_HIGH_ERROR;
+    float bestError = 0.0f;
     Candidate best;
-    float bestError = bisectTargetError(meshes, kind, SearchGoal::DAMAGE_UNDER_BUDGET, budget, best);
+    Candidate candidate;
+    for (uint32_t iteration = 0; iteration < searchSteps; ++iteration) {
+        float middle = std::sqrt(low * high);
+        generateCandidate(meshes, kind, middle, candidate);
+        if (measureCandidate(meshes, step.distance, step.limits, candidate)) {
+            best = candidate;
+            bestError = middle;
+            low = middle;
+        } else {
+            high = middle;
+        }
+    }
     if (bestError <= 0.0f) {
-        //even the smallest error damages this model past its budget, so this step and every coarser one would
-        //be worse. Saying so shortens the ladder rather than shipping something visibly wrong
+        //even the smallest simplification breaks a limit at this distance. A coarser step has its own distance
+        //and its own limits, so it is still searched
         outOutcome.skipReason = LodSkipReason::NOTHING_FITS;
         return false;
     }
-    outOutcome.targetError = bestError;
-    outOutcome.modelError = best.modelError;
-    outOutcome.triangleCount = (uint32_t) best.triangleCount;
-    outOutcome.silhouetteDamage = best.silhouette;
-    outOutcome.achievedRatio = originalTriangles > 0 ? (float) best.triangleCount / (float) originalTriangles : 0.0f;
+    fillOutcome(best, bestError, originalTriangles, outOutcome);
     return true;
 }
 
-//nothing was measured, so meshopt's quadric bound is all there is. It places steps far too far out, which is
-//what switching calibration off without a cached result costs
-void LodLadder::fallbackOutcome(const std::vector<MeshGeometry> &meshes, const LodStep &step,
-                                LodGenerator::GeneratorKind kind, size_t originalTriangles,
-                                LodStep::Outcome &outOutcome) const {
-    float meshScale = 0.0f;
-    float worstRelativeError = 0.0f;
-    size_t triangles = 0;
-    std::vector<uint16_t> indices;
-    for (size_t meshIndex = 0; meshIndex < meshes.size() && meshIndex < generators.size(); ++meshIndex) {
-        float relativeError = 0.0f;
-        generators[meshIndex]->generate(kind, step.silhouetteBudget, indices, relativeError);
-        triangles += indices.size() / 3;
-        worstRelativeError = std::max(worstRelativeError, relativeError);
-        meshScale = std::max(meshScale, generators[meshIndex]->getMeshScale());
+bool LodLadder::buildForTriangleShare(const std::vector<MeshGeometry> &meshes, const LodStep &step, float share,
+                                      size_t originalTriangles, bool measure, LodStep::Outcome &outOutcome) const {
+    if (share <= 0.0f || share >= 1.0f || originalTriangles == 0) {
+        return false;
     }
-    outOutcome.targetError = step.silhouetteBudget;
-    outOutcome.modelError = worstRelativeError * meshScale;
-    outOutcome.triangleCount = (uint32_t) triangles;
-    outOutcome.achievedRatio = originalTriangles > 0 ? (float) triangles / (float) originalTriangles : 0.0f;
+    Candidate best;
+    float targetError = bisectForTriangleCount(meshes, std::max(1.0f, (float) originalTriangles * share), best);
+    if (targetError <= 0.0f) {
+        //hard edges and protected seams put a floor under a mesh. Take the coarsest there is and let the panel
+        //report the share it actually reached
+        generateCandidate(meshes, LodGenerator::GeneratorKind::STRUCTURE_PRESERVING, LOD_SEARCH_HIGH_ERROR, best);
+        targetError = LOD_SEARCH_HIGH_ERROR;
+    }
+    if (best.triangleCount == 0) {
+        std::cerr << "could not build a LOD step at " << share * 100.0f << " percent for " << assetPath << std::endl;
+        return false;
+    }
+    if (measure) {
+        measureCandidate(meshes, step.distance, step.limits, best);//only for the panel, a typed share is obeyed
+    }
+    fillOutcome(best, targetError, originalTriangles, outOutcome);
+    return true;
 }
 
 //the only place that decides whether an outcome is kept. A step the developer asked for is force enabled, we
@@ -263,20 +309,19 @@ bool LodLadder::acceptOutcome(const LodStep &step, size_t previousTriangleCount,
     return true;
 }
 
-//budget alone is not enough to match on: a retargeted step still carries the old budget until the build derives
-//the new one, so we would hand back the mesh the retarget was replacing
+//the asked half has to match exactly: a step retargeted to a new share or new limits must not get the mesh it
+//was replacing
 bool LodLadder::findCachedOutcome(const std::vector<LodStep> &cachedSteps, const LodStep &step, bool welded,
                                   LodStep::Outcome &outOutcome) {
     for (size_t cachedIndex = 0; cachedIndex < cachedSteps.size(); ++cachedIndex) {
         const LodStep &cached = cachedSteps[cachedIndex];
-        if (cached.silhouetteBudget <= 0.0f ||
-            std::fabs(cached.silhouetteBudget - step.silhouetteBudget) > 1e-9f ||
+        if (cached.distance != step.distance || !(cached.limits == step.limits) ||
             std::fabs(cached.requestedRatio - step.requestedRatio) > 1e-9f) {
             continue;
         }
         const LodStep::Outcome &cachedOutcome = welded ? cached.welded : cached.structure;
-        if (!cachedOutcome.built) {
-            continue;//a step the cache also could not build says nothing we can reuse
+        if (!cachedOutcome.built && cachedOutcome.skipReason == LodSkipReason::NONE) {
+            continue;//never searched, says nothing we can reuse
         }
         outOutcome = cachedOutcome;
         return true;
@@ -286,57 +331,65 @@ bool LodLadder::findCachedOutcome(const std::vector<LodStep> &cachedSteps, const
 
 void LodLadder::buildOneLadder(const std::vector<MeshGeometry> &meshes, LodGenerator::GeneratorKind kind,
                                size_t originalTriangles, const std::vector<LodStep> &cachedSteps,
-                               bool measureAllowed, uint32_t &outMeasuredCount, bool &outDerivedAnyTarget) {
+                               bool generationAllowed, uint32_t &outMeasuredCount, bool &outDerivedAnyTarget) {
     const bool welded = kind == LodGenerator::GeneratorKind::SILHOUETTE_ONLY;
     size_t previousTriangleCount = originalTriangles;
     for (size_t stepIndex = 0; stepIndex < steps.size(); ++stepIndex) {
-        if (welded && !isWeldedStep(stepIndex)) {
-            continue;//welding only pays at the coarse end, so the twin ladder is the same walk over fewer steps
-        }
         LodStep &step = steps[stepIndex];
+        if (welded && !isWeldedStep(stepIndex)) {
+            //depth cameras draw this step's structure outcome, so the first twin has to beat that, not the original
+            if (step.structure.built) {
+                previousTriangleCount = step.structure.triangleCount;
+            }
+            continue;
+        }
         LodStep::Outcome &outcome = welded ? step.welded : step.structure;
         if (outcome.built) {
             previousTriangleCount = outcome.triangleCount;
             continue;//already taken from the steps this ladder arrived with
         }
         if (outcome.skipReason != LodSkipReason::NONE) {
-            continue;//measured and refused before, searching again only finds the same refusal on every load
+            continue;//searched and refused before, searching again only finds the same refusal on every load
         }
-        bool derived = false;
-        if (!findCachedOutcome(cachedSteps, step, welded, outcome)) {
-            //nothing cached, so derive the budget from the share. The welded twin follows the budget this sets
-            if (!welded && step.requestedRatio > 0.0f && measureAllowed) {
-                prepareGenerators(meshes);
-                derived = deriveTriangleTarget(meshes, step, originalTriangles, outcome);
-                if (derived) {
-                    outMeasuredCount++;
-                    outDerivedAnyTarget = true;
-                } else {
-                    //the simplifier will not go that far on this model, so the share is dropped rather than kept
-                    //as an intent nothing can satisfy. The budget it had is left alone
-                    step.requestedRatio = 0.0f;
-                    step.userSet = false;
-                }
+        if (findCachedOutcome(cachedSteps, step, welded, outcome)) {
+            if (outcome.built) {
+                previousTriangleCount = outcome.triangleCount;
             }
+            continue;
         }
-        if (!derived && !outcome.built && !findCachedOutcome(cachedSteps, step, welded, outcome)) {
-            if (!measureAllowed) {
-                prepareGenerators(meshes);
-                fallbackOutcome(meshes, step, kind, originalTriangles, outcome);
-            } else {
-                prepareGenerators(meshes);
-                if (!searchStep(meshes, step, kind, originalTriangles, outcome)) {
-                    //no error met this budget, and a coarser step can only be worse
-                    for (size_t coarser = stepIndex; coarser < steps.size(); ++coarser) {
-                        LodStep::Outcome &rest = welded ? steps[coarser].welded : steps[coarser].structure;
-                        rest.skipReason = LodSkipReason::NOTHING_FITS;
-                    }
-                    return;
-                }
+        if (!generationAllowed || step.distance <= 0.0f) {
+            continue;//left unbuilt, a later load with generation on searches it
+        }
+        prepareGenerators(meshes);
+        if (!welded && step.userSet && step.requestedRatio > 0.0f) {
+            if (buildForTriangleShare(meshes, step, step.requestedRatio, originalTriangles, canCalibrate, outcome)) {
                 outMeasuredCount++;
+                outDerivedAnyTarget = true;
+            } else {
+                //the simplifier will not go that far on this model, so the share is dropped rather than kept as
+                //an intent nothing can satisfy. The limits take the step from the next build
+                step.requestedRatio = 0.0f;
+                step.userSet = false;
+                continue;
+            }
+        } else if (!canCalibrate) {
+            //a deforming mesh has no pose to render, so the project's hoped for share is all there is to go by.
+            //Its welded twin would need a measurement too, so it has none
+            if (welded || !buildForTriangleShare(meshes, step, step.triangleTarget, originalTriangles, false, outcome)) {
+                continue;
+            }
+        } else {
+            outMeasuredCount++;
+            if (!searchStep(meshes, step, kind, originalTriangles, outcome)) {
+                continue;
             }
         }
-        if (acceptOutcome(step, previousTriangleCount, outcome)) {
+        size_t mustBeat = previousTriangleCount;
+        if (welded && step.structure.built) {
+            //depth cameras could draw this step's structure outcome instead, a twin with more triangles is waste
+            mustBeat = std::min(mustBeat, (size_t) step.structure.triangleCount);
+        }
+        if (acceptOutcome(step, mustBeat, outcome)) {
             previousTriangleCount = outcome.triangleCount;
         }
     }
@@ -366,6 +419,7 @@ void LodLadder::assignMeshLodIndices(std::vector<LevelPlan> &outPlan) {
 
 void LodLadder::build(const std::vector<MeshGeometry> &meshes, BuildMode buildMode, std::vector<LevelPlan> &outPlan) {
     outPlan.clear();
+    meshLodCount = 1;
     if (meshes.empty() || steps.empty()) {
         return;
     }
@@ -393,20 +447,21 @@ void LodLadder::build(const std::vector<MeshGeometry> &meshes, BuildMode buildMo
     //hashing walks every vertex, so it waits until something actually needs the file. A binary whose targets have
     //not moved still holds every outcome, so it never gets here
     uint64_t geometryHash = 0;
-    if (!storeIsBinary &&  !isLadderComplete() && canCalibrate && buildMode != BuildMode::FULL_RECALIBRATE) {
+    if (!storeIsBinary && !isLadderComplete() && buildMode != BuildMode::FULL_RECALIBRATE) {
         geometryHash = LodMetadata::hashGeometry(meshes);
         LodMetadata::read(assetPath, flipAxes, settingsHash, geometryHash, cachedSteps);
     }
 
-    bool measureAllowed = canCalibrate && (calibrationEnabled || buildMode != BuildMode::NORMAL);
+    //LOD_calibrate off means nothing new is made: a model uses what its sidecar or limonmodel holds, or the original
+    bool generationAllowed = calibrationEnabled || buildMode != BuildMode::NORMAL;
     bool derivedAnyTarget = false;
     uint32_t measuredCount = 0;
     std::chrono::steady_clock::time_point buildStart = std::chrono::steady_clock::now();
     buildOneLadder(meshes, LodGenerator::GeneratorKind::STRUCTURE_PRESERVING, originalTriangles, cachedSteps,
-                   measureAllowed, measuredCount, derivedAnyTarget);
+                   generationAllowed, measuredCount, derivedAnyTarget);
     //welded twins for the coarse steps, used by depth only cameras where no texture is ever sampled
     buildOneLadder(meshes, LodGenerator::GeneratorKind::SILHOUETTE_ONLY, originalTriangles, cachedSteps,
-                   measureAllowed, measuredCount, derivedAnyTarget);
+                   generationAllowed, measuredCount, derivedAnyTarget);
 
     if (measuredCount > 0) {
         //only when it actually ran, so a cached load stays quiet and the first load shows what it cost
@@ -435,7 +490,7 @@ bool LodLadder::isLadderComplete() const {
         if (!steps[stepIndex].structure.built && steps[stepIndex].structure.skipReason == LodSkipReason::NONE) {
             return false;
         }
-        if (isWeldedStep(stepIndex) && !steps[stepIndex].welded.built &&
+        if (canCalibrate && isWeldedStep(stepIndex) && !steps[stepIndex].welded.built &&
             steps[stepIndex].welded.skipReason == LodSkipReason::NONE) {
             return false;
         }
@@ -451,20 +506,14 @@ void LodLadder::loadIntent() {
     if (!LodMetadata::readOverrides(assetPath, flipAxes, overriddenSteps) || overriddenSteps.empty()) {
         return;
     }
-    //only the asked for half is stored there, so it replaces the budgets without claiming any measurement
-    std::vector<LodStep> merged;
-    for (size_t stepIndex = 0; stepIndex < overriddenSteps.size(); ++stepIndex) {
-        LodStep entry = overriddenSteps[stepIndex];
-        //only when the budget still matches: an outcome measured under another budget describes another mesh,
-        //which is exactly the case a binary whose targets moved since export has to rebuild
-        if (stepIndex < steps.size() &&
-            std::fabs(steps[stepIndex].silhouetteBudget - entry.silhouetteBudget) <= 1e-9f) {
-            entry.structure = steps[stepIndex].structure;
-            entry.welded = steps[stepIndex].welded;
+    //only the typed shares are stored there, the distances and limits stay the project's
+    for (size_t stepIndex = 0; stepIndex < overriddenSteps.size() && stepIndex < steps.size(); ++stepIndex) {
+        if (!overriddenSteps[stepIndex].userSet) {
+            continue;
         }
-        merged.push_back(entry);
+        steps[stepIndex].requestedRatio = overriddenSteps[stepIndex].requestedRatio;
+        steps[stepIndex].userSet = true;
     }
-    steps = merged;
     overridesPresent = true;
 }
 
@@ -485,43 +534,10 @@ void LodLadder::requestTriangleTarget(size_t stepIndex, float targetRatio) {
     }
     steps[stepIndex].requestedRatio = targetRatio;
     steps[stepIndex].userSet = true;
-    //an outcome belongs to the budget it was measured under. Leaving the old one attached is how a retarget
+    //an outcome belongs to what was asked when it was made. Leaving the old one attached is how a retarget
     //silently came back with the mesh it was supposed to replace
     steps[stepIndex].structure = LodStep::Outcome();
     steps[stepIndex].welded = LodStep::Outcome();
-}
-
-//bisect on triangle count, which needs no rendering, then score the winner once. That damage is the budget that
-//finds the same mesh again later, for one measurement instead of the scored search a budget would need
-bool LodLadder::deriveTriangleTarget(const std::vector<MeshGeometry> &meshes, LodStep &step,
-                                     size_t originalTriangles, LodStep::Outcome &outOutcome) {
-    if (step.requestedRatio <= 0.0f || step.requestedRatio >= 1.0f || originalTriangles == 0) {
-        return false;
-    }
-    float wantedTriangles = std::max(1.0f, (float) originalTriangles * step.requestedRatio);
-    Candidate best;
-    float targetError = bisectTargetError(meshes, LodGenerator::GeneratorKind::STRUCTURE_PRESERVING,
-                                          SearchGoal::TRIANGLES_UNDER_COUNT, wantedTriangles, best);
-    if (targetError <= 0.0f) {
-        //hard edges and protected seams put a floor under a mesh. Take the coarsest there is and let the panel
-        //report the share it actually reached
-        generateCandidate(meshes, LodGenerator::GeneratorKind::STRUCTURE_PRESERVING, LOD_SEARCH_HIGH_ERROR, false, best);
-        targetError = LOD_SEARCH_HIGH_ERROR;
-    }
-    if (best.triangleCount == 0) {
-        std::cerr << "could not build a LOD step at " << step.requestedRatio * 100.0f << " percent for "
-                  << assetPath << std::endl;
-        return false;
-    }
-    measureCandidate(meshes, best);
-    //zero measured damage floors rather than refuses: the search then lands on the coarsest mesh that shows nothing
-    step.silhouetteBudget = std::max(best.silhouette, LOD_MIN_BUDGET);
-    outOutcome.targetError = targetError;
-    outOutcome.modelError = best.modelError;
-    outOutcome.triangleCount = (uint32_t) best.triangleCount;
-    outOutcome.silhouetteDamage = best.silhouette;
-    outOutcome.achievedRatio = (float) best.triangleCount / (float) originalTriangles;
-    return true;
 }
 
 void LodLadder::clearOverrides() {
@@ -531,19 +547,8 @@ void LodLadder::clearOverrides() {
         steps[stepIndex].requestedRatio = 0.0f;
     }
     unsavedChanges = true;
-    //the project budgets have to come back, and only readSettings knows them
+    //the project steps have to come back, and only readSettings knows them
     steps.clear();
-}
-
-float LodLadder::pixelsPerModelUnit(const glm::mat4 &projectionMatrix, uint32_t targetHeight) {
-    return projectionMatrix[1][1] * (float) targetHeight * 0.5f;
-}
-
-float LodLadder::switchDistanceOf(const LodStep::Outcome &outcome, const LodSelectionContext &context) const {
-    if (context.allowance <= 0.0f || outcome.modelError <= 0.0f) {
-        return 0.0f;
-    }
-    return (outcome.modelError * context.objectScale * context.pixelScale) / context.allowance;
 }
 
 uint32_t LodLadder::selectLevel(const LodSelectionContext &context, uint32_t previousLevel) const {
@@ -553,23 +558,20 @@ uint32_t LodLadder::selectLevel(const LodSelectionContext &context, uint32_t pre
     if (context.forceLevel >= 0) {
         return std::min((uint32_t) context.forceLevel, meshLodCount - 1);
     }
-    //the two reaches the dead band allows, so the step loop compares instead of dividing. Moving up a step needs
-    //to be clearly past the switch, moving back down clearly before it
+    //the two reaches the dead band allows. Moving up a step needs to be clearly past the switch, moving back
+    //down clearly before it
     const float reachGoingCoarser = context.objectDistance * (1.0f - context.hysteresis);
     const float reachGoingFiner = context.objectDistance * (1.0f + context.hysteresis);
     uint32_t selected = 0;
     for (size_t stepIndex = 0; stepIndex < steps.size(); ++stepIndex) {
         //welded outcomes drop UVs and normals, so only a depth camera may draw one. Where a step has no twin the
-        //depth camera draws the structure outcome, under the same allowance
+        //depth camera draws the structure outcome
         const LodStep &step = steps[stepIndex];
         const LodStep::Outcome &outcome = (context.isShadowCamera && step.welded.built) ? step.welded : step.structure;
-        if (!outcome.built) {
+        if (!outcome.built || step.distance <= 0.0f) {
             continue;
         }
-        float switchDistance = switchDistanceOf(outcome, context);
-        if (switchDistance <= 0.0f) {
-            continue;
-        }
+        float switchDistance = step.distance * context.objectScale;
         float reach = outcome.meshLodIndex > previousLevel ? reachGoingCoarser : reachGoingFiner;
         if (reach >= switchDistance) {
             selected = outcome.meshLodIndex;//steps run fine to coarse, so the last one that fits is the coarsest
@@ -599,6 +601,31 @@ void LodLadder::buildViews(std::vector<View> &views) {
     }
 }
 
+//the whole mesh, not each triangle: a palette triangle maps to nearly one texel, and its own ratio turned a
+//fraction of a texel into tens of units of movement
+float LodLadder::averagePositionPerUv(const MeshGeometry &mesh) {
+    if (mesh.vertices == nullptr || mesh.textureCoordinates == nullptr || mesh.indices == nullptr ||
+        mesh.textureCoordinates->size() != mesh.vertices->size()) {
+        return 0.0f;
+    }
+    const std::vector<glm::vec3> &vertices = *mesh.vertices;
+    const std::vector<glm::vec2> &textureCoordinates = *mesh.textureCoordinates;
+    double positionLength = 0.0;
+    double uvLength = 0.0;
+    for (size_t triangle = 0; triangle + 2 < mesh.indexCount; triangle = triangle + 3) {
+        for (uint32_t corner = 0; corner < 3; ++corner) {
+            uint16_t first = mesh.indices[triangle + corner];
+            uint16_t second = mesh.indices[triangle + (corner + 1) % 3];
+            if (first >= vertices.size() || second >= vertices.size()) {
+                continue;
+            }
+            positionLength += glm::length(vertices[first] - vertices[second]);
+            uvLength += glm::length(textureCoordinates[first] - textureCoordinates[second]);
+        }
+    }
+    return uvLength > 0.0 ? (float) (positionLength / uvLength) : 0.0f;
+}
+
 void LodLadder::RasterTarget::reset(uint32_t resolution) {
     size_t pixelCount = (size_t) resolution * resolution;
     depth.assign(pixelCount, FLT_MAX);
@@ -611,7 +638,8 @@ void LodLadder::RasterTarget::reset(uint32_t resolution) {
 //orthographic, both sides drawn, nearest depth wins. No backface culling, so open and double sided geometry
 //like foliage cards doesn't register as damage just for being seen from behind. A null candidate is the original
 void LodLadder::rasterize(const std::vector<MeshGeometry> &meshes, const Candidate *candidate, const View &view,
-                          const glm::vec3 &center, float scale, uint32_t resolution, RasterTarget &target) {
+                          const glm::vec3 &center, float scale, uint32_t resolution,
+                          const std::vector<float> &meshPositionPerUv, RasterTarget &target) {
     for (size_t meshIndex = 0; meshIndex < meshes.size(); ++meshIndex) {
         const MeshGeometry &mesh = meshes[meshIndex];
         const uint16_t *indices = mesh.indices;
@@ -661,19 +689,11 @@ void LodLadder::rasterize(const std::vector<MeshGeometry> &meshes, const Candida
             const uint16_t corner2 = indices[triangle + 2];
             glm::vec2 cornerUv[3] = {glm::vec2(0.0f), glm::vec2(0.0f), glm::vec2(0.0f)};
             glm::vec3 cornerNormal[3] = {glm::vec3(0.0f), glm::vec3(0.0f), glm::vec3(0.0f)};
-            float trianglePositionPerUv = 0.0f;
             if (hasTextureCoordinates) {
                 const std::vector<glm::vec2> &textureCoordinates = *mesh.textureCoordinates;
                 cornerUv[0] = textureCoordinates[corner0];
                 cornerUv[1] = textureCoordinates[corner1];
                 cornerUv[2] = textureCoordinates[corner2];
-                float positionLength = glm::length(vertices[corner1] - vertices[corner0]) +
-                                       glm::length(vertices[corner2] - vertices[corner1]) +
-                                       glm::length(vertices[corner0] - vertices[corner2]);
-                float uvLength = glm::length(cornerUv[1] - cornerUv[0]) + glm::length(cornerUv[2] - cornerUv[1]) +
-                                 glm::length(cornerUv[0] - cornerUv[2]);
-                //a palette triangle maps to a single texel, a uv change there is a different colour, not a distance
-                trianglePositionPerUv = uvLength > 0.0f ? positionLength / uvLength : 0.0f;
             }
             if (hasNormals) {
                 const std::vector<glm::vec3> &normals = *mesh.normals;
@@ -704,7 +724,7 @@ void LodLadder::rasterize(const std::vector<MeshGeometry> &meshes, const Candida
                         target.attributeMask[pixel] = meshAttributeMask;
                         target.textureCoordinates[pixel] = weight0 * cornerUv[0] + weight1 * cornerUv[1] + weight2 * cornerUv[2];
                         target.normals[pixel] = weight0 * cornerNormal[0] + weight1 * cornerNormal[1] + weight2 * cornerNormal[2];
-                        target.positionPerUv[pixel] = trianglePositionPerUv;
+                        target.positionPerUv[pixel] = meshPositionPerUv[meshIndex];
                     }
                 }
             }
@@ -712,14 +732,53 @@ void LodLadder::rasterize(const std::vector<MeshGeometry> &meshes, const Candida
     }
 }
 
-//scores what the candidate would show against the original, from fourteen directions. Nothing here takes an on
-//screen size, damage is the same fraction at every distance.
+//the width of the widest patch, as 4 * area / perimeter: a square reads as its side, a one pixel line as one
+//however long it runs. Visited pixels are marked 2, so the mask is spent afterwards
+float LodLadder::largestRegionWidth(std::vector<uint8_t> &damaged, uint32_t resolution) {
+    float widest = 0.0f;
+    std::vector<uint32_t> pending;
+    for (uint32_t start = 0; start < damaged.size(); ++start) {
+        if (damaged[start] != 1) {
+            continue;
+        }
+        uint64_t area = 0;
+        uint64_t perimeter = 0;
+        damaged[start] = 2;
+        pending.push_back(start);
+        while (!pending.empty()) {
+            uint32_t pixel = pending.back();
+            pending.pop_back();
+            area++;
+            uint32_t x = pixel % resolution;
+            uint32_t y = pixel / resolution;
+            const bool hasNeighbour[4] = {x > 0, x + 1 < resolution, y > 0, y + 1 < resolution};
+            const uint32_t neighbour[4] = {pixel - 1, pixel + 1, pixel - resolution, pixel + resolution};
+            for (uint32_t side = 0; side < 4; ++side) {
+                if (!hasNeighbour[side] || damaged[neighbour[side]] == 0) {
+                    perimeter++;
+                } else if (damaged[neighbour[side]] == 1) {
+                    damaged[neighbour[side]] = 2;
+                    pending.push_back(neighbour[side]);
+                }
+            }
+        }
+        if (perimeter > 0) {
+            widest = std::max(widest, (float) (4.0 * (double) area / (double) perimeter));
+        }
+    }
+    return widest;
+}
+
+//renders the candidate against the original at the size it has on the reference screen at this distance, from
+//fourteen directions, twice that size and judged in screen pixels. Nothing here is relative to the model's size,
+//which is what made "one pixel" mean a different thing for every model before.
 //Several loader threads run this at once, so it must hold no state between calls
-void LodLadder::measureCandidate(const std::vector<MeshGeometry> &meshes, Candidate &candidate) const {
-    candidate.silhouette = 0.0f;
-    candidate.modelError = 0.0f;
-    if (meshes.empty()) {
-        return;
+bool LodLadder::measureCandidate(const std::vector<MeshGeometry> &meshes, float distance, const LodPixels &limits,
+                                 Candidate &candidate) const {
+    candidate.measured = LodPixels();
+    candidate.clipped = false;
+    if (meshes.empty() || distance <= 0.0f) {
+        return false;
     }
 
     glm::vec3 low(FLT_MAX);
@@ -732,120 +791,134 @@ void LodLadder::measureCandidate(const std::vector<MeshGeometry> &meshes, Candid
         }
     }
     if (low.x > high.x) {
-        return;//no vertices at all
+        return false;//no vertices at all
     }
     glm::vec3 center = (low + high) * 0.5f;
     glm::vec3 size = high - low;
     float extent = std::max(size.x, std::max(size.y, size.z));
     if (extent <= 0.0f) {
-        return;//a single point, nothing to compare
+        return false;//a single point, nothing to compare
     }
 
-    uint32_t resolution = std::max(LOD_SCORER_MIN_RESOLUTION, scorerResolution);
-    //a corner view sees the box across its diagonal, so the fit leaves room for it instead of clipping
-    float scale = (resolution * 0.5f) / (extent * 0.9f);
+    //a corner view sees the box across its diagonal, so the image is 1.8 extents wide instead of clipping it
+    const float screenScale = referencePixelsPerMeter / distance;
+    float scale = LOD_SCORER_SUPERSAMPLING * screenScale;
+    uint32_t resolution = (uint32_t) std::ceil(1.8f * extent * scale);
+    if (resolution > maximumResolution) {
+        resolution = maximumResolution;
+        scale = (float) resolution / (1.8f * extent);
+        candidate.clipped = true;
+    }
+    resolution = std::max(resolution, LOD_SCORER_MIN_RESOLUTION);
+    //render pixels per screen pixel, the supersampling unless the cap took some of it
+    const float perScreenPixel = scale / screenScale;
 
     std::vector<View> views;
     buildViews(views);
-
+    std::vector<float> meshPositionPerUv(meshes.size(), 0.0f);
+    for (size_t meshIndex = 0; meshIndex < meshes.size(); ++meshIndex) {
+        meshPositionPerUv[meshIndex] = averagePositionPerUv(meshes[meshIndex]);
+    }
     RasterTarget reference;
     RasterTarget simplified;
-    //pixels here, turned into model units with the same scale once every view has been walked
-    std::vector<float> deviations;
+    std::vector<uint8_t> holeMask;
+    std::vector<uint8_t> textureMask;
+    std::vector<uint8_t> normalMask;
+    std::vector<float> movements;//screen pixels
     uint64_t mismatched = 0;
-    uint64_t covered = 0;
     uint64_t boundary = 0;
-    uint64_t holes = 0;
-    uint64_t wrongAttributes = 0;
     for (size_t viewIndex = 0; viewIndex < views.size(); ++viewIndex) {
         reference.reset(resolution);
         simplified.reset(resolution);
-        rasterize(meshes, nullptr, views[viewIndex], center, scale, resolution, reference);
-        rasterize(meshes, &candidate, views[viewIndex], center, scale, resolution, simplified);
-        const std::vector<float> &referenceDepth = reference.depth;
-        const std::vector<float> &candidateDepth = simplified.depth;
-        for (size_t pixel = 0; pixel < referenceDepth.size(); ++pixel) {
-            bool referenceCovered = referenceDepth[pixel] != FLT_MAX;
-            bool candidateCovered = candidateDepth[pixel] != FLT_MAX;
+        rasterize(meshes, nullptr, views[viewIndex], center, scale, resolution, meshPositionPerUv, reference);
+        rasterize(meshes, &candidate, views[viewIndex], center, scale, resolution, meshPositionPerUv, simplified);
+        holeMask.assign(reference.depth.size(), 0);
+        textureMask.assign(reference.depth.size(), 0);
+        normalMask.assign(reference.depth.size(), 0);
+        for (size_t pixel = 0; pixel < reference.depth.size(); ++pixel) {
+            bool referenceCovered = reference.depth[pixel] != FLT_MAX;
+            bool candidateCovered = simplified.depth[pixel] != FLT_MAX;
             if (referenceCovered) {
-                covered++;
                 //an edge of the original outline, which is what the mismatched band is spread along
                 uint32_t x = (uint32_t) (pixel % resolution);
                 uint32_t y = (uint32_t) (pixel / resolution);
                 bool onEdge = x == 0 || y == 0 || x + 1 == resolution || y + 1 == resolution ||
-                              referenceDepth[pixel - 1] == FLT_MAX || referenceDepth[pixel + 1] == FLT_MAX ||
-                              referenceDepth[pixel - resolution] == FLT_MAX ||
-                              referenceDepth[pixel + resolution] == FLT_MAX;
+                              reference.depth[pixel - 1] == FLT_MAX || reference.depth[pixel + 1] == FLT_MAX ||
+                              reference.depth[pixel - resolution] == FLT_MAX ||
+                              reference.depth[pixel + resolution] == FLT_MAX;
                 if (onEdge) {
                     boundary++;
                 }
             }
             if (referenceCovered != candidateCovered) {
                 mismatched++;//the outline moved, in or out
-            } else if (referenceCovered) {
-                float deviation = std::fabs(referenceDepth[pixel] - candidateDepth[pixel]);
-                if (deviation > LOD_SCORER_SURFACE_JUMP_PIXELS) {
-                    //not the same surface displaced, something behind it showing through. Its depth is the
-                    //distance to whatever happens to be back there, so it would only poison the distribution
-                    holes++;
+                continue;
+            }
+            if (!referenceCovered) {
+                continue;
+            }
+            float movement = std::fabs(reference.depth[pixel] - simplified.depth[pixel]);
+            if (movement > LOD_SCORER_SURFACE_JUMP_PIXELS * perScreenPixel) {
+                //not the same surface displaced, something behind it showing through
+                holeMask[pixel] = 1;
+                continue;
+            }
+            //a welded level keeps whichever copy's uv and normal it landed on, and only depth cameras draw it
+            uint8_t sharedAttributes = candidate.silhouetteOnly ? 0 :
+                                       reference.attributeMask[pixel] & simplified.attributeMask[pixel];
+            if (sharedAttributes & RASTER_HAS_UV) {
+                glm::vec2 uvDifference = reference.textureCoordinates[pixel] - simplified.textureCoordinates[pixel];
+                float uvShift = std::max(std::fabs(uvDifference.x), std::fabs(uvDifference.y));
+                if (uvShift > LOD_UV_JUMP) {
+                    textureMask[pixel] = 1;//another part of the atlas, damage rather than a distance
                 } else {
-                    //the same surface, but a collapse along a seam can still show another part of the texture or
-                    //shade it differently without moving it. A window sliding off a flat facade is only seen here
-                    uint8_t sharedAttributes = candidate.silhouetteOnly ? 0 ://welded keeps arbitrary copies, depth only draws it
-                                               reference.attributeMask[pixel] & simplified.attributeMask[pixel];
-                    bool attributeWrong = false;
-                    if (sharedAttributes & RASTER_HAS_UV) {
-                        glm::vec2 uvDifference = reference.textureCoordinates[pixel] - simplified.textureCoordinates[pixel];
-                        //per axis, a texel is a square
-                        if (std::max(std::fabs(uvDifference.x), std::fabs(uvDifference.y)) > uvDeviation) {
-                            attributeWrong = true;
-                        }
-                        //texture sliding across a surface moves what is seen as much as the surface moving would
-                        deviation = std::max(deviation, glm::length(uvDifference) * reference.positionPerUv[pixel] * scale);
-                    }
-                    if (sharedAttributes & RASTER_HAS_NORMAL) {
-                        glm::vec3 referenceNormal = reference.normals[pixel];
-                        glm::vec3 candidateNormal = simplified.normals[pixel];
-                        float referenceLength = glm::length(referenceNormal);
-                        float candidateLength = glm::length(candidateNormal);
-                        //interpolated normals shrink between corners and the shader normalizes them, so we do too
-                        if (referenceLength > 0.0f && candidateLength > 0.0f &&
-                            glm::length(referenceNormal / referenceLength - candidateNormal / candidateLength) > normalDeviation) {
-                            attributeWrong = true;
-                        }
-                    }
-                    if (attributeWrong) {
-                        wrongAttributes++;
-                    }
-                    deviations.push_back(deviation);
+                    //texture sliding across a surface moves what is seen as much as the surface moving would
+                    movement = std::max(movement, glm::length(uvDifference) * reference.positionPerUv[pixel] * scale);
                 }
             }
+            if (sharedAttributes & RASTER_HAS_NORMAL) {
+                glm::vec3 referenceNormal = reference.normals[pixel];
+                glm::vec3 candidateNormal = simplified.normals[pixel];
+                float referenceLength = glm::length(referenceNormal);
+                float candidateLength = glm::length(candidateNormal);
+                //interpolated normals shrink between corners and the shader normalizes them, so we do too
+                if (referenceLength > 0.0f && candidateLength > 0.0f &&
+                    glm::length(referenceNormal / referenceLength - candidateNormal / candidateLength) > normalDeviation) {
+                    normalMask[pixel] = 1;
+                }
+            }
+            movements.push_back(movement / perScreenPixel);
         }
+        candidate.measured.holes = std::max(candidate.measured.holes, largestRegionWidth(holeMask, resolution) / perScreenPixel);
+        candidate.measured.texture = std::max(candidate.measured.texture, largestRegionWidth(textureMask, resolution) / perScreenPixel);
+        candidate.measured.normal = std::max(candidate.measured.normal, largestRegionWidth(normalMask, resolution) / perScreenPixel);
     }
-    if (covered == 0) {
-        //nothing of the original was visible, so an empty candidate is not an improvement
-        candidate.silhouette = mismatched > 0 ? 1.0f : 0.0f;
-        return;
+    //the mismatched pixels form a band along the outline, so its width is the band over the outline length
+    candidate.measured.outline = boundary > 0 ? (float) ((double) mismatched / (double) boundary) / perScreenPixel : 0.0f;
+    if (!movements.empty()) {
+        size_t index = (size_t) (LOD_SURFACE_QUANTILE * (double) (movements.size() - 1));
+        std::nth_element(movements.begin(), movements.begin() + index, movements.end());
+        candidate.measured.surface = movements[index];
     }
-    //holes and wrong attributes count with the outline: all are places where the wrong thing is on screen, and
-    //all are what the budget has to bound
-    candidate.silhouette = (float) ((double) (mismatched + holes + wrongAttributes) / (double) covered);
 
-    //the mismatched pixels form a band along the outline, so its width is the band over the outline length.
-    //Counting the outline instead of guessing it from the bounding box keeps every model shape honest
-    float outlineDisplacement = 0.0f;
-    if (boundary > 0) {
-        outlineDisplacement = (float) ((double) mismatched / (double) boundary) / scale;
+    const LodPixels &measured = candidate.measured;
+    if (limits.surface >= 0.0f && measured.surface > limits.surface) {
+        return false;
     }
-    float surfaceDeviation = 0.0f;
-    if (!deviations.empty()) {
-        //placed against the samples, not against every covered pixel: a pixel whose coverage changed is already
-        //counted as outline damage, and counting it here too would make one number move twice
-        std::sort(deviations.begin(), deviations.end());
-        size_t index = (size_t) (LOD_PLACEMENT_QUANTILE * (double) (deviations.size() - 1));
-        surfaceDeviation = deviations[index] / scale;
+    if (limits.outline >= 0.0f && measured.outline > limits.outline) {
+        return false;
     }
-    //the worse of the two things that actually moved, both measured, both in model units. meshopt's own error
-    //places nothing: on the western buildings it reads a hundred times high
-    candidate.modelError = std::max(outlineDisplacement, surfaceDeviation);
+    if (limits.holes >= 0.0f && measured.holes > limits.holes) {
+        return false;
+    }
+    if (candidate.silhouetteOnly) {
+        return true;//a depth pass shows no texture and no shading
+    }
+    if (limits.texture >= 0.0f && measured.texture > limits.texture) {
+        return false;
+    }
+    if (limits.normal >= 0.0f && measured.normal > limits.normal) {
+        return false;
+    }
+    return true;
 }

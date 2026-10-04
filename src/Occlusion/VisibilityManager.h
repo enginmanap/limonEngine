@@ -38,6 +38,8 @@ class VisibilityManager {
     static void staticOcclusionThread(VisibilityRequest* request);
     static bool isSkippedByLodDistance(float skipRenderDistance, float skipRenderSize, float maxSkipRenderSize, const glm::mat4 &cameraProjectionMatrix, const glm::vec3& playerPosition, glm::vec3 minAABB, glm::vec3 maxAABB, float &objectAverageDepth, float &objectScreenSize, float &objectDistance);
     static float getLodObjectScale(const Model* model);
+    //nearest point of the box, zero inside it
+    static float distanceToBox(const glm::vec3 &point, const glm::vec3 &minAABB, const glm::vec3 &maxAABB);
 
     std::map<VisibilityRequest*, SDL2MultiThreading::InternalThread*> visibilityThreadPool;
     /*

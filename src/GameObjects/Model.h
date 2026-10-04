@@ -84,7 +84,7 @@ private:
     void drawModelPreview(const ImGuiRequest &request, ImGuiResult &result, int32_t forcedLodLevel, uint32_t previewWidth, uint32_t previewHeight);
     void putLodPanelInGui(ImGuiResult &result, const ImGuiRequest &request, bool animated, bool isLimonModel);
     //the context the engine would use for this object, so the panel and selection cannot drift apart
-    LodSelectionContext buildLodPanelContext(const ImGuiRequest &request) const;
+    float getLodObjectScale() const;
 
 public:
     /**

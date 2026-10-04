@@ -343,25 +343,17 @@ uint32_t Model::getAIID() {
 
 
 
-//the context the engine would use for this object seen from the player camera, so a distance printed here is
-//the distance it actually switches at rather than a second arithmetic that can drift from it
-LodSelectionContext Model::buildLodPanelContext(const ImGuiRequest &request) const {
-    LodSelectionContext context;
-    OptionsUtil::Options *options = assetManager->getGraphicsWrapper()->getOptions();
-    context.allowance = (float) options->getOption<double>(HASH("LOD_pixelDeviation")).getOrDefault(1.0) *
-                        (float) options->getOption<double>(HASH("LOD_toleranceScale")).getOrDefault(1.0);
-    if (request.playerCamera != nullptr) {
-        context.pixelScale = LodLadder::pixelsPerModelUnit(request.playerCamera->getProjectionMatrix(), request.screenHeight);
-    }
+//the same scale the visibility pass multiplies level distances with, so a distance printed here is the one it
+//switches at
+float Model::getLodObjectScale() const {
     glm::vec3 scale = this->transformation.getScale();
-    context.objectScale = std::max(std::abs(scale.x), std::max(std::abs(scale.y), std::abs(scale.z)));
-    return context;
+    return std::max(std::abs(scale.x), std::max(std::abs(scale.y), std::abs(scale.z)));
 }
 
 static const char *lodSkipReasonText(LodSkipReason reason) {
     switch (reason) {
         case LodSkipReason::NO_GAIN: return "not built: saves too few triangles over the step before it";
-        case LodSkipReason::NOTHING_FITS: return "not built: no simplification stays inside this budget";
+        case LodSkipReason::NOTHING_FITS: return "not built: even the smallest simplification breaks a limit at this distance";
         case LodSkipReason::EMPTY: return "not built: simplifies away to nothing";
         default: return "not built";
     }
@@ -371,7 +363,7 @@ void Model::putLodPanelInGui(ImGuiResult &result, const ImGuiRequest &request, b
     const LodLadder &ladder = modelAsset->getLodLadder();
     const std::vector<LodStep> &steps = ladder.getSteps();
     if (animated) {
-        ImGui::TextWrapped("Animated model. A bind pose score says nothing about a deforming mesh, so these steps are generated but never measured.");
+        ImGui::TextWrapped("Animated model. A deforming mesh has no pose to render, so its steps keep the project's triangle targets and are never measured.");
     }
     uint32_t originalTriangleCount = ladder.getOriginalTriangleCount();
     ImGui::Text("Original: %u triangles", originalTriangleCount);
@@ -379,26 +371,30 @@ void Model::putLodPanelInGui(ImGuiResult &result, const ImGuiRequest &request, b
         ImGui::Text("No LOD step was configured, everything renders at the original.");
     }
 
-    LodSelectionContext context = buildLodPanelContext(request);
+    const float objectScale = getLodObjectScale();
     //the steps as configured, not the levels that happened to be built: a step that could not be built is worth
     //seeing and worth retargeting, and hiding it is how it became unreachable
     for (size_t step = 0; step < steps.size(); ++step) {
-        const LodStep::Outcome &outcome = steps[step].structure;
+        const LodStep &entry = steps[step];
+        const LodStep::Outcome &outcome = entry.structure;
         ImGui::PushID((int) step);
+        ImGui::Text("%d: used from %.0f m", (int) (step + 1), entry.distance * objectScale);
         if (!outcome.built) {
-            ImGui::TextDisabled("%d: %s", (int) (step + 1), lodSkipReasonText(outcome.skipReason));
+            ImGui::TextDisabled("   %s", lodSkipReasonText(outcome.skipReason));
         } else {
-            ImGui::Text("%d: %u tris (%.0f%%), moved %.4f units, costs %.2f%% of the pixels", (int) (step + 1),
-                        outcome.triangleCount,
-                        originalTriangleCount == 0 ? 0.0f : 100.0f * (float) outcome.triangleCount / (float) originalTriangleCount,
-                        outcome.modelError, outcome.silhouetteDamage * 100.0f);
-            float switchDistance = ladder.switchDistanceOf(outcome, context);
-            if (switchDistance > 0.0f) {
-                ImGui::Text("   used from %.1f m away", switchDistance);
+            ImGui::Text("   %u tris (%.0f%%, target %.0f%%)", outcome.triangleCount, outcome.achievedRatio * 100.0f,
+                        entry.triangleTarget * 100.0f);
+            //what the level shows at that distance against what it may show, all in pixels of the reference screen
+            ImGui::Text("   surface %.1f/%.0f  outline %.1f/%.0f  holes %.1f/%.0f  texture %.1f/%.0f  normal %.1f/%.0f px",
+                        outcome.measured.surface, entry.limits.surface, outcome.measured.outline, entry.limits.outline,
+                        outcome.measured.holes, entry.limits.holes, outcome.measured.texture, entry.limits.texture,
+                        outcome.measured.normal, entry.limits.normal);
+            if (outcome.clipped) {
+                ImGui::TextWrapped("   Checked below its real screen size, LOD_calibrationMaxResolution capped the render.");
             }
         }
-        if (steps[step].welded.built) {
-            ImGui::Text("   welded twin for shadows: %u tris", steps[step].welded.triangleCount);
+        if (entry.welded.built) {
+            ImGui::Text("   welded twin for shadows: %u tris", entry.welded.triangleCount);
         }
         ImGui::PopID();
     }
@@ -467,12 +463,12 @@ void Model::putLodPanelInGui(ImGuiResult &result, const ImGuiRequest &request, b
     }
 
     if (animated) {
-        return;//generated from the budgets read as errors, never measured, so there is nothing to retarget
+        return;//kept at the project triangle targets, never measured, so there is nothing to retarget
     }
 
     ImGui::Separator();
     if (ImGui::TreeNode("Triangle counts for this model")) {
-        ImGui::TextWrapped("Set how much of the original each step keeps. The engine finds the simplification that lands there and records what it costs, so the step comes back the same on every load.");
+        ImGui::TextWrapped("Set how much of the original each step keeps, overriding the step's limits for this model. The engine finds the simplification that lands there and records what it costs, so the step comes back the same on every load.");
         //each step has to stay between its neighbours, or the ladder would go backwards. The gain heuristic does
         //not apply to a number that was typed here, so the bounds are just the neighbours
         for (size_t step = 0; step < steps.size(); ++step) {

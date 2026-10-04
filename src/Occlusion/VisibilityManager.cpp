@@ -243,32 +243,16 @@ void VisibilityManager::fillVisibleObjectPerCamera(const VisibilityRequest* visi
     float objectAverageDepth;
     float objectScreenSize;
     float objectDistance = 1.0f;
-    const Camera::CameraTypes lodCameraType = visibilityRequest->camera->getType();
-    //an ortho projection does not shrink with distance, so its levels are placed at a fixed distance of one
-    const bool perspectiveLodProjection = lodCameraType != Camera::CameraTypes::ORTHOGRAPHIC;
-    //error in model units times this is its size in pixels at distance one, shadow cameras render to their own map size
+    //a point light sees an object from its own position, so a model next to the light gets its fine level there
+    //even when the player is far. A directional light has no position, so its cascades follow the player
+    const bool lodFromLightToo = visibilityRequest->camera->getType() == Camera::CameraTypes::CUBE;
     LodSelectionContext lodContext;
-    if (lodCameraType == Camera::CameraTypes::PERSPECTIVE) {
-        lodContext.pixelScale = LodLadder::pixelsPerModelUnit(visibilityRequest->camera->getProjectionMatrix(),
-                                                              static_cast<uint32_t>(visibilityRequest->displayHeightOption.getOrDefault(1080)));
-    } else if (lodCameraType == Camera::CameraTypes::ORTHOGRAPHIC) {
-        lodContext.pixelScale = LodLadder::pixelsPerModelUnit(visibilityRequest->camera->getProjectionMatrix(),
-                                                              static_cast<uint32_t>(visibilityRequest->shadowMapDirectionalSizeOption.getOrDefault(1024)));
-    } else {
-        //cube faces are 90 degree perspective, so their projection scale is 1. Never ask a cube camera for a matrix, it exits
-        lodContext.pixelScale = static_cast<float>(visibilityRequest->shadowMapPointHeightOption.getOrDefault(512)) * 0.5f;
-    }
     lodContext.hysteresis = static_cast<float>(visibilityRequest->lodSwitchHysteresisOption.getOrDefault(0.15));
     lodContext.forceLevel = visibilityRequest->lodForceLevelOption.getOrDefault(-1L);
     //a depth only pass is the one thing that may use welded levels, and that is the camera role, not its
     //projection. An orthographic player camera still samples textures
     static const uint64_t lodPlayerCameraTag = HashUtil::hashString(HardCodedTags::CAMERA_PLAYER);
     lodContext.isShadowCamera = !visibilityRequest->camera->hasTag(lodPlayerCameraTag);
-    lodContext.allowance = static_cast<float>(visibilityRequest->lodPixelDeviationOption.getOrDefault(1.0)) *
-                           static_cast<float>(visibilityRequest->lodToleranceScaleOption.getOrDefault(1.0));
-    if (lodContext.isShadowCamera) {
-        lodContext.allowance *= static_cast<float>(visibilityRequest->lodShadowToleranceScaleOption.getOrDefault(2.0));
-    }
     long splitModelToMeshCount;
     bool softwareOcclusionRenderDump = false;
     long softwareOcclusionRenderDumpFrequency = 500;
@@ -356,7 +340,7 @@ void VisibilityManager::fillVisibleObjectPerCamera(const VisibilityRequest* visi
         if (isVisible && wholeModelPath) {
             modelLodSkipped = isSkippedByLodDistance(skipRenderDistance, skipRenderSize, maxSkipRenderSize, cameraProjectionMatrix, visibilityRequest->playerPosition, currentModel->getAabbMin(), currentModel->getAabbMax(), objectAverageDepth, objectScreenSize, objectDistance);
             if (!modelLodSkipped) {
-                lodContext.objectDistance = perspectiveLodProjection ? objectDistance : 1.0f;
+                lodContext.objectDistance = lodFromLightToo ? std::min(objectDistance, distanceToBox(visibilityRequest->camera->getPosition(), currentModel->getAabbMin(), currentModel->getAabbMax())) : objectDistance;
                 lodContext.objectScale = getLodObjectScale(currentModel);
                 modelLod = currentModel->getModelAsset()->getLodLadder().selectLevel(lodContext,
                                    visibilityRequest->getPreviousLodLevel(currentModel->getWorldObjectID()));
@@ -406,7 +390,7 @@ void VisibilityManager::fillVisibleObjectPerCamera(const VisibilityRequest* visi
                             AABBConverter::getWorldSpaceAABB(currentModel->getTransformation()->getWorldTransform(), meshMeta->mesh->getAabbMin(), meshMeta->mesh->getAabbMax(), meshWorldMin, meshWorldMax);
                             if (visibilityRequest->camera->isVisible(meshWorldMin, meshWorldMax)) {
                                 bool lodSkipped = isSkippedByLodDistance(skipRenderDistance, skipRenderSize, maxSkipRenderSize, cameraProjectionMatrix, visibilityRequest->playerPosition, meshWorldMin, meshWorldMax, objectAverageDepth, objectScreenSize, objectDistance);
-                                lodContext.objectDistance = perspectiveLodProjection ? objectDistance : 1.0f;
+                                lodContext.objectDistance = lodFromLightToo ? std::min(objectDistance, distanceToBox(visibilityRequest->camera->getPosition(), meshWorldMin, meshWorldMax)) : objectDistance;
                                 lodContext.objectScale = getLodObjectScale(currentModel);
                                 uint32_t lod = currentModel->getModelAsset()->getLodLadder().selectLevel(lodContext,
                                                               visibilityRequest->getPreviousLodLevel(currentModel->getWorldObjectID()));
@@ -535,10 +519,17 @@ void VisibilityManager::staticOcclusionThread(VisibilityRequest* visibilityReque
     }
 }
 
-//the stored errors are in model units, so the biggest scale component is what they turn into in the world
+//level distances are set for the model as authored, so a model scaled up is used at proportionally further distances
 float VisibilityManager::getLodObjectScale(const Model* model) {
     glm::vec3 scale = model->getTransformation()->getScale();
     return std::max(std::abs(scale.x), std::max(std::abs(scale.y), std::abs(scale.z)));
+}
+
+float VisibilityManager::distanceToBox(const glm::vec3 &point, const glm::vec3 &minAABB, const glm::vec3 &maxAABB) {
+    const float dx = std::max(minAABB.x - point.x, std::max(0.0f, point.x - maxAABB.x));
+    const float dy = std::max(minAABB.y - point.y, std::max(0.0f, point.y - maxAABB.y));
+    const float dz = std::max(minAABB.z - point.z, std::max(0.0f, point.z - maxAABB.z));
+    return std::sqrt(dx * dx + dy * dy + dz * dz);
 }
 
 bool VisibilityManager::isSkippedByLodDistance(float skipRenderDistance, float skipRenderSize, float maxSkipRenderSize, const glm::mat4 &cameraProjectionMatrix, const glm::vec3& playerPosition, glm::vec3 minAABB, glm::vec3 maxAABB, float &objectAverageDepth, float &objectScreenSize, float &objectDistance) {
@@ -551,10 +542,7 @@ bool VisibilityManager::isSkippedByLodDistance(float skipRenderDistance, float s
 
     objectAverageDepth = (ndcMax.z + ndcMin.z) / -2.0f;
 
-    const float dx = std::max(minAABB.x - playerPosition.x, std::max(0.0f, playerPosition.x - maxAABB.x));
-    const float dy = std::max(minAABB.y - playerPosition.y, std::max(0.0f, playerPosition.y - maxAABB.y));
-    const float dz = std::max(minAABB.z - playerPosition.z, std::max(0.0f, playerPosition.z - maxAABB.z));
-    objectDistance = std::max(std::sqrt(dx*dx + dy*dy + dz*dz), 0.001f);//zero when the camera is inside the AABB, and we divide by it
+    objectDistance = distanceToBox(playerPosition, minAABB, maxAABB);
     if(skipRenderDistance !=0 && objectDistance > skipRenderDistance) {           //Is it distant enough to skip?
         if ((maxAABB.x - minAABB.x) < maxSkipRenderSize &&                    //Is it actually small enough to skip? We don't wanna skip mountains becuse they are far away.
             (maxAABB.y - minAABB.y) < maxSkipRenderSize )

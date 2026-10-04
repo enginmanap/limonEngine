@@ -97,24 +97,6 @@
         <Index>11</Index>
     </Parameter>
     <Parameter>
-        <RequestType>FreeNumber</RequestType>
-        <Description>LOD_levelSilhouetteBudgetList</Description>
-        <!--Percent of the model pixels that may be wrong at each level: outline moved, a hole, or a uv or normal past LOD_uvDeviation and LOD_normalDeviation. Calibration searches the largest simplification error that stays inside this, so it bounds how coarse each mesh may be. Outline damage is the same fraction at every distance, so it says nothing about where the level is used. The first number is the element count, not a value. List length sets how many levels exist besides the original. Changing this invalidates every cached calibration, so the next load recalibrates and regenerates every source model. A limonmodel keeps the levels it was exported with until it is re-exported-->
-        <Value>5, 0.5, 2, 5, 10</Value>
-        <valueType>FloatArray</valueType>
-        <IsSet>True</IsSet>
-        <Index>61</Index>
-    </Parameter>
-    <Parameter>
-        <RequestType>FreeNumber</RequestType>
-        <Description>LOD_pixelDeviation</Description>
-        <!--How much a model may visibly move on screen, in pixels, before a level is dropped for a finer one. This is the quality dial, and the only control that trades quality for triangles: raising it brings every level nearer. Measured against what the scorer rendered, not against the simplifier reported error, which reads about a hundred times high on the western buildings. One value for the whole project: it places levels rather than generating them, so it is never part of the calibration cache and changing it needs no regeneration-->
-        <Value>1.0</Value>
-        <valueType>Double</valueType>
-        <IsSet>True</IsSet>
-        <Index>62</Index>
-    </Parameter>
-    <Parameter>
         <RequestType>FreeText</RequestType>
         <Description>LOD_shadowWeldedLevels</Description>
         <!--Build a second, position welded copy of the coarse levels for shadow cameras. Welding drops normals and UVs, which a depth only pass never samples, and buys about 3x at the coarse end. Nothing that samples a texture can ever pick one. Changing this invalidates every cached calibration, so the next load recalibrates and regenerates every source model. A limonmodel keeps the levels it was exported with until it is re-exported-->
@@ -126,7 +108,7 @@
     <Parameter>
         <RequestType>FreeText</RequestType>
         <Description>LOD_calibrate</Description>
-        <!--Measure each model and derive its errors at load. Off uses whatever was cached, or the budgets read as errors, which is what a Raspberry Pi build or a fast iteration loop wants-->
+        <!--Generate and check each model's levels at load. Off makes nothing new: a model uses the levels its sidecar or limonmodel already holds, otherwise the original. That is what a Raspberry Pi build wants-->
         <Value>True</Value>
         <valueType>Boolean</valueType>
         <IsSet>True</IsSet>
@@ -152,15 +134,6 @@
     </Parameter>
     <Parameter>
         <RequestType>FreeNumber</RequestType>
-        <Description>LOD_shadowToleranceScale</Description>
-        <!--Shadow cameras render depth only, so they can afford more deviation than the main view. Multiplies every level's allowed deviation for shadow cascades-->
-        <Value>2.0</Value>
-        <valueType>Double</valueType>
-        <IsSet>True</IsSet>
-        <Index>68</Index>
-    </Parameter>
-    <Parameter>
-        <RequestType>FreeNumber</RequestType>
         <Description>LOD_forceLevel</Description>
         <!--Forces every model to this LOD level so one level can be inspected everywhere it would appear. -1 picks levels normally-->
         <Value>-1</Value>
@@ -171,29 +144,11 @@
     <Parameter>
         <RequestType>FreeNumber</RequestType>
         <Description>LOD_shadowWeldedFromLevel</Description>
-        <!--First level to get a welded twin. Welding is only worth it at the coarse end: measured over the corpus it saves about 1.3x at 4% outline damage but 3x at 27%, so below this it costs damage for nothing. Changing this invalidates every cached calibration, so the next load recalibrates and regenerates every source model. A limonmodel keeps the levels it was exported with until it is re-exported-->
-        <Value>3</Value>
+        <!--First level to get a welded twin for depth only cameras, which drop uvs and normals. Shadows use the original and the levels before it as they are. Changing this invalidates every cached calibration, so the next load recalibrates and regenerates every source model. A limonmodel keeps the levels it was exported with until it is re-exported-->
+        <Value>2</Value>
         <valueType>Long</valueType>
         <IsSet>True</IsSet>
         <Index>70</Index>
-    </Parameter>
-    <Parameter>
-        <RequestType>FreeNumber</RequestType>
-        <Description>LOD_scorerResolution</Description>
-        <!--How finely the calibration rasterizer samples a model. Depth is float so deviations are exact at any resolution, this only decides how well the surface is sampled and whether thin geometry registers at all. Cost is the same whatever the object's size. Changing this invalidates every cached calibration, so the next load recalibrates and regenerates every source model. A limonmodel keeps the levels it was exported with until it is re-exported-->
-        <Value>256</Value>
-        <valueType>Long</valueType>
-        <IsSet>True</IsSet>
-        <Index>71</Index>
-    </Parameter>
-    <Parameter>
-        <RequestType>FreeNumber</RequestType>
-        <Description>LOD_uvDeviation</Description>
-        <!--How far texture coordinates may move, in 0-1 uv units, before a pixel counts as damaged. Materials can be edited after calibration, so this can't follow the real texture size; 1/2048 is one texel of a 2048 texture, 1/4096 the worst case. Changing this invalidates every cached calibration, so the next load recalibrates and regenerates every source model. A limonmodel keeps the levels it was exported with until it is re-exported-->
-        <Value>0.00048828125</Value>
-        <valueType>Double</valueType>
-        <IsSet>True</IsSet>
-        <Index>72</Index>
     </Parameter>
     <Parameter>
         <RequestType>FreeNumber</RequestType>
@@ -206,12 +161,93 @@
     </Parameter>
     <Parameter>
         <RequestType>FreeNumber</RequestType>
-        <Description>LOD_toleranceScale</Description>
-        <!-- Global quality dial over every level's own allowed deviation. Below one holds finer levels for longer and costs triangles, above one lets coarse levels come closer. Not part of the calibration cache, so it can be changed without recalibrating anything-->
-        <Value>1.0</Value>
+        <Description>LOD_levelDistances</Description>
+        <!--Where each level is used, in meters, times the instance scale. Each level is generated as the coarsest simplification that stays inside its pixel limits when seen from exactly this distance, so the triangle count is a result, not a setting. The first number is the element count plus one, not a value. Every LOD_level list must have the same length; an empty list means no levels at all. Changing a distance regenerates that level only-->
+        <Value>4, 50, 100, 200</Value>
+        <valueType>FloatArray</valueType>
+        <IsSet>True</IsSet>
+        <Index>74</Index>
+    </Parameter>
+    <Parameter>
+        <RequestType>FreeNumber</RequestType>
+        <Description>LOD_levelTriangleTargets</Description>
+        <!--Percent of the original each level is hoped to keep. Only reported in the editor next to what was reached, it decides nothing, except for animated models, which can not be rendered for a check and are built straight to these-->
+        <Value>4, 80, 60, 40</Value>
+        <valueType>FloatArray</valueType>
+        <IsSet>True</IsSet>
+        <Index>75</Index>
+    </Parameter>
+    <Parameter>
+        <RequestType>FreeNumber</RequestType>
+        <Description>LOD_levelSurfacePixels</Description>
+        <!--How far the visible surface may move at the level's distance, in pixels of the reference screen. A texture sliding a few texels counts here too. Negative switches the check off-->
+        <Value>4, 4, 3, 4</Value>
+        <valueType>FloatArray</valueType>
+        <IsSet>True</IsSet>
+        <Index>76</Index>
+    </Parameter>
+    <Parameter>
+        <RequestType>FreeNumber</RequestType>
+        <Description>LOD_levelOutlinePixels</Description>
+        <!--How far the silhouette may move at the level's distance, in pixels of the reference screen. Negative switches the check off-->
+        <Value>4, 4, 3, 4</Value>
+        <valueType>FloatArray</valueType>
+        <IsSet>True</IsSet>
+        <Index>77</Index>
+    </Parameter>
+    <Parameter>
+        <RequestType>FreeNumber</RequestType>
+        <Description>LOD_levelHolePixels</Description>
+        <!--How wide the widest hole may be at the level's distance, where something behind shows through, in pixels of the reference screen. Negative switches the check off-->
+        <Value>4, 2, 6, 8</Value>
+        <valueType>FloatArray</valueType>
+        <IsSet>True</IsSet>
+        <Index>78</Index>
+    </Parameter>
+    <Parameter>
+        <RequestType>FreeNumber</RequestType>
+        <Description>LOD_levelTexturePixels</Description>
+        <!--How wide the widest patch may be where the uv jumped to another part of the texture, at the level's distance, in pixels of the reference screen. Negative switches the check off-->
+        <Value>4, 8, 12, 16</Value>
+        <valueType>FloatArray</valueType>
+        <IsSet>True</IsSet>
+        <Index>79</Index>
+    </Parameter>
+    <Parameter>
+        <RequestType>FreeNumber</RequestType>
+        <Description>LOD_levelNormalPixels</Description>
+        <!--How wide the widest patch may be whose shading changed past LOD_normalDeviation, at the level's distance, in pixels of the reference screen. Negative switches the check off-->
+        <Value>4, 8, 12, 16</Value>
+        <valueType>FloatArray</valueType>
+        <IsSet>True</IsSet>
+        <Index>80</Index>
+    </Parameter>
+    <Parameter>
+        <RequestType>FreeNumber</RequestType>
+        <Description>LOD_referenceHeight</Description>
+        <!--Height in pixels of the screen levels are judged for, with LOD_referenceFov. The default is a 1080p low end screen; this machine's own resolution doesn't matter. Changing it regenerates every level-->
+        <Value>1080</Value>
+        <valueType>Long</valueType>
+        <IsSet>True</IsSet>
+        <Index>81</Index>
+    </Parameter>
+    <Parameter>
+        <RequestType>FreeNumber</RequestType>
+        <Description>LOD_referenceFov</Description>
+        <!--Vertical field of view in degrees of the screen levels are judged for, with LOD_referenceHeight. Changing it regenerates every level-->
+        <Value>60.0</Value>
         <valueType>Double</valueType>
         <IsSet>True</IsSet>
-        <Index>59</Index>
+        <Index>82</Index>
+    </Parameter>
+    <Parameter>
+        <RequestType>FreeNumber</RequestType>
+        <Description>LOD_calibrationMaxResolution</Description>
+        <!--Largest image the check renders, twice the model's real size on screen at the level's distance. A big model close up needs more and is checked at reduced precision, the editor says so. Cost grows with the square of this. Changing it regenerates every level-->
+        <Value>2048</Value>
+        <valueType>Long</valueType>
+        <IsSet>True</IsSet>
+        <Index>83</Index>
     </Parameter>
     <Parameter>
         <RequestType>FreeNumber</RequestType>

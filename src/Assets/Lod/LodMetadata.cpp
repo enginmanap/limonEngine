@@ -11,7 +11,7 @@
 #include "consthash/include/consthash/cityhash64.hxx"
 #include <SDL3/SDL_filesystem.h>
 
-static const uint32_t LOD_METADATA_SCHEMA_VERSION = 7;
+static const uint32_t LOD_METADATA_SCHEMA_VERSION = 10;
 //two flip variants of one model load in parallel and share this file, and the animation sections live in it too
 static std::mutex lodMetadataWriteMutex;
 
@@ -102,7 +102,7 @@ tinyxml2::XMLElement *LodMetadata::findVariant(tinyxml2::XMLDocument &document, 
     if (sectionNode == nullptr) {
         return nullptr;
     }
-    //a block written against another layout would be read field by field into zeros, and a zero budget silently
+    //a block written against another layout would be read field by field into zeros, and a zero distance silently
     //produces an empty ladder. Discarding it is the only safe reading
     if (sectionNode->UnsignedAttribute("schemaVersion") != LOD_METADATA_SCHEMA_VERSION) {
         return nullptr;
@@ -140,15 +140,32 @@ static void setFloatAttribute(tinyxml2::XMLElement *node, const std::string &nam
     node->SetAttribute(name.c_str(), numberBuffer);
 }
 
+//one attribute per kind, prefixed, so a limit and its measurement read side by side in the file
+static void writePixels(tinyxml2::XMLElement *node, const std::string &prefix, const LodPixels &pixels) {
+    setFloatAttribute(node, prefix + "Surface", pixels.surface);
+    setFloatAttribute(node, prefix + "Outline", pixels.outline);
+    setFloatAttribute(node, prefix + "Holes", pixels.holes);
+    setFloatAttribute(node, prefix + "Texture", pixels.texture);
+    setFloatAttribute(node, prefix + "Normal", pixels.normal);
+}
+
+static void readPixels(const tinyxml2::XMLElement *node, const std::string &prefix, LodPixels &pixels) {
+    pixels.surface = node->FloatAttribute((prefix + "Surface").c_str());
+    pixels.outline = node->FloatAttribute((prefix + "Outline").c_str());
+    pixels.holes = node->FloatAttribute((prefix + "Holes").c_str());
+    pixels.texture = node->FloatAttribute((prefix + "Texture").c_str());
+    pixels.normal = node->FloatAttribute((prefix + "Normal").c_str());
+}
+
 void LodMetadata::writeOutcome(tinyxml2::XMLElement *stepNode, const char *prefix, const LodStep::Outcome &outcome) {
     std::string base(prefix);
     stepNode->SetAttribute((base + "Built").c_str(), outcome.built);
     stepNode->SetAttribute((base + "Skip").c_str(), (uint32_t) outcome.skipReason);
     setFloatAttribute(stepNode, base + "TargetError", outcome.targetError);
-    setFloatAttribute(stepNode, base + "ModelError", outcome.modelError);
     stepNode->SetAttribute((base + "Triangles").c_str(), outcome.triangleCount);
-    setFloatAttribute(stepNode, base + "Silhouette", outcome.silhouetteDamage);
     setFloatAttribute(stepNode, base + "Achieved", outcome.achievedRatio);
+    writePixels(stepNode, base + "Measured", outcome.measured);
+    stepNode->SetAttribute((base + "Clipped").c_str(), outcome.clipped);
 }
 
 void LodMetadata::readOutcome(const tinyxml2::XMLElement *stepNode, const char *prefix, LodStep::Outcome &outcome) {
@@ -156,10 +173,10 @@ void LodMetadata::readOutcome(const tinyxml2::XMLElement *stepNode, const char *
     outcome.built = stepNode->BoolAttribute((base + "Built").c_str());
     outcome.skipReason = (LodSkipReason) stepNode->UnsignedAttribute((base + "Skip").c_str());
     outcome.targetError = stepNode->FloatAttribute((base + "TargetError").c_str());
-    outcome.modelError = stepNode->FloatAttribute((base + "ModelError").c_str());
     outcome.triangleCount = stepNode->UnsignedAttribute((base + "Triangles").c_str());
-    outcome.silhouetteDamage = stepNode->FloatAttribute((base + "Silhouette").c_str());
     outcome.achievedRatio = stepNode->FloatAttribute((base + "Achieved").c_str());
+    readPixels(stepNode, base + "Measured", outcome.measured);
+    outcome.clipped = stepNode->BoolAttribute((base + "Clipped").c_str());
     //the mesh index is assigned fresh on every build, since which steps are built decides it
     outcome.meshLodIndex = 0;
 }
@@ -175,13 +192,15 @@ bool LodMetadata::read(const std::string &assetPath, const std::string &flipAxes
         return false;//the model itself changed, nothing measured against the old one describes it
     }
     if (variantNode->Unsigned64Attribute("settingsHash") != settingsHash) {
-        return false;//a different scorer, search or budget set produced these, so they are not ours to reuse
+        return false;//a different scorer, search or reference produced these, so they are not ours to reuse
     }
     outSteps.clear();
     for (tinyxml2::XMLElement *stepNode = variantNode->FirstChildElement("Step");
          stepNode != nullptr; stepNode = stepNode->NextSiblingElement("Step")) {
         LodStep step;
-        step.silhouetteBudget = stepNode->FloatAttribute("budget");
+        step.distance = stepNode->FloatAttribute("distance");
+        readPixels(stepNode, "limit", step.limits);
+        step.triangleTarget = stepNode->FloatAttribute("triangleTarget");
         step.requestedRatio = stepNode->FloatAttribute("requestedRatio");
         step.userSet = stepNode->BoolAttribute("userSet");
         readOutcome(stepNode, "structure", step.structure);
@@ -209,7 +228,9 @@ bool LodMetadata::write(const std::string &assetPath, const std::string &flipAxe
     for (size_t stepIndex = 0; stepIndex < steps.size(); ++stepIndex) {
         tinyxml2::XMLElement *stepNode = document.NewElement("Step");
         stepNode->SetAttribute("index", (uint32_t) (stepIndex + 1));
-        setFloatAttribute(stepNode, "budget", steps[stepIndex].silhouetteBudget);
+        setFloatAttribute(stepNode, "distance", steps[stepIndex].distance);
+        writePixels(stepNode, "limit", steps[stepIndex].limits);
+        setFloatAttribute(stepNode, "triangleTarget", steps[stepIndex].triangleTarget);
         setFloatAttribute(stepNode, "requestedRatio", steps[stepIndex].requestedRatio);
         stepNode->SetAttribute("userSet", steps[stepIndex].userSet);
         writeOutcome(stepNode, "structure", steps[stepIndex].structure);
@@ -230,15 +251,15 @@ bool LodMetadata::readOverrides(const std::string &assetPath, const std::string 
     for (tinyxml2::XMLElement *stepNode = variantNode->FirstChildElement("Step");
          stepNode != nullptr; stepNode = stepNode->NextSiblingElement("Step")) {
         LodStep step;
-        step.silhouetteBudget = stepNode->FloatAttribute("budget");
         step.userSet = stepNode->BoolAttribute("userSet");
         step.requestedRatio = stepNode->FloatAttribute("requestedRatio");
-        if (step.silhouetteBudget <= 0.0f) {
-            //a budget of zero can never be met, so it is a broken record rather than a strict one. Only this step
-            //is dropped: discarding the list would take every other step's target down with one bad entry
+        if (step.userSet && (step.requestedRatio <= 0.0f || step.requestedRatio >= 1.0f)) {
+            //a share outside zero to one can never be built, so it is a broken record rather than a strict one. Only
+            //this step is dropped: the list is positional, so it keeps its place without a target
             std::cerr << "LOD override step " << outSteps.size() + 1 << " for " << assetPath
-                      << " has no usable outline budget, skipping that step" << std::endl;
-            continue;
+                      << " has no usable triangle share, ignoring it" << std::endl;
+            step.userSet = false;
+            step.requestedRatio = 0.0f;
         }
         outSteps.push_back(step);
     }
@@ -255,7 +276,6 @@ bool LodMetadata::writeOverrides(const std::string &assetPath, const std::string
     for (size_t stepIndex = 0; stepIndex < steps.size(); ++stepIndex) {
         tinyxml2::XMLElement *stepNode = document.NewElement("Step");
         stepNode->SetAttribute("index", (uint32_t) (stepIndex + 1));
-        setFloatAttribute(stepNode, "budget", steps[stepIndex].silhouetteBudget);
         stepNode->SetAttribute("userSet", steps[stepIndex].userSet);
         setFloatAttribute(stepNode, "requestedRatio", steps[stepIndex].requestedRatio);
         variantNode->InsertEndChild(stepNode);

@@ -194,7 +194,7 @@ public:
     }
 #ifdef CEREAL_SUPPORT
     //bumped whenever the stored LOD data changes, an older file can not produce it, so we stop instead of reading garbage
-    static constexpr uint32_t SERIALIZATION_MAGIC = 0x4C4D463C;
+    static constexpr uint32_t SERIALIZATION_MAGIC = 0x4C4D463F;
 
     template<class Archive>
     void serialize(Archive & archive){
