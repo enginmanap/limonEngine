@@ -75,6 +75,9 @@ private:
 
     std::vector<uint32_t> bufferObjects;
     bool setTriangles(const aiMesh *currentMesh);
+    //assimp splits on channels we never read, like a second uv set. Those copies leave seam vertices with extra
+    //wedges, which meshopt locks, so the same model simplifies differently depending on what its file carried
+    void weldIdenticalVertices();
 #ifdef CEREAL_SUPPORT
     void checkSerializationMagic(uint32_t magic) const;
 #endif

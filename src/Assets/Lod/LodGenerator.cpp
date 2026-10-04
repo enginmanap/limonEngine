@@ -77,6 +77,7 @@ void LodGenerator::buildUvSeamLocks(const std::vector<glm::vec2> &textureCoordin
     vertexLock.assign(vertices.size(), 0);
     for (size_t vertex = 0; vertex < vertices.size(); ++vertex) {
         if (seamAtPosition[positionRemap[vertex]]) {
+            //Protect only stops collapses across the seam, it still slides along it and eats windows. The scorer's uv check catches that
             vertexLock[vertex] = meshopt_SimplifyVertex_Protect;
         }
     }

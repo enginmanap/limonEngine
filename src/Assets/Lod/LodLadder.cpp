@@ -17,9 +17,9 @@
 #include "limonAPI/util/HashUtil.h"
 
 //bumped by hand whenever the scorer, the search or a generator changes what it produces
-static const uint32_t LOD_CALIBRATOR_VERSION = 6;
+static const uint32_t LOD_CALIBRATOR_VERSION = 7;
 
-//four steps, each allowed more outline change than the one before it
+//four steps, each allowed more wrong pixels than the one before it
 static const float LOD_DEFAULT_SILHOUETTE_BUDGETS[4] = {0.005f, 0.02f, 0.05f, 0.10f};
 static const uint32_t LOD_MAX_STEPS_FROM_OPTIONS = 7;//LOD0 plus this many, kept under the mesh side ceiling
 
@@ -72,6 +72,10 @@ void LodLadder::computeSettingsHash() {
     std::string packed = "v" + std::to_string(LOD_CALIBRATOR_VERSION) + "|s" + std::to_string(searchSteps) +
                          "|r" + std::to_string(scorerResolution) + "|w" + std::to_string(shadowWeldedLevels ? 1 : 0) +
                          "," + std::to_string(shadowWeldedFromLevel);
+    char deviations[64];
+    //to_string keeps six decimals, so 1/4096 and 1/4100 would share a cache entry
+    snprintf(deviations, sizeof(deviations), "|u%.9g|n%.9g", uvDeviation, normalDeviation);
+    packed += deviations;
     settingsHash = consthash::city64(packed.c_str(), packed.length());
 }
 
@@ -85,6 +89,8 @@ void LodLadder::readSettings(OptionsUtil::Options *options) {
         scorerResolution = (uint32_t) options->getOption<long>(HASH("LOD_scorerResolution")).getOrDefault(256L);
         shadowWeldedLevels = options->getOption<bool>(HASH("LOD_shadowWeldedLevels")).getOrDefault(true);
         shadowWeldedFromLevel = (uint32_t) options->getOption<long>(HASH("LOD_shadowWeldedFromLevel")).getOrDefault(3L);
+        uvDeviation = (float) options->getOption<double>(HASH("LOD_uvDeviation")).getOrDefault(1.0 / 2048.0);
+        normalDeviation = (float) options->getOption<double>(HASH("LOD_normalDeviation")).getOrDefault(0.2);
     }
 
     //the steps a binary load brought with it carry their own intent, so the project defaults only fill in an
@@ -150,6 +156,7 @@ void LodLadder::generateCandidate(const std::vector<MeshGeometry> &meshes, LodGe
                                   float targetError, bool measure, Candidate &candidate) const {
     candidate.meshIndices.assign(meshes.size(), std::vector<uint16_t>());
     candidate.triangleCount = 0;
+    candidate.silhouetteOnly = kind == LodGenerator::GeneratorKind::SILHOUETTE_ONLY;
     candidate.silhouette = 0.0f;
     candidate.modelError = 0.0f;
     for (size_t meshIndex = 0; meshIndex < meshes.size() && meshIndex < generators.size(); ++meshIndex) {
@@ -592,10 +599,19 @@ void LodLadder::buildViews(std::vector<View> &views) {
     }
 }
 
+void LodLadder::RasterTarget::reset(uint32_t resolution) {
+    size_t pixelCount = (size_t) resolution * resolution;
+    depth.assign(pixelCount, FLT_MAX);
+    textureCoordinates.assign(pixelCount, glm::vec2(0.0f));
+    normals.assign(pixelCount, glm::vec3(0.0f));
+    positionPerUv.assign(pixelCount, 0.0f);
+    attributeMask.assign(pixelCount, 0);
+}
+
 //orthographic, both sides drawn, nearest depth wins. No backface culling, so open and double sided geometry
 //like foliage cards doesn't register as damage just for being seen from behind. A null candidate is the original
 void LodLadder::rasterize(const std::vector<MeshGeometry> &meshes, const Candidate *candidate, const View &view,
-                          const glm::vec3 &center, float scale, uint32_t resolution, std::vector<float> &depth) {
+                          const glm::vec3 &center, float scale, uint32_t resolution, RasterTarget &target) {
     for (size_t meshIndex = 0; meshIndex < meshes.size(); ++meshIndex) {
         const MeshGeometry &mesh = meshes[meshIndex];
         const uint16_t *indices = mesh.indices;
@@ -611,6 +627,11 @@ void LodLadder::rasterize(const std::vector<MeshGeometry> &meshes, const Candida
             continue;
         }
         const std::vector<glm::vec3> &vertices = *mesh.vertices;
+        const bool hasTextureCoordinates = mesh.textureCoordinates != nullptr &&
+                                           mesh.textureCoordinates->size() == vertices.size();
+        const bool hasNormals = mesh.normals != nullptr && mesh.normals->size() == vertices.size();
+        const uint8_t meshAttributeMask = (uint8_t) ((hasTextureCoordinates ? RASTER_HAS_UV : 0) |
+                                                     (hasNormals ? RASTER_HAS_NORMAL : 0));
         for (size_t triangle = 0; triangle + 2 < indexCount; triangle = triangle + 3) {
             glm::vec3 projected[3];
             bool indexOutOfRange = false;
@@ -635,6 +656,31 @@ void LodLadder::rasterize(const std::vector<MeshGeometry> &meshes, const Candida
             if (std::fabs(area) < 1e-12f) {
                 continue;
             }
+            const uint16_t corner0 = indices[triangle];
+            const uint16_t corner1 = indices[triangle + 1];
+            const uint16_t corner2 = indices[triangle + 2];
+            glm::vec2 cornerUv[3] = {glm::vec2(0.0f), glm::vec2(0.0f), glm::vec2(0.0f)};
+            glm::vec3 cornerNormal[3] = {glm::vec3(0.0f), glm::vec3(0.0f), glm::vec3(0.0f)};
+            float trianglePositionPerUv = 0.0f;
+            if (hasTextureCoordinates) {
+                const std::vector<glm::vec2> &textureCoordinates = *mesh.textureCoordinates;
+                cornerUv[0] = textureCoordinates[corner0];
+                cornerUv[1] = textureCoordinates[corner1];
+                cornerUv[2] = textureCoordinates[corner2];
+                float positionLength = glm::length(vertices[corner1] - vertices[corner0]) +
+                                       glm::length(vertices[corner2] - vertices[corner1]) +
+                                       glm::length(vertices[corner0] - vertices[corner2]);
+                float uvLength = glm::length(cornerUv[1] - cornerUv[0]) + glm::length(cornerUv[2] - cornerUv[1]) +
+                                 glm::length(cornerUv[0] - cornerUv[2]);
+                //a palette triangle maps to a single texel, a uv change there is a different colour, not a distance
+                trianglePositionPerUv = uvLength > 0.0f ? positionLength / uvLength : 0.0f;
+            }
+            if (hasNormals) {
+                const std::vector<glm::vec3> &normals = *mesh.normals;
+                cornerNormal[0] = normals[corner0];
+                cornerNormal[1] = normals[corner1];
+                cornerNormal[2] = normals[corner2];
+            }
             int32_t minX = std::max(0, (int32_t) std::floor(std::min(projected[0].x, std::min(projected[1].x, projected[2].x))));
             int32_t maxX = std::min((int32_t) resolution - 1, (int32_t) std::ceil(std::max(projected[0].x, std::max(projected[1].x, projected[2].x))));
             int32_t minY = std::max(0, (int32_t) std::floor(std::min(projected[0].y, std::min(projected[1].y, projected[2].y))));
@@ -652,9 +698,13 @@ void LodLadder::rasterize(const std::vector<MeshGeometry> &meshes, const Candida
                         continue;
                     }
                     float pixelDepth = weight0 * projected[0].z + weight1 * projected[1].z + weight2 * projected[2].z;
-                    float &target = depth[y * resolution + x];
-                    if (pixelDepth < target) {
-                        target = pixelDepth;
+                    size_t pixel = (size_t) y * resolution + x;
+                    if (pixelDepth < target.depth[pixel]) {
+                        target.depth[pixel] = pixelDepth;
+                        target.attributeMask[pixel] = meshAttributeMask;
+                        target.textureCoordinates[pixel] = weight0 * cornerUv[0] + weight1 * cornerUv[1] + weight2 * cornerUv[2];
+                        target.normals[pixel] = weight0 * cornerNormal[0] + weight1 * cornerNormal[1] + weight2 * cornerNormal[2];
+                        target.positionPerUv[pixel] = trianglePositionPerUv;
                     }
                 }
             }
@@ -663,7 +713,7 @@ void LodLadder::rasterize(const std::vector<MeshGeometry> &meshes, const Candida
 }
 
 //scores what the candidate would show against the original, from fourteen directions. Nothing here takes an on
-//screen size, outline damage is the same fraction at every distance.
+//screen size, damage is the same fraction at every distance.
 //Several loader threads run this at once, so it must hold no state between calls
 void LodLadder::measureCandidate(const std::vector<MeshGeometry> &meshes, Candidate &candidate) const {
     candidate.silhouette = 0.0f;
@@ -698,19 +748,22 @@ void LodLadder::measureCandidate(const std::vector<MeshGeometry> &meshes, Candid
     std::vector<View> views;
     buildViews(views);
 
-    std::vector<float> referenceDepth(resolution * resolution);
-    std::vector<float> candidateDepth(resolution * resolution);
+    RasterTarget reference;
+    RasterTarget simplified;
     //pixels here, turned into model units with the same scale once every view has been walked
     std::vector<float> deviations;
     uint64_t mismatched = 0;
     uint64_t covered = 0;
     uint64_t boundary = 0;
     uint64_t holes = 0;
+    uint64_t wrongAttributes = 0;
     for (size_t viewIndex = 0; viewIndex < views.size(); ++viewIndex) {
-        std::fill(referenceDepth.begin(), referenceDepth.end(), FLT_MAX);
-        std::fill(candidateDepth.begin(), candidateDepth.end(), FLT_MAX);
-        rasterize(meshes, nullptr, views[viewIndex], center, scale, resolution, referenceDepth);
-        rasterize(meshes, &candidate, views[viewIndex], center, scale, resolution, candidateDepth);
+        reference.reset(resolution);
+        simplified.reset(resolution);
+        rasterize(meshes, nullptr, views[viewIndex], center, scale, resolution, reference);
+        rasterize(meshes, &candidate, views[viewIndex], center, scale, resolution, simplified);
+        const std::vector<float> &referenceDepth = reference.depth;
+        const std::vector<float> &candidateDepth = simplified.depth;
         for (size_t pixel = 0; pixel < referenceDepth.size(); ++pixel) {
             bool referenceCovered = referenceDepth[pixel] != FLT_MAX;
             bool candidateCovered = candidateDepth[pixel] != FLT_MAX;
@@ -736,6 +789,34 @@ void LodLadder::measureCandidate(const std::vector<MeshGeometry> &meshes, Candid
                     //distance to whatever happens to be back there, so it would only poison the distribution
                     holes++;
                 } else {
+                    //the same surface, but a collapse along a seam can still show another part of the texture or
+                    //shade it differently without moving it. A window sliding off a flat facade is only seen here
+                    uint8_t sharedAttributes = candidate.silhouetteOnly ? 0 ://welded keeps arbitrary copies, depth only draws it
+                                               reference.attributeMask[pixel] & simplified.attributeMask[pixel];
+                    bool attributeWrong = false;
+                    if (sharedAttributes & RASTER_HAS_UV) {
+                        glm::vec2 uvDifference = reference.textureCoordinates[pixel] - simplified.textureCoordinates[pixel];
+                        //per axis, a texel is a square
+                        if (std::max(std::fabs(uvDifference.x), std::fabs(uvDifference.y)) > uvDeviation) {
+                            attributeWrong = true;
+                        }
+                        //texture sliding across a surface moves what is seen as much as the surface moving would
+                        deviation = std::max(deviation, glm::length(uvDifference) * reference.positionPerUv[pixel] * scale);
+                    }
+                    if (sharedAttributes & RASTER_HAS_NORMAL) {
+                        glm::vec3 referenceNormal = reference.normals[pixel];
+                        glm::vec3 candidateNormal = simplified.normals[pixel];
+                        float referenceLength = glm::length(referenceNormal);
+                        float candidateLength = glm::length(candidateNormal);
+                        //interpolated normals shrink between corners and the shader normalizes them, so we do too
+                        if (referenceLength > 0.0f && candidateLength > 0.0f &&
+                            glm::length(referenceNormal / referenceLength - candidateNormal / candidateLength) > normalDeviation) {
+                            attributeWrong = true;
+                        }
+                    }
+                    if (attributeWrong) {
+                        wrongAttributes++;
+                    }
                     deviations.push_back(deviation);
                 }
             }
@@ -746,9 +827,9 @@ void LodLadder::measureCandidate(const std::vector<MeshGeometry> &meshes, Candid
         candidate.silhouette = mismatched > 0 ? 1.0f : 0.0f;
         return;
     }
-    //holes count with the outline: both are places where the wrong thing is on screen, and both are what the
-    //budget has to bound
-    candidate.silhouette = (float) ((double) (mismatched + holes) / (double) covered);
+    //holes and wrong attributes count with the outline: all are places where the wrong thing is on screen, and
+    //all are what the budget has to bound
+    candidate.silhouette = (float) ((double) (mismatched + holes + wrongAttributes) / (double) covered);
 
     //the mismatched pixels form a band along the outline, so its width is the band over the outline length.
     //Counting the outline instead of guessing it from the bounding box keeps every model shape honest

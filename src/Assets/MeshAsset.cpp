@@ -10,6 +10,7 @@
 #include "limonAPI/Graphics/GraphicsInterface.h"
 #include "../../libs/meshoptimizer/src/meshoptimizer.h"
 #include "Lod/LodGenerator.h"
+#include <algorithm>
 #include <cstring>
 #include <iostream>
 #include <limits>
@@ -110,7 +111,81 @@ MeshAsset::MeshAsset(const aiMesh *currentMesh, std::string name, std::shared_pt
             this->bones = false;
         }
     }
+    weldIdenticalVertices();//after bones, weights are indexed by assimp's vertex ids until here
     buildBulletMesh();
+}
+
+void MeshAsset::weldIdenticalVertices() {
+    if (vertices.empty() || faces.empty()) {
+        return;
+    }
+    std::vector<meshopt_Stream> streams;
+    streams.push_back({&vertices[0], sizeof(glm::vec3), sizeof(glm::vec3)});
+    if (normals.size() == vertices.size()) {
+        streams.push_back({&normals[0], sizeof(glm::vec3), sizeof(glm::vec3)});
+    }
+    if (textureCoordinates.size() == vertices.size()) {
+        streams.push_back({&textureCoordinates[0], sizeof(glm::vec2), sizeof(glm::vec2)});
+    }
+    //skinning is part of what a vertex is, two copies with different weights must stay apart
+    if (boneIDs.size() == vertices.size()) {
+        streams.push_back({&boneIDs[0], sizeof(glm::lowp_uvec4), sizeof(glm::lowp_uvec4)});
+    }
+    if (boneWeights.size() == vertices.size()) {
+        streams.push_back({&boneWeights[0], sizeof(glm::vec4), sizeof(glm::vec4)});
+    }
+
+    std::vector<uint32_t> indices(faces.size() * 3);
+    for (size_t face = 0; face < faces.size(); ++face) {
+        indices[face * 3 + 0] = faces[face].x;
+        indices[face * 3 + 1] = faces[face].y;
+        indices[face * 3 + 2] = faces[face].z;
+    }
+    std::vector<uint32_t> remap(vertices.size());
+    size_t weldedCount = meshopt_generateVertexRemapMulti(&remap[0], &indices[0], indices.size(), vertices.size(),
+                                                          &streams[0], streams.size());
+    if (weldedCount == vertices.size()) {
+        return;
+    }
+
+    meshopt_remapVertexBuffer(&vertices[0], &vertices[0], vertices.size(), sizeof(glm::vec3), &remap[0]);
+    if (normals.size() == vertices.size()) {
+        meshopt_remapVertexBuffer(&normals[0], &normals[0], normals.size(), sizeof(glm::vec3), &remap[0]);
+        normals.resize(weldedCount);
+    }
+    if (textureCoordinates.size() == vertices.size()) {
+        meshopt_remapVertexBuffer(&textureCoordinates[0], &textureCoordinates[0], textureCoordinates.size(), sizeof(glm::vec2), &remap[0]);
+        textureCoordinates.resize(weldedCount);
+    }
+    if (boneIDs.size() == vertices.size()) {
+        meshopt_remapVertexBuffer(&boneIDs[0], &boneIDs[0], boneIDs.size(), sizeof(glm::lowp_uvec4), &remap[0]);
+        boneIDs.resize(weldedCount);
+    }
+    if (boneWeights.size() == vertices.size()) {
+        meshopt_remapVertexBuffer(&boneWeights[0], &boneWeights[0], boneWeights.size(), sizeof(glm::vec4), &remap[0]);
+        boneWeights.resize(weldedCount);
+    }
+    vertices.resize(weldedCount);
+
+    for (size_t face = 0; face < faces.size(); ++face) {
+        faces[face] = glm::u16vec3(remap[faces[face].x], remap[faces[face].y], remap[faces[face].z]);
+    }
+    //a vertex no face uses has no slot any more, and welded copies would add the same hull point twice
+    for (std::map<uint32_t, std::vector<uint32_t>>::iterator boneEntry = boneAttachedMeshes.begin();
+         boneEntry != boneAttachedMeshes.end(); ++boneEntry) {
+        std::vector<uint32_t> remapped;
+        remapped.reserve(boneEntry->second.size());
+        for (size_t index = 0; index < boneEntry->second.size(); ++index) {
+            uint32_t welded = remap[boneEntry->second[index]];
+            if (welded != ~0u) {
+                remapped.push_back(welded);
+            }
+        }
+        std::sort(remapped.begin(), remapped.end());
+        remapped.erase(std::unique(remapped.begin(), remapped.end()), remapped.end());
+        boneEntry->second = remapped;
+    }
+    vertexCount = (uint32_t) weldedCount;
 }
 
 

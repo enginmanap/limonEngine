@@ -28,7 +28,7 @@ enum class LodSkipReason : uint8_t {
 //what was asked of one step and what came out. A welded twin is this step's second outcome, not a step of its own
 struct LodStep {
     //asked for
-    float silhouetteBudget = 0.02f;  //fraction of pixels whose outline may differ, the same at any distance
+    float silhouetteBudget = 0.02f;  //fraction of pixels that may be wrong in outline, uv or normal, the same at any distance
     float requestedRatio = 0.0f;     //triangle share typed in the editor, zero when it came from the options
     bool userSet = false;            //the gain rule steps aside for these: a 2% saving may be exactly the point
 
@@ -187,8 +187,9 @@ private:
     struct Candidate {
         std::vector<std::vector<uint16_t>> meshIndices;
         size_t triangleCount = 0;
-        float silhouette = 0.0f;         //outline changes and holes together, over covered pixels
+        float silhouette = 0.0f;         //outline changes, holes and wrong uvs or normals together, over covered pixels
         float modelError = 0.0f;         //the worse of the outline displacement and the surface p95
+        bool silhouetteOnly = false;     //welded, so its uvs and normals are not what it would be drawn with
     };
 
     //the two tests the search runs. Target error is a multiplicative scale, so the walk is geometric either way
@@ -202,6 +203,20 @@ private:
         glm::vec3 up;
         glm::vec3 forward;
     };
+
+    //what the nearest surface shows at each pixel. A mesh without uvs or normals leaves its pixels unmarked, so
+    //nothing is compared against an attribute that doesn't exist
+    struct RasterTarget {
+        std::vector<float> depth;
+        std::vector<glm::vec2> textureCoordinates;
+        std::vector<glm::vec3> normals;
+        std::vector<float> positionPerUv;   //model units per uv unit of the triangle drawn there, zero for a flat uv
+        std::vector<uint8_t> attributeMask;
+
+        void reset(uint32_t resolution);
+    };
+    static const uint8_t RASTER_HAS_UV = 1;
+    static const uint8_t RASTER_HAS_NORMAL = 2;
 
     void appendDefaultSteps();
     void computeSettingsHash();
@@ -242,7 +257,7 @@ private:
     void measureCandidate(const std::vector<MeshGeometry> &meshes, Candidate &candidate) const;
     static void buildViews(std::vector<View> &views);
     static void rasterize(const std::vector<MeshGeometry> &meshes, const Candidate *candidate, const View &view,
-                          const glm::vec3 &center, float scale, uint32_t resolution, std::vector<float> &depth);
+                          const glm::vec3 &center, float scale, uint32_t resolution, RasterTarget &target);
 
     std::vector<LodStep> steps;
     uint32_t originalTriangleCount = 0;
@@ -264,6 +279,8 @@ private:
     uint32_t scorerResolution = 256;
     bool shadowWeldedLevels = true;
     uint32_t shadowWeldedFromLevel = 3;
+    float uvDeviation = 1.0f / 2048.0f;
+    float normalDeviation = 0.2f;
     uint64_t settingsHash = 0;
     uint64_t builtSettingsHash = 0;//what the outcomes above were produced under, so a settings change drops them
 };

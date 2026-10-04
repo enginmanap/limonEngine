@@ -99,7 +99,7 @@
     <Parameter>
         <RequestType>FreeNumber</RequestType>
         <Description>LOD_levelSilhouetteBudgetList</Description>
-        <!--Percent of the model pixels whose outline may differ at each level. Calibration searches the largest simplification error that stays inside this, so it bounds how coarse each mesh may be. Outline damage is the same fraction at every distance, so it says nothing about where the level is used. The first number is the element count, not a value. List length sets how many levels exist besides the original. Changing this invalidates every cached calibration, so the next load recalibrates and regenerates every source model. A limonmodel keeps the levels it was exported with until it is re-exported-->
+        <!--Percent of the model pixels that may be wrong at each level: outline moved, a hole, or a uv or normal past LOD_uvDeviation and LOD_normalDeviation. Calibration searches the largest simplification error that stays inside this, so it bounds how coarse each mesh may be. Outline damage is the same fraction at every distance, so it says nothing about where the level is used. The first number is the element count, not a value. List length sets how many levels exist besides the original. Changing this invalidates every cached calibration, so the next load recalibrates and regenerates every source model. A limonmodel keeps the levels it was exported with until it is re-exported-->
         <Value>5, 0.5, 2, 5, 10</Value>
         <valueType>FloatArray</valueType>
         <IsSet>True</IsSet>
@@ -185,6 +185,24 @@
         <valueType>Long</valueType>
         <IsSet>True</IsSet>
         <Index>71</Index>
+    </Parameter>
+    <Parameter>
+        <RequestType>FreeNumber</RequestType>
+        <Description>LOD_uvDeviation</Description>
+        <!--How far texture coordinates may move, in 0-1 uv units, before a pixel counts as damaged. Materials can be edited after calibration, so this can't follow the real texture size; 1/2048 is one texel of a 2048 texture, 1/4096 the worst case. Changing this invalidates every cached calibration, so the next load recalibrates and regenerates every source model. A limonmodel keeps the levels it was exported with until it is re-exported-->
+        <Value>0.00048828125</Value>
+        <valueType>Double</valueType>
+        <IsSet>True</IsSet>
+        <Index>72</Index>
+    </Parameter>
+    <Parameter>
+        <RequestType>FreeNumber</RequestType>
+        <Description>LOD_normalDeviation</Description>
+        <!--How far a normal may move before a pixel counts as damaged, as the length of the difference. That length is the most diffuse brightness can change under any light, so 0.05 is 5%. Changing this invalidates every cached calibration, so the next load recalibrates and regenerates every source model. A limonmodel keeps the levels it was exported with until it is re-exported-->
+        <Value>0.2</Value>
+        <valueType>Double</valueType>
+        <IsSet>True</IsSet>
+        <Index>73</Index>
     </Parameter>
     <Parameter>
         <RequestType>FreeNumber</RequestType>

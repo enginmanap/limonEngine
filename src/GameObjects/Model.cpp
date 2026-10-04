@@ -388,7 +388,7 @@ void Model::putLodPanelInGui(ImGuiResult &result, const ImGuiRequest &request, b
         if (!outcome.built) {
             ImGui::TextDisabled("%d: %s", (int) (step + 1), lodSkipReasonText(outcome.skipReason));
         } else {
-            ImGui::Text("%d: %u tris (%.0f%%), moved %.4f units, costs %.2f%% of the outline", (int) (step + 1),
+            ImGui::Text("%d: %u tris (%.0f%%), moved %.4f units, costs %.2f%% of the pixels", (int) (step + 1),
                         outcome.triangleCount,
                         originalTriangleCount == 0 ? 0.0f : 100.0f * (float) outcome.triangleCount / (float) originalTriangleCount,
                         outcome.modelError, outcome.silhouetteDamage * 100.0f);
