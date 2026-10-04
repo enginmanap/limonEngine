@@ -70,7 +70,7 @@ private:
 
     std::map<std::string, std::shared_ptr<AnimationInterface>> animations;//shared for animation sections
     std::shared_ptr<BoneNode> rootNode = nullptr;//bones are shared with meshes
-    int_fast32_t boneIDCounter, boneIDCounterPerMesh;
+    int32_t boneIDCounter, boneIDCounterPerMesh;
 
     glm::vec3 boundingBoxMin;
     glm::vec3 boundingBoxMax;
