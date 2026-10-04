@@ -588,6 +588,18 @@ void Editor::reseatWorldMeshes(const std::shared_ptr<const Material> &baseMateri
     }
 }
 
+//a texture edit can make the material start or stop being transparent, every model on it has to follow
+void Editor::refreshTransparencyTagsOfMaterialUsers(const std::shared_ptr<const Material> &material) {
+    for (auto objectIt = world->objects.begin(); objectIt != world->objects.end(); ++objectIt) {
+        for (const Model::MeshMeta *meshMeta : objectIt->second->getMeshMetaData()) {
+            if (meshMeta->material == material) {
+                objectIt->second->refreshTransparencyTags();
+                break;
+            }
+        }
+    }
+}
+
 /**
  * Splits an asset owned material into a world owned one carrying the edit, so the pane never leaves an edit
  * on an object ModelAsset owns and other worlds point at.
@@ -1456,6 +1468,7 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
                     //only the frames that changed something can have moved the content, and the last of them
                     //indexes the settled value. Doing it unconditionally took the registry lock every frame
                     materialRegistry.refreshContentIndex(selectedMaterial);
+                    refreshTransparencyTagsOfMaterialUsers(selectedMaterial);
                 }
             }
         }

@@ -518,6 +518,36 @@
                 </ExtraVariables>
             </NodeType>
             <NodeType>
+                <Name>Deferred_ModelTransparentCutout</Name>
+                <CombineInputs>True</CombineInputs>
+                <Editable>False</Editable>
+                <Inputs/>
+                <Outputs>
+                    <ConnectionDesc>
+                        <Name>Depth</Name>
+                        <Type>Texture</Type>
+                    </ConnectionDesc>
+                    <ConnectionDesc>
+                        <Name>gAlbedoSpec</Name>
+                        <Type>Texture</Type>
+                    </ConnectionDesc>
+                    <ConnectionDesc>
+                        <Name>gAmbient</Name>
+                        <Type>Texture</Type>
+                    </ConnectionDesc>
+                    <ConnectionDesc>
+                        <Name>gNormal</Name>
+                        <Type>Texture</Type>
+                    </ConnectionDesc>
+                </Outputs>
+                <NodeExtension>PipelineStageExtension</NodeExtension>
+                <ExtraVariables>
+                    <Variable Value="./Engine/Shaders/Deferred_ModelTransparentCutout/fragment.glsl">fragmentShaderName</Variable>
+                    <Variable Value="">geometryShaderName</Variable>
+                    <Variable Value="./Engine/Shaders/Deferred_ModelTransparentCutout/vertex.glsl">vertexShaderName</Variable>
+                </ExtraVariables>
+            </NodeType>
+            <NodeType>
                 <Name>Deferred_ModelAnimated</Name>
                 <CombineInputs>True</CombineInputs>
                 <Editable>False</Editable>
@@ -573,6 +603,37 @@
                     <Variable Value="./Engine/Shaders/ModelTransparent/fragment.glsl">fragmentShaderName</Variable>
                     <Variable Value="">geometryShaderName</Variable>
                     <Variable Value="./Engine/Shaders/ModelTransparent/vertex.glsl">vertexShaderName</Variable>
+                </ExtraVariables>
+            </NodeType>
+            <NodeType>
+                <Name>ModelTransparentCutout</Name>
+                <CombineInputs>True</CombineInputs>
+                <Editable>False</Editable>
+                <Inputs>
+                    <ConnectionDesc>
+                        <Name>pre_shadowDirectional</Name>
+                        <Type>Texture array</Type>
+                    </ConnectionDesc>
+                    <ConnectionDesc>
+                        <Name>pre_shadowPoint</Name>
+                        <Type>Cubemap array</Type>
+                    </ConnectionDesc>
+                </Inputs>
+                <Outputs>
+                    <ConnectionDesc>
+                        <Name>Depth</Name>
+                        <Type>Texture</Type>
+                    </ConnectionDesc>
+                    <ConnectionDesc>
+                        <Name>outputColor</Name>
+                        <Type>Texture</Type>
+                    </ConnectionDesc>
+                </Outputs>
+                <NodeExtension>PipelineStageExtension</NodeExtension>
+                <ExtraVariables>
+                    <Variable Value="./Engine/Shaders/ModelTransparentCutout/fragment.glsl">fragmentShaderName</Variable>
+                    <Variable Value="">geometryShaderName</Variable>
+                    <Variable Value="./Engine/Shaders/ModelTransparentCutout/vertex.glsl">vertexShaderName</Variable>
                 </ExtraVariables>
             </NodeType>
             <NodeType>
@@ -1228,7 +1289,7 @@
                     <ClearBefore>False</ClearBefore>
                     <BlendEnabled>True</BlendEnabled>
                     <DepthTestEnabled>True</DepthTestEnabled>
-                    <DepthWriteEnabled>True</DepthWriteEnabled>
+                    <DepthWriteEnabled>False</DepthWriteEnabled>
                     <ScissorTestEnabled>False</ScissorTestEnabled>
                     <AnyOutputMultiLayered>False</AnyOutputMultiLayered>
                     <ToScreen>True</ToScreen>
@@ -1306,6 +1367,7 @@
                         </Position>
                         <Inputs>
                             <Input ConnectionID="5" NodeId="23">gAmbient</Input>
+                            <Input ConnectionID="5" NodeId="31">gAmbient</Input>
                         </Inputs>
                         <Outputs/>
                     </Connection>
@@ -1322,6 +1384,7 @@
                         <Inputs>
                             <Input ConnectionID="6" NodeId="22">gAlbedoSpec</Input>
                             <Input ConnectionID="6" NodeId="23">gAlbedoSpec</Input>
+                            <Input ConnectionID="6" NodeId="31">gAlbedoSpec</Input>
                         </Inputs>
                         <Outputs/>
                     </Connection>
@@ -1338,6 +1401,7 @@
                         <Inputs>
                             <Input ConnectionID="4" NodeId="22">gNormal</Input>
                             <Input ConnectionID="4" NodeId="23">gNormal</Input>
+                            <Input ConnectionID="4" NodeId="31">gNormal</Input>
                         </Inputs>
                         <Outputs/>
                     </Connection>
@@ -1354,6 +1418,7 @@
                         <Inputs>
                             <Input ConnectionID="3" NodeId="22">Depth</Input>
                             <Input ConnectionID="3" NodeId="23">Depth</Input>
+                            <Input ConnectionID="3" NodeId="31">Depth</Input>
                         </Inputs>
                         <Outputs/>
                     </Connection>
@@ -1489,6 +1554,7 @@
                         </Position>
                         <Inputs>
                             <Input ConnectionID="4" NodeId="22">gNormal</Input>
+                            <Input ConnectionID="4" NodeId="31">gNormal</Input>
                         </Inputs>
                         <Outputs/>
                     </Connection>
@@ -1504,6 +1570,7 @@
                         </Position>
                         <Inputs>
                             <Input ConnectionID="3" NodeId="22">Depth</Input>
+                            <Input ConnectionID="3" NodeId="31">Depth</Input>
                         </Inputs>
                         <Outputs/>
                     </Connection>
@@ -2393,6 +2460,139 @@
                     </ProgramInfo>
                 </NodeExtension>
             </Node>
+            <Node>
+                <ID>31</ID>
+                <Name>Deferred_ModelTransparentCutout</Name>
+                <DisplayName>Deferred_ModelTransparentCutout</DisplayName>
+                <Editable>False</Editable>
+                <CombineInputs>True</CombineInputs>
+                <Position>
+                    <X>68.000000</X>
+                    <Y>475.000000</Y>
+                </Position>
+                <Size>
+                    <X>210.000000</X>
+                    <Y>100.000000</Y>
+                </Size>
+                <Inputs/>
+                <Outputs>
+                    <Connection>
+                        <ID>3</ID>
+                        <Name>Depth</Name>
+                        <Type>Texture</Type>
+                        <Direction>Output</Direction>
+                        <CombineInputs>True</CombineInputs>
+                        <Position>
+                            <X>210.000000</X>
+                            <Y>42.000000</Y>
+                        </Position>
+                        <Inputs/>
+                        <Outputs>
+                            <Output ConnectionID="5" NodeId="13">pre_depthMap</Output>
+                            <Output ConnectionID="2" NodeId="15">pre_depthMap</Output>
+                        </Outputs>
+                    </Connection>
+                    <Connection>
+                        <ID>4</ID>
+                        <Name>gNormal</Name>
+                        <Type>Texture</Type>
+                        <Direction>Output</Direction>
+                        <CombineInputs>True</CombineInputs>
+                        <Position>
+                            <X>210.000000</X>
+                            <Y>58.000000</Y>
+                        </Position>
+                        <Inputs/>
+                        <Outputs>
+                            <Output ConnectionID="4" NodeId="13">pre_gNormalMap</Output>
+                            <Output ConnectionID="1" NodeId="15">pre_gNormalMap</Output>
+                        </Outputs>
+                    </Connection>
+                    <Connection>
+                        <ID>5</ID>
+                        <Name>gAmbient</Name>
+                        <Type>Texture</Type>
+                        <Direction>Output</Direction>
+                        <CombineInputs>True</CombineInputs>
+                        <Position>
+                            <X>210.000000</X>
+                            <Y>74.000000</Y>
+                        </Position>
+                        <Inputs/>
+                        <Outputs>
+                            <Output ConnectionID="2" NodeId="13">pre_gAmbientMap</Output>
+                        </Outputs>
+                    </Connection>
+                    <Connection>
+                        <ID>6</ID>
+                        <Name>gAlbedoSpec</Name>
+                        <Type>Texture</Type>
+                        <Direction>Output</Direction>
+                        <CombineInputs>True</CombineInputs>
+                        <Position>
+                            <X>210.000000</X>
+                            <Y>90.000000</Y>
+                        </Position>
+                        <Inputs/>
+                        <Outputs>
+                            <Output ConnectionID="3" NodeId="13">pre_gAlbedoSpecMap</Output>
+                        </Outputs>
+                    </Connection>
+                </Outputs>
+                <NodeExtension>
+                    <Name>PipelineStageExtension</Name>
+                    <CullMode>Back</CullMode>
+                    <ClearBefore>False</ClearBefore>
+                    <BlendEnabled>False</BlendEnabled>
+                    <DepthTestEnabled>True</DepthTestEnabled>
+                    <DepthWriteEnabled>True</DepthWriteEnabled>
+                    <ScissorTestEnabled>False</ScissorTestEnabled>
+                    <AnyOutputMultiLayered>False</AnyOutputMultiLayered>
+                    <ToScreen>False</ToScreen>
+                    <CameraTags>player_camera</CameraTags>
+                    <ObjectTags>transparent_player_attachment,transparent_model_object</ObjectTags>
+                    <DefaultRenderResolution>
+                        <X>1920</X>
+                        <Y>1080</Y>
+                    </DefaultRenderResolution>
+                    <RenderHeightOption>display_height</RenderHeightOption>
+                    <RenderWidthOption>display_width</RenderWidthOption>
+                    <IterateLightType>0</IterateLightType>
+                    <RenderMethodName>Render Tagged Objects</RenderMethodName>
+                    <OriginalOutputType></OriginalOutputType>
+                    <OutputTextures>
+                        <OutputInfo>
+                            <Connection>3</Connection>
+                            <Name>DepthBuffer</Name>
+                            <AttachPoint>NONE</AttachPoint>
+                            <TextureName>DepthBuffer</TextureName>
+                        </OutputInfo>
+                        <OutputInfo>
+                            <Connection>4</Connection>
+                            <Name>gNormalBuffer</Name>
+                            <AttachPoint>NONE</AttachPoint>
+                            <TextureName>gNormalBuffer</TextureName>
+                        </OutputInfo>
+                        <OutputInfo>
+                            <Connection>5</Connection>
+                            <Name>gAmbientBuffer</Name>
+                            <AttachPoint>NONE</AttachPoint>
+                            <TextureName>gAmbientBuffer</TextureName>
+                        </OutputInfo>
+                        <OutputInfo>
+                            <Connection>6</Connection>
+                            <Name>gAlbedoSpec</Name>
+                            <AttachPoint>NONE</AttachPoint>
+                            <TextureName>DiffuseAndSpecularBuffer</TextureName>
+                        </OutputInfo>
+                    </OutputTextures>
+                    <ProgramInfo>
+                        <VertexShaderName>./Engine/Shaders/Deferred_ModelTransparentCutout/vertex.glsl</VertexShaderName>
+                        <GeometryShaderName></GeometryShaderName>
+                        <FragmentShaderName>./Engine/Shaders/Deferred_ModelTransparentCutout/fragment.glsl</FragmentShaderName>
+                    </ProgramInfo>
+                </NodeExtension>
+            </Node>
         </Nodes>
     </NodeGraph>
     <GraphicsPipeline>
@@ -2842,6 +3042,44 @@
             <StageInformation>
                 <RenderMethods>
                     <Method>
+                        <Name>Render Tagged Objects</Name>
+                        <Index>0</Index>
+                        <GraphicsProgram>
+                            <VertexShader>./Engine/Shaders/Deferred_ModelTransparentCutout/vertex.glsl</VertexShader>
+                            <GeometryShader></GeometryShader>
+                            <FragmentShader>./Engine/Shaders/Deferred_ModelTransparentCutout/fragment.glsl</FragmentShader>
+                            <PresetValues/>
+                        </GraphicsProgram>
+                    </Method>
+                </RenderMethods>
+                <Clear>False</Clear>
+                <GraphicsPipelineStage>
+                    <DefaultRenderHeight>1080</DefaultRenderHeight>
+                    <DefaultRenderWidth>1920</DefaultRenderWidth>
+                    <RenderHeightOption>display_height</RenderHeightOption>
+                    <RenderWidthOption>display_width</RenderWidthOption>
+                    <BlendEnabled>False</BlendEnabled>
+                    <ColorAttachment>True</ColorAttachment>
+                    <DepthAttachment>True</DepthAttachment>
+                    <DepthTestEnabled>True</DepthTestEnabled>
+                    <DepthWriteEnabled>True</DepthWriteEnabled>
+                    <ScissorEnabled>False</ScissorEnabled>
+                    <ToScreen>False</ToScreen>
+                    <CameraTags>player_camera</CameraTags>
+                    <ObjectTags>transparent_player_attachment,transparent_model_object</ObjectTags>
+                    <CullMode>BACK</CullMode>
+                    <Inputs/>
+                    <Outputs>
+                        <Output Attachment="COLOR0" textureID="101"/>
+                        <Output Attachment="COLOR1" textureID="3"/>
+                        <Output Attachment="COLOR2" textureID="102"/>
+                        <Output Attachment="DEPTH" textureID="6"/>
+                    </Outputs>
+                </GraphicsPipelineStage>
+            </StageInformation>
+            <StageInformation>
+                <RenderMethods>
+                    <Method>
                         <Name>SSAOKernelRenderMethod</Name>
                         <Index>0</Index>
                         <GraphicsProgram>
@@ -3028,7 +3266,7 @@
                     <ColorAttachment>True</ColorAttachment>
                     <DepthAttachment>True</DepthAttachment>
                     <DepthTestEnabled>True</DepthTestEnabled>
-                    <DepthWriteEnabled>True</DepthWriteEnabled>
+                    <DepthWriteEnabled>False</DepthWriteEnabled>
                     <ScissorEnabled>False</ScissorEnabled>
                     <ToScreen>True</ToScreen>
                     <CameraTags>player_camera</CameraTags>

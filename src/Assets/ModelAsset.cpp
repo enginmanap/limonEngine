@@ -406,8 +406,9 @@ void ModelAsset::loadGPUPart() {
 std::shared_ptr<Material> ModelAsset::loadMaterials(const aiScene *scene, unsigned int materialIndex) {
     // create material uniform buffer
     aiMaterial *currentMaterial = scene->mMaterials[materialIndex];
-    aiString property;    //contains filename of texture
-    if (AI_SUCCESS != currentMaterial->Get(AI_MATKEY_NAME, property)) {
+    aiString materialName;
+    aiString texturePath;
+    if (AI_SUCCESS != currentMaterial->Get(AI_MATKEY_NAME, materialName)) {
         std::cerr << "Material without a name is not handled." << std::endl;
         std::cerr << "Model " << this->name << std::endl;
         exit(-1);
@@ -415,9 +416,9 @@ std::shared_ptr<Material> ModelAsset::loadMaterials(const aiScene *scene, unsign
     }
 
     std::shared_ptr<Material> newMaterial;
-    if (materialMap.find(property.C_Str()) == materialMap.end()) {//search for the name
+    if (materialMap.find(materialName.C_Str()) == materialMap.end()) {//search for the name
         //if the material is not loaded before
-        newMaterial = std::make_shared<Material>(assetManager, property.C_Str(), 0);//material index is not set, as it will be set by after serialize
+        newMaterial = std::make_shared<Material>(assetManager, materialName.C_Str(), 0);//material index is not set, as it will be set by after serialize
         aiColor3D color(0.f, 0.f, 0.f);
         float transferFloat;
 
@@ -446,80 +447,80 @@ std::shared_ptr<Material> ModelAsset::loadMaterials(const aiScene *scene, unsign
         }
 
         if ((currentMaterial->GetTextureCount(aiTextureType_AMBIENT) > 0)) {
-            if (AI_SUCCESS == currentMaterial->GetTexture(aiTextureType_AMBIENT, 0, &property)) {
-                if(property.data[0] != '*') {
-                    newMaterial->setAmbientTexture(property.C_Str());
-                    std::cout << "set ambient texture " << property.C_Str() << std::endl;
+            if (AI_SUCCESS == currentMaterial->GetTexture(aiTextureType_AMBIENT, 0, &texturePath)) {
+                if(texturePath.data[0] != '*') {
+                    newMaterial->setAmbientTexture(texturePath.C_Str());
+                    std::cout << "set ambient texture " << texturePath.C_Str() << std::endl;
                 } else {
                     //embeddedTexture handling
-                    newMaterial->setAmbientTexture(property.C_Str(), &this->sourcePath);
-                    std::cout << "set (embedded) ambient texture " << property.C_Str() << "|" << this->name<< std::endl;
+                    newMaterial->setAmbientTexture(texturePath.C_Str(), &this->sourcePath);
+                    std::cout << "set (embedded) ambient texture " << texturePath.C_Str() << "|" << this->name<< std::endl;
                 }
 
             } else {
                 std::cerr << "The model contained ambient texture information, but texture loading failed. \n" <<
-                          "TextureAsset path: [" << property.C_Str() << "]" << std::endl;
+                          "TextureAsset path: [" << texturePath.C_Str() << "]" << std::endl;
             }
         }
         if ((currentMaterial->GetTextureCount(aiTextureType_DIFFUSE) > 0)) {
-            if (AI_SUCCESS == currentMaterial->GetTexture(aiTextureType_DIFFUSE, 0, &property)) {
-                if(property.data[0] != '*') {
-                    newMaterial->setDiffuseTexture(property.C_Str());
+            if (AI_SUCCESS == currentMaterial->GetTexture(aiTextureType_DIFFUSE, 0, &texturePath)) {
+                if(texturePath.data[0] != '*') {
+                    newMaterial->setDiffuseTexture(texturePath.C_Str());
                 } else {
                     //embeddedTexture handling
-                    newMaterial->setDiffuseTexture(property.C_Str(), &this->sourcePath);
+                    newMaterial->setDiffuseTexture(texturePath.C_Str(), &this->sourcePath);
                 }
             } else {
                 std::cerr << "The model contained diffuse texture information, but texture loading failed. \n" <<
-                          "TextureAsset path: [" << property.C_Str() << "]" << std::endl;
+                          "TextureAsset path: [" << texturePath.C_Str() << "]" << std::endl;
             }
         }
 
         if ((currentMaterial->GetTextureCount(aiTextureType_SPECULAR) > 0)) {
-            if (AI_SUCCESS == currentMaterial->GetTexture(aiTextureType_SPECULAR, 0, &property)) {
-                if(property.data[0] != '*') {
-                    newMaterial->setSpecularTexture(property.C_Str());
-                    std::cout << "set specular texture " << property.C_Str() << std::endl;
+            if (AI_SUCCESS == currentMaterial->GetTexture(aiTextureType_SPECULAR, 0, &texturePath)) {
+                if(texturePath.data[0] != '*') {
+                    newMaterial->setSpecularTexture(texturePath.C_Str());
+                    std::cout << "set specular texture " << texturePath.C_Str() << std::endl;
                 } else {
                     //embeddedTexture handling
-                    newMaterial->setSpecularTexture(property.C_Str(), &this->sourcePath);
-                    std::cout << "set (embedded) setSpecularTexture texture " << property.C_Str() << "|" << this->name<< std::endl;
+                    newMaterial->setSpecularTexture(texturePath.C_Str(), &this->sourcePath);
+                    std::cout << "set (embedded) setSpecularTexture texture " << texturePath.C_Str() << "|" << this->name<< std::endl;
                 }
             } else {
                 std::cerr << "The model contained specular texture information, but texture loading failed. \n" <<
-                          "TextureAsset path: [" << property.C_Str() << "]" << std::endl;
+                          "TextureAsset path: [" << texturePath.C_Str() << "]" << std::endl;
             }
         }
 
         if ((currentMaterial->GetTextureCount(aiTextureType_NORMALS) > 0)) {
-            if (AI_SUCCESS == currentMaterial->GetTexture(aiTextureType_NORMALS, 0, &property)) {
-                if(property.data[0] != '*') {
-                    newMaterial->setNormalTexture(property.C_Str());
-                    std::cout << "set normal texture " << property.C_Str() << std::endl;
+            if (AI_SUCCESS == currentMaterial->GetTexture(aiTextureType_NORMALS, 0, &texturePath)) {
+                if(texturePath.data[0] != '*') {
+                    newMaterial->setNormalTexture(texturePath.C_Str());
+                    std::cout << "set normal texture " << texturePath.C_Str() << std::endl;
                 } else {
                     //embeddedTexture handling
-                    newMaterial->setNormalTexture(property.C_Str(), &this->sourcePath);
-                    std::cout << "set (embedded) setNormalTexture texture " << property.C_Str() << "|" << this->name<< std::endl;
+                    newMaterial->setNormalTexture(texturePath.C_Str(), &this->sourcePath);
+                    std::cout << "set (embedded) setNormalTexture texture " << texturePath.C_Str() << "|" << this->name<< std::endl;
                 }
             } else {
                 std::cerr << "The model contained normal texture information, but texture loading failed. \n" <<
-                          "TextureAsset path: [" << property.C_Str() << "]" << std::endl;
+                          "TextureAsset path: [" << texturePath.C_Str() << "]" << std::endl;
             }
         }
 
 
         if ((currentMaterial->GetTextureCount(aiTextureType_OPACITY) > 0)) {
-            if (AI_SUCCESS == currentMaterial->GetTexture(aiTextureType_OPACITY, 0, &property)) {
-                if(property.data[0] != '*') {
-                    newMaterial->setOpacityTexture(property.C_Str());
+            if (AI_SUCCESS == currentMaterial->GetTexture(aiTextureType_OPACITY, 0, &texturePath)) {
+                if(texturePath.data[0] != '*') {
+                    newMaterial->setOpacityTexture(texturePath.C_Str());
                 } else {
                     //embeddedTexture handling
-                    newMaterial->setOpacityTexture(property.C_Str(), &this->sourcePath);
-                    std::cout << "set (embedded) setOpacityTexture texture " << property.C_Str() << "|" << this->name<< std::endl;
+                    newMaterial->setOpacityTexture(texturePath.C_Str(), &this->sourcePath);
+                    std::cout << "set (embedded) setOpacityTexture texture " << texturePath.C_Str() << "|" << this->name<< std::endl;
                 }
             } else {
                 std::cerr << "The model contained opacity texture information, but texture loading failed. \n" <<
-                          "TextureAsset path: [" << property.C_Str() << "]" << std::endl;
+                          "TextureAsset path: [" << texturePath.C_Str() << "]" << std::endl;
             }
         }
 
@@ -548,10 +549,10 @@ std::shared_ptr<Material> ModelAsset::loadMaterials(const aiScene *scene, unsign
         //key by the name we asked for, not the dedup winner's name, or the next mesh asking for this name
         //misses the lookup above and registers it again. Several names on one Material is fine,
         //~ModelAsset dedups by pointer
-        std::string requestedName = property.C_Str();
+        std::string requestedName = materialName.C_Str();
         materialMap[requestedName] = newMaterial;
     } else {
-        newMaterial = materialMap[property.C_Str()];
+        newMaterial = materialMap[materialName.C_Str()];
     }
     return newMaterial;
 }
@@ -1221,13 +1222,6 @@ int32_t ModelAsset::findBoneIDByNameRecursive(const std::shared_ptr<BoneNode> &b
         }
     }
     return -1;
-}
-
-bool ModelAsset::isTransparent() const {
-    if(isAnimated()) {
-        return false;
-    }
-    return transparentMaterialUsed;
 }
 
 void ModelAsset::buildPhysicsMeshes() {

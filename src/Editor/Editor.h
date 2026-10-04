@@ -44,6 +44,7 @@ class Editor {
 
     //points every mesh in this world that uses baseMaterial at overrideMaterial
     void reseatWorldMeshes(const std::shared_ptr<const Material> &baseMaterial, const std::shared_ptr<Material> &overrideMaterial);
+    void refreshTransparencyTagsOfMaterialUsers(const std::shared_ptr<const Material> &material);
 
     //splits an asset owned material off into a world owned one carrying the edit, on the first dirty frame
     std::shared_ptr<Material> ensureWorldOwnedMaterial(const std::shared_ptr<Material> &material);

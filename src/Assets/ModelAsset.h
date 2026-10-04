@@ -375,8 +375,6 @@ public:
     }
 #endif
 
-    bool isTransparent() const;
-
     void buildPhysicsMeshes();
 };
 

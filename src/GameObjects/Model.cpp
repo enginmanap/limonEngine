@@ -804,7 +804,9 @@ ImGuiResult Model::addImGuiEditorElements(const ImGuiRequest &request) {
                 ImGui::EndDisabled();
             }
             if (request.alteredMaterial != nullptr) {
-                request.alteredMaterial->addImGuiEditorElements(request);
+                if (request.alteredMaterial->addImGuiEditorElements(request).materialDirty) {
+                    refreshTransparencyTags();
+                }
                 if (ImGui::Button("Revert##materialAlterInModel")) {
                     result.revertAlteredMaterial = true;
                 }
@@ -1021,6 +1023,7 @@ std::shared_ptr<const Material> Model::setMeshMaterial(size_t meshIndex, std::sh
         materialToUse = assetManager->getMaterialRegistry().registerMaterial(std::const_pointer_cast<Material>(material));
     }
     meshMeta->material = materialToUse;
+    refreshTransparencyTags();
     return materialToUse;
 }
 
@@ -1124,6 +1127,59 @@ void Model::reloadPhysicsShape() {
     } else if (this->mass <= 0 && hasPhysicalTag) {
         this->addTag(HardCodedTags::OBJECT_MODEL_STATIC);
         this->removeTag(HardCodedTags::OBJECT_MODEL_PHYSICAL);
+    }
+}
+
+bool Model::isTransparent() const {
+    if (animated) {
+        return false;//no stage renders animated transparent models
+    }
+    for (const MeshMeta* meshMeta : meshMetaData) {
+        const std::shared_ptr<const Material> &material = meshMeta->material;
+        if (material == nullptr) {
+            continue;
+        }
+        if (material->hasOpacityMap()) {
+            return true;
+        }
+        if (material->hasDiffuseMap() && material->getDiffuseTexture()->hasTransparentTexels()) {
+            return true;
+        }
+    }
+    return false;
+}
+
+void Model::refreshTransparencyTags() {
+    const bool transparent = this->isTransparent();
+    const bool hasBasicTag = this->hasTag(HashUtil::hashString(HardCodedTags::OBJECT_MODEL_BASIC));
+    const bool hasTransparentTag = this->hasTag(HashUtil::hashString(HardCodedTags::OBJECT_MODEL_TRANSPARENT));
+    const bool hasAmbientTag = this->hasTag(HashUtil::hashString(HardCodedTags::OBJECT_MODEL_AMBIENT));
+    const bool underPlayer = this->hasTag(HashUtil::hashString(HardCodedTags::OBJECT_PLAYER_BASIC)) ||
+                             this->hasTag(HashUtil::hashString(HardCodedTags::OBJECT_PLAYER_ANIMATED)) ||
+                             this->hasTag(HashUtil::hashString(HardCodedTags::OBJECT_PLAYER_TRANSPARENT));
+    //add before remove, removing the last tag would refill the list with the defaults
+    if (transparent && !hasTransparentTag && (hasBasicTag || hasAmbientTag)) {
+        this->addTag(HardCodedTags::OBJECT_MODEL_TRANSPARENT);
+        if (underPlayer) {
+            this->addTag(HardCodedTags::OBJECT_PLAYER_TRANSPARENT);
+        }
+        if (hasBasicTag) {
+            this->removeTag(HardCodedTags::OBJECT_MODEL_BASIC);
+            if (this->hasTag(HashUtil::hashString(HardCodedTags::OBJECT_PLAYER_BASIC))) {
+                this->removeTag(HardCodedTags::OBJECT_PLAYER_BASIC);
+            }
+        }
+    } else if (!transparent && hasTransparentTag) {
+        if (!hasAmbientTag) {//an ambient model renders in the ambient stage, basic too would draw it twice
+            this->addTag(HardCodedTags::OBJECT_MODEL_BASIC);
+            if (underPlayer) {
+                this->addTag(HardCodedTags::OBJECT_PLAYER_BASIC);
+            }
+        }
+        this->removeTag(HardCodedTags::OBJECT_MODEL_TRANSPARENT);
+        if (this->hasTag(HashUtil::hashString(HardCodedTags::OBJECT_PLAYER_TRANSPARENT))) {
+            this->removeTag(HardCodedTags::OBJECT_PLAYER_TRANSPARENT);
+        }
     }
 }
 

@@ -107,6 +107,7 @@ void TextureAsset::loadCPUPart() {
             SDL_DestroySurface(cpuSurface);
             cpuSurface = surfaceTemp;
         }
+        scanForTransparentTexels();
         textureMetaData.textureType = GraphicsInterface::TextureTypes::T2D;
         textureMetaData.internalFormatType = GraphicsInterface::InternalFormatTypes::RGBA;
         textureMetaData.formatType = GraphicsInterface::FormatTypes::RGBA;
@@ -133,6 +134,7 @@ void TextureAsset::loadCPUPart() {
                                                             SDL_PIXELFORMAT_ABGR8888);
         SDL_DestroySurface(cpuSurface);
         cpuSurface = surfaceTemp;
+        scanForTransparentTexels();
 
         textureMetaData.textureType = GraphicsInterface::TextureTypes::T2D;
         textureMetaData.internalFormatType = GraphicsInterface::InternalFormatTypes::RGBA;
@@ -143,6 +145,20 @@ void TextureAsset::loadCPUPart() {
     } else {
         std::cerr << "Format has undefined number of pixels:" << std::to_string(SDL_BYTESPERPIXEL(cpuSurface->format)) << std::endl;
         exit(1);
+    }
+}
+
+void TextureAsset::scanForTransparentTexels() {
+    //only called on ABGR8888, which is R,G,B,A in memory
+    transparentTexels = false;
+    for (int32_t y = 0; y < cpuSurface->h && !transparentTexels; ++y) {
+        const uint8_t* row = static_cast<const uint8_t*>(cpuSurface->pixels) + y * cpuSurface->pitch;
+        for (int32_t x = 0; x < cpuSurface->w; ++x) {
+            if (row[x * 4 + 3] < 255) {
+                transparentTexels = true;
+                break;
+            }
+        }
     }
 }
 

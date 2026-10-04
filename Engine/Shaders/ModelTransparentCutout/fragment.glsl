@@ -21,8 +21,8 @@ in VS_FS {
 
 void main(void) {
     vec4 objectColor = getMaterialAlbedo(from_vs.materialIndex, from_vs.textureCoord);
-    if(objectColor.a >= CUTOUT_ALPHA_THRESHOLD) {
-        discard;//ModelTransparentCutout drew these with depth, this stage doesn't write depth so unsorted edges can't hide what is behind
+    if(objectColor.a < CUTOUT_ALPHA_THRESHOLD) {
+        discard;//the blended ModelTransparent stage draws these after us
     }
     vec3 normal = getMaterialNormal(from_vs.materialIndex, from_vs.textureCoord, from_vs.normal);
     vec3 materialAmbient = getMaterialAmbient(from_vs.materialIndex, from_vs.textureCoord);
@@ -35,5 +35,5 @@ void main(void) {
     vec3 totalAmbient;
     vec3 fullyLitColor = calculateLighting(from_vs.fragPos, normal, objectColor.rgb, shininess, materialAmbient, viewDistance, precise_view_z, gl_FragCoord.z, totalAmbient);
 
-    outputColor = vec4(fullyLitColor, objectColor.a);
+    outputColor = vec4(fullyLitColor, 1.0);
 }

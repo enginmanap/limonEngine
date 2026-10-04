@@ -1,0 +1,33 @@
+
+#import <./Engine/Shaders/Shared/Lights.glsl>
+#import <./Engine/Shaders/Shared/PlayerInformation.glsl>
+#import <./Engine/Shaders/Shared/ModelRendering.vert>
+
+layout (location = 2) in vec4 position;
+layout (location = 3) in vec2 textureCoordinate;
+layout (location = 4) in vec3 normal;
+layout (location = 5) in uvec4 boneIDs;
+layout (location = 6) in vec4 boneWeights;
+
+out VS_FS {
+    vec2 textureCoord;
+    vec3 normal;
+    vec3 fragPos;
+    vec4 fragPosLightSpace[performance_maximumLights];
+    flat int materialIndex;
+} to_fs;
+
+void main(void)
+{
+    to_fs.textureCoord = textureCoordinate;
+
+    calculateWorldPositionAndNormal(position, normal, boneIDs, boneWeights, to_fs.fragPos, to_fs.normal);
+
+    for(int i = 0; i < performance_maximumLights; i++){
+        if(LightSources.lights[i].type == 1) {
+            to_fs.fragPosLightSpace[i] = LightSources.lights[i].shadowMatrices[0] * vec4(to_fs.fragPos, 1.0);
+        }
+    }
+    to_fs.materialIndex = int(getModelIndexEntry().y);
+    gl_Position = playerTransforms.cameraProjection * vec4(to_fs.fragPos, 1.0);
+}

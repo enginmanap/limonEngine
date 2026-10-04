@@ -256,9 +256,10 @@ public:
         Model::animationTimeScale = animationTimeScale;
     }
 
-    bool isTransparent() const {
-        return modelAsset->isTransparent();
-    }
+    bool isTransparent() const;
+
+    //BASIC<->TRANSPARENT follow the current materials, a removed one stays removed like STATIC<->PHYSICAL
+    void refreshTransparencyTags();
 
     ~Model() override;
 

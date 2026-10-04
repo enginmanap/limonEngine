@@ -689,6 +689,7 @@ void WorldLoader::loadObjectTags(tinyxml2::XMLElement *objectNode, Model *model)
             tagNode = tagNode->NextSiblingElement("Tag");
         }
         model->setTags(tags);//the saved list is the whole truth, a default tag the map removed has to stay removed
+        model->refreshTransparencyTags();//saved basic/transparent may predate what the materials say now
         return;
     }
     //maps saved before tags became one list carry only what Model does not derive itself, so these add on top

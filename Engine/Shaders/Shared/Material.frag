@@ -2,6 +2,7 @@
 #define MATERIAL_GLSL
 
 #define NR_MAX_MATERIALS 200
+#define CUTOUT_ALPHA_THRESHOLD 0.99 //ModelTransparentCutout draws at or above with depth, ModelTransparent blends below
 
 uniform sampler2D ambientSampler;
 uniform sampler2D diffuseSampler;
