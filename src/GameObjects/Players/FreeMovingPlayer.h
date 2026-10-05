@@ -41,17 +41,17 @@ public:
         right = this->right;
     };
 
-    void move(moveDirections);
+    void move(moveDirections) override;
 
-    glm::vec3 getPosition() const {
+    glm::vec3 getPosition() const override {
         return position;
     }
 
-    glm::vec3 getLookDirection() const {
+    glm::vec3 getLookDirection() const override {
         return this->center;
     };
 
-    void getWhereCameraLooks(glm::vec3 &fromPosition, glm::vec3 &lookDirection) const {
+    void getWhereCameraLooks(glm::vec3 &fromPosition, glm::vec3 &lookDirection) const override {
         fromPosition = this->getPosition();
         lookDirection = this->center;
     }
@@ -70,7 +70,7 @@ public:
         cursor->setTranslate(glm::vec2(options->getScreenWidth()/2.0f, options->getScreenHeight()/2.0f));
     };
 
-    void rotate(float xPosition, float yPosition, float xChange, float yChange);
+    void rotate(float xPosition, float yPosition, float xChange, float yChange) override;
 };
 
 

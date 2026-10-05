@@ -44,13 +44,13 @@ public:
         right = this->right;
     };
 
-    void move(moveDirections);
+    void move(moveDirections) override;
 
     glm::vec3 getPosition() const override {
         return position;
     }
 
-    void getWhereCameraLooks(glm::vec3 &fromPosition, glm::vec3 &toPosition) const;
+    void getWhereCameraLooks(glm::vec3 &fromPosition, glm::vec3 &toPosition) const override;
 
     glm::vec3 getLookDirection() const override {
         return this->center;

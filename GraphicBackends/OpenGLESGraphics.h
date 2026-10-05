@@ -44,7 +44,7 @@ class Texture;
 namespace tracy { class GpuCtxScope; }
 #endif
 
-extern "C" std::shared_ptr<GraphicsInterface> createGraphicsBackend(OptionsUtil::Options* options);
+extern "C" void createGraphicsBackend(OptionsUtil::Options* options, std::shared_ptr<GraphicsInterface>* backend);
 
 const char* getEGLErrorString(GLenum error) {
     switch (error) {
@@ -421,25 +421,25 @@ public:
     void bufferVertexTextureCoordinates(const std::vector<glm::vec2> &textureCoordinates,
                                         uint32_t &vao, uint32_t &vbo, const uint32_t attachPointer) override;
     void updateVertexData(const std::vector<glm::vec3> &vertices, const std::vector<glm::u16vec3> &faces,
-                          uint32_t &vbo, uint32_t &ebo);
-    void updateNormalData(const std::vector<glm::vec3> &normals, uint32_t &vbo);
-    void updateExtraVertexData(const std::vector<glm::vec4> &extraData, uint32_t &vbo);
-    void updateExtraVertexData(const std::vector<glm::lowp_uvec4> &extraData, uint32_t &vbo);
-    void updateVertexTextureCoordinates(const std::vector<glm::vec2> &textureCoordinates, uint32_t &vbo);
+                          uint32_t &vbo, uint32_t &ebo) override;
+    void updateNormalData(const std::vector<glm::vec3> &normals, uint32_t &vbo) override;
+    void updateExtraVertexData(const std::vector<glm::vec4> &extraData, uint32_t &vbo) override;
+    void updateExtraVertexData(const std::vector<glm::lowp_uvec4> &extraData, uint32_t &vbo) override;
+    void updateVertexTextureCoordinates(const std::vector<glm::vec2> &textureCoordinates, uint32_t &vbo) override;
     bool freeBuffer(const uint32_t bufferID) override;
 
     bool freeVAO(const uint32_t VAO) override;
 
-    void backupCurrentState();
+    void backupCurrentState() override;
 
-    void restoreLastState();
+    void restoreLastState() override;
 
     void initGpuContext() override;
     void beginGpuProfileZone(const char* name, bool active) override;
     void endGpuProfileZone() override;
     void collectGpuProfilingData() override;
 
-    void clearFrame() {
+    void clearFrame() override {
 
         //additional depths for Directional is not needed, but depth for point is reqired, because there is no way to clear
         //it per layer, so we are clearing per frame. This also means, lights should not reuse the textures.
@@ -451,7 +451,7 @@ public:
         checkErrors("clearFrame");
     }
 
-    void render(const uint32_t program, const uint32_t vao, const uint32_t ebo, const uint32_t elementCount) {
+    void render(const uint32_t program, const uint32_t vao, const uint32_t ebo, const uint32_t elementCount) override {
         this->render(program, vao, ebo, elementCount, nullptr);
     }
 
@@ -547,11 +547,11 @@ public:
     void renderInstanced(uint32_t program, uint32_t VAO, uint32_t EBO, uint32_t elementCount, uint32_t startOffset,
                          uint32_t instanceCount) override;
 
-    void setScissorRect(int32_t x, int32_t y, uint32_t width, uint32_t height) {
+    void setScissorRect(int32_t x, int32_t y, uint32_t width, uint32_t height) override {
         glScissor(x,y,width,height);
     }
 
-    OptionsUtil::Options* getOptions() {
+    OptionsUtil::Options* getOptions() override {
         return options;
     }
 };

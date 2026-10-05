@@ -31,10 +31,10 @@ public:
                      const std::vector<std::string> &imageFiles, uint32_t creationTime, uint32_t frameSpeed,
                      bool isLooped);
 
-    void setupForTime(uint32_t time);
+    void setupForTime(uint32_t time) override;
 
 
-    ~GUIAnimation();
+    ~GUIAnimation() override;
 
     void addedToLayer(GUILayer* layer);
 
@@ -52,7 +52,7 @@ public:
         return worldID;
     }
 
-    ImGuiResult addImGuiEditorElements(const ImGuiRequest &request);
+    ImGuiResult addImGuiEditorElements(const ImGuiRequest &request) override;
 
 /******************** Game object methods ************************************/
 };

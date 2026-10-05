@@ -47,7 +47,7 @@ public:
 
     }
 
-    virtual void setupForTime(uint32_t time) {
+    void setupForTime(uint32_t time) override {
         renderSetupTime = time;
     };
 

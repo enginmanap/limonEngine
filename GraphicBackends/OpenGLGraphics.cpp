@@ -16,8 +16,8 @@
 #include "tracy/TracyOpenGL.hpp"
 #endif
 
-std::shared_ptr<GraphicsInterface> createGraphicsBackend(OptionsUtil::Options* options) {
-    return std::make_shared<OpenGLGraphics>(options);
+void createGraphicsBackend(OptionsUtil::Options* options, std::shared_ptr<GraphicsInterface>* backend) {
+    *backend = std::make_shared<OpenGLGraphics>(options);
 }
 
 GLuint OpenGLGraphics::createShader(GLenum eShaderType, const std::string &strShaderContent, const std::string& shaderName) {

@@ -32,7 +32,7 @@ public:
 
     bool initRender(std::shared_ptr<GraphicsProgram> program, std::vector<LimonTypes::GenericParameter> parameters [[gnu::unused]]) override;
 
-    virtual void renderFrame(std::shared_ptr<GraphicsProgram> program[[gnu::unused]]) {
+    void renderFrame(std::shared_ptr<GraphicsProgram> program[[gnu::unused]]) override {
         int32_t noiseUnit = program->getTextureUnit("ssaoNoiseSampler");
         if (noiseUnit < 0) {
             return;

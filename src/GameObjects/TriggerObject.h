@@ -158,17 +158,17 @@ public:
     uint32_t getWorldObjectID() const override {
         return objectID;
     }
-    ObjectTypes getTypeID() const {
+    ObjectTypes getTypeID() const override {
         return ObjectTypes::TRIGGER;
     };
 
-    std::string getName() const {
+    std::string getName() const override {
         return name;
     };
 
     bool isInside() const { return inside; }
 
-    ImGuiResult addImGuiEditorElements(const ImGuiRequest &request);
+    ImGuiResult addImGuiEditorElements(const ImGuiRequest &request) override;
     /************Game Object methods **************/
 
 

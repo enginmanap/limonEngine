@@ -157,15 +157,18 @@ std::shared_ptr<GraphicsInterface> SDL2Helper::loadGraphicsBackend(const std::st
     objectHandle = SDL_LoadObject(fileName.c_str());
 
     const std::string registerFunctionName = "createGraphicsBackend";
-    std::shared_ptr<GraphicsInterface>(*registerFunction)(OptionsUtil::Options*);
+    void(*registerFunction)(OptionsUtil::Options*, std::shared_ptr<GraphicsInterface>*);
     registerFunction = (
-            std::shared_ptr<GraphicsInterface>(*)(
-                    OptionsUtil::Options*
+            void(*)(
+                    OptionsUtil::Options*,
+                    std::shared_ptr<GraphicsInterface>*
                             )
             ) SDL_LoadFunction(objectHandle, registerFunctionName.c_str());
     if(registerFunction != nullptr) {
         std::cout << "Graphics backend register method found" << std::endl;
-        return registerFunction(options);
+        std::shared_ptr<GraphicsInterface> backend;
+        registerFunction(options, &backend);
+        return backend;
     } else {
         std::cerr << "Graphics backend load failed!" << std::endl;
         return nullptr;

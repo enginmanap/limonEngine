@@ -39,7 +39,7 @@ public:
 
     virtual void renderWithProgram(std::shared_ptr<GraphicsProgram> renderProgram, uint32_t lodLevel) override;
 
-    virtual void renderDebug(BulletDebugDrawer *debugDrawer);
+    void renderDebug(BulletDebugDrawer *debugDrawer) override;
 
     void updateText(const std::string& text) {
         this->text = text;

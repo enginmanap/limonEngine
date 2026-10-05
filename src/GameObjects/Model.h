@@ -215,8 +215,6 @@ public:
 
     bool isAnimated() const { return animated;}
 
-    float getMass() const { return mass;}
-
     void setAnimation(const std::string &animationName, bool looped = true) {
         this->animationName = animationName;
         this->animationTime = 0;

@@ -71,7 +71,7 @@ public:
 
     virtual void renderDebug(BulletDebugDrawer *debugDrawer);
 
-    virtual void setupForTime(uint32_t time [[gnu::unused]]) {};//Most of the GUI elements shouldn't care about the time, so we can put an empty implementation
+    void setupForTime(uint32_t time [[gnu::unused]]) override {};//Most of the GUI elements shouldn't care about the time, so we can put an empty implementation
 
     float getWidth() { return transformation.getScale().x; }
 

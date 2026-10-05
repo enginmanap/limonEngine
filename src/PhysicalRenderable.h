@@ -79,7 +79,7 @@ public:
 
     virtual void updateTransformFromPhysics();
 
-    virtual void renderWithProgram(std::shared_ptr<GraphicsProgram> program, uint32_t lodLevel) = 0;
+    void renderWithProgram(std::shared_ptr<GraphicsProgram> program, uint32_t lodLevel) override = 0;
 
     float getMass() const {
         return mass;
@@ -121,7 +121,7 @@ public:
     }
 
     // Redeclare as pure virtual so Model and ModelGroup must still implement it.
-    virtual bool fillObjects(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *objectsNode) const = 0;
+    bool fillObjects(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *objectsNode) const override = 0;
 
     void updateAABB() {
         btVector3 abMax, abMin;
