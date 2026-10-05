@@ -54,16 +54,18 @@ void calculateWorldPositionAndNormal(in vec4 position, in vec3 normal, in uvec4 
     _processAnimation(position, normal, boneIDs, boneWeights, localPosition, localNormal);
 
     mat4 modelTransform;
-    int modelOffset = 4*int(getModelIndexEntry().x);
-    modelTransform[0] = texelFetch(allModelTransformsTexture, ivec2(modelOffset    , 0), 0);
-    modelTransform[1] = texelFetch(allModelTransformsTexture, ivec2(modelOffset + 1, 0), 0);
-    modelTransform[2] = texelFetch(allModelTransformsTexture, ivec2(modelOffset + 2, 0), 0);
-    modelTransform[3] = texelFetch(allModelTransformsTexture, ivec2(modelOffset + 3, 0), 0);
+    int modelID = int(getModelIndexEntry().x);
+    int modelsPerBand = MODEL_TRANSFORM_TEXTURE_WIDTH / 4;
+    ivec2 modelTexel = ivec2(4 * (modelID % modelsPerBand), 2 * (modelID / modelsPerBand));
+    modelTransform[0] = texelFetch(allModelTransformsTexture, modelTexel, 0);
+    modelTransform[1] = texelFetch(allModelTransformsTexture, modelTexel + ivec2(1, 0), 0);
+    modelTransform[2] = texelFetch(allModelTransformsTexture, modelTexel + ivec2(0, 1), 0);
+    modelTransform[3] = texelFetch(allModelTransformsTexture, modelTexel + ivec2(1, 1), 0);
 
     mat3 transposeInverseModelTransform;
-    transposeInverseModelTransform[0] = texelFetch(allModelTransformsTexture, ivec2(modelOffset    , 1), 0).xyz;
-    transposeInverseModelTransform[1] = texelFetch(allModelTransformsTexture, ivec2(modelOffset + 1, 1), 0).xyz;
-    transposeInverseModelTransform[2] = texelFetch(allModelTransformsTexture, ivec2(modelOffset + 2, 1), 0).xyz;
+    transposeInverseModelTransform[0] = texelFetch(allModelTransformsTexture, modelTexel + ivec2(2, 0), 0).xyz;
+    transposeInverseModelTransform[1] = texelFetch(allModelTransformsTexture, modelTexel + ivec2(3, 0), 0).xyz;
+    transposeInverseModelTransform[2] = texelFetch(allModelTransformsTexture, modelTexel + ivec2(2, 1), 0).xyz;
 
     worldPosition = vec3(modelTransform * localPosition);
     worldNormal = normalize(transposeInverseModelTransform * localNormal);

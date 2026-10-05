@@ -357,7 +357,8 @@ std::string OpenGLESGraphics::getShaderHeader() const {
            "precision highp sampler2DArrayShadow;\n"
            "precision highp samplerCubeArrayShadow;\n"
            "precision highp int;\n"
-           "#define NR_MODEL_INDEX_BATCH " + std::to_string(modelIndexBatchCapacity);
+           "#define NR_MODEL_INDEX_BATCH " + std::to_string(modelIndexBatchCapacity) + "\n"
+           "#define MODEL_TRANSFORM_TEXTURE_WIDTH " + std::to_string(MODEL_TRANSFORM_TEXTURE_WIDTH);
 }
 
 bool OpenGLESGraphics::createGraphicsBackend() {
@@ -494,15 +495,15 @@ bool OpenGLESGraphics::createGraphicsBackend() {
 
     std::cout << "Uniform maxTextureSize size is " << maxTextureSize << std::endl;
 
-    if(maxTextureSize < NR_MAX_MODELS * 4) { // Each model has its transform in a texture, 4 channels, 4 elements
-        std::cerr << "Maximum number of models is set higher than supported texture size. This will cause errors, black screens or crashing." << std::endl;
+    if (maxTextureSize < MODEL_TRANSFORM_TEXTURE_WIDTH || maxTextureSize < MODEL_TRANSFORM_TEXTURE_HEIGHT || maxTextureSize < 4 * NR_BONE || maxTextureSize < NR_MAX_RIGS) {
+        std::cerr << "Model or bone transform texture is larger than the supported texture size. This will cause errors, black screens or crashing." << std::endl;
     }
 
     GLint maxUniformBlockSize = 0;
     glGetIntegerv(GL_MAX_UNIFORM_BLOCK_SIZE, &maxUniformBlockSize);
     // this variable is the max mesh information we would push before running a render loop and clear it up.
     // Between batches, we need to update the UBO, so there is a write, which force flushes the reads(Previous render) and block
-    modelIndexBatchCapacity = std::min((uint32_t)NR_MAX_MODELS, (uint32_t)(maxUniformBlockSize / sizeof(glm::uvec4)));
+    modelIndexBatchCapacity = std::min((uint32_t)NR_MAX_MODEL_INDEX_BATCH, (uint32_t)(maxUniformBlockSize / sizeof(glm::uvec4)));
     std::cout << "Uniform maxUniformBlockSize is " << maxUniformBlockSize << ", model index batch capacity is " << modelIndexBatchCapacity << std::endl;
 
     //create material uniform buffer object

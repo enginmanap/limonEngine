@@ -244,7 +244,7 @@ private:
     int32_t materialUniformSize = 2 * sizeof(glm::vec3) + sizeof(float) + sizeof(GLuint);
     int32_t modelUniformSize = sizeof(glm::mat4);
     //Set here so checks before initialize don't get garbage. Real value will set after initialization
-    uint32_t modelIndexBatchCapacity = NR_MAX_MODELS;
+    uint32_t modelIndexBatchCapacity = NR_MAX_MODEL_INDEX_BATCH;
 
     std::vector<glm::vec4>frustumPlanes;
     glm::mat4 orthogonalProjectionMatrix;

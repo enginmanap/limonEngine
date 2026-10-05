@@ -228,9 +228,9 @@ GameEngine::GameEngine() {
     }
     graphicsWrapper->initGpuContext();
     graphicsWrapper->reshape();
-    frameResourceHandles.modelTransformTexture = graphicsWrapper->createFrameBufferedTexture(2, 4 * NR_MAX_MODELS, GraphicsInterface::InternalFormatTypes::RGBA32F,
+    frameResourceHandles.modelTransformTexture = graphicsWrapper->createFrameBufferedTexture(MODEL_TRANSFORM_TEXTURE_HEIGHT, MODEL_TRANSFORM_TEXTURE_WIDTH, GraphicsInterface::InternalFormatTypes::RGBA32F,
                                                                                              GraphicsInterface::FormatTypes::RGBA, GraphicsInterface::DataTypes::FLOAT);
-    frameResourceHandles.boneTransformTexture = graphicsWrapper->createFrameBufferedTexture(NR_MAX_MODELS, 4 * NR_BONE, GraphicsInterface::InternalFormatTypes::RGBA32F,
+    frameResourceHandles.boneTransformTexture = graphicsWrapper->createFrameBufferedTexture(NR_MAX_RIGS, 4 * NR_BONE, GraphicsInterface::InternalFormatTypes::RGBA32F,
                                                                                             GraphicsInterface::FormatTypes::RGBA, GraphicsInterface::DataTypes::FLOAT);
     frameResourceHandles.lightBlockBuffer = graphicsWrapper->createUniformBuffer();
     frameResourceHandles.playerBlockBuffer = graphicsWrapper->createUniformBuffer();
