@@ -94,8 +94,8 @@
                     <Width>512</Width>
                     <HeightOption>shadow_mapPointWidth</HeightOption>
                     <WidthOption>shadow_mapPointWidth</WidthOption>
-                    <Depth>18</Depth>
-                    <DepthOption></DepthOption>
+                    <Depth>4</Depth>
+                    <DepthOption>performance_maximumLights</DepthOption>
                     <borderColor>
                         <R>0</R>
                         <G>0</G>
@@ -1936,8 +1936,8 @@
                 <Width>512</Width>
                 <HeightOption>shadow_mapPointWidth</HeightOption>
                 <WidthOption>shadow_mapPointWidth</WidthOption>
-                <Depth>18</Depth>
-                <DepthOption></DepthOption>
+                <Depth>4</Depth>
+                <DepthOption>performance_maximumLights</DepthOption>
                 <borderColor>
                     <R>0</R>
                     <G>0</G>
