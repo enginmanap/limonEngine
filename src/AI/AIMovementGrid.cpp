@@ -5,7 +5,7 @@
 #include <glm/ext.hpp>
 #include "AIMovementGrid.h"
 
-#include "SDL2Helper.h"
+#include "SDL3Helper.h"
 
 constexpr float AIMovementGrid::floatingHeight;
 
@@ -171,7 +171,7 @@ AIMovementGrid::walkMonster(glm::vec3 walkPoint, btDiscreteDynamicsWorld *static
         frontier.pop();
 
         if(doneNodes.size() %10000 == 0) {
-            std::cout << "After "<< SDL2Helper::getTicks() << " current done " << doneNodes.size() << " nodes, partial " << visited.size() << " last node: " << glm::to_string(current->getPosition()) << std::endl;
+            std::cout << "After "<< SDL3Helper::getTicks() << " current done " << doneNodes.size() << " nodes, partial " << visited.size() << " last node: " << glm::to_string(current->getPosition()) << std::endl;
         }
 
         for (int i = -1; i <= 1; ++i) {
@@ -332,7 +332,7 @@ bool AIMovementGrid::coursePath(const glm::vec3 &from, const glm::vec3 &to, uint
     //first start by finding the from point. We should  cache these from values at some point, so we don't a* twice all the time
     std::shared_ptr<const AIMovementNode> fromAINode;
 
-    Uint64 start = SDL2Helper::getTicks();
+    Uint64 start = SDL3Helper::getTicks();
 
     fromAINode = aStarPath(root, from, 0, route);
     if (fromAINode == nullptr) {
@@ -340,7 +340,7 @@ bool AIMovementGrid::coursePath(const glm::vec3 &from, const glm::vec3 &to, uint
     }
 
     aStarPath(fromAINode, to, maximumNumberOfNodes, route);
-    Uint64 end = SDL2Helper::getTicks();
+    Uint64 end = SDL3Helper::getTicks();
     std::cout << "route set " << end - start << std::endl;
 
 

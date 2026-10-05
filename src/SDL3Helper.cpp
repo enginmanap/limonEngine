@@ -11,7 +11,7 @@
 #ifdef HAS_WAYLAND
 #include "Wayland/viewporter-client-protocol.h"
 #endif
-#include "SDL2Helper.h"
+#include "SDL3Helper.h"
 #include "limonAPI/Options.h"
 #include "limonAPI/LimonAPI.h"
 #include "limonAPI/TriggerInterface.h"
@@ -21,9 +21,9 @@
 #include "limonAPI/Graphics/RenderMethodInterface.h"
 
 
-SDL2Helper::SDL2Helper(OptionsUtil::Options* options) : window(nullptr), context(nullptr), options(options) {}
+SDL3Helper::SDL3Helper(OptionsUtil::Options* options) : window(nullptr), context(nullptr), options(options) {}
 
-void SDL2Helper::initWindow(const char* title, const GraphicsInterface::ContextInformation& contextInformation) {
+void SDL3Helper::initWindow(const char* title, const GraphicsInterface::ContextInformation& contextInformation) {
     if (!SDL_WasInit(SDL_INIT_VIDEO)) {
         // raspberry pi OS doesn't have the fifo_v1 in its compositor, making it fallback to X11, which then
         // handled by Xwayland, and in that path, all scaling is lost. If user has wayland and not forcing another,
@@ -75,7 +75,7 @@ void SDL2Helper::initWindow(const char* title, const GraphicsInterface::ContextI
 /**
  * SDL allows us to query the point to pixel ration, we are using that. returns 1.0 if no scale
  */
-float SDL2Helper::getDisplayPixelDensity() {
+float SDL3Helper::getDisplayPixelDensity() {
     SDL_DisplayID displayID = SDL_GetPrimaryDisplay();
     if (displayID == 0) {
         std::cerr << "Couldn't determine the primary display, assuming it is unscaled: " << SDL_GetError() << std::endl;
@@ -92,7 +92,7 @@ float SDL2Helper::getDisplayPixelDensity() {
     return desktopMode->pixel_density;
 }
 
-bool SDL2Helper::createContext() {
+bool SDL3Helper::createContext() {
     /* Create context and attach it to our window */
     context = SDL_GL_CreateContext(window);
 
@@ -129,7 +129,7 @@ bool SDL2Helper::createContext() {
     return true;
 }
 
-void SDL2Helper::destroyWindow() {
+void SDL3Helper::destroyWindow() {
     if (context) {
         SDL_GL_DestroyContext(context);
         context = nullptr;
@@ -140,18 +140,18 @@ void SDL2Helper::destroyWindow() {
     }
 }
 
-SDL2Helper::~SDL2Helper() {
+SDL3Helper::~SDL3Helper() {
     /* Delete our opengl context, destroy our window, and shutdown SDL */
     SDL_ShowCursor();
     destroyWindow();
     SDL_Quit();
 }
 
-SDL_Window *SDL2Helper::getWindow() {
+SDL_Window *SDL3Helper::getWindow() {
     return window;
 }
 
-std::shared_ptr<GraphicsInterface> SDL2Helper::loadGraphicsBackend(const std::string &fileName, OptionsUtil::Options *options) {
+std::shared_ptr<GraphicsInterface> SDL3Helper::loadGraphicsBackend(const std::string &fileName, OptionsUtil::Options *options) {
     std::cout << "trying to load shared library " << fileName << std::endl;
     SDL_SharedObject* objectHandle = nullptr;
     objectHandle = SDL_LoadObject(fileName.c_str());
@@ -176,7 +176,7 @@ std::shared_ptr<GraphicsInterface> SDL2Helper::loadGraphicsBackend(const std::st
 }
 
 
-bool SDL2Helper::loadCustomTriggers(const std::string &fileName) {
+bool SDL3Helper::loadCustomTriggers(const std::string &fileName) {
     std::cout << "trying to load shared library " << fileName << std::endl;
     SDL_SharedObject* objectHandle = SDL_LoadObject(fileName.c_str());
     if(objectHandle == nullptr) {
@@ -190,7 +190,7 @@ bool SDL2Helper::loadCustomTriggers(const std::string &fileName) {
     return loadRenderMethods(objectHandle) && result;
 }
 
-bool SDL2Helper::loadPlayerExtensions(SDL_SharedObject *objectHandle) const {
+bool SDL3Helper::loadPlayerExtensions(SDL_SharedObject *objectHandle) const {
     const std::string registerFunctionName = "registerPlayerExtensions";
     void(*registerFunction)(std::map<std::string, PlayerExtensionInterface*(*)(LimonAPI*)>*);
     registerFunction = (void(*)(
@@ -212,7 +212,7 @@ bool SDL2Helper::loadPlayerExtensions(SDL_SharedObject *objectHandle) const {
     }
 }
 
-bool SDL2Helper::loadCameraExtensions(SDL_SharedObject *objectHandle) const {
+bool SDL3Helper::loadCameraExtensions(SDL_SharedObject *objectHandle) const {
     const std::string registerFunctionName = "registerCameraExtensions";
     void(*registerFunction)(std::map<std::string, CameraExtensionInterface*(*)(LimonAPI*)>*);
     registerFunction = (void(*)(
@@ -230,7 +230,7 @@ bool SDL2Helper::loadCameraExtensions(SDL_SharedObject *objectHandle) const {
     return true;
 }
 
-bool SDL2Helper::loadTriggers(SDL_SharedObject *objectHandle) const {
+bool SDL3Helper::loadTriggers(SDL_SharedObject *objectHandle) const {
     const std::string registerFunctionName = "registerAsTrigger";
     void(*registerFunction)(std::map<std::string, TriggerInterface*(*)(LimonAPI*)>*);
     registerFunction = (void(*)(
@@ -252,7 +252,7 @@ bool SDL2Helper::loadTriggers(SDL_SharedObject *objectHandle) const {
     }
 }
 
-bool SDL2Helper::loadActors(SDL_SharedObject *objectHandle) const {
+bool SDL3Helper::loadActors(SDL_SharedObject *objectHandle) const {
     const std::string registerFunctionName = "registerActors";
     void(*registerFunction)(std::map<std::string, ActorInterface*(*)(uint32_t, LimonAPI*)>*);
     registerFunction = (void(*)(
@@ -274,7 +274,7 @@ bool SDL2Helper::loadActors(SDL_SharedObject *objectHandle) const {
     }
 }
 
-bool SDL2Helper::loadRenderMethods(SDL_SharedObject *objectHandle) const {
+bool SDL3Helper::loadRenderMethods(SDL_SharedObject *objectHandle) const {
     const std::string registerFunctionName = "registerRenderMethods";
     void(*registerFunction)(std::map<std::string, RenderMethodInterface*(*)(GraphicsInterface*)>*);
     registerFunction = (void(*)(
@@ -296,7 +296,7 @@ bool SDL2Helper::loadRenderMethods(SDL_SharedObject *objectHandle) const {
     }
 }
 
-void SDL2Helper::setFullScreen(bool isFullScreen) {
+void SDL3Helper::setFullScreen(bool isFullScreen) {
     if (!isFullScreen) {
         SDL_SetWindowFullscreen(window, false);
         SDL_SyncWindow(window);
@@ -327,7 +327,7 @@ void SDL2Helper::setFullScreen(bool isFullScreen) {
 }
 
 #ifdef HAS_WAYLAND
-void SDL2Helper::applyWaylandViewportFix() {
+void SDL3Helper::applyWaylandViewportFix() {
     if (waylandViewport == nullptr) {
         return;
     }
@@ -358,7 +358,7 @@ void SDL2Helper::applyWaylandViewportFix() {
 }
 #endif
 
-std::string SDL2Helper::getCurrentPath() {
+std::string SDL3Helper::getCurrentPath() {
     std::string currentPath = SDL_GetBasePath();
     return currentPath;
 }

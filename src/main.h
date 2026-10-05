@@ -19,7 +19,7 @@ class ALHelper;
 class GraphicsInterface;
 class InputHandler;
 class AssetManager;
-class SDL2Helper;
+class SDL3Helper;
 class LimonAPI;
 class GUIImage;
 class ScriptManager;
@@ -36,7 +36,7 @@ class GameEngine {
     std::shared_ptr<GraphicsInterface> graphicsWrapper = nullptr;
     InputHandler* inputHandler = nullptr;
     std::shared_ptr<AssetManager> assetManager = nullptr;
-    SDL2Helper* sdlHelper = nullptr;
+    SDL3Helper* sdlHelper = nullptr;
     ProfilerSystem* profilerSystem = nullptr;
     FrameTimeTracker* frameTimeTracker = nullptr;
     //shared by every world, the current one uploads its whole used range every frame

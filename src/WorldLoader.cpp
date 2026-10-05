@@ -13,7 +13,7 @@
 #include "GameObjects/TriggerObject.h"
 
 #include "limonAPI/LimonAPI.h"
-#include "SDL2Helper.h"
+#include "SDL3Helper.h"
 
 #include "Assets/Animations/AnimationLoader.h"
 #include "Assets/Animations/AnimationCustom.h"
@@ -76,7 +76,7 @@ World * WorldLoader::loadWorld(const std::string &worldFile, LimonAPI *limonAPI)
 }
 
 World * WorldLoader::loadMapFromXML(const std::string &worldFileName, LimonAPI *limonAPI) const {
-    Uint64 currentTime = SDL2Helper::getTicks();
+    Uint64 currentTime = SDL3Helper::getTicks();
 
     tinyxml2::XMLDocument xmlDoc;
     tinyxml2::XMLError eResult = xmlDoc.LoadFile(worldFileName.c_str());
@@ -247,7 +247,7 @@ World * WorldLoader::loadMapFromXML(const std::string &worldFileName, LimonAPI *
     loadOnLoadActions(worldNode, world);
 
     loadOnLoadAnimations(worldNode, world);
-    Uint64 endTime = SDL2Helper::getTicks();
+    Uint64 endTime = SDL3Helper::getTicks();
     std::cout << "World " << worldNameStr << " loaded in " << endTime - currentTime << "ms." << std::endl;
     return world;
 }

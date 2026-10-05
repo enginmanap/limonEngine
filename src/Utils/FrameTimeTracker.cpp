@@ -6,7 +6,7 @@
 
 #include <iostream>
 
-#include "SDL2Helper.h"
+#include "SDL3Helper.h"
 #include "limonAPI/util/HashUtil.h"
 
 FrameTimeTracker::FrameTimeTracker(OptionsUtil::Options *options) {
@@ -18,7 +18,7 @@ FrameTimeTracker::FrameTimeTracker(OptionsUtil::Options *options) {
         windowMilliseconds = DEFAULT_WINDOW_MILLISECONDS;
     }
     windowMicroseconds = (uint64_t)windowMilliseconds * 1000;
-    performanceFrequency = SDL2Helper::getPerformanceFrequency();
+    performanceFrequency = SDL3Helper::getPerformanceFrequency();
     frameTimes.resize(((size_t)windowMilliseconds * MAX_EXPECTED_FPS) / 1000 + 1, 0);
 }
 
@@ -38,7 +38,7 @@ void FrameTimeTracker::pushSample(uint32_t frameTimeMicroseconds) {
 }
 
 void FrameTimeTracker::tick() {
-    uint64_t now = SDL2Helper::getPerformanceCounter();
+    uint64_t now = SDL3Helper::getPerformanceCounter();
     if (lastFrameTimestamp == 0) {
         // if there is no last frame, then sampling would get us whole process time, not a real value
         lastFrameTimestamp = now;

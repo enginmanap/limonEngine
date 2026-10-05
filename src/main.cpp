@@ -4,7 +4,7 @@
 
 #include "main.h"
 #include "limonAPI/Graphics/GraphicsInterface.h"
-#include "SDL2Helper.h"
+#include "SDL3Helper.h"
 #include "World.h"
 #include "WorldLoader.h"
 #include "GameObjects/GUIImage.h"
@@ -58,7 +58,7 @@ bool GameEngine::loadAndChangeWorld(const std::string &worldFile) {
     loadedWorlds[worldFile].second = apiInstance;
 
     returnWorldStack.push_back(currentWorld);
-    simulationStartWallTime = SDL2Helper::getTicks();
+    simulationStartWallTime = SDL3Helper::getTicks();
     ticksRun = 0;
     return true;
 }
@@ -124,7 +124,7 @@ bool GameEngine::returnOrLoadMap(const std::string &worldFile) {
     }
     currentWorld->setupForPlay(*inputHandler);
     returnWorldStack.push_back(currentWorld);
-    simulationStartWallTime = SDL2Helper::getTicks();
+    simulationStartWallTime = SDL3Helper::getTicks();
     ticksRun = 0;
     return true;
 }
@@ -145,7 +145,7 @@ bool GameEngine::LoadNewAndRemoveCurrent(const std::string &worldFile) {
     // trigger), deleting temp here would free the object whose play() is still
     // on the stack.  Queue it for deletion after play() returns instead.
     pendingWorldDeletes.push_back({oldWorldName, temp, tempAPI});
-    simulationStartWallTime = SDL2Helper::getTicks();
+    simulationStartWallTime = SDL3Helper::getTicks();
     ticksRun = 0;
     return true;
 }
@@ -161,14 +161,14 @@ void GameEngine::returnPreviousMap() {
         currentWorld->setupForUnpause();
         currentWorld->setupForPlay(*inputHandler);
     }
-    simulationStartWallTime = SDL2Helper::getTicks();
+    simulationStartWallTime = SDL3Helper::getTicks();
     ticksRun = 0;
 }
 
 GameEngine::GameEngine() {
     scriptManager = new ScriptManager("./Engine/Scripts", "./Data/Scripts");
 
-    options = new OptionsUtil::Options([](){return static_cast<uint32_t>(SDL2Helper::getTicks());});
+    options = new OptionsUtil::Options([](){return static_cast<uint32_t>(SDL3Helper::getTicks());});
 
     if (!options->loadOptionsNew(ENGINE_OPTIONS_FILE)) {
         std::cerr << "Failed to load engine options from " << ENGINE_OPTIONS_FILE << std::endl;
@@ -181,7 +181,7 @@ GameEngine::GameEngine() {
     profilerSystem = new ProfilerSystem(options);
     frameTimeTracker = new FrameTimeTracker(options);
 
-    sdlHelper = new SDL2Helper(options);
+    sdlHelper = new SDL3Helper(options);
 
     std::string backendName = options->getOption<std::string>(options->getHash("render_backend")).getOrDefault("libOpenGLGraphicsBackend");
     std::cout << "Selected Graphics Backend: " << backendName << std::endl;
@@ -298,14 +298,14 @@ LimonAPI *GameEngine::getNewLimonAPI() {
 
 void GameEngine::run() {
     graphicsWrapper->clearFrame();
-    simulationStartWallTime = SDL2Helper::getTicks();
+    simulationStartWallTime = SDL3Helper::getTicks();
     ticksRun = 0;
     while (!worldQuit) {
         PROFILE_OVERALL("Frame");
         // We send ticks run, instead of time. Then the world calculates the timestamp based on it, per
         // simulation step. Passing time itself prevents lockstep
         // Calculating it in 64 bits because otherwise it overflows within a day
-        uint64_t ticksDue = (SDL2Helper::getTicks() - simulationStartWallTime) * TICK_PER_SECOND / 1000;
+        uint64_t ticksDue = (SDL3Helper::getTicks() - simulationStartWallTime) * TICK_PER_SECOND / 1000;
         uint64_t ticksToRun = ticksDue - ticksRun;
         if (ticksToRun > (uint64_t)MAX_CATCHUP_TICKS) {
             //hopelessly behind, drop the surplus rather than spiral trying to catch up
@@ -321,7 +321,7 @@ void GameEngine::run() {
                 inputHandler->mapInput();
             }
 
-            currentWorld->play(*inputHandler, (uint32_t)SDL2Helper::getTicks());
+            currentWorld->play(*inputHandler, (uint32_t)SDL3Helper::getTicks());
             ++ticksRun;
             simulationRun = true;
 

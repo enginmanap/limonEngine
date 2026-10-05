@@ -5,7 +5,7 @@
 #include <unordered_map>
 #include <memory>
 #include <set>
-#include "SDL2Helper.h"
+#include "SDL3Helper.h"
 #include "VisibilityRequest.h"
 #include "glm/glm.hpp"
 

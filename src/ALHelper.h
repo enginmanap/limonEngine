@@ -16,7 +16,7 @@
 #include <glm/glm.hpp>
 #include <glm/ext.hpp>
 #include <glm/gtc/type_ptr.hpp>
-#include "SDL2Helper.h"
+#include "SDL3Helper.h"
 #include "SDL2MultiThreading.h"
 #include "limonAPI/LimonTypes.h"
 

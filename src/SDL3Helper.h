@@ -2,8 +2,8 @@
 // Created by Engin Manap on 10.02.2016.
 //
 
-#ifndef LIMONENGINE_SDL2HELPER_CPP_H
-#define LIMONENGINE_SDL2HELPER_CPP_H
+#ifndef LIMONENGINE_SDL3HELPER_H
+#define LIMONENGINE_SDL3HELPER_H
 
 #include <SDL3/SDL.h>
 #include <memory>
@@ -16,7 +16,7 @@
     struct wp_viewport;  // forward declare Wayland/viewporter-client-protocol.h
 #endif
 
-class SDL2Helper {
+class SDL3Helper {
 private:
     SDL_Window *window;
     SDL_GLContext context;
@@ -33,12 +33,12 @@ public:
 
     static std::string getCurrentPath();
 
-    SDL2Helper(OptionsUtil::Options* options);
+    SDL3Helper(OptionsUtil::Options* options);
     void initWindow(const char* title, const GraphicsInterface::ContextInformation& contextInformation);
     static float getDisplayPixelDensity();
     bool createContext();
     void destroyWindow();
-    ~SDL2Helper();
+    ~SDL3Helper();
 
     void swap() {
 #ifdef HAS_WAYLAND
@@ -78,4 +78,4 @@ public:
 
 };
 
-#endif //LIMONENGINE_SDL2HELPER_CPP_H
+#endif //LIMONENGINE_SDL3HELPER_H

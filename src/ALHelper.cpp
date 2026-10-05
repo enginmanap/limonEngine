@@ -26,7 +26,7 @@ ALHelper::ALHelper() {
     if(!ctx) {
         throw("Audio context setup failed!");
     }
-    lastFadeSampleTime = (uint32_t)SDL2Helper::getTicks();
+    lastFadeSampleTime = (uint32_t)SDL3Helper::getTicks();
     soundThread = new SDL2MultiThreading::InternalThread("soundManager",
         [this]() { soundManager(); });
     soundThread->run();
@@ -35,7 +35,7 @@ ALHelper::ALHelper() {
 int ALHelper::soundManager() {
     while(running || paused) {
         //we sample the deltaMs here so if sound is fading out and pause is called, it will not corrupt
-        uint32_t now = (uint32_t)SDL2Helper::getTicks();
+        uint32_t now = (uint32_t)SDL3Helper::getTicks();
         float deltaMs = (float)(now - lastFadeSampleTime);
         lastFadeSampleTime = now;
         if(paused && running) { //the first cycle after pause request

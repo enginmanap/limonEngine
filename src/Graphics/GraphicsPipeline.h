@@ -77,7 +77,7 @@ public:
         std::vector<std::shared_ptr<GraphicsProgram>> programs;
     };
 private:
-    friend class SDL2Helper;
+    friend class SDL3Helper;
     GraphicsPipeline() = default;//used for deserialize
     GraphicsPipeline::StageInfo* lastStageInfo = nullptr;
     GraphicsInterface* graphicsWrapper = nullptr;

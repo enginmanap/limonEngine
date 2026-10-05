@@ -11,7 +11,7 @@
 #include "PyPlayerExtensionInterface.h"
 #include "PyActorInterface.h"
 #include "PyTriggerInterface.h"
-#include "SDL2Helper.h"
+#include "SDL3Helper.h"
 #include "PythonStdOut.h"
 #include "GenericParameterConverter.h"
 

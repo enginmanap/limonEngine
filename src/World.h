@@ -28,7 +28,7 @@ static const int SKIP_LOD_LEVEL = 9999;
 #include "Graphics/FrameData.h"
 #include "ALHelper.h"
 #include "GameObjects/Players/Player.h"
-#include "SDL2Helper.h"
+#include "SDL3Helper.h"
 #include "Graphics/GraphicsPipeline.h"
 #include "Attachable.h"
 #include "PhysicalRenderable.h"
