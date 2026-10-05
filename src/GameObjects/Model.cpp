@@ -873,7 +873,8 @@ ImGuiResult Model::addImGuiEditorElements(const ImGuiRequest &request) {
             }
         }
     }
-    if (ImGui::CollapsingHeader("Sound properties")) {
+    //the player steps on the ground model, an animated one is not that, unless a sound was already set on it
+    if ((!isAnimated() || this->stepOnSound != nullptr) && ImGui::CollapsingHeader("Sound properties")) {
         ImGui::Indent(16.0f);
         static const AssetManager::AvailableAssetsNode *selectedSoundAsset = nullptr;
         static char stepOnSoundFilter[32] = {0};
