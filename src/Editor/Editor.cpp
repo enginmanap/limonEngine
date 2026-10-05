@@ -6,6 +6,8 @@
 #include <cmath>
 #include <climits>
 #include <ctime>
+#include <iomanip>
+#include <sstream>
 #include <Assets/Animations/AnimationLoader.h>
 #include "Editor.h"
 #include "PreviewRenderer.h"
@@ -2462,6 +2464,19 @@ void Editor::requestAssetSave(std::shared_ptr<ModelAsset> modelAsset) {
     pendingAssetSaves.insert(modelAsset);
 }
 
+static std::string currentTimeText() {
+    const std::time_t now = std::time(nullptr);
+    std::tm localTime{};
+#ifdef _WIN32
+    localtime_s(&localTime, &now);
+#else
+    localtime_r(&now, &localTime);
+#endif
+    std::ostringstream timeStream;
+    timeStream << std::put_time(&localTime, "%H:%M:%S");
+    return timeStream.str();
+}
+
 void Editor::saveWorldFile(const std::string &worldName, bool allAssetsSaved) {
     for(auto animIt = world->loadedAnimations.begin(); animIt != world->loadedAnimations.end(); animIt++) {
         if(animIt->serializeAnimation("./Data/Animations/")) {
@@ -2475,22 +2490,20 @@ void Editor::saveWorldFile(const std::string &worldName, bool allAssetsSaved) {
         world->apiAccessor->disconnectObjectFromPhysics(*objectIt);
     }
 
-    char timeText[16] = {0};
-    std::time_t now = std::time(nullptr);
-    std::strftime(timeText, sizeof(timeText), "%H:%M:%S", std::localtime(&now));
-    if (!WorldSaver::saveWorld(worldName, world)) {
+    const bool worldSaved = WorldSaver::saveWorld(worldName, world);
+    std::string outcome;
+    if (!worldSaved) {
         world->options->getLogger()->log(Logger::log_Subsystem_LOAD_SAVE, Logger::log_level_ERROR, "World save Failed");
-        lastWorldSaveStatus = std::string("Save failed at ") + timeText + ", see the log";
-        lastWorldSaveFailed = true;
+        outcome = "Save failed";
     } else if (!allAssetsSaved) {
         world->options->getLogger()->log(Logger::log_Subsystem_LOAD_SAVE, Logger::log_level_ERROR, "World saved, but some of its assets failed, see above");
-        lastWorldSaveStatus = std::string("Saved ") + worldName + " at " + timeText + ", but some assets failed, see the log";
-        lastWorldSaveFailed = true;
+        outcome = "Saved " + worldName + ", some assets failed";
     } else {
         world->options->getLogger()->log(Logger::log_Subsystem_LOAD_SAVE, Logger::log_level_INFO, "World save successful");
-        lastWorldSaveStatus = std::string("Saved ") + worldName + " at " + timeText;
-        lastWorldSaveFailed = false;
+        outcome = "Saved " + worldName;
     }
+    lastWorldSaveFailed = !worldSaved || !allAssetsSaved;
+    lastWorldSaveStatus = outcome + " at " + currentTimeText() + (lastWorldSaveFailed ? ", see the log" : "");
     //after save, set the states back
     for (auto objectIt = world->disconnectedModels.begin(); objectIt != world->disconnectedModels.end(); ++objectIt) {
         world->apiAccessor->reconnectObjectToPhysics(*objectIt);
