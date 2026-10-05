@@ -163,6 +163,7 @@ private:
     ModelAsset() : Asset(nullptr, 0, std::vector<std::string>()) {};
 
 public:
+    static constexpr uint32_t MAX_BONES = 128;//must match NR_BONE in the animated model shaders
     void bakeAllOccluderLods();//the limonmodel export calls this, load only bakes the level the option asks for
 
     //the steps, where they are used, and everything the editor edits about them

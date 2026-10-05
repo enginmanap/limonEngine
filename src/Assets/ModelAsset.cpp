@@ -164,6 +164,10 @@ void ModelAsset::loadCPUPart() {
     }
 
     this->rootNode = loadNodeTree(scene->mRootNode);
+    if (this->hasAnimation && boneIDCounter > MAX_BONES) {
+        std::cerr << "WARNING: model " << name << " has " << boneIDCounter << " nodes, but animated models support " << MAX_BONES
+                  << " bones, so it will not animate correctly." << std::endl;
+    }
 
     glm::mat4 initialTransform(1.0f);
     if (flipX || flipY || flipZ) {
@@ -1292,7 +1296,7 @@ void ModelAsset::buildPhysicsMeshes() {
 
     if (this->isAnimated()) {
         std::map<uint32_t, btConvexHullShape *>::iterator it;
-        for (unsigned int i = 0;i < 128; i++) {//FIXME 128 is the number of bones supported. It should be an option or an constant
+        for (unsigned int i = 0; i < MAX_BONES; i++) {
             if (bulletTransformMap.find(i) != bulletTransformMap.end() && bulletHullMap.find(i) != bulletHullMap.end()) {
                 boneIdCompoundChildMap[i] = compoundShapeForConvex->getNumChildShapes();//get numchild actually increase with each new child add below
                 compoundShapeForConvex->addChildShape(bulletTransformMap[i], bulletHullMap[i]);//this add the mesh to collision shape, in order
