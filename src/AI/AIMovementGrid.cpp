@@ -147,13 +147,13 @@ AIMovementGrid::walkMonster(glm::vec3 walkPoint, btDiscreteDynamicsWorld *static
     }
 
     std::shared_ptr<AIMovementNode>root = std::make_shared<AIMovementNode>(getNextID(), walkPoint);
-    staticWorld->addCollisionObject(sharedGhostObject, collisionGroup, collisionMask);
+    staticWorld->addCollisionObject(sharedGhostObject.get(), collisionGroup, collisionMask);
     sharedGhostObject->setWorldTransform(
             btTransform(btQuaternion::getIdentity(), GLMConverter::GLMToBlt(root->getPosition())));
     btVector3 minO, maxO;
     sharedGhostObject->getCollisionShape()->getAabb(sharedGhostObject->getWorldTransform(), minO, maxO);
     bool isMovable = !isThereCollision(staticWorld);
-    staticWorld->removeCollisionObject(sharedGhostObject);
+    staticWorld->removeCollisionObject(sharedGhostObject.get());
     if (isMovable) {
         root->setIsMovable(isMovable);
         frontier.push(root);
@@ -202,11 +202,11 @@ AIMovementGrid::walkMonster(glm::vec3 walkPoint, btDiscreteDynamicsWorld *static
                         current->setNeighbour(neighbourIndex, visitedNode);
                     } else {
                         //std::cout << "adding new node with position " << GLMUtils::vectorToString(neighbourPosition) << std::endl;
-                        staticWorld->addCollisionObject(sharedGhostObject, collisionGroup, collisionMask);
+                        staticWorld->addCollisionObject(sharedGhostObject.get(), collisionGroup, collisionMask);
                         sharedGhostObject->setWorldTransform(
                                 btTransform(btQuaternion::getIdentity(), GLMConverter::GLMToBlt(neighbourPosition)));
                         isMovable = isMovable && !isThereCollision(staticWorld);
-                        staticWorld->removeCollisionObject(sharedGhostObject);
+                        staticWorld->removeCollisionObject(sharedGhostObject.get());
 
 
                         std::shared_ptr<AIMovementNode> neighbour =std::make_shared<AIMovementNode>(getNextID(), neighbourPosition);
@@ -276,9 +276,9 @@ AIMovementGrid::AIMovementGrid(glm::vec3 startPoint, btDiscreteDynamicsWorld *st
                                glm::vec3 max, uint32_t collisionGroup, uint32_t collisionMask) {
     //sharedGhostObject->setCollisionShape(new btBoxShape(btVector3(1.0f,1.0f,1.0f)));
     //sharedGhostObject->setCollisionShape(new btCapsuleShape(1,1));
-    ghostShape = new btCapsuleShape(capsuleRadius, capsuleHeight);
+    ghostShape = std::make_unique<btCapsuleShape>(capsuleRadius, capsuleHeight);
 
-    sharedGhostObject->setCollisionShape(ghostShape);
+    sharedGhostObject->setCollisionShape(ghostShape.get());
     sharedGhostObject->setCollisionFlags(
             sharedGhostObject->getCollisionFlags());
     sharedGhostObject->setWorldTransform(btTransform(btQuaternion::getIdentity(), GLMConverter::GLMToBlt(startPoint)));
@@ -287,7 +287,7 @@ AIMovementGrid::AIMovementGrid(glm::vec3 startPoint, btDiscreteDynamicsWorld *st
     root = walkMonster(startPoint, staticOnlyPhysicsWorld, min, max, collisionGroup, collisionMask);
     std::cout << "Finished generating AI walk grid, created " << visited.size() << " nodes, checked for collision "
               << isThereCollisionCounter << " times." << std::endl;
-    staticOnlyPhysicsWorld->removeCollisionObject(sharedGhostObject);
+    staticOnlyPhysicsWorld->removeCollisionObject(sharedGhostObject.get());
 }
 
 bool
