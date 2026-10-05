@@ -17,6 +17,7 @@
 #include "Assets/ModelToWorldConverter.h"
 #include <algorithm>
 #include <cstdlib>
+#include <filesystem>
 
 const std::string PROGRAM_NAME = "LimonEngine";
 const std::string RELEASE_FILE = "./Data/Release.xml";
@@ -505,6 +506,13 @@ int main(int argc, char *argv[]) {
         worldName = argv[1];
         std::cout << "Trying to load " <<  worldName << std::endl;
         std::cout << PROGRAM_NAME + " only takes one parameter. First one is processed as Map file, rest discarded." << std::endl;
+    }
+
+    //checked before the engine starts, so a typo doesn't cost a window and a backend
+    std::error_code worldFileError;
+    if(!std::filesystem::is_regular_file(worldName, worldFileError)) {
+        std::cerr << "World file " << worldName << " was not found or is not a file. Run with --help to see the options." << std::endl;
+        return -1;
     }
 
 #ifdef __APPLE__
