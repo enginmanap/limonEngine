@@ -677,6 +677,28 @@ void Editor::applyPendingPick() {
     }
 }
 
+//removing has no undo, so the first click only asks. Returns true on the confirming click. The ask is kept per object,
+//so selecting something else drops it, and no popup is left open to lock the editor
+bool Editor::removeWithConfirmation(const std::string &label) {
+    const int64_t objectID = this->pickedObject->getWorldObjectID();
+    if (removeConfirmationObjectID != objectID) {
+        removeConfirmationObjectID = -1;//an ask for another object doesn't carry over
+        if (ImGui::Button(label.c_str())) {
+            removeConfirmationObjectID = objectID;
+        }
+        return false;
+    }
+    bool confirmed = ImGui::Button("Click again to remove, this can't be undone");
+    ImGui::SameLine();
+    if (ImGui::Button("Cancel##removeConfirmation")) {
+        removeConfirmationObjectID = -1;
+    }
+    if (confirmed) {
+        removeConfirmationObjectID = -1;
+    }
+    return confirmed;
+}
+
 void Editor::putPickReferencedObjectButton(GameObject* referencedObject, const std::string& label) {
     ImGui::SameLine();
     ImGui::BeginDisabled(referencedObject == nullptr);
@@ -1743,14 +1765,14 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
                                 "If object is placed in trigger volume, \ndisconnecting drastically improve performance.");
                     }
 
-                    if (ImGui::Button("Remove This Object")) {
+                    if (removeWithConfirmation("Remove This Object")) {
                         world->apiAccessor->removeObject(this->pickedObject->getWorldObjectID());
                         this->pickedObject = nullptr;
                     }
                 }
                     break;
                 case GameObject::ObjectTypes::TRIGGER: {
-                    if (ImGui::Button("Remove This Trigger")) {
+                    if (removeWithConfirmation("Remove This Trigger")) {
                         world->apiAccessor->removeTriggerObject(this->pickedObject->getWorldObjectID());
                         this->pickedObject = nullptr;
                     }

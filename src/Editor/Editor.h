@@ -145,6 +145,7 @@ public:
     std::vector<LodRegenerationRequest> pendingLodRequests;
     std::set<std::shared_ptr<ModelAsset>> pendingAssetSaves;//a set, a world save and the panel can ask for the same asset
     bool worldSaveRequested = false;
+    int64_t removeConfirmationObjectID = -1;//the object whose remove button was clicked once, -1 for none
     std::string pendingWorldSaveName;//copied at the click, the name box can change before the save runs
     bool modelConversionRequested = false;
 
@@ -217,6 +218,7 @@ private:
 
     void buildTreeFromAllGameObjects();
     void putPickReferencedObjectButton(GameObject* referencedObject, const std::string& label);
+    bool removeWithConfirmation(const std::string &label);
     std::unique_ptr<ClosestNotMeConvexResultCallback> convexSweepTestDown(Model * selectedObject) const;
     void addAnimationDefinitionToEditor();
     void createObjectTreeRecursive(Attachable *attachable, uint32_t pickedObjectID,
