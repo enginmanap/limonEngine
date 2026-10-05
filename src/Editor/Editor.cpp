@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <cmath>
 #include <climits>
+#include <ctime>
 #include <Assets/Animations/AnimationLoader.h>
 #include "Editor.h"
 #include "PreviewRenderer.h"
@@ -1325,6 +1326,10 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
 
         ImGui::Separator();
 
+        if (!lastWorldSaveStatus.empty()) {
+            ImGui::TextColored(lastWorldSaveFailed ? ImVec4(1.0f, 0.4f, 0.4f, 1.0f) : ImVec4(0.5f, 0.9f, 0.5f, 1.0f),
+                               "%s", lastWorldSaveStatus.c_str());
+        }
         ImGui::InputText("##save world name", this->worldSaveNameBuffer, sizeof(this->worldSaveNameBuffer));
         ImGui::SameLine();
         if(ImGui::Button("Save World")) {
@@ -2470,12 +2475,21 @@ void Editor::saveWorldFile(const std::string &worldName, bool allAssetsSaved) {
         world->apiAccessor->disconnectObjectFromPhysics(*objectIt);
     }
 
+    char timeText[16] = {0};
+    std::time_t now = std::time(nullptr);
+    std::strftime(timeText, sizeof(timeText), "%H:%M:%S", std::localtime(&now));
     if (!WorldSaver::saveWorld(worldName, world)) {
         world->options->getLogger()->log(Logger::log_Subsystem_LOAD_SAVE, Logger::log_level_ERROR, "World save Failed");
+        lastWorldSaveStatus = std::string("Save failed at ") + timeText + ", see the log";
+        lastWorldSaveFailed = true;
     } else if (!allAssetsSaved) {
         world->options->getLogger()->log(Logger::log_Subsystem_LOAD_SAVE, Logger::log_level_ERROR, "World saved, but some of its assets failed, see above");
+        lastWorldSaveStatus = std::string("Saved ") + worldName + " at " + timeText + ", but some assets failed, see the log";
+        lastWorldSaveFailed = true;
     } else {
         world->options->getLogger()->log(Logger::log_Subsystem_LOAD_SAVE, Logger::log_level_INFO, "World save successful");
+        lastWorldSaveStatus = std::string("Saved ") + worldName + " at " + timeText;
+        lastWorldSaveFailed = false;
     }
     //after save, set the states back
     for (auto objectIt = world->disconnectedModels.begin(); objectIt != world->disconnectedModels.end(); ++objectIt) {
