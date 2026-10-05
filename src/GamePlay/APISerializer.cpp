@@ -439,7 +439,16 @@ APISerializer::deserializeTriggerCode(tinyxml2::XMLElement *triggersNode, tinyxm
     triggerAttribute = triggersNode->FirstChildElement(nodeName.c_str());
     if (triggerAttribute != nullptr) {
         tinyxml2::XMLElement* triggerCodeAttribute = triggerAttribute->FirstChildElement("Name");
+        if (triggerCodeAttribute == nullptr || triggerCodeAttribute->GetText() == nullptr) {
+            std::cerr << "[" << nodeName << "] has no trigger code name in the file, it is skipped." << std::endl;
+            return nullptr;
+        }
         triggerCode = TriggerInterface::createTrigger(triggerCodeAttribute->GetText(), limonAPI);
+        if (triggerCode == nullptr) {
+            std::cerr << "[" << nodeName << "] uses trigger code [" << triggerCodeAttribute->GetText()
+                      << "], which is not registered. If it comes from a custom trigger library, check that the library is loaded. It is skipped." << std::endl;
+            return nullptr;
+        }
 
         // Seed parameters with the trigger's current defaults so that XMLs saved
         // before a parameter was added still produce a fully-sized vector.
@@ -455,6 +464,7 @@ APISerializer::deserializeTriggerCode(tinyxml2::XMLElement *triggersNode, tinyxm
             std::shared_ptr<LimonTypes::GenericParameter> request = APISerializer::deserializeParameterRequest(triggerCodeParameter, index);
 
             if(request == nullptr) {
+                std::cerr << "[" << nodeName << "] has a parameter that could not be read, it is skipped." << std::endl;
                 delete triggerCode;
                 return nullptr;
             }
@@ -486,7 +496,7 @@ APISerializer::deserializeTriggerCode(tinyxml2::XMLElement *triggersNode, tinyxm
             } else if(strcmp(triggerCodeAttribute->GetText(), "False") == 0) {
                 enabled = false;
             } else {
-                std::cerr << "Trigger enabled setting is unknown value [" << triggerCodeAttribute->GetText() << "], can't be loaded " << std::endl;
+                std::cerr << "[" << nodeName << "] enabled setting is unknown value [" << triggerCodeAttribute->GetText() << "], can't be loaded " << std::endl;
                 delete triggerCode;
                 return nullptr;
             }
