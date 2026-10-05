@@ -436,7 +436,23 @@ bool getWorldNameFromReleaseXML(std::string &worldName) {
     return true;
 }
 
+static void printUsage() {
+    std::cout << "usage: " << PROGRAM_NAME << " [world file]\n"
+              << "       " << PROGRAM_NAME << " --convert <model file> [output directory] [--scale <factor>]\n"
+              << "       " << PROGRAM_NAME << " --help\n"
+              << "\n"
+              << "  world file   the world to load. Without it, the world named in " << RELEASE_FILE << " is loaded,\n"
+              << "               or ./Data/Maps/World001.xml if that can't be read\n"
+              << "  --convert    create a world from a model file, in the output directory if one is given\n"
+              << "  --scale      size factor for --convert, must be greater than 0\n"
+              << "  --help, -h   show this text\n";
+}
+
 int main(int argc, char *argv[]) {
+    if(argc >= 2 && (std::string(argv[1]) == "--help" || std::string(argv[1]) == "-h")) {
+        printUsage();
+        return 0;
+    }
     if(argc >= 2 && std::string(argv[1]) == "--convert") {
         const std::string usage = "usage: " + PROGRAM_NAME + " --convert <model file> [output directory] [--scale <factor>]";
         if(argc < 3) {
