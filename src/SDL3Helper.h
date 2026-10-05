@@ -22,6 +22,8 @@ private:
     SDL_GLContext context;
     OptionsUtil::Options* options;
 
+    void applySwapInterval();
+
 #ifdef HAS_WAYLAND
     wp_viewport* waylandViewport = nullptr;
     void applyWaylandViewportFix();

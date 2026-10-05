@@ -82,6 +82,15 @@
     </Parameter>
     <Parameter>
         <RequestType>FreeNumber</RequestType>
+        <Description>display_vsync</Description>
+        <!-- 0 off, 1 on, -1 adaptive (falls back to 1 if the driver refuses it)-->
+        <Value>1</Value>
+        <valueType>Long</valueType>
+        <IsSet>True</IsSet>
+        <Index>54</Index>
+    </Parameter>
+    <Parameter>
+        <RequestType>FreeNumber</RequestType>
         <Description>display_height</Description>
         <Value>1440</Value>
         <valueType>Long</valueType>

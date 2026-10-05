@@ -120,13 +120,26 @@ bool SDL3Helper::createContext() {
         SDL_PROP_WINDOW_WAYLAND_VIEWPORT_POINTER, nullptr);
 #endif
 
-    /* This makes our buffer swap syncronized with the monitor's vertical refresh */
-#ifndef NDEBUG
-    SDL_GL_SetSwapInterval(1);
-#endif
+    applySwapInterval();
     SDL_HideCursor();
     std::cout << "SDL window and context started." << std::endl;
     return true;
+}
+
+//0 off, 1 on, -1 adaptive. Windowed mode under a compositor may still be paced to refresh rate whatever we set
+void SDL3Helper::applySwapInterval() {
+    OptionsUtil::Options::Option<long> vsyncOption = options->getOption<long>(HASH("display_vsync"));
+    int requestedInterval = static_cast<int>(vsyncOption.getOrDefault(1));
+    if (!SDL_GL_SetSwapInterval(requestedInterval)) {
+        std::cerr << "Swap interval " << requestedInterval << " was refused: " << SDL_GetError() << std::endl;
+        if (requestedInterval == -1 && !SDL_GL_SetSwapInterval(1)) {
+            std::cerr << "Swap interval 1 was refused too: " << SDL_GetError() << std::endl;
+        }
+    }
+    int appliedInterval = 0;
+    if (SDL_GL_GetSwapInterval(&appliedInterval)) {
+        std::cout << "Swap interval requested " << requestedInterval << ", applied " << appliedInterval << std::endl;
+    }
 }
 
 void SDL3Helper::destroyWindow() {
