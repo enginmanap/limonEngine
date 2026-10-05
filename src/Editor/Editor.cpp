@@ -711,6 +711,12 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
         }
         ImGui::Checkbox("Show Profiler Window", &world->showProfilerOverlay);
 
+        //same request the Save World button makes, ctrl+s from anywhere in the editor, unless a text field is being typed in
+        if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_S, false) && !io.WantTextInput && this->worldSaveNameBuffer[0] != '\0') {
+            pendingWorldSaveName = this->worldSaveNameBuffer;
+            worldSaveRequested = true;
+        }
+
         if (world->assetManager->isReloadingAssetList()) {
             ImGui::Text("Refreshing assets...");
         } else {
@@ -1331,6 +1337,9 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
             //runs at the next frame start, a limonmodel save bakes occluders that culling is reading now
             pendingWorldSaveName = this->worldSaveNameBuffer;
             worldSaveRequested = true;
+        }
+        if (ImGui::IsItemHovered()) {
+            ImGui::SetTooltip("Shortcut: Ctrl+S");
         }
         if(ImGui::Button("Save AI walk Grid")) {
             if(world->grid != nullptr) {
