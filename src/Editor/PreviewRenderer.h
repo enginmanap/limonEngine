@@ -8,6 +8,7 @@
 
 #include "ImGui/imgui.h"
 #include "ImGuiRequest.h"
+#include "limonAPI/Graphics/UniformBlockData.h"
 #include <memory>
 #include <set>
 #include <string>
@@ -34,6 +35,9 @@ class PreviewRenderer {
     std::shared_ptr<Texture> depthTexture;
     std::unique_ptr<GraphicsPipelineStage> backgroundRenderStage;
     ImGuiImageWrapper* wrapper = nullptr;
+    //each preview view gets its own player block, the world's one is still read by this frame's other draws
+    uint32_t assetPreviewPlayerBlockBuffer = 0;
+    UniformBlockData previewPlayerBlock;//refilled for every preview draw, kept to reuse the allocation
 
     std::vector<Model*> modelQueue;
     std::set<uint32_t> modelIdSet;
@@ -76,6 +80,7 @@ class PreviewRenderer {
         ImGuiImageWrapper* wrapper = nullptr;
         // We can't use the actual rig-id, because that would corrupt the models state, so we will reserve another ID and use that.
         uint32_t rigId = 0;
+        uint32_t playerBlockBuffer = 0;
         uint64_t startWallTime = 0;//wall time when the currently-previewed model/animation was first shown, for looping playback
         uint32_t modelObjectID = 0xFFFFFFFF;//tracks which model+animation startWallTime belongs to
         std::string animationName;
@@ -92,6 +97,9 @@ class PreviewRenderer {
     // clean up/restore so we flag if any of them did render.
     bool offscreenPreviewRenderedThisFrame = false;
     void beginOffscreenModelPreview(GraphicsPipelineStage* targetStage, std::shared_ptr<GraphicsProgram> graphicsProgram);
+    //writes and binds the preview view's own player block, endPreviewCamera puts the world's back
+    void beginPreviewCamera(uint32_t playerBlockBuffer, const glm::vec3 &cameraPosition, const glm::mat4 &cameraMatrix, const glm::mat4 &projectionMatrix);
+    void endPreviewCamera();
 
     void bakeSkeletonOverlay(Model* model, const std::vector<glm::mat4> &jointTransforms,
                              const glm::mat4 &previewCameraMatrix, const glm::mat4 &previewProjectionMatrix,
@@ -109,6 +117,7 @@ class PreviewRenderer {
         std::unique_ptr<GraphicsPipelineStage> renderStage;
         ImGuiImageWrapper* wrapper = nullptr;
         uint32_t size = 0;
+        uint32_t playerBlockBuffer = 0;
     };
     ComparisonTarget comparisonLevelTarget;
     ComparisonTarget comparisonOriginalTarget;
@@ -117,7 +126,7 @@ class PreviewRenderer {
     void ensureComparisonTarget(ComparisonTarget &target, uint32_t size, const std::string &textureName);
     static uint32_t clampLodLevel(const Model* model, int32_t forcedLodLevel);
     void renderModelIntoTarget(Model* model, uint32_t lodLevel, GraphicsPipelineStage* targetStage,
-                               uint32_t width, uint32_t height, const OrbitState &orbit, int32_t rigIdOverride,
+                               uint32_t width, uint32_t height, const OrbitState &orbit, int32_t rigIdOverride, uint32_t playerBlockBuffer,
                                std::shared_ptr<GraphicsProgram> graphicsProgram,
                                glm::mat4 &outCameraMatrix, glm::mat4 &outProjectionMatrix);
 

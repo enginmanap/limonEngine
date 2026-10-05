@@ -24,6 +24,8 @@ static const int SKIP_LOD_LEVEL = 9999;
 #include "GameObjects/Sound.h"
 #include "limonAPI/LimonAPI.h"
 #include "limonAPI/ActorInterface.h"
+#include "limonAPI/Graphics/UniformBlockData.h"
+#include "Graphics/FrameData.h"
 #include "ALHelper.h"
 #include "GameObjects/Players/Player.h"
 #include "SDL2Helper.h"
@@ -84,7 +86,6 @@ class IterationExtension;
 class NodeGraph;
 class VisibilityManager;
 class FrameTimeTracker;
-class TransformTextureRing;
 
 /*
  * This is a workaround to access the timedEvent priority queue container.
@@ -234,12 +235,8 @@ private:
     OptionsUtil::Options* options;
     ProfilerSystem* profilerSystem;
     FrameTimeTracker* frameTimeTracker;//owned by GameEngine, ticked at the frame boundary next to clearFrame
-    TransformTextureRing* modelTransformRing;//owned by GameEngine and shared by all worlds, so every upload sends our whole used range
-    TransformTextureRing* boneTransformRing;
-    std::vector<glm::vec4> modelTransformTexels = std::vector<glm::vec4>(2 * 4 * NR_MAX_MODELS);//row 0 world transforms, row 1 normal matrices
-    uint32_t usedModelTransformColumns = 0;
-    std::vector<glm::vec4> boneTransformTexels;//one row per rig, grows with the highest rig written
-    uint32_t usedBoneTransformRows = 0;
+    const FrameResourceHandles* frameResourceHandles;//owned by GameEngine and shared by all worlds
+    FrameData frameData;
     uint32_t nextWorldID = 2;
     uint32_t nextRigID = 1;
     std::queue<uint32_t> unusedIDs;
@@ -389,10 +386,7 @@ private:
     void updateWorldAABB(glm::vec3 aabbMin, glm::vec3 aabbMax);
 
     bool addModelToWorld(Model *xmlModel);
-    void uploadChangedTransforms();
-    void setModelTransform(uint32_t modelID, const glm::mat4& worldTransform);
-    void setBoneTransforms(uint32_t rigID, const std::vector<glm::mat4>& boneTransforms);
-    void uploadTransformTextures();
+    void applyChangedTransforms();
 
     void untrackRigidBody(const btRigidBody *body);
 
@@ -455,7 +449,7 @@ private:
 
     World(const std::string &name, PlayerInfo startingPlayerType, InputHandler *inputHandler,
           std::shared_ptr<AssetManager> assetManager, OptionsUtil::Options *options, ProfilerSystem* profilerSystem, FrameTimeTracker* frameTimeTracker,
-          TransformTextureRing* modelTransformRing, TransformTextureRing* boneTransformRing,
+          const FrameResourceHandles* frameResourceHandles,
           LimonAPI *limonAPI);
 
     void afterLoadFinished();
@@ -519,6 +513,9 @@ public:
     // in case of low framerate to catch up
     void prepareFrame();
 
+    //every rendered frame, tick or not, because each buffer swap leaves the frame resources on a copy with old data
+    void uploadFrameData();
+
     void render();
 
     uint32_t getNextObjectID() {
@@ -552,7 +549,9 @@ public:
     void updateActiveLights(bool forceUpdate = false);
     // Removes the lights that were suppose to be removed, but was waiting for new frame
     bool applyPendingLightRemovals();
-    void uploadActiveLightsToGPU() const;
+    void fillLightBlock();
+    //PreviewRenderer fills its own blocks with this too
+    void fillPlayerBlock(UniformBlockData &playerBlock, const glm::vec3 &cameraPosition, const glm::mat4 &cameraMatrix, const glm::mat4 &projectionMatrix) const;
 
     void
     removeActiveCustomAnimation(const AnimationCustom &animationToRemove, AnimationStatus *animationStatusToRemove,

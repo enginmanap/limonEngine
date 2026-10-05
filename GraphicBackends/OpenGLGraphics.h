@@ -30,6 +30,7 @@
 
 #include "limonAPI/Options.h"
 #include "limonAPI/Graphics/GraphicsInterface.h"
+#include "Std140Layout.h"
 
 #ifdef TRACY_ENABLE
 namespace tracy { class GpuCtxScope; }
@@ -211,34 +212,42 @@ private:
 #endif
 
     unsigned int screenHeight, screenWidth;
-    long totalLightCount;
     float aspect;
     std::vector<GLuint> bufferObjects;
     std::vector<GLuint> vertexArrays;
+    //every handle has one copy per frame in flight, writes and binds use the current one
+    struct FrameResources {
+        static constexpr uint32_t COPY_COUNT = 3;
+        struct UniformBufferCopies {
+            GLuint copies[COPY_COUNT];
+            size_t copySizes[COPY_COUNT];//0 until the first write sizes the copy
+        };
+        struct TextureCopies {
+            GLuint copies[COPY_COUNT];
+        };
+        uint32_t index = 0;
+        std::unordered_map<uint32_t, UniformBufferCopies> uniformBuffers;//keyed by the handle we gave out
+        std::unordered_map<uint32_t, TextureCopies> textures;
+        std::unordered_map<uint32_t, uint32_t> uniformBindings;//binding point to handle, rebound on swap
+        std::unordered_map<uint32_t, uint32_t> textureUnits;//texture unit to handle, rebound on swap
+        std::vector<uint8_t> blockBytes;//std140 bytes of the block being written, reused so the per frame writes don't allocate
+    };
+    FrameResources frameResources;
 
 
-    GLuint lightUBOLocation;
-    GLuint playerUBOLocation;
     GLuint allMaterialsUBOLocation;
     GLuint allModelIndexesUBOLocation;
     GLuint combineFrameBuffer;
 
     OptionsUtil::Options *options;
 
-    const uint32_t lightUniformSize = (sizeof(glm::mat4) * 6) + (4 * sizeof(glm::vec4));
-    static constexpr uint32_t playerUniformSize = 5 * sizeof(glm::mat4) + 6 * sizeof(glm::vec4);
-    static constexpr uint32_t playerUboTimeOffset = 5 * sizeof(glm::mat4) + 5 * sizeof(glm::vec4) + sizeof(glm::vec2);
     int32_t materialUniformSize = 2 * sizeof(glm::vec3) + sizeof(float) + sizeof(GLuint);
     int32_t modelUniformSize = sizeof(glm::mat4);
     //Set here so checks before initialize don't get garbage. Real value will set after initialization
     uint32_t modelIndexBatchCapacity = NR_MAX_MODELS;
 
-    glm::mat4 cameraMatrix;
-    glm::mat4 perspectiveProjectionMatrix;
-    glm::mat4 inverseProjection;
     std::vector<glm::vec4>frustumPlanes;
     glm::mat4 orthogonalProjectionMatrix;
-    glm::vec3 cameraPosition;
     RenderStats frameStats;
     RenderStats lastFrameStats;//what getFrameStats reports, so readers get a complete frame wherever in the frame they ask
 
@@ -449,7 +458,6 @@ public:
 
     bool getUniformLocation(const uint32_t programID, const std::string &uniformName, uint32_t &location) override;
 
-    const glm::vec3& getCameraPosition() const override { return cameraPosition; };
 
     const glm::mat4& getGUIOrthogonalProjectionMatrix() const override { return orthogonalProjectionMatrix; }
 
@@ -473,11 +481,21 @@ public:
 
     bool setUniformArray(const uint32_t programID, const uint32_t uniformID, const std::vector<glm::mat4> &matrixArray) override;
 
-    void setLights(const std::vector<LightData>& lights) override;
+    uint32_t createUniformBuffer() override;
 
-    void setPlayerMatrices(const glm::vec3 &cameraPosition, const glm::mat4 &cameraMatrix, const glm::mat4 &cameraProjection, uint32_t currentTimeMs) override;
+    void deleteUniformBuffer(uint32_t bufferID) override;
 
-    void setCurrentTime(uint32_t currentTimeMs) override;
+    void writeUniformBuffer(uint32_t bufferID, const UniformBlockData &data) override;
+
+    void bindUniformBuffer(uint32_t bufferID, uint32_t bindingPoint) override;
+
+    uint32_t createFrameBufferedTexture(int height, int width, InternalFormatTypes internalFormat, FormatTypes format, DataTypes dataType) override;
+
+    void writeFrameBufferedTexture(uint32_t textureID, int x, int y, int width, int height, FormatTypes format, DataTypes dataType, const void *data) override;
+
+    void deleteFrameBufferedTexture(uint32_t textureID) override;
+
+    void swapFrameResources() override;
 
     void switchRenderStage(uint32_t width, uint32_t height, uint32_t frameBufferID, bool blendEnabled, bool depthTestEnabled, bool depthWriteEnabled, bool scissorEnabled,
                            bool clearColor, bool clearDepth, CullModes cullMode, std::map<uint32_t, std::shared_ptr<Texture>> &inputs, const std::string &name) override;

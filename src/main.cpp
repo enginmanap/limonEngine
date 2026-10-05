@@ -13,7 +13,6 @@
 #include <pthread.h>
 #include "Profiler/ProfilerMacros.h"
 #include "Utils/FrameTimeTracker.h"
-#include "Graphics/TransformTextureRing.h"
 #include "Material.h"
 #include "Assets/ModelToWorldConverter.h"
 #include <algorithm>
@@ -229,8 +228,16 @@ GameEngine::GameEngine() {
     }
     graphicsWrapper->initGpuContext();
     graphicsWrapper->reshape();
-    modelTransformRing = new TransformTextureRing(graphicsWrapper.get(), 4 * NR_MAX_MODELS, 2, GraphicsInterface::MODEL_BONE_TRANSFORM_TEXTURE_UNIT_START);
-    boneTransformRing = new TransformTextureRing(graphicsWrapper.get(), 4 * NR_BONE, NR_MAX_MODELS, GraphicsInterface::MODEL_BONE_TRANSFORM_TEXTURE_UNIT_START + 1);
+    frameResourceHandles.modelTransformTexture = graphicsWrapper->createFrameBufferedTexture(2, 4 * NR_MAX_MODELS, GraphicsInterface::InternalFormatTypes::RGBA32F,
+                                                                                             GraphicsInterface::FormatTypes::RGBA, GraphicsInterface::DataTypes::FLOAT);
+    frameResourceHandles.boneTransformTexture = graphicsWrapper->createFrameBufferedTexture(NR_MAX_MODELS, 4 * NR_BONE, GraphicsInterface::InternalFormatTypes::RGBA32F,
+                                                                                            GraphicsInterface::FormatTypes::RGBA, GraphicsInterface::DataTypes::FLOAT);
+    frameResourceHandles.lightBlockBuffer = graphicsWrapper->createUniformBuffer();
+    frameResourceHandles.playerBlockBuffer = graphicsWrapper->createUniformBuffer();
+    graphicsWrapper->attachTexture(frameResourceHandles.modelTransformTexture, GraphicsInterface::MODEL_BONE_TRANSFORM_TEXTURE_UNIT_START);
+    graphicsWrapper->attachTexture(frameResourceHandles.boneTransformTexture, GraphicsInterface::MODEL_BONE_TRANSFORM_TEXTURE_UNIT_START + 1);
+    graphicsWrapper->bindUniformBuffer(frameResourceHandles.lightBlockBuffer, GraphicsInterface::LIGHT_BLOCK_BINDING);
+    graphicsWrapper->bindUniformBuffer(frameResourceHandles.playerBlockBuffer, GraphicsInterface::PLAYER_BLOCK_BINDING);
 
 #ifdef _WIN32
     sdlHelper->loadCustomTriggers("libcustomTriggers.dll");
@@ -245,7 +252,7 @@ GameEngine::GameEngine() {
     inputHandler = new InputHandler(sdlHelper->getWindow(), options);
     assetManager = std::make_shared<AssetManager>(graphicsWrapper.get(), alHelper);
 
-    worldLoader = new WorldLoader(assetManager, inputHandler, options, profilerSystem, frameTimeTracker, modelTransformRing, boneTransformRing);
+    worldLoader = new WorldLoader(assetManager, inputHandler, options, profilerSystem, frameTimeTracker, &frameResourceHandles);
 }
 
 bool GameEngine::convertModelToWorld(const std::string &sourceFile, const std::string &outputDirectory, float scale) {
@@ -352,6 +359,7 @@ void GameEngine::run() {
             // if we run a simulation, it means we need to update what we render, here it is.
             currentWorld->prepareFrame();
         }
+        currentWorld->uploadFrameData();//every frame, the last swap left the frame resources holding old data
         graphicsWrapper->clearFrame();
         frameTimeTracker->tick();//same boundary as the stats snapshot in clearFrame, so both describe the same frame
         {
@@ -361,6 +369,7 @@ void GameEngine::run() {
         {
             PROFILE_RENDERING("swap");
             sdlHelper->swap();
+            graphicsWrapper->swapFrameResources();
         }
         {
             PROFILE_OVERALL("ProfilerUpdate");
@@ -391,8 +400,10 @@ GameEngine::~GameEngine() {
     delete worldLoader;
     delete inputHandler;
     delete alHelper;
-    delete modelTransformRing;//textures, so before the backend goes
-    delete boneTransformRing;
+    graphicsWrapper->deleteFrameBufferedTexture(frameResourceHandles.modelTransformTexture);
+    graphicsWrapper->deleteFrameBufferedTexture(frameResourceHandles.boneTransformTexture);
+    graphicsWrapper->deleteUniformBuffer(frameResourceHandles.lightBlockBuffer);
+    graphicsWrapper->deleteUniformBuffer(frameResourceHandles.playerBlockBuffer);
     graphicsWrapper = nullptr;//FIXME this should be part of SdlHelper, because it is created and deleted by it. now it is order dependent because if it.
     delete sdlHelper;
     delete frameTimeTracker;

@@ -321,26 +321,16 @@ void OpenGLGraphics::attachMaterialUBO(const uint32_t program){
     checkErrors("attachMaterialUBO");
 }
 
-void OpenGLGraphics::attachGeneralUBOs(const GLuint program){//Attach the light block to our UBO
-
-    GLuint lightAttachPoint = 0, playerAttachPoint = 1;
-
+void OpenGLGraphics::attachGeneralUBOs(const GLuint program){
+    //only the block to binding point link, which buffer sits on the point is bindUniformBuffer's job
     int uniformIndex = glGetUniformBlockIndex(program, "LightSourceBlock");
     if (uniformIndex >= 0) {
-        glBindBuffer(GL_UNIFORM_BUFFER, lightUBOLocation);
-        glUniformBlockBinding(program, uniformIndex, lightAttachPoint);
-        glBindBufferRange(GL_UNIFORM_BUFFER, lightAttachPoint, lightUBOLocation, 0,
-                          lightUniformSize * this->totalLightCount);
-        glBindBuffer(GL_UNIFORM_BUFFER, 0);
+        glUniformBlockBinding(program, uniformIndex, GraphicsInterface::LIGHT_BLOCK_BINDING);
     }
 
     int uniformIndex2 = glGetUniformBlockIndex(program, "PlayerTransformBlock");
     if (uniformIndex2 >= 0) {
-        glBindBuffer(GL_UNIFORM_BUFFER, playerUBOLocation);
-        glUniformBlockBinding(program, uniformIndex2, playerAttachPoint);
-        glBindBufferRange(GL_UNIFORM_BUFFER, playerAttachPoint, playerUBOLocation, 0,
-                          playerUniformSize);
-        glBindBuffer(GL_UNIFORM_BUFFER, 0);
+        glUniformBlockBinding(program, uniformIndex2, GraphicsInterface::PLAYER_BLOCK_BINDING);
     }
 }
 
@@ -367,8 +357,6 @@ bool OpenGLGraphics::createGraphicsBackend() {
 
     this->screenHeight = options->getScreenHeight();
     this->screenWidth = options->getScreenWidth();
-    OptionsUtil::Options::Option<long> maxPointLightOption = options->getOption<long>(HASH("performance_maximumLights"));
-    this->totalLightCount = maxPointLightOption.getOrDefault(4);
     GLenum rev;
     error = GL_NO_ERROR;
     glewExperimental = GL_TRUE;
@@ -521,19 +509,6 @@ bool OpenGLGraphics::createGraphicsBackend() {
     modelIndexBatchCapacity = std::min((uint32_t)NR_MAX_MODELS, (uint32_t)(maxUniformBlockSize / sizeof(glm::uvec4)));
 
     std::cout << "Uniform maxUniformBlockSize is " << maxUniformBlockSize << ", model index batch capacity is " << modelIndexBatchCapacity << std::endl;
-
-    //create the Light Uniform Buffer Object for later usage
-    glGenBuffers(1, &lightUBOLocation);
-    glBindBuffer(GL_UNIFORM_BUFFER, lightUBOLocation);
-    std::vector<GLubyte> emptyData(lightUniformSize * this->totalLightCount, 0);
-    glBufferData(GL_UNIFORM_BUFFER, lightUniformSize * this->totalLightCount, &emptyData[0], GL_DYNAMIC_DRAW);
-    glBindBuffer(GL_UNIFORM_BUFFER, 0);
-
-    //create player transforms uniform buffer object
-    glGenBuffers(1, &playerUBOLocation);
-    glBindBuffer(GL_UNIFORM_BUFFER, playerUBOLocation);
-    glBufferData(GL_UNIFORM_BUFFER, playerUniformSize, nullptr, GL_DYNAMIC_DRAW);
-    glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
     //create material uniform buffer object
     glGenBuffers(1, &allMaterialsUBOLocation);
@@ -1021,8 +996,6 @@ OpenGLGraphics::~OpenGLGraphics() {
         deleteBuffer(1, bufferObjects[i]);
     }
 
-    deleteBuffer(1, lightUBOLocation);
-    deleteBuffer(1, playerUBOLocation);
     deleteBuffer(1, allMaterialsUBOLocation);
     deleteBuffer(1, allModelIndexesUBOLocation);
     glDeleteFramebuffers(1, &combineFrameBuffer);
@@ -1034,8 +1007,6 @@ void OpenGLGraphics::reshape() {
     this->screenWidth = options->getScreenWidth();
     glViewport(0, 0, options->getScreenWidth(), options->getScreenHeight());
     aspect = float(options->getScreenHeight()) / float(options->getScreenWidth());
-    perspectiveProjectionMatrix = glm::perspective(options->PI/3.0f, 1.0f / aspect, 0.01f, 10000.0f);
-    inverseProjection = glm::inverse(perspectiveProjectionMatrix);
     orthogonalProjectionMatrix = glm::ortho(0.0f, (float) options->getScreenWidth(), 0.0f, (float) options->getScreenHeight());
     checkErrors("reshape");
 }
@@ -1505,6 +1476,13 @@ void OpenGLGraphics::updateTextureRegion(uint32_t textureID, int x, int y, int w
 
 
 void OpenGLGraphics::attachTexture(unsigned int textureID, unsigned int attachPoint) {
+    std::unordered_map<uint32_t, FrameResources::TextureCopies>::iterator frameBufferedTexture = frameResources.textures.find(textureID);
+    if (frameBufferedTexture != frameResources.textures.end()) {
+        frameResources.textureUnits[attachPoint] = textureID;//swapFrameResources moves the unit along to the next copy
+        textureID = frameBufferedTexture->second.copies[frameResources.index];
+    } else {
+        frameResources.textureUnits.erase(attachPoint);
+    }
     state->attachTexture(textureID, attachPoint);
     checkErrors("attachTexture");
 }
@@ -1577,7 +1555,6 @@ void OpenGLGraphics::drawLines(GraphicsProgram &program, uint32_t vao, uint32_t 
     glBindVertexArray(vao);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);//FIXME something is broking the vao so we need to attach again
     glBufferSubData(GL_ARRAY_BUFFER, 0, lines.size() * sizeof(Line), lines.data());
-    program.setUniform("cameraTransformMatrix", perspectiveProjectionMatrix * cameraMatrix);
 
     frameStats.lineCount += lines.size();
     ++frameStats.drawCallCount;
@@ -1587,32 +1564,121 @@ void OpenGLGraphics::drawLines(GraphicsProgram &program, uint32_t vao, uint32_t 
     checkErrors("drawLines");
 }
 
-void OpenGLGraphics::setLights(const std::vector<LightData>& lights) {
-    if (lights.size() > static_cast<size_t>(totalLightCount)) {
-        std::cerr << "Can't upload " << lights.size() << " lights, the light buffer holds " << totalLightCount << ". Extra lights are dropped." << std::endl;
+uint32_t OpenGLGraphics::createUniformBuffer() {
+    FrameResources::UniformBufferCopies uniformBuffer;
+    glGenBuffers(FrameResources::COPY_COUNT, uniformBuffer.copies);
+    for (uint32_t copyIndex = 0; copyIndex < FrameResources::COPY_COUNT; ++copyIndex) {
+        glBindBuffer(GL_UNIFORM_BUFFER, uniformBuffer.copies[copyIndex]);//a generated name is only a buffer after its first bind
+        uniformBuffer.copySizes[copyIndex] = 0;
     }
-    //every byte is rewritten, so the driver can give this data fresh storage instead of waiting for the queued frames reading the old one
-    std::vector<uint8_t> lightBlock(lightUniformSize * totalLightCount, 0);
-    const size_t uploadedLightCount = std::min(lights.size(), static_cast<size_t>(totalLightCount));
-    const size_t afterShadowMatrices = sizeof(glm::mat4) * 6;
-    for (size_t lightIndex = 0; lightIndex < uploadedLightCount; ++lightIndex) {
-        const LightData& light = lights[lightIndex];
-        uint8_t* slot = lightBlock.data() + lightIndex * lightUniformSize;
-        assert(light.shadowMatrices.size() <= 6);
-        memcpy(slot, light.shadowMatrices.data(), sizeof(glm::mat4) * light.shadowMatrices.size());
-        memcpy(slot + afterShadowMatrices, &light.position, sizeof(glm::vec3));
-        memcpy(slot + afterShadowMatrices + sizeof(glm::vec3), &light.radius, sizeof(GLfloat));
-        memcpy(slot + afterShadowMatrices + sizeof(glm::vec4), &light.color, sizeof(glm::vec3));
-        memcpy(slot + afterShadowMatrices + sizeof(glm::vec4) + sizeof(glm::vec3), &light.lightType, sizeof(GLint));
-        memcpy(slot + afterShadowMatrices + 2 * sizeof(glm::vec4), glm::value_ptr(light.attenuation), sizeof(glm::vec3));
-        memcpy(slot + afterShadowMatrices + 2 * sizeof(glm::vec4) + sizeof(glm::vec3), &light.intensity, sizeof(GLfloat));
-        memcpy(slot + afterShadowMatrices + 3 * sizeof(glm::vec4), glm::value_ptr(light.ambientColor), sizeof(glm::vec3));
-        memcpy(slot + afterShadowMatrices + 3 * sizeof(glm::vec4) + sizeof(glm::vec3), &light.falloffExponent, sizeof(GLfloat));
-    }
-    glBindBuffer(GL_UNIFORM_BUFFER, lightUBOLocation);
-    glBufferData(GL_UNIFORM_BUFFER, lightBlock.size(), lightBlock.data(), GL_DYNAMIC_DRAW);
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
-    checkErrors("setLights");
+    frameResources.uniformBuffers[uniformBuffer.copies[0]] = uniformBuffer;
+    checkErrors("createUniformBuffer");
+    return uniformBuffer.copies[0];
+}
+
+void OpenGLGraphics::deleteUniformBuffer(uint32_t bufferID) {
+    std::unordered_map<uint32_t, FrameResources::UniformBufferCopies>::iterator uniformBuffer = frameResources.uniformBuffers.find(bufferID);
+    if (uniformBuffer == frameResources.uniformBuffers.end()) {
+        std::cerr << "Uniform buffer " << bufferID << " was not created by createUniformBuffer, not deleting." << std::endl;
+        return;
+    }
+    for (std::unordered_map<uint32_t, uint32_t>::iterator binding = frameResources.uniformBindings.begin(); binding != frameResources.uniformBindings.end();) {
+        if (binding->second == bufferID) {
+            binding = frameResources.uniformBindings.erase(binding);
+        } else {
+            ++binding;
+        }
+    }
+    glDeleteBuffers(FrameResources::COPY_COUNT, uniformBuffer->second.copies);
+    frameResources.uniformBuffers.erase(uniformBuffer);
+    checkErrors("deleteUniformBuffer");
+}
+
+void OpenGLGraphics::writeUniformBuffer(uint32_t bufferID, const UniformBlockData &data) {
+    std::unordered_map<uint32_t, FrameResources::UniformBufferCopies>::iterator uniformBuffer = frameResources.uniformBuffers.find(bufferID);
+    if (uniformBuffer == frameResources.uniformBuffers.end()) {
+        std::cerr << "Uniform buffer " << bufferID << " was not created by createUniformBuffer, not writing." << std::endl;
+        return;
+    }
+    Std140Layout::layout(data, frameResources.blockBytes);
+    size_t &copySize = uniformBuffer->second.copySizes[frameResources.index];
+    glBindBuffer(GL_UNIFORM_BUFFER, uniformBuffer->second.copies[frameResources.index]);
+    if (copySize != frameResources.blockBytes.size()) {
+        glBufferData(GL_UNIFORM_BUFFER, frameResources.blockBytes.size(), frameResources.blockBytes.data(), GL_DYNAMIC_DRAW);
+        copySize = frameResources.blockBytes.size();
+    } else {
+        //no full size glBufferData/glBufferSubData here, v3d swaps in a new buffer for those and its cache check sleeps up to a scheduler tick
+        void* mappedBuffer = glMapBufferRange(GL_UNIFORM_BUFFER, 0, frameResources.blockBytes.size(), GL_MAP_WRITE_BIT);
+        if (mappedBuffer == nullptr) {
+            std::cerr << "Uniform buffer " << bufferID << " could not be mapped, not writing." << std::endl;
+        } else {
+            memcpy(mappedBuffer, frameResources.blockBytes.data(), frameResources.blockBytes.size());
+            glUnmapBuffer(GL_UNIFORM_BUFFER);
+        }
+    }
+    glBindBuffer(GL_UNIFORM_BUFFER, 0);
+    checkErrors("writeUniformBuffer");
+}
+
+void OpenGLGraphics::bindUniformBuffer(uint32_t bufferID, uint32_t bindingPoint) {
+    std::unordered_map<uint32_t, FrameResources::UniformBufferCopies>::iterator uniformBuffer = frameResources.uniformBuffers.find(bufferID);
+    if (uniformBuffer == frameResources.uniformBuffers.end()) {
+        std::cerr << "Uniform buffer " << bufferID << " was not created by createUniformBuffer, not binding." << std::endl;
+        return;
+    }
+    frameResources.uniformBindings[bindingPoint] = bufferID;//swapFrameResources moves the point along to the next copy
+    glBindBufferBase(GL_UNIFORM_BUFFER, bindingPoint, uniformBuffer->second.copies[frameResources.index]);//whole buffer, so a resize in writeUniformBuffer stays covered
+    checkErrors("bindUniformBuffer");
+}
+
+uint32_t OpenGLGraphics::createFrameBufferedTexture(int height, int width, InternalFormatTypes internalFormat, FormatTypes format, DataTypes dataType) {
+    FrameResources::TextureCopies texture;
+    for (uint32_t copyIndex = 0; copyIndex < FrameResources::COPY_COUNT; ++copyIndex) {
+        texture.copies[copyIndex] = createTexture(height, width, TextureTypes::T2D, internalFormat, format, dataType, 0);
+        setFilterMode(texture.copies[copyIndex], TextureTypes::T2D, FilterModes::NEAREST);//float textures can't filter on ES, and shaders texelFetch anyway
+    }
+    frameResources.textures[texture.copies[0]] = texture;
+    return texture.copies[0];
+}
+
+void OpenGLGraphics::writeFrameBufferedTexture(uint32_t textureID, int x, int y, int width, int height, FormatTypes format, DataTypes dataType, const void *data) {
+    std::unordered_map<uint32_t, FrameResources::TextureCopies>::iterator texture = frameResources.textures.find(textureID);
+    if (texture == frameResources.textures.end()) {
+        std::cerr << "Texture " << textureID << " was not created by createFrameBufferedTexture, not writing." << std::endl;
+        return;
+    }
+    updateTextureRegion(texture->second.copies[frameResources.index], x, y, width, height, format, dataType, data);
+}
+
+void OpenGLGraphics::deleteFrameBufferedTexture(uint32_t textureID) {
+    std::unordered_map<uint32_t, FrameResources::TextureCopies>::iterator texture = frameResources.textures.find(textureID);
+    if (texture == frameResources.textures.end()) {
+        std::cerr << "Texture " << textureID << " was not created by createFrameBufferedTexture, not deleting." << std::endl;
+        return;
+    }
+    for (std::unordered_map<uint32_t, uint32_t>::iterator unit = frameResources.textureUnits.begin(); unit != frameResources.textureUnits.end();) {
+        if (unit->second == textureID) {
+            unit = frameResources.textureUnits.erase(unit);
+        } else {
+            ++unit;
+        }
+    }
+    for (uint32_t copyIndex = 0; copyIndex < FrameResources::COPY_COUNT; ++copyIndex) {
+        deleteTexture(texture->second.copies[copyIndex]);
+    }
+    frameResources.textures.erase(texture);
+}
+
+void OpenGLGraphics::swapFrameResources() {
+    frameResources.index = (frameResources.index + 1) % FrameResources::COPY_COUNT;
+    for (const std::pair<const uint32_t, uint32_t> &binding : frameResources.uniformBindings) {
+        glBindBufferBase(GL_UNIFORM_BUFFER, binding.first, frameResources.uniformBuffers[binding.second].copies[frameResources.index]);
+    }
+    for (const std::pair<const uint32_t, uint32_t> &unit : frameResources.textureUnits) {
+        state->attachTexture(frameResources.textures[unit.second].copies[frameResources.index], unit.first);
+    }
+    checkErrors("swapFrameResources");
 }
 
 void OpenGLGraphics::setMaterial(const Material& material) {
@@ -1669,49 +1735,6 @@ void OpenGLGraphics::setModelIndexesUBO(const std::vector<glm::uvec4> &modelIndi
     glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::uvec4) * modelIndicesList.size(), modelIndicesList.data());
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
     checkErrors("setModelIndexesUBO");
-}
-
-void OpenGLGraphics::setCurrentTime(uint32_t currentTimeMs) {
-    int32_t timeMs = (int32_t)currentTimeMs;
-    glBindBuffer(GL_UNIFORM_BUFFER, playerUBOLocation);
-    glBufferSubData(GL_UNIFORM_BUFFER, playerUboTimeOffset, sizeof(timeMs), &timeMs);
-    glBindBuffer(GL_UNIFORM_BUFFER, 0);
-    checkErrors("setCurrentTime");
-}
-
-void OpenGLGraphics::setPlayerMatrices(const glm::vec3 &cameraPosition, const glm::mat4 &cameraTransform, const glm::mat4 &cameraProjection, uint32_t currentTimeMs) {
-    this->cameraMatrix = cameraTransform;
-    // Projection is driven by the player camera (perspective or orthographic), so it can change per frame.
-    this->perspectiveProjectionMatrix = cameraProjection;
-    this->inverseProjection = glm::inverse(cameraProjection);
-    this->cameraPosition= cameraPosition;
-    glm::mat4 viewMatrix = perspectiveProjectionMatrix * cameraMatrix;
-    glm::mat4 inverseCameraMatrix = glm::inverse(cameraTransform);
-    glm::vec3 cameraSpacePosition = glm::vec3(cameraMatrix * glm::vec4(cameraPosition, 1.0));
-    glm::vec2 noiseScale(this->screenWidth / 4, this->screenHeight / 4);
-    int32_t timeMs = (int32_t)currentTimeMs;
-    glm::mat4 transposeInverseCamera = glm::transpose(inverseCameraMatrix);
-
-    unsigned char block[playerUniformSize] = {};
-    memcpy(block + 0 * sizeof(glm::mat4), glm::value_ptr(cameraMatrix),                sizeof(glm::mat4));
-    memcpy(block + 1 * sizeof(glm::mat4), glm::value_ptr(perspectiveProjectionMatrix), sizeof(glm::mat4));
-    memcpy(block + 2 * sizeof(glm::mat4), glm::value_ptr(viewMatrix),                  sizeof(glm::mat4));
-    memcpy(block + 3 * sizeof(glm::mat4), glm::value_ptr(inverseProjection),           sizeof(glm::mat4));
-    memcpy(block + 4 * sizeof(glm::mat4), glm::value_ptr(inverseCameraMatrix),         sizeof(glm::mat4));
-    //we can't just copy the mat4, because shader has mat3. We can't convert and copy the mat3, because std140 assumes mat3 is 3x4. so, we do manually.
-    memcpy(block + 5 * sizeof(glm::mat4) + 0 * sizeof(glm::vec4), glm::value_ptr(transposeInverseCamera[0]), sizeof(glm::vec3));
-    memcpy(block + 5 * sizeof(glm::mat4) + 1 * sizeof(glm::vec4), glm::value_ptr(transposeInverseCamera[1]), sizeof(glm::vec3));
-    memcpy(block + 5 * sizeof(glm::mat4) + 2 * sizeof(glm::vec4), glm::value_ptr(transposeInverseCamera[2]), sizeof(glm::vec3));
-    memcpy(block + 5 * sizeof(glm::mat4) + 3 * sizeof(glm::vec4), glm::value_ptr(cameraPosition),            sizeof(glm::vec3));
-    memcpy(block + 5 * sizeof(glm::mat4) + 4 * sizeof(glm::vec4), glm::value_ptr(cameraSpacePosition),       sizeof(glm::vec3));
-    memcpy(block + 5 * sizeof(glm::mat4) + 5 * sizeof(glm::vec4), glm::value_ptr(noiseScale),                sizeof(glm::vec2));
-    memcpy(block + playerUboTimeOffset,                           &timeMs,                                   sizeof(timeMs));
-
-    glBindBuffer(GL_UNIFORM_BUFFER, playerUBOLocation);
-    glBufferSubData(GL_UNIFORM_BUFFER, 0, playerUniformSize, block);
-    glBindBuffer(GL_UNIFORM_BUFFER, 0);
-
-    checkErrors("setPlayerMatrices");
 }
 
 void OpenGLGraphics::backupCurrentState() {

@@ -19,6 +19,7 @@
 
 #include "limonAPI/Options.h"
 #include "Uniform.h"
+#include "UniformBlockData.h"
 #include <sstream>
 #include <iomanip>
 
@@ -51,6 +52,9 @@ public:
     // every other unit is handed out at pipeline load by GraphicsPipeline::assignTextureUnits, never hardcode one
     static constexpr int32_t MODEL_BONE_TRANSFORM_TEXTURE_UNIT_START = 1;
     static constexpr int32_t FIRST_PIPELINE_TEXTURE_UNIT = MODEL_BONE_TRANSFORM_TEXTURE_UNIT_START + 2; // +2: model, bone
+    //binding points of the shared blocks in Lights.glsl and PlayerInformation.glsl
+    static constexpr uint32_t LIGHT_BLOCK_BINDING = 0;
+    static constexpr uint32_t PLAYER_BLOCK_BINDING = 1;
 
 protected:
     friend class Texture;
@@ -110,18 +114,6 @@ public:
         uint32_t textureBindRequestCount = 0;
         uint32_t materialSwitchCount = 0;
         uint32_t uniformSetCount = 0;
-    };
-
-    struct LightData {
-        glm::vec3 attenuation;
-        std::vector<glm::mat4> shadowMatrices;
-        glm::vec3 position;
-        glm::vec3 color;
-        glm::vec3 ambientColor;
-        int32_t lightType;
-        float radius;
-        float intensity;
-        float falloffExponent;
     };
 
     virtual const RenderStats& getFrameStats() const = 0;
@@ -188,8 +180,6 @@ public:
 
     virtual bool getUniformLocation(const uint32_t programID, const std::string &uniformName, uint32_t &location) = 0;
 
-    virtual const glm::vec3& getCameraPosition() const = 0;
-
     virtual const glm::mat4& getGUIOrthogonalProjectionMatrix() const  = 0;
 
     virtual void createDebugVAOVBO(uint32_t &vao, uint32_t &vbo, uint32_t bufferSize) = 0;
@@ -204,13 +194,18 @@ public:
     virtual bool setUniform(const uint32_t programID, const uint32_t uniformID, const int value) = 0;
     virtual bool setUniformArray(const uint32_t programID, const uint32_t uniformID, const std::vector<glm::mat4> &matrixArray) = 0;
 
-    //rewrites every light slot, the ones past lights.size() get type 0 like a removed light
-    virtual void setLights(const std::vector<LightData>& lights) = 0;
-
-    virtual void setPlayerMatrices(const glm::vec3 &cameraPosition, const glm::mat4 &cameraMatrix, const glm::mat4 &cameraProjection, uint32_t currentTimeMs) = 0;
-
-    //If we wanna update the time only (if player camera didn't move) we would use this one.
-    virtual void setCurrentTime(uint32_t currentTimeMs) = 0;
+    //these keep a copy per frame in flight and write and bind the current one. After swapFrameResources the
+    //current copy holds data from frames ago, so everything must be written again before it is drawn with
+    virtual uint32_t createUniformBuffer() = 0;
+    virtual void deleteUniformBuffer(uint32_t bufferID) = 0;
+    virtual void writeUniformBuffer(uint32_t bufferID, const UniformBlockData &data) = 0;
+    virtual void bindUniformBuffer(uint32_t bufferID, uint32_t bindingPoint) = 0;
+    //T2D with nearest filtering, bound with attachTexture like any other texture
+    virtual uint32_t createFrameBufferedTexture(int height, int width, InternalFormatTypes internalFormat, FormatTypes format, DataTypes dataType) = 0;
+    //2D region, data is tightly packed rows
+    virtual void writeFrameBufferedTexture(uint32_t textureID, int x, int y, int width, int height, FormatTypes format, DataTypes dataType, const void *data) = 0;
+    virtual void deleteFrameBufferedTexture(uint32_t textureID) = 0;
+    virtual void swapFrameResources() = 0;
 
     virtual void switchRenderStage(uint32_t width, uint32_t height, uint32_t frameBufferID, bool blendEnabled, bool depthTestEnabled, bool depthWriteEnabled, bool scissorEnabled,
                                    bool clearColor, bool clearDepth, CullModes cullMode, std::map<uint32_t, std::shared_ptr<Texture>> &inputs, const std::string &name) = 0;

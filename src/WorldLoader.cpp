@@ -35,7 +35,7 @@
 #include "GamePlay/APISerializer.h"
 #include "limonAPI/CameraExtensionInterface.h"
 
-WorldLoader::WorldLoader(std::shared_ptr<AssetManager> assetManager, InputHandler *inputHandler, OptionsUtil::Options *options, ProfilerSystem* profilerSystem, FrameTimeTracker* frameTimeTracker, TransformTextureRing* modelTransformRing, TransformTextureRing* boneTransformRing) :
+WorldLoader::WorldLoader(std::shared_ptr<AssetManager> assetManager, InputHandler *inputHandler, OptionsUtil::Options *options, ProfilerSystem* profilerSystem, FrameTimeTracker* frameTimeTracker, const FrameResourceHandles* frameResourceHandles) :
         options(options),
         graphicsWrapper(assetManager->getGraphicsWrapper()),
         alHelper(assetManager->getAlHelper()),
@@ -43,8 +43,7 @@ WorldLoader::WorldLoader(std::shared_ptr<AssetManager> assetManager, InputHandle
         inputHandler(inputHandler),
         profilerSystem(profilerSystem),
         frameTimeTracker(frameTimeTracker),
-        modelTransformRing(modelTransformRing),
-        boneTransformRing(boneTransformRing)
+        frameResourceHandles(frameResourceHandles)
 {}
 
 void WorldLoader::resolvePendingAttachments(World *world, const std::vector<PendingAttachment> &pending) {
@@ -152,7 +151,7 @@ World * WorldLoader::loadMapFromXML(const std::string &worldFileName, LimonAPI *
 
     }
 
-    World* world = new World(worldNameStr, startingPlayer, inputHandler, assetManager, options, profilerSystem, frameTimeTracker, modelTransformRing, boneTransformRing, limonAPI);
+    World* world = new World(worldNameStr, startingPlayer, inputHandler, assetManager, options, profilerSystem, frameTimeTracker, frameResourceHandles, limonAPI);
     world->loadingImage = loadingImageStr;
 
     // Camera rigs are loaded later (loadCameraRigs), after objects exist, because a rig may attach to one.

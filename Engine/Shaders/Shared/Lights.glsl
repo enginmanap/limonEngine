@@ -1,6 +1,6 @@
 // the only declaration of the light UBO. import this directly wherever LightSources is named,
 // even if a shared helper already pulls it in - the guard collapses the duplicate.
-// field order is hardcoded as byte offsets in OpenGLGraphics::setLight, reordering breaks it silently.
+// field order is repeated in World::fillLightBlock, reordering breaks it silently.
 #define_option performance_maximumLights
 
 #ifndef LIGHT_DEFINITIONS

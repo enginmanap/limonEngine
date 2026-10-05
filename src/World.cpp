@@ -4,7 +4,6 @@
 
 
 #include "World.h"
-#include "Graphics/TransformTextureRing.h"
 #include "WorldAPIAccessor.h"
 #include <Graphics/GraphicsPipeline.h>
 #include "NodeEditorExtensions/PipelineStageExtension.h"
@@ -102,10 +101,10 @@ struct HierarchyFilterCallback : public btOverlapFilterCallback {
 
 World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandler *inputHandler,
                 std::shared_ptr<AssetManager> assetManager, OptionsUtil::Options *options, ProfilerSystem* profilerSystem, FrameTimeTracker* frameTimeTracker,
-                TransformTextureRing* modelTransformRing, TransformTextureRing* boneTransformRing,
+                const FrameResourceHandles* frameResourceHandles,
                 LimonAPI *limonAPI)
         : assetManager(assetManager), options(options), profilerSystem(profilerSystem), frameTimeTracker(frameTimeTracker),
-        modelTransformRing(modelTransformRing), boneTransformRing(boneTransformRing),
+        frameResourceHandles(frameResourceHandles),
         graphicsWrapper(assetManager->getGraphicsWrapper()), alHelper(assetManager->getAlHelper()), name(name),
         fontManager(graphicsWrapper), startingPlayer(startingPlayerType) {
     // apiAccessor is an indirection, in case someone wants to use it while construction, we need it first
@@ -442,87 +441,64 @@ void World::applyAudioVolumeOptionsIfChanged() {
 
 void World::prepareFrame() {
     PROFILE_VISIBILITY("World::prepareFrame");
-    CameraAttachment* playerCameraAttachment = currentPlayer->getCameraAttachment();
-    if (playerCameraAttachment->isDirty() && playerCameraAttachment->getProjection() != activeProjectionParameters) {
-        activateCameraAttachment(playerCameraAttachment);//otherwise fov/zoom/type changes are only seen when a rig is activated
-    }
-    if(playerCamera->isDirty()) {
-        // update player camera and upload the ubo
-        const glm::mat4& cameraMatrix = playerCamera->getCameraMatrix();
-        graphicsWrapper->setPlayerMatrices(playerCamera->getPosition(), cameraMatrix, playerCamera->getProjectionMatrix(), gameTime);//this is required for any render
-        alHelper->setListenerPositionAndOrientation(playerCamera->getPosition(), playerCamera->getCenter(), playerCamera->getUp());
-    } else {
-        graphicsWrapper->setCurrentTime(gameTime);//setPlayerMatrices pushes everything, this one pushes time only
+    {
+        PROFILE_VISIBILITY("World::prepareFrame::playerCamera");
+        CameraAttachment* playerCameraAttachment = currentPlayer->getCameraAttachment();
+        if (playerCameraAttachment->isDirty() && playerCameraAttachment->getProjection() != activeProjectionParameters) {
+            activateCameraAttachment(playerCameraAttachment);//otherwise fov/zoom/type changes are only seen when a rig is activated
+        }
+        const bool cameraDirty = playerCamera->isDirty();
+        //only the non const getter recalculates, and it is only needed when dirty
+        const glm::mat4& cameraMatrix = cameraDirty ? playerCamera->getCameraMatrix() : playerCamera->getCameraMatrixConst();
+        if(cameraDirty) {
+            alHelper->setListenerPositionAndOrientation(playerCamera->getPosition(), playerCamera->getCenter(), playerCamera->getUp());
+        }
+        //the whole block, a write of only the time would wait for the frames still reading it
+        fillPlayerBlock(frameData.playerBlock, playerCamera->getPosition(), cameraMatrix, playerCamera->getProjectionMatrix());
     }
 
     bool lightsRemoved = applyPendingLightRemovals();
     updateActiveLights(lightsRemoved);//adds and removes light cameras, so it has to run before the culling pass
-    for (size_t j = 0; j < activeLights.size(); ++j) {
-        activeLights[j]->step(gameTime, playerCamera);
+    {
+        PROFILE_VISIBILITY("World::prepareFrame::stepLights");
+        for (size_t j = 0; j < activeLights.size(); ++j) {
+            activeLights[j]->step(gameTime, playerCamera);
+        }
     }
-    uploadActiveLightsToGPU();
+    fillLightBlock();
     visibilityManager->update();
 
     playerCamera->clearDirty();
     if(sky != nullptr) { // menu worlds don't have sky set, and WIP levels can miss it too.
+        PROFILE_VISIBILITY("World::prepareFrame::stepSky");
         sky->step(playerCamera);
     }
 
-    uploadChangedTransforms();
+    applyChangedTransforms();
 }
 
-void World::uploadChangedTransforms() {
-    for (Model* model : pendingTransformUploads) {
-        setModelTransform(model->getWorldObjectID(), model->getTransformation()->getWorldTransform());
-    }
-    pendingTransformUploads.clear();
-    //the culling pass filled changedBoneTransforms, only rigs that passed culling are in it
-    for (auto& boneTransformPair: changedBoneTransforms) {
-        setBoneTransforms(boneTransformPair.first, *(boneTransformPair.second));
-    }
-    changedBoneTransforms.clear();
-    uploadTransformTextures();
-}
-
-void World::setModelTransform(uint32_t modelID, const glm::mat4& worldTransform) {
-    if (modelID >= NR_MAX_MODELS) {
-        std::cerr << "Model ID " << modelID << " is past the model transform texture, it can't be rendered." << std::endl;
-        return;
-    }
-    const uint32_t rowWidth = 4 * NR_MAX_MODELS;
-    const glm::mat4 normalMatrix = glm::transpose(glm::inverse(worldTransform));
-    for (uint32_t column = 0; column < 4; ++column) {
-        modelTransformTexels[4 * modelID + column] = worldTransform[column];
-        modelTransformTexels[rowWidth + 4 * modelID + column] = column < 3 ? normalMatrix[column] : glm::vec4(0.0f);
-    }
-    usedModelTransformColumns = std::max(usedModelTransformColumns, 4 * (modelID + 1));
-}
-
-void World::setBoneTransforms(uint32_t rigID, const std::vector<glm::mat4>& boneTransforms) {
-    if (rigID >= NR_MAX_MODELS) {
-        std::cerr << "Rig ID " << rigID << " is past the bone transform texture, it can't be rendered." << std::endl;
-        return;
-    }
-    if (boneTransforms.size() > NR_BONE) {
-        std::cerr << "Too many bones, can't upload more than " << NR_BONE << " ignoring the rest." << std::endl;
-    }
-    const uint32_t rowWidth = 4 * NR_BONE;
-    if (boneTransformTexels.size() < (rigID + 1) * rowWidth) {
-        boneTransformTexels.resize((rigID + 1) * rowWidth);
-    }
-    const size_t copiedBoneCount = std::min(boneTransforms.size(), static_cast<size_t>(NR_BONE));
-    for (size_t boneIndex = 0; boneIndex < NR_BONE; ++boneIndex) {
-        for (uint32_t column = 0; column < 4; ++column) {
-            boneTransformTexels[rigID * rowWidth + 4 * boneIndex + column] = boneIndex < copiedBoneCount ? boneTransforms[boneIndex][column] : glm::vec4(0.0f);
+void World::applyChangedTransforms() {
+    PROFILE_VISIBILITY("World::applyChangedTransforms");
+    {
+        PROFILE_VISIBILITY("World::applyChangedTransforms::models");
+        for (Model* model : pendingTransformUploads) {
+            frameData.setModelTransform(model->getWorldObjectID(), model->getTransformation()->getWorldTransform());
         }
+        pendingTransformUploads.clear();
     }
-    usedBoneTransformRows = std::max(usedBoneTransformRows, rigID + 1);
+    {
+        PROFILE_VISIBILITY("World::applyChangedTransforms::bones");
+        //the culling pass filled changedBoneTransforms, only rigs that passed culling are in it
+        for (auto& boneTransformPair: changedBoneTransforms) {
+            frameData.setBoneTransforms(boneTransformPair.first, *(boneTransformPair.second));
+        }
+        changedBoneTransforms.clear();
+    }
 }
 
-//the rings are shared with other worlds, so this always sends everything we have, not only what changed
-void World::uploadTransformTextures() {
-    modelTransformRing->upload(modelTransformTexels, usedModelTransformColumns, 2);
-    boneTransformRing->upload(boneTransformTexels, 4 * NR_BONE, usedBoneTransformRows);
+void World::uploadFrameData() {
+    PROFILE_VISIBILITY("World::uploadFrameData");
+    frameData.upload(graphicsWrapper, *frameResourceHandles);
 }
 
 void World::animateCustomAnimations() {
@@ -1046,9 +1022,8 @@ void World::ImGuiFrameSetup(std::shared_ptr<GraphicsProgram> graphicsProgram, co
 
        playerPlaceHolder->getTransformation()->setTransformations(physicalPlayer->getPosition()
        ,physicalPlayer->getLookDirectionQuaternion());
-       //not in the world, prepareFrame won't upload it
-       setModelTransform(playerPlaceHolder->getWorldObjectID(), playerPlaceHolder->getTransformation()->getWorldTransform());
-       uploadTransformTextures();
+       //not in the world, so we write its slot ourselves. It goes up with the next frame's uploadFrameData
+       frameData.setModelTransform(playerPlaceHolder->getWorldObjectID(), playerPlaceHolder->getTransformation()->getWorldTransform());
        graphicsProgram->setUniform("renderModelIMGUI", 1);
        playerPlaceHolder->convertToRenderList(0,0).render(graphicsWrapper, graphicsProgram);
        graphicsProgram->setUniform("renderModelIMGUI", 0);
@@ -1847,6 +1822,7 @@ struct LightCloserToPlayer {
  * pending. This method runs in simulation step to finish the job,
  */
 bool World::applyPendingLightRemovals() {
+    PROFILE_VISIBILITY("World::applyPendingLightRemovals");
     if (pendingLightRemovals.empty()) {
         return false;
     }
@@ -1862,6 +1838,7 @@ bool World::applyPendingLightRemovals() {
 }
 
 void World::updateActiveLights(bool forceUpdate) {
+    PROFILE_VISIBILITY("World::updateActiveLights");
     if(forceUpdate) {
         //force update means a light was removed, so if directional light exists, it is in wrong index now. find and update
         for (size_t lightIndex = 0; lightIndex < lights.size(); ++lightIndex) {
@@ -1948,22 +1925,59 @@ void World::updateActiveLights(bool forceUpdate) {
         }
     }
 }
-void World::uploadActiveLightsToGPU() const {
-    std::vector<GraphicsInterface::LightData> lights(activeLights.size());
-    for (size_t lightIndex = 0; lightIndex < activeLights.size(); ++lightIndex) {
-        const Light* currentLight = activeLights[lightIndex];
-        GraphicsInterface::LightData& light = lights[lightIndex];
-        light.attenuation = currentLight->getAttenuation();
-        light.shadowMatrices = currentLight->getShadowMatrices();
-        light.position = currentLight->getPosition();
-        light.color = currentLight->getColor();
-        light.ambientColor = currentLight->getAmbientColor();
-        light.lightType = static_cast<int32_t>(currentLight->getLightType());
-        light.radius = currentLight->getActiveDistance();
-        light.intensity = currentLight->getIntensity();
-        light.falloffExponent = currentLight->getFalloffExponent();
+void World::fillLightBlock() {
+    PROFILE_VISIBILITY("World::fillLightBlock");
+    const size_t lightSlotCount = static_cast<size_t>(maxLightsOption.getOrDefault(4));//the shader sizes the block from the same option
+    if (activeLights.size() > lightSlotCount) {
+        std::cerr << "Can't upload " << activeLights.size() << " lights, the light block holds " << lightSlotCount << ". Extra lights are dropped." << std::endl;
     }
-    graphicsWrapper->setLights(lights);
+    //member order is LightSource in Lights.glsl. Slots past the active lights stay zero, type 0 like a removed light
+    UniformBlockData &lightBlock = frameData.lightBlock;
+    lightBlock.clear();
+    for (size_t lightIndex = 0; lightIndex < lightSlotCount; ++lightIndex) {
+        const Light* light = lightIndex < activeLights.size() ? activeLights[lightIndex] : nullptr;
+        lightBlock.beginStruct();
+        for (size_t matrixIndex = 0; matrixIndex < 6; ++matrixIndex) {
+            bool matrixPresent = light != nullptr && matrixIndex < light->getShadowMatrices().size();
+            lightBlock.addMat4(matrixPresent ? light->getShadowMatrices()[matrixIndex] : glm::mat4(0.0f));
+        }
+        if (light != nullptr) {
+            lightBlock.addVec3(light->getPosition());
+            lightBlock.addFloat(light->getActiveDistance());
+            lightBlock.addVec3(light->getColor());
+            lightBlock.addInt(static_cast<int32_t>(light->getLightType()));
+            lightBlock.addVec3(light->getAttenuation());
+            lightBlock.addFloat(light->getIntensity());
+            lightBlock.addVec3(light->getAmbientColor());
+            lightBlock.addFloat(light->getFalloffExponent());
+        } else {
+            lightBlock.addVec3(glm::vec3(0.0f));
+            lightBlock.addFloat(0.0f);
+            lightBlock.addVec3(glm::vec3(0.0f));
+            lightBlock.addInt(0);
+            lightBlock.addVec3(glm::vec3(0.0f));
+            lightBlock.addFloat(0.0f);
+            lightBlock.addVec3(glm::vec3(0.0f));
+            lightBlock.addFloat(0.0f);
+        }
+        lightBlock.endStruct();
+    }
+}
+
+void World::fillPlayerBlock(UniformBlockData &playerBlock, const glm::vec3 &cameraPosition, const glm::mat4 &cameraMatrix, const glm::mat4 &projectionMatrix) const {
+    //member order is PlayerTransformBlock in PlayerInformation.glsl
+    const glm::mat4 inverseCamera = glm::inverse(cameraMatrix);
+    playerBlock.clear();
+    playerBlock.addMat4(cameraMatrix);
+    playerBlock.addMat4(projectionMatrix);
+    playerBlock.addMat4(projectionMatrix * cameraMatrix);
+    playerBlock.addMat4(glm::inverse(projectionMatrix));
+    playerBlock.addMat4(inverseCamera);
+    playerBlock.addMat3(glm::mat3(glm::transpose(inverseCamera)));
+    playerBlock.addVec3(cameraPosition);
+    playerBlock.addVec3(glm::vec3(cameraMatrix * glm::vec4(cameraPosition, 1.0f)));
+    playerBlock.addVec2(glm::vec2(options->getScreenWidth() / 4, options->getScreenHeight() / 4));
+    playerBlock.addInt(static_cast<int32_t>(gameTime));
 }
 
    void World::clearWorldRefsBeforeAttachment(PhysicalRenderable *attachment, const bool removeChildren, const bool forRemoval) {

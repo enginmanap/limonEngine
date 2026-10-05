@@ -8,6 +8,7 @@
 #include "limonAPI/Graphics/RenderMethodInterface.h"
 #include "Utils/StringUtils.hpp"
 #include "../Profiler/RenderProfileScope.h"
+#include "../Profiler/ProfilerMacros.h"
 #include "../GamePlay/APISerializer.h"
 #include "../Material.h"
 #include <algorithm>
@@ -32,7 +33,10 @@ void GraphicsPipeline::render() {
     for(auto& stageInfo:pipelineStages) {
         lastStageInfo = &stageInfo;
         RenderProfileScope stageScope(graphicsWrapper, *stageInfo.stage, stageInfo.clear);
-        stageInfo.stage->activate(stageInfo.clear);
+        {
+            PROFILE_RENDERING("GraphicsPipeline::activateStage");//framebuffer switch and clear, apart from what the methods draw
+            stageInfo.stage->activate(stageInfo.clear);
+        }
         for(auto& renderMethod:stageInfo.renderMethods) {
             RenderProfileScope methodScope(graphicsWrapper, renderMethod.getName(), renderMethod.getGlslProgram().get(),
                                            renderMethod.getCameraName(), renderMethod.getRenderTags());

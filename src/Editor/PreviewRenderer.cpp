@@ -41,6 +41,8 @@ PreviewRenderer::PreviewRenderer(World* world, ImGuiHelper* imgGuiHelper) : worl
     modelPreview.renderStage->setOutput(GraphicsInterface::FrameBufferAttachPoints::DEPTH, modelPreview.depthTexture, true);
     modelPreview.wrapper = new ImGuiImageWrapper();
     modelPreview.rigId = world->getNextRigId();
+    assetPreviewPlayerBlockBuffer = world->graphicsWrapper->createUniformBuffer();
+    modelPreview.playerBlockBuffer = world->graphicsWrapper->createUniformBuffer();
 
     // We wanna render the bone overlay to the preview texture. We can't do it clearly with main context, so we need
     // a secondary imgui context
@@ -54,6 +56,14 @@ PreviewRenderer::~PreviewRenderer() {
     ImGui::DestroyContext(modelPreview.imGuiContext);
     delete wrapper;
     delete modelPreview.wrapper;
+    world->graphicsWrapper->deleteUniformBuffer(assetPreviewPlayerBlockBuffer);
+    world->graphicsWrapper->deleteUniformBuffer(modelPreview.playerBlockBuffer);
+    if (comparisonLevelTarget.playerBlockBuffer != 0) {
+        world->graphicsWrapper->deleteUniformBuffer(comparisonLevelTarget.playerBlockBuffer);
+    }
+    if (comparisonOriginalTarget.playerBlockBuffer != 0) {
+        world->graphicsWrapper->deleteUniformBuffer(comparisonOriginalTarget.playerBlockBuffer);
+    }
     //LRU eviction only deletes the oldest entry when the cache is full, so anything still queued when the
     //editor goes away was never swept until now
     for (Model* queuedModel : modelQueue) {
@@ -104,6 +114,16 @@ void PreviewRenderer::beginOffscreenModelPreview(GraphicsPipelineStage* targetSt
     graphicsProgram->setUniform("renderModelIMGUI", 1);
     offscreenPreviewRenderedThisFrame = true;
     targetStage->activate(true);
+}
+
+void PreviewRenderer::beginPreviewCamera(uint32_t playerBlockBuffer, const glm::vec3 &cameraPosition, const glm::mat4 &cameraMatrix, const glm::mat4 &projectionMatrix) {
+    world->fillPlayerBlock(previewPlayerBlock, cameraPosition, cameraMatrix, projectionMatrix);
+    world->graphicsWrapper->writeUniformBuffer(playerBlockBuffer, previewPlayerBlock);
+    world->graphicsWrapper->bindUniformBuffer(playerBlockBuffer, GraphicsInterface::PLAYER_BLOCK_BINDING);
+}
+
+void PreviewRenderer::endPreviewCamera() {
+    world->graphicsWrapper->bindUniformBuffer(world->frameResourceHandles->playerBlockBuffer, GraphicsInterface::PLAYER_BLOCK_BINDING);
 }
 
 void PreviewRenderer::finalizeOffscreenModelPreviews(std::shared_ptr<GraphicsProgram> graphicsProgram) {
@@ -241,18 +261,14 @@ void PreviewRenderer::renderSelectedObject(Model* model, std::shared_ptr<Graphic
     glm::mat4 previewProjectionMatrix = glm::perspective(glm::radians(60.0f), aspect, 0.1f,
                                                           glm::length(boundsMax - boundsMin) * 20.0f + 10.0f);
 
-    const glm::vec3 liveCameraPosition = world->playerCamera->getPosition();
-    const glm::mat4 liveCameraMatrix = world->playerCamera->getCameraMatrix();
-    const glm::mat4 liveProjectionMatrix = world->playerCamera->getProjectionMatrix();
-
-    world->graphicsWrapper->setPlayerMatrices(previewCameraPosition, previewCameraMatrix, previewProjectionMatrix, world->gameTime);
+    beginPreviewCamera(assetPreviewPlayerBlockBuffer, previewCameraPosition, previewCameraMatrix, previewProjectionMatrix);
     beginOffscreenModelPreview(backgroundRenderStage.get(), graphicsProgram);
-    //preview models are not in the world, prepareFrame won't upload them
-    world->setModelTransform(model->getWorldObjectID(), model->getTransformation()->getWorldTransform());
-    world->uploadTransformTextures();
+    //preview models are not in the world, so we write their slot ourselves. It goes up with the next frame's
+    //uploadFrameData, so the first frame of a new preview has no transform and draws nothing
+    world->frameData.setModelTransform(model->getWorldObjectID(), model->getTransformation()->getWorldTransform());
     model->convertToRenderList(0, 0).render(world->graphicsWrapper, graphicsProgram, true);
 
-    world->graphicsWrapper->setPlayerMatrices(liveCameraPosition, liveCameraMatrix, liveProjectionMatrix, world->gameTime);
+    endPreviewCamera();
 }
 
 bool PreviewRenderer::updateAssetPreview(const std::string &assetFullPath, const glm::vec3 &previewPosition, std::shared_ptr<GraphicsProgram> graphicsProgram) {
@@ -405,7 +421,7 @@ void PreviewRenderer::ensureModelPreviewTarget(uint32_t width, uint32_t height) 
 }
 
 void PreviewRenderer::renderModelIntoTarget(Model* model, uint32_t lodLevel, GraphicsPipelineStage* targetStage,
-                                            uint32_t width, uint32_t height, const OrbitState &orbit, int32_t rigIdOverride,
+                                            uint32_t width, uint32_t height, const OrbitState &orbit, int32_t rigIdOverride, uint32_t playerBlockBuffer,
                                             std::shared_ptr<GraphicsProgram> graphicsProgram,
                                             glm::mat4 &outCameraMatrix, glm::mat4 &outProjectionMatrix) {
     // We want to render the model from the front. But there are 2 sets of information used for this:
@@ -435,16 +451,12 @@ void PreviewRenderer::renderModelIntoTarget(Model* model, uint32_t lodLevel, Gra
                                                        modelPreviewViewDirection, orbit.zoomFactor, previewCameraPosition);
     outProjectionMatrix = glm::perspective(fovYRadians, aspect, 0.1f, farPlaneRadius * 20.0f + 10.0f);
 
-    const glm::vec3 liveCameraPosition = world->playerCamera->getPosition();
-    const glm::mat4 liveCameraMatrix = world->playerCamera->getCameraMatrix();
-    const glm::mat4 liveProjectionMatrix = world->playerCamera->getProjectionMatrix();
-
-    world->graphicsWrapper->setPlayerMatrices(previewCameraPosition, outCameraMatrix, outProjectionMatrix, world->gameTime);
+    beginPreviewCamera(playerBlockBuffer, previewCameraPosition, outCameraMatrix, outProjectionMatrix);
     beginOffscreenModelPreview(targetStage, graphicsProgram);
     // We want animation, so we should not force Not animated, unlike the add object preview
     model->convertToRenderList(lodLevel, 0, rigIdOverride).render(world->graphicsWrapper, graphicsProgram, false);
-    //the overlay still needs the preview matrices, so whoever wants them restores the live ones after baking
-    world->graphicsWrapper->setPlayerMatrices(liveCameraPosition, liveCameraMatrix, liveProjectionMatrix, world->gameTime);
+    //the overlay projects with the matrices handed back, so the world's block can go back now
+    endPreviewCamera();
 }
 
 uint32_t PreviewRenderer::clampLodLevel(const Model* model, int32_t forcedLodLevel) {
@@ -475,14 +487,14 @@ ImGuiImageWrapper* PreviewRenderer::renderModelPreview(Model* model, int32_t for
         // logic for editor. This split is intentional
         model->getModelAsset()->getTransform(previewAnimationTime, true, model->getAnimationName(), skinningMatrices);
         model->getModelAsset()->getJointTransforms(previewAnimationTime, true, model->getAnimationName(), jointTransforms);
-        world->setBoneTransforms(modelPreview.rigId, skinningMatrices);
-        world->uploadTransformTextures();//drawn below, before any prepareFrame
+        world->frameData.setBoneTransforms(modelPreview.rigId, skinningMatrices);
+        //goes up with the next frame's uploadFrameData, so the preview shows last frame's pose
     }
 
     glm::mat4 previewCameraMatrix, previewProjectionMatrix;
     renderModelIntoTarget(model, clampLodLevel(model, forcedLodLevel), modelPreview.renderStage.get(),
                           modelPreview.width, modelPreview.height, modelPreview.orbit,
-                          static_cast<int32_t>(modelPreview.rigId), graphicsProgram,
+                          static_cast<int32_t>(modelPreview.rigId), modelPreview.playerBlockBuffer, graphicsProgram,
                           previewCameraMatrix, previewProjectionMatrix);
 
     if (animated) {
@@ -528,6 +540,9 @@ void PreviewRenderer::ensureComparisonTarget(ComparisonTarget &target, uint32_t 
     if (target.wrapper == nullptr) {
         target.wrapper = new ImGuiImageWrapper();
     }
+    if (target.playerBlockBuffer == 0) {
+        target.playerBlockBuffer = world->graphicsWrapper->createUniformBuffer();
+    }
     target.wrapper->texture = target.colorTexture;
     target.wrapper->layer = 0;
 }
@@ -542,10 +557,10 @@ LodComparisonImages PreviewRenderer::renderLodComparison(Model* model, int32_t f
     //the same orbit for both, a comparison of two camera angles would say nothing
     glm::mat4 cameraMatrix, projectionMatrix;
     renderModelIntoTarget(model, clampLodLevel(model, forcedLodLevel), comparisonLevelTarget.renderStage.get(),
-                          size, size, modelPreview.orbit, static_cast<int32_t>(modelPreview.rigId), graphicsProgram,
+                          size, size, modelPreview.orbit, static_cast<int32_t>(modelPreview.rigId), comparisonLevelTarget.playerBlockBuffer, graphicsProgram,
                           cameraMatrix, projectionMatrix);
     renderModelIntoTarget(model, 0, comparisonOriginalTarget.renderStage.get(),
-                          size, size, modelPreview.orbit, static_cast<int32_t>(modelPreview.rigId), graphicsProgram,
+                          size, size, modelPreview.orbit, static_cast<int32_t>(modelPreview.rigId), comparisonOriginalTarget.playerBlockBuffer, graphicsProgram,
                           cameraMatrix, projectionMatrix);
     images.levelImage = comparisonLevelTarget.wrapper;
     images.originalImage = comparisonOriginalTarget.wrapper;

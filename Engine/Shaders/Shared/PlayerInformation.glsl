@@ -1,5 +1,6 @@
 #ifndef PLAYER_INFORMATION_UBO
 #define PLAYER_INFORMATION_UBO
+// member order is repeated in World::fillPlayerBlock, reordering breaks it silently.
 layout (std140) uniform PlayerTransformBlock {
     mat4 camera;
     mat4 projection;
