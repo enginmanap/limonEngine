@@ -739,7 +739,7 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
         glm::vec3 newObjectPosition = world->playerCamera->getPosition() + 10.0f * world->playerCamera->getCenter();
 
 
-        if (ImGui::CollapsingHeader("Add New Object")) {
+        if (ImGui::CollapsingHeader("Add New Model")) {
             io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
             static char modelAssetFilter[32] = {0};
             ImGui::InputText("Filter Assets ##ModelsAssetTreeFilter", modelAssetFilter, sizeof(modelAssetFilter), ImGuiInputTextFlags_CharsNoBlank);
@@ -784,14 +784,14 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
             ImGui::Checkbox("Flip Z##AddObject", &addFlipZ);
             ImGui::NewLine();
             if(selectedAsset == nullptr) {
-                ImGui::Button("Add Object");
+                ImGui::Button("Add Model");
                 ImGui::SameLine();
                 ImGuiHelper::ShowHelpMarker("No Asset Selected!");
             } else {
                 if (previewRenderer->updateAssetPreview(selectedAsset->fullPath, newObjectPosition, graphicsProgram)) {
                     ImGui::Text("Loading...");
                 }
-                if(ImGui::Button("Add Object")) {
+                if(ImGui::Button("Add Model")) {
                     std::string newFlipAxes;
                     if (addFlipX) newFlipAxes += 'X';
                     if (addFlipY) newFlipAxes += 'Y';
@@ -1933,7 +1933,7 @@ Attachable* Editor::copyAttachableRecursive(Attachable* source, Attachable* newP
 
     // World registration is inherently type-specific — World stores each type in a different
     // container — this mirrors the exact call shape Editor already uses when creating each type
-    // from scratch (see the "Add Object" panel handlers for Model/Light/Sound/CameraRig/Emitter,
+    // from scratch (see the "Add ..." panel handlers for Model/Light/Sound/CameraRig/Emitter,
     // and the trigger-add handler for TriggerObject).
     if (Model* newModel = dynamic_cast<Model*>(newObj)) {
         Model* sourceModel = dynamic_cast<Model*>(source);
