@@ -412,7 +412,7 @@ bool WorldLoader::loadObjectsFromXML(tinyxml2::XMLNode *objectsNode, World *worl
     while(objectNodeForPreload != nullptr) {
         tinyxml2::XMLElement *objectAttribute =  objectNodeForPreload->FirstChildElement("File");
         if (objectAttribute == nullptr) {
-            std::cerr << "Object must have a source file." << std::endl;
+            std::cerr << "Object at line " << objectNodeForPreload->GetLineNum() << " must have a source file." << std::endl;
             objectNodeForPreload = objectNodeForPreload->NextSiblingElement("Object");
             continue;
         }
@@ -501,7 +501,7 @@ WorldLoader::loadObject( std::shared_ptr<AssetManager> assetManager, tinyxml2::X
 
     tinyxml2::XMLElement *objectAttribute =  objectNode->FirstChildElement("File");
     if (objectAttribute == nullptr) {
-            std::cerr << "Object must have a source file." << std::endl;
+            std::cerr << "Object at line " << objectNode->GetLineNum() << " must have a source file." << std::endl;
         return loadedObjects;
         }
     std::string modelFile = objectAttribute->GetText();
@@ -516,7 +516,7 @@ WorldLoader::loadObject( std::shared_ptr<AssetManager> assetManager, tinyxml2::X
     int id;
     objectAttribute =  objectNode->FirstChildElement("ID");
     if (objectAttribute == nullptr) {
-            std::cerr << "Object does not have ID. Can't be loaded" << std::endl;
+            std::cerr << "Object " << modelFile << " at line " << objectNode->GetLineNum() << " does not have ID. Can't be loaded" << std::endl;
             return loadedObjects;
         } else {
             id = std::stoi(objectAttribute->GetText());
@@ -572,7 +572,7 @@ WorldLoader::loadObject( std::shared_ptr<AssetManager> assetManager, tinyxml2::X
 
     objectAttribute =  objectNode->FirstChildElement("Transformation");
     if(objectAttribute == nullptr) {
-            std::cerr << "Object does not have transformation. Can't be loaded" << std::endl;
+            std::cerr << "Object " << modelFile << " (ID " << id << ") does not have transformation. Can't be loaded" << std::endl;
             delete loadedObjectInformation->model;
         return loadedObjects;
     }
@@ -713,7 +713,7 @@ WorldLoader::loadObjectV2(std::shared_ptr<AssetManager> assetManager, tinyxml2::
 
     tinyxml2::XMLElement *objectAttribute = objectNode->FirstChildElement("File");
     if (objectAttribute == nullptr) {
-        std::cerr << "Object must have a source file." << std::endl;
+        std::cerr << "Object at line " << objectNode->GetLineNum() << " must have a source file." << std::endl;
         return loadedObjects;
     }
     std::string modelFile = objectAttribute->GetText();
@@ -727,7 +727,7 @@ WorldLoader::loadObjectV2(std::shared_ptr<AssetManager> assetManager, tinyxml2::
     int id;
     objectAttribute = objectNode->FirstChildElement("ID");
     if (objectAttribute == nullptr) {
-        std::cerr << "Object does not have ID. Can't be loaded" << std::endl;
+        std::cerr << "Object " << modelFile << " at line " << objectNode->GetLineNum() << " does not have ID. Can't be loaded" << std::endl;
         return loadedObjects;
     }
     id = std::stoi(objectAttribute->GetText());
@@ -759,7 +759,7 @@ WorldLoader::loadObjectV2(std::shared_ptr<AssetManager> assetManager, tinyxml2::
 
     objectAttribute = objectNode->FirstChildElement("Transformation");
     if(objectAttribute == nullptr) {
-        std::cerr << "Object does not have transformation. Can't be loaded" << std::endl;
+        std::cerr << "Object " << modelFile << " (ID " << id << ") does not have transformation. Can't be loaded" << std::endl;
         delete loadedObjectInformation->model;
         return loadedObjects;
     }
@@ -856,7 +856,7 @@ bool WorldLoader::loadObjectsFromXMLV2(tinyxml2::XMLNode *objectsNode, World *wo
             temp.emplace_back(assetKeyForPreload);
             preloadAssetFiles.emplace_back(temp);
         } else {
-            std::cerr << "Object must have a source file." << std::endl;
+            std::cerr << "Object at line " << objectNodeForPreload->GetLineNum() << " must have a source file." << std::endl;
         }
         objectNodeForPreload = objectNodeForPreload->NextSiblingElement("Object");
     }
