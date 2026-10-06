@@ -213,7 +213,10 @@ void Model::renderWithProgram(std::shared_ptr<GraphicsProgram> program, uint32_t
         if(program->isMaterialRequired()) {
             (*iter)->material->activateTextures(graphicsWrapper);
         }
-        graphicsWrapper->render(program->getID(), (*iter)->mesh->getVao(), (*iter)->mesh->getEbo(), (*iter)->mesh->getTriangleCount()[lodLevel] * 3);
+        uint32_t meshLodLevel = (*iter)->mesh->getSimplestLodLevel(lodLevel);
+        //every level sits in the same ebo, without the offset a level draws the start of LOD0. The pointer is a byte offset
+        const uint16_t *levelStart = reinterpret_cast<const uint16_t *>((uintptr_t) ((*iter)->mesh->getOffsets()[meshLodLevel] * sizeof(uint16_t)));
+        graphicsWrapper->render(program->getID(), (*iter)->mesh->getVao(), (*iter)->mesh->getEbo(), (*iter)->mesh->getTriangleCount()[meshLodLevel] * 3, levelStart);
     }
 }
 
