@@ -146,6 +146,8 @@ public:
     std::set<std::shared_ptr<ModelAsset>> pendingAssetSaves;//a set, a world save and the panel can ask for the same asset
     bool worldSaveRequested = false;
     std::string pendingWorldSaveName;//copied at the click, the name box can change before the save runs
+    std::string lastWorldSaveStatus;//shown next to the save button, the log is the only other place the result shows
+    bool lastWorldSaveFailed = false;
     bool modelConversionRequested = false;
 
     GameObject* pickedObject = nullptr;
