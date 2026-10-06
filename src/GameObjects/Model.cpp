@@ -365,6 +365,17 @@ static const char *lodSkipReasonText(LodSkipReason reason) {
     }
 }
 
+//one model is edited at a time, so the preview shared by the LOD and bone sections keeps its state here. It
+//starts over when another object is selected
+struct ModelPreviewPanelState {
+    uint32_t objectID = 0xFFFFFFFF;
+    int32_t level = 0;
+    bool openRequested = false;     //the LOD table picked a level
+    bool boneSectionOpen = false;   //last frame's, the preview is drawn above the bone section
+    ModelPreviewPlayback playback;
+};
+static ModelPreviewPanelState previewPanel;
+
 //the name a mesh LOD index has everywhere in the panel, so the table rows and the preview slider read the same.
 //Shadow levels come after every textured one, that is the order the meshes hold them in
 static std::string lodMeshName(const LodLadder &ladder, uint32_t meshIndex) {
@@ -431,8 +442,7 @@ static void putLodLimitCell(const char *inputId, float measured, bool measuredKn
     }
 }
 
-void Model::putLodTableInGui(ImGuiResult &result, bool animated, int32_t &previewLevel,
-                             std::vector<float> &editedTrianglePercents,
+void Model::putLodTableInGui(ImGuiResult &result, std::vector<float> &editedTrianglePercents,
                              std::vector<std::array<float, 6>> &editedStepSettings) {
     const LodLadder &ladder = modelAsset->getLodLadder();
     const std::vector<LodStep> &steps = ladder.getSteps();
@@ -466,8 +476,9 @@ void Model::putLodTableInGui(ImGuiResult &result, bool animated, int32_t &previe
 
     ImGui::TableNextRow();
     ImGui::TableSetColumnIndex(0);
-    if (ImGui::Selectable("0: Original", previewLevel == 0)) {
-        previewLevel = 0;
+    if (ImGui::Selectable("0: Original", previewPanel.level == 0)) {
+        previewPanel.level = 0;
+        previewPanel.openRequested = true;
     }
     ImGui::TableSetColumnIndex(2);
     ImGui::Text("%u", originalTriangleCount);
@@ -496,8 +507,9 @@ void Model::putLodTableInGui(ImGuiResult &result, bool animated, int32_t &previe
                 label += " ~";
             }
             if (outcome.built) {
-                if (ImGui::Selectable(label.c_str(), previewLevel == (int32_t) outcome.meshLodIndex)) {
-                    previewLevel = (int32_t) outcome.meshLodIndex;
+                if (ImGui::Selectable(label.c_str(), previewPanel.level == (int32_t) outcome.meshLodIndex)) {
+                    previewPanel.level = (int32_t) outcome.meshLodIndex;
+                    previewPanel.openRequested = true;
                 }
                 if (outcome.clipped && ImGui::IsItemHovered()) {
                     ImGui::SetTooltip("Checked below its real screen size, LOD_calibrationMaxResolution capped the render.");
@@ -581,9 +593,8 @@ void Model::putLodTableInGui(ImGuiResult &result, bool animated, int32_t &previe
                 }
             }
 
-            //a level that was never measured, animated or forced to a share, has nothing to show. A shadow level
-            //is only judged on what a depth pass can show
-            const bool measuredKnown = outcome.built && !animated;
+            //a shadow level is only judged on what a depth pass can show
+            const bool measuredKnown = outcome.built;
             const LodLimitKind stoppedBy = outcome.built || outcome.skipReason == LodSkipReason::NOTHING_FITS
                                            ? outcome.stoppedBy : LodLimitKind::NONE;
             const float measuredValues[5] = {outcome.measured.surface, outcome.measured.outline, outcome.measured.holes,
@@ -615,12 +626,9 @@ void Model::putLodTableInGui(ImGuiResult &result, bool animated, int32_t &previe
     ImGui::TextDisabled("Measured, then the limit, in pixels at the level's distance. * marks the limit that stopped the level: raise it for more simplification. ~ means it was checked at reduced resolution. Click a level to preview it.");
 }
 
-void Model::putLodPanelInGui(ImGuiResult &result, const ImGuiRequest &request, bool animated, bool isLimonModel) {
+void Model::putLodPanelInGui(ImGuiResult &result, const ImGuiRequest &request, bool isLimonModel) {
     const LodLadder &ladder = modelAsset->getLodLadder();
     const std::vector<LodStep> &steps = ladder.getSteps();
-    if (animated) {
-        ImGui::TextWrapped("Animated model. A deforming mesh has no pose to render, so its steps keep the project's triangle targets and are never measured.");
-    }
     if (steps.empty()) {
         ImGui::Text("No LOD step was configured, everything renders at the original.");
     }
@@ -631,54 +639,38 @@ void Model::putLodPanelInGui(ImGuiResult &result, const ImGuiRequest &request, b
     static std::vector<float> editedTrianglePercents;
     //the same for each step's distance and five limits, in that order
     static std::vector<std::array<float, 6>> editedStepSettings;
-    static int32_t previewLevel = 0;
     if (editedObjectID != this->getWorldObjectID()) {
         editedObjectID = this->getWorldObjectID();
         editedTrianglePercents.clear();
         editedStepSettings.clear();
-        previewLevel = 0;
     }
 
-    if (!animated) {
-        if (ladder.hasOverrides()) {
-            ImGui::TextWrapped("This model controls its own LOD settings, the project options don't apply to it.");
-            if (ImGui::Button("Back to project defaults")) {
-                result.lodPanel.clearOverrides = true;
-                editedObjectID = 0xFFFFFFFF;//so the next frame re-reads what the asset ended up with
-            }
-        } else {
-            ImGui::TextWrapped("Using the project LOD settings. Editing any value below makes this model control its own.");
+    if (ladder.hasOverrides()) {
+        ImGui::TextWrapped("This model controls its own LOD settings, the project options don't apply to it.");
+        if (ImGui::Button("Back to project defaults")) {
+            result.lodPanel.clearOverrides = true;
+            editedObjectID = 0xFFFFFFFF;//so the next frame re-reads what the asset ended up with
         }
+    } else {
+        ImGui::TextWrapped("Using the project LOD settings. Editing any value below makes this model control its own.");
     }
-    ImGui::BeginDisabled(animated);//nothing to retarget, an animated model is never measured
-    putLodTableInGui(result, animated, previewLevel, editedTrianglePercents, editedStepSettings);
-    ImGui::EndDisabled();
+    putLodTableInGui(result, editedTrianglePercents, editedStepSettings);
 
-    if (!animated) {
-        //the live map switches levels by distance, this is how one level is judged on its own
-        int32_t maximumLevel = (int32_t) ladder.getMeshLodCount() - 1;
-        //the number with the table's name for it, so 4 reads as the shadow level it is
-        std::string previewFormat = "%d: " + lodMeshName(ladder, (uint32_t) std::max(previewLevel, 0));
-        ImGui::SliderInt("Preview level", &previewLevel, 0, maximumLevel < 0 ? 0 : maximumLevel, previewFormat.c_str());
-        uint32_t previewWidth = (uint32_t) std::max(ImGui::GetContentRegionAvail().x, 128.0f);
-        drawModelPreview(request, result, previewLevel, previewWidth, (previewWidth * 3) / 4);
-
-        //the level next to the original at a size the developer picks, magnified so the difference is visible
-        //without resampling it away
-        static int32_t comparisonSize = 48;
-        if (request.renderLodComparison && previewLevel > 0) {
-            ImGui::SliderInt("Compare at px", &comparisonSize, 8, 256);
-            LodComparisonImages comparison = request.renderLodComparison(this, previewLevel, (uint32_t) comparisonSize);
-            float magnifiedSize = std::min(ImGui::GetContentRegionAvail().x * 0.45f, 220.0f);
-            ImVec2 imageSize(magnifiedSize, magnifiedSize);
-            ImGui::Text("Level %d and the original at %d px", previewLevel, comparisonSize);
-            if (comparison.levelImage != nullptr && comparison.levelImage->texture != nullptr) {
-                ImGui::Image((ImTextureID)(intptr_t)comparison.levelImage, imageSize, ImVec2(0.0f, 1.0f), ImVec2(1.0f, 0.0f));
-            }
-            ImGui::SameLine();
-            if (comparison.originalImage != nullptr && comparison.originalImage->texture != nullptr) {
-                ImGui::Image((ImTextureID)(intptr_t)comparison.originalImage, imageSize, ImVec2(0.0f, 1.0f), ImVec2(1.0f, 0.0f));
-            }
+    //the level next to the original at a size the developer picks, magnified so the difference is visible
+    //without resampling it away
+    static int32_t comparisonSize = 48;
+    if (request.renderLodComparison && previewPanel.level > 0) {
+        ImGui::SliderInt("Compare at px", &comparisonSize, 8, 256);
+        LodComparisonImages comparison = request.renderLodComparison(this, previewPanel.level, (uint32_t) comparisonSize);
+        float magnifiedSize = std::min(ImGui::GetContentRegionAvail().x * 0.45f, 220.0f);
+        ImVec2 imageSize(magnifiedSize, magnifiedSize);
+        ImGui::Text("Level %d and the original at %d px", previewPanel.level, comparisonSize);
+        if (comparison.levelImage != nullptr && comparison.levelImage->texture != nullptr) {
+            ImGui::Image((ImTextureID)(intptr_t)comparison.levelImage, imageSize, ImVec2(0.0f, 1.0f), ImVec2(1.0f, 0.0f));
+        }
+        ImGui::SameLine();
+        if (comparison.originalImage != nullptr && comparison.originalImage->texture != nullptr) {
+            ImGui::Image((ImTextureID)(intptr_t)comparison.originalImage, imageSize, ImVec2(0.0f, 1.0f), ImVec2(1.0f, 0.0f));
         }
     }
 
@@ -708,9 +700,6 @@ void Model::putLodPanelInGui(ImGuiResult &result, const ImGuiRequest &request, b
         }
     }
 
-    if (animated) {
-        return;//kept at the project triangle targets, never measured, so there is nothing to recalibrate
-    }
     if (ImGui::Button("Recalibrate")) {
         result.lodPanel.recalibrate = true;
     }
@@ -718,11 +707,49 @@ void Model::putLodPanelInGui(ImGuiResult &result, const ImGuiRequest &request, b
     ImGuiHelper::ShowHelpMarker("Rebuilds the steps and rewrites the cached result beside the asset. The map picks them up on the next frame.");
 }
 
-void Model::drawModelPreview(const ImGuiRequest &request, ImGuiResult &result, int32_t forcedLodLevel, uint32_t previewWidth, uint32_t previewHeight) {
+void Model::putPreviewInGui(const ImGuiRequest &request, ImGuiResult &result) {
+    //drawn before the LOD and bone sections, so this is the first to see a new selection
+    if (previewPanel.objectID != this->getWorldObjectID()) {
+        previewPanel = ModelPreviewPanelState();
+        previewPanel.objectID = this->getWorldObjectID();
+    }
+    if (previewPanel.openRequested) {
+        ImGui::SetNextItemOpen(true);
+        previewPanel.openRequested = false;
+    }
+    if (!ImGui::CollapsingHeader("Preview")) {
+        return;
+    }
+    //the live map switches levels by distance, this is how one level is judged on its own
+    const LodLadder &ladder = modelAsset->getLodLadder();
+    int32_t maximumLevel = std::max((int32_t) ladder.getMeshLodCount() - 1, 0);
+    previewPanel.level = std::min(std::max(previewPanel.level, 0), maximumLevel);//a recalibration can leave fewer levels
+    //the number with the table's name for it, so 4 reads as the shadow level it is
+    std::string previewFormat = "%d: " + lodMeshName(ladder, (uint32_t) previewPanel.level);
+    ImGui::SliderInt("Level##Preview", &previewPanel.level, 0, maximumLevel, previewFormat.c_str());
+
+    //bone picking needs the skeleton, judging a level needs it out of the way
+    previewPanel.playback.showSkeleton = previewPanel.boneSectionOpen;
+    if (animated) {
+        ImGui::Checkbox("Pause##Preview", &previewPanel.playback.paused);
+        ImGui::SameLine();
+        ImGui::BeginDisabled(!previewPanel.playback.paused);
+        float durationSeconds = previewPanel.playback.durationMilliseconds / 1000.0f;
+        float timeSeconds = previewPanel.playback.timeMilliseconds / 1000.0f;
+        if (ImGui::SliderFloat("Time##Preview", &timeSeconds, 0.0f, durationSeconds, "%.2f s")) {
+            previewPanel.playback.timeMilliseconds = timeSeconds * 1000.0f;
+        }
+        ImGui::EndDisabled();
+    }
+    uint32_t previewWidth = (uint32_t) std::max(ImGui::GetContentRegionAvail().x, 128.0f);
+    drawModelPreview(request, result, previewWidth, (previewWidth * 3) / 4);
+}
+
+void Model::drawModelPreview(const ImGuiRequest &request, ImGuiResult &result, uint32_t previewWidth, uint32_t previewHeight) {
     if (!request.renderModelPreview) {
         return;
     }
-    ImGuiImageWrapper* previewWrapper = request.renderModelPreview(this, forcedLodLevel, previewWidth, previewHeight);
+    ImGuiImageWrapper* previewWrapper = request.renderModelPreview(this, previewPanel.level, previewWidth, previewHeight, previewPanel.playback);
     if (previewWrapper == nullptr || previewWrapper->texture == nullptr) {
         return;
     }
@@ -819,6 +846,8 @@ ImGuiResult Model::addImGuiEditorElements(const ImGuiRequest &request) {
         }
     }
 
+    putPreviewInGui(request, result);
+
     if (isAnimated()) {
         if (ImGui::CollapsingHeader("Model animation properties")) {
             if (ImGui::BeginCombo("Animation Name", animationName.c_str())) {
@@ -844,11 +873,9 @@ ImGuiResult Model::addImGuiEditorElements(const ImGuiRequest &request) {
                 this->modelAsset->addAnimationAsSubSequence(this->animationName, std::string(newAnimationName), times[0], times[1]);
             }
         }
-        if (ImGui::CollapsingHeader("Expose Bone for attachment")) {
-            //Editor bakes the model and skeleton overlay into one texture, see PreviewRenderer::renderModelPreview.
-            //Just a display here, no camera/joint logic
-            drawModelPreview(request, result, -1, 640, 480);
-
+        previewPanel.boneSectionOpen = ImGui::CollapsingHeader("Expose Bone for attachment");
+        if (previewPanel.boneSectionOpen) {
+            //bones are picked on the Preview above, which shows the skeleton while this is open
             ImGui::BeginChild("BoneTreeScrollRegion", ImVec2(0.0f, 200.0f), true);
             int32_t newSelectedBoneID = this->modelAsset->buildEditorBoneTree(selectedBoneID, boneTreeShouldFollowSelection);
             boneTreeShouldFollowSelection = false;//consumed for this frame regardless of whether it found a target
@@ -938,7 +965,7 @@ ImGuiResult Model::addImGuiEditorElements(const ImGuiRequest &request) {
         }
     }
     if (ImGui::CollapsingHeader("LOD levels")) {
-        putLodPanelInGui(result, request, animated, isLimonModel);
+        putLodPanelInGui(result, request, isLimonModel);
     }
     static int32_t selectedIndex = -1;
     static uint32_t selectedModel = 0;

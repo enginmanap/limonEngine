@@ -253,8 +253,7 @@ std::string ModelAsset::getFlipAxes() const {
 void ModelAsset::buildLodLevels(LodLadder::BuildMode buildMode) {
     OptionsUtil::Options *options = assetManager == nullptr ? nullptr
                                                            : assetManager->getGraphicsWrapper()->getOptions();
-    //a skinned mesh deforms, so a bind pose score says nothing about what it shows in motion
-    lodLadder.bindAsset(name, getFlipAxes(), !hasAnimation, isConvertedAsset());
+    lodLadder.bindAsset(name, getFlipAxes(), hasAnimation, isConvertedAsset());
     lodLadder.readSettings(options);
 
     std::vector<LodLadder::MeshGeometry> geometry;
@@ -290,8 +289,9 @@ void ModelAsset::buildLodLevels(LodLadder::BuildMode buildMode) {
     }
 }
 
-//the geometry the ladder measures and simplifies. One space for the whole model, since every mesh already
-//carries its node transform, and a mesh scored alone measures something the viewer never sees
+//the geometry the ladder measures and simplifies. One space for the whole model, since a mesh scored alone
+//measures something the viewer never sees. A static mesh already carries its node transform, an animated one
+//keeps its own space and is placed in its bind pose by its parent transform
 void ModelAsset::buildLodGeometry(std::vector<LodLadder::MeshGeometry> &outGeometry) const {
     outGeometry.clear();
     outGeometry.reserve(meshes.size());
@@ -305,6 +305,11 @@ void ModelAsset::buildLodGeometry(std::vector<LodLadder::MeshGeometry> &outGeome
         LodLadder::MeshGeometry entry;
         entry.vertices = &meshVertices;
         entry.normals = &meshes[meshIndex]->getNormals();
+        if (meshes[meshIndex]->isAnimatedPart()) {
+            entry.transform = &meshes[meshIndex]->getParentTransform();
+            entry.boneIDs = &meshes[meshIndex]->getBoneIDs();
+            entry.boneWeights = &meshes[meshIndex]->getBoneWeights();
+        }
         entry.textureCoordinates = &meshes[meshIndex]->getTextureCoordinates();
         entry.indices = (const uint16_t *) &(meshFaces[0].x);
         entry.indexCount = lod0IndexCount;
@@ -977,6 +982,17 @@ void ModelAsset::traverseAndSetBindPoseJointTransform(std::shared_ptr<const Bone
 
 bool ModelAsset::isAnimated() const {
     return hasAnimation;
+}
+
+//the same lookup and tick rate getTransform plays with, so a time scrubbed to the end is the clip's last frame
+float ModelAsset::getAnimationDurationMilliseconds(const std::string &animationName) const {
+    if (animations.empty()) {
+        return 0.0f;
+    }
+    std::map<std::string, std::shared_ptr<AnimationInterface>>::const_iterator found = animations.find(animationName);
+    const std::shared_ptr<AnimationInterface> &animation = found != animations.end() ? found->second : animations.begin()->second;
+    float ticksPerSecond = animation->getTicksPerSecond() != 0 ? animation->getTicksPerSecond() : (float) TICK_PER_SECOND;
+    return animation->getDuration() / ticksPerSecond * 1000.0f;
 }
 
 void

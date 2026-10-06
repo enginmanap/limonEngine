@@ -82,6 +82,8 @@ class PreviewRenderer {
         uint32_t rigId = 0;
         uint32_t playerBlockBuffer = 0;
         uint64_t startWallTime = 0;//wall time when the currently-previewed model/animation was first shown, for looping playback
+        bool paused = false;
+        float pausedTime = 0.0f;//milliseconds into the clip, what a paused preview and its comparison show
         uint32_t modelObjectID = 0xFFFFFFFF;//tracks which model+animation startWallTime belongs to
         std::string animationName;
         //Refreshed every bakeSkeletonOverlay() call (same frame the preview image is shown), so click hit-testing
@@ -125,6 +127,9 @@ class PreviewRenderer {
     static constexpr uint32_t MAX_COMPARISON_SIZE = 512;
     void ensureComparisonTarget(ComparisonTarget &target, uint32_t size, const std::string &textureName);
     static uint32_t clampLodLevel(const Model* model, int32_t forcedLodLevel);
+    //sets the preview rig to the pose the preview is showing, so the comparison matches it even with the preview
+    //closed. Returns the clip time used, in milliseconds
+    float poseModelPreview(Model* model, std::vector<glm::mat4> &outJointTransforms);
     void renderModelIntoTarget(Model* model, uint32_t lodLevel, GraphicsPipelineStage* targetStage,
                                uint32_t width, uint32_t height, const OrbitState &orbit, int32_t rigIdOverride, uint32_t playerBlockBuffer,
                                std::shared_ptr<GraphicsProgram> graphicsProgram,
@@ -136,7 +141,7 @@ public:
     ~PreviewRenderer();
 
     //forcedLodLevel -1 renders the level selection would pick, anything else pins that level for this image only
-    ImGuiImageWrapper* renderModelPreview(Model* model, int32_t forcedLodLevel, uint32_t requestedWidth, uint32_t requestedHeight, std::shared_ptr<GraphicsProgram> graphicsProgram);
+    ImGuiImageWrapper* renderModelPreview(Model* model, int32_t forcedLodLevel, uint32_t requestedWidth, uint32_t requestedHeight, ModelPreviewPlayback &playback, std::shared_ptr<GraphicsProgram> graphicsProgram);
 
     //the model at the level's design size next to the original at the same size, which is the size the
     //budget was measured at. Shown magnified, so the two can be compared pixel by pixel

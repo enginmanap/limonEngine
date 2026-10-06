@@ -170,6 +170,15 @@
     </Parameter>
     <Parameter>
         <RequestType>FreeNumber</RequestType>
+        <Description>LOD_boneWeightDeviation</Description>
+        <!--Animated models only. How much a change in bone weights costs the simplifier, next to a uv or normal change. A collapse that moves weights looks fine in the bind pose and hinges once the joint bends; 0 ignores weights. Changing this recalibrates animated models only-->
+        <Value>0.5</Value>
+        <valueType>Double</valueType>
+        <IsSet>True</IsSet>
+        <Index>84</Index>
+    </Parameter>
+    <Parameter>
+        <RequestType>FreeNumber</RequestType>
         <Description>LOD_levelDistances</Description>
         <!--Where each level is used, in meters, times the instance scale. Each level is generated as the coarsest simplification that stays inside its pixel limits when seen from exactly this distance, so the triangle count is a result, not a setting. The first number is the element count plus one, not a value. Every LOD_level list must have the same length; an empty list means no levels at all. Changing a distance regenerates that level only-->
         <Value>4, 50, 100, 200</Value>

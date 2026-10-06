@@ -9,7 +9,9 @@
 static const float LOD_NORMAL_ATTRIBUTE_WEIGHT = 1.0f;//meshopt readme default, raising it keeps shading at the cost of triangles
 
 LodGenerator::LodGenerator(const std::vector<glm::vec3> &vertices, const std::vector<glm::vec3> &normals,
-                           const std::vector<glm::vec2> &textureCoordinates, const uint16_t *indices, size_t indexCount)
+                           const std::vector<glm::vec2> &textureCoordinates, const uint16_t *indices, size_t indexCount,
+                           const std::vector<glm::lowp_uvec4> *boneIDs, const std::vector<glm::vec4> *boneWeights,
+                           float boneWeightDeviation)
         : vertices(vertices), indices(indices), indexCount(indexCount) {
     if (vertices.empty() || indices == nullptr || indexCount < 3) {
         return;
@@ -17,6 +19,10 @@ LodGenerator::LodGenerator(const std::vector<glm::vec3> &vertices, const std::ve
     meshScale = meshopt_simplifyScale(&vertices[0].x, vertices.size(), sizeof(glm::vec3));
     hasTextureCoordinates = textureCoordinates.size() == vertices.size();
     buildAttributes(normals, textureCoordinates);
+    if (boneIDs != nullptr && boneWeights != nullptr && boneIDs->size() == vertices.size() &&
+        boneWeights->size() == vertices.size() && boneWeightDeviation > 0.0f) {
+        appendBoneAttributes(*boneIDs, *boneWeights, boneWeightDeviation);
+    }
     buildUvSeamLocks(textureCoordinates);
     buildWeldedIndices();
 }
@@ -60,6 +66,39 @@ void LodGenerator::buildAttributes(const std::vector<glm::vec3> &normals, const 
         attributeWeights[textureWeightBase + 0] = uvWeight;
         attributeWeights[textureWeightBase + 1] = uvWeight;
     }
+}
+
+//+1 or -1 per bone and dimension, so a mix of bones lands on its own point and two mixes differ in proportion to
+//how much weight moved
+static float boneSign(uint32_t boneID, uint32_t dimension) {
+    uint32_t hash = boneID * 2654435761u + dimension * 40503u + 0x9e3779b9u;
+    hash ^= hash >> 15;
+    hash *= 2246822519u;
+    hash ^= hash >> 13;
+    return (hash & 1u) ? 1.0f : -1.0f;
+}
+
+void LodGenerator::appendBoneAttributes(const std::vector<glm::lowp_uvec4> &boneIDs, const std::vector<glm::vec4> &boneWeights,
+                                        float boneWeightDeviation) {
+    //a collapse hands the removed vertex's triangles the kept vertex's weights, invisible in the bind pose and a
+    //hinge once the joint bends, so a weight change costs error like a uv or normal change does
+    size_t newAttributeCount = attributeCount + BONE_ATTRIBUTE_DIMENSIONS;
+    std::vector<float> newAttributes(vertices.size() * newAttributeCount, 0.0f);
+    for (size_t vertex = 0; vertex < vertices.size(); ++vertex) {
+        for (size_t attribute = 0; attribute < attributeCount; ++attribute) {
+            newAttributes[vertex * newAttributeCount + attribute] = attributes[vertex * attributeCount + attribute];
+        }
+        for (uint32_t dimension = 0; dimension < BONE_ATTRIBUTE_DIMENSIONS; ++dimension) {
+            float value = 0.0f;
+            for (uint32_t influence = 0; influence < 4; ++influence) {
+                value += boneWeights[vertex][influence] * boneSign(boneIDs[vertex][influence], dimension);
+            }
+            newAttributes[vertex * newAttributeCount + attributeCount + dimension] = value;
+        }
+    }
+    attributes.swap(newAttributes);
+    attributeWeights.resize(newAttributeCount, boneWeightDeviation);
+    attributeCount = newAttributeCount;
 }
 
 void LodGenerator::buildUvSeamLocks(const std::vector<glm::vec2> &textureCoordinates) {

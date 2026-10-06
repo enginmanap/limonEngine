@@ -2554,8 +2554,8 @@ void Editor::applyDeferredAssetChanges() {
         objectIt->second->setDirtyForFrustum();
     }
 }
-ImGuiImageWrapper* Editor::renderModelPreview(Model* model, int32_t forcedLodLevel, uint32_t width, uint32_t height, std::shared_ptr<GraphicsProgram> graphicsProgram) {
-    return previewRenderer->renderModelPreview(model, forcedLodLevel, width, height, graphicsProgram);
+ImGuiImageWrapper* Editor::renderModelPreview(Model* model, int32_t forcedLodLevel, uint32_t width, uint32_t height, ModelPreviewPlayback &playback, std::shared_ptr<GraphicsProgram> graphicsProgram) {
+    return previewRenderer->renderModelPreview(model, forcedLodLevel, width, height, playback, graphicsProgram);
 }
 
 LodComparisonImages Editor::renderLodComparison(Model* model, int32_t forcedLodLevel, uint32_t designSizePixels, std::shared_ptr<GraphicsProgram> graphicsProgram) {

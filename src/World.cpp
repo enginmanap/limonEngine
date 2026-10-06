@@ -994,8 +994,8 @@ void World::ImGuiFrameSetup(std::shared_ptr<GraphicsProgram> graphicsProgram, co
    GenerateEditorElementsCallback generateEditorElementsForParameters = [editorPointer](std::vector<LimonTypes::GenericParameter> &parameters, uint32_t index) {
        return editorPointer->generateEditorElementsForParameters(parameters, index);
    };
-   RenderModelPreviewCallback renderModelPreview = [editorPointer, graphicsProgram](Model* model, int32_t forcedLodLevel, uint32_t width, uint32_t height) {
-       return editorPointer->renderModelPreview(model, forcedLodLevel, width, height, graphicsProgram);
+   RenderModelPreviewCallback renderModelPreview = [editorPointer, graphicsProgram](Model* model, int32_t forcedLodLevel, uint32_t width, uint32_t height, ModelPreviewPlayback &playback) {
+       return editorPointer->renderModelPreview(model, forcedLodLevel, width, height, playback, graphicsProgram);
    };
    RenderLodComparisonCallback renderLodComparison = [editorPointer, graphicsProgram](Model* model, int32_t forcedLodLevel, uint32_t designSizePixels) {
        return editorPointer->renderLodComparison(model, forcedLodLevel, designSizePixels, graphicsProgram);

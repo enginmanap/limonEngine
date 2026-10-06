@@ -20,8 +20,11 @@ public:
         SILHOUETTE_ONLY
     };
 
+    //bone data is null for a static mesh. boneWeightDeviation is the attribute weight of a weight change, 0 ignores it
     LodGenerator(const std::vector<glm::vec3> &vertices, const std::vector<glm::vec3> &normals,
-                 const std::vector<glm::vec2> &textureCoordinates, const uint16_t *indices, size_t indexCount);
+                 const std::vector<glm::vec2> &textureCoordinates, const uint16_t *indices, size_t indexCount,
+                 const std::vector<glm::lowp_uvec4> *boneIDs, const std::vector<glm::vec4> *boneWeights,
+                 float boneWeightDeviation);
 
     //outRelativeError is relative to the mesh extent, multiply by getMeshScale() for model units. Returns 0 when
     //the mesh can not be simplified at all
@@ -34,8 +37,12 @@ public:
 
 private:
     void buildAttributes(const std::vector<glm::vec3> &normals, const std::vector<glm::vec2> &textureCoordinates);
+    void appendBoneAttributes(const std::vector<glm::lowp_uvec4> &boneIDs, const std::vector<glm::vec4> &boneWeights,
+                              float boneWeightDeviation);
     void buildUvSeamLocks(const std::vector<glm::vec2> &textureCoordinates);
     void buildWeldedIndices();
+
+    static const uint32_t BONE_ATTRIBUTE_DIMENSIONS = 4;
 
     const std::vector<glm::vec3> &vertices;
     const uint16_t *indices;
@@ -43,7 +50,7 @@ private:
     float meshScale = 0.0f;
 
     bool hasTextureCoordinates = false;
-    size_t attributeCount = 0;              //floats per vertex: normal xyz, plus uv when it exists
+    size_t attributeCount = 0;              //floats per vertex: normal xyz, uv when it exists, then the bone mix
     std::vector<float> attributes;
     std::vector<float> attributeWeights;
     std::vector<unsigned char> vertexLock;  //meshopt_SimplifyVertex_Protect where UVs differ at a shared position

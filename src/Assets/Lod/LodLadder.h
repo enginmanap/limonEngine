@@ -72,7 +72,7 @@ struct LodStep {
         uint32_t triangleCount = 0;
         uint32_t meshLodIndex = 0;       //the index range every mesh built for it
         float achievedRatio = 0.0f;
-        LodPixels measured;              //zero for a step nothing could measure, animated models included
+        LodPixels measured;              //zero for a step nothing could measure
         bool clipped = false;            //the check ran below screen size because of LOD_calibrationMaxResolution
         LodLimitKind stoppedBy = LodLimitKind::NONE;//what refused the next coarser candidate the search tried
 
@@ -106,12 +106,17 @@ struct LodSelectionContext {
 //geometry is what lets a scratch tool drive this against a corpus
 class LodLadder {
 public:
-    //vertices must already carry the node transform, the meshes of a model are scored together in one space
+    //the meshes of a model are scored together in one space: either the vertices already carry the node
+    //transform, or transform places them there (an animated mesh in its bind pose). The simplifier works on the
+    //mesh as stored, its error is relative to the mesh's own size
     struct MeshGeometry {
         const std::vector<glm::vec3> *vertices = nullptr;
         const std::vector<glm::vec3> *normals = nullptr;
         const std::vector<glm::vec2> *textureCoordinates = nullptr;
+        const glm::mat4 *transform = nullptr;   //null when the vertices are already placed
         const uint16_t *indices = nullptr;   //the LOD0 range
+        const std::vector<glm::lowp_uvec4> *boneIDs = nullptr;   //null for a static mesh
+        const std::vector<glm::vec4> *boneWeights = nullptr;
         size_t indexCount = 0;
         //what the asset already computed, so telling one version of a mesh from another costs no walk
         glm::vec3 aabbMin = glm::vec3(0.0f);
@@ -139,7 +144,7 @@ public:
     enum class BuildMode { NORMAL, EDITOR_CHANGE, FULL_RECALIBRATE };
 
     //storeIsBinary marks an asset whose levels live in its own file, so it never reads or writes a sidecar
-    void bindAsset(const std::string &newAssetPath, const std::string &newFlipAxes, bool newCanCalibrate,
+    void bindAsset(const std::string &newAssetPath, const std::string &newFlipAxes, bool newSkinned,
                    bool newStoreIsBinary);
 
     //project defaults and search settings. Read once per build, so an option change is picked up on reload
@@ -256,10 +261,10 @@ private:
     //coarsest simplification that passes every limit of the step at its distance, or why there is none
     bool searchStep(const std::vector<MeshGeometry> &meshes, const LodStep &step, LodGenerator::GeneratorKind kind,
                     size_t originalTriangles, LodStep::Outcome &outOutcome) const;
-    //lands on a triangle share instead of the limits: a share typed in the editor, or an animated model that
-    //nothing can measure. Measures what it got when it can, so the panel still shows the cost
+    //lands on a triangle share typed in the editor instead of the limits. Measures what it got, so the panel
+    //still shows the cost
     bool buildForTriangleShare(const std::vector<MeshGeometry> &meshes, const LodStep &step, float share,
-                               size_t originalTriangles, bool measure, LodStep::Outcome &outOutcome) const;
+                               size_t originalTriangles, LodStep::Outcome &outOutcome) const;
     static void fillOutcome(const Candidate &candidate, float targetError, size_t originalTriangles,
                             LodStep::Outcome &outOutcome);
     //the only place that decides whether an outcome is kept
@@ -297,7 +302,7 @@ private:
 
     std::string assetPath;
     std::string flipAxes;
-    bool canCalibrate = true;       //a skinned mesh deforms, so a bind pose render says nothing about it
+    bool skinned = false;           //no welded levels: a position weld merges vertices with different weights
     bool overridesPresent = false;
     bool storeIsBinary = false;
     bool unsavedChanges = false;
@@ -311,6 +316,7 @@ private:
     bool shadowWeldedLevels = true;
     uint32_t shadowWeldedFromLevel = 2;
     float normalDeviation = 0.2f;
+    float boneWeightDeviation = 0.5f;
     uint64_t settingsHash = 0;
     uint64_t builtSettingsHash = 0;//what the outcomes above were produced under, so a settings change drops them
 };

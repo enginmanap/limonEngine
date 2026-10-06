@@ -183,7 +183,7 @@ public:
 
     //World calls this between the render and the next culling pass, which is the only safe point for any of it
     void applyDeferredAssetChanges();
-    ImGuiImageWrapper* renderModelPreview(Model* model, int32_t forcedLodLevel, uint32_t width, uint32_t height, std::shared_ptr<GraphicsProgram> graphicsProgram);
+    ImGuiImageWrapper* renderModelPreview(Model* model, int32_t forcedLodLevel, uint32_t width, uint32_t height, ModelPreviewPlayback &playback, std::shared_ptr<GraphicsProgram> graphicsProgram);
     LodComparisonImages renderLodComparison(Model* model, int32_t forcedLodLevel, uint32_t designSizePixels, std::shared_ptr<GraphicsProgram> graphicsProgram);
     void renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram);
     void applyPendingPick();

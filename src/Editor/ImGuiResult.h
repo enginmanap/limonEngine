@@ -34,7 +34,7 @@ struct ImGuiResult {
     bool flipChanged = false;
     bool massChanged = false;
     struct ModelPreviewInput {
-        bool clicked = false;      //user clicked inside the bone-exposure preview image; pixel coords are local to it
+        bool clicked = false;      //user clicked inside the model preview image; pixel coords are local to it
         float clickPixelX = 0.0f;
         float clickPixelY = 0.0f;
         bool orbitDragging = false;//user is right-click-dragging inside the preview image this frame

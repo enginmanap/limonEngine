@@ -81,11 +81,10 @@ private:
 
     static ImGuiResult putAIonGUI(ActorInterface *actorInterface, std::vector<LimonTypes::GenericParameter> &parameters,
                                   const ImGuiRequest &request, std::string &lastSelectedAIName);
-    //the bone section and the LOD section show the same offscreen image, only the level and the size differ
-    void drawModelPreview(const ImGuiRequest &request, ImGuiResult &result, int32_t forcedLodLevel, uint32_t previewWidth, uint32_t previewHeight);
-    void putLodPanelInGui(ImGuiResult &result, const ImGuiRequest &request, bool animated, bool isLimonModel);
-    void putLodTableInGui(ImGuiResult &result, bool animated, int32_t &previewLevel,
-                          std::vector<float> &editedTrianglePercents,
+    void putPreviewInGui(const ImGuiRequest &request, ImGuiResult &result);
+    void drawModelPreview(const ImGuiRequest &request, ImGuiResult &result, uint32_t previewWidth, uint32_t previewHeight);
+    void putLodPanelInGui(ImGuiResult &result, const ImGuiRequest &request, bool isLimonModel);
+    void putLodTableInGui(ImGuiResult &result, std::vector<float> &editedTrianglePercents,
                           std::vector<std::array<float, 6>> &editedStepSettings);
     //the context the engine would use for this object, so the panel and selection cannot drift apart
     float getLodObjectScale() const;

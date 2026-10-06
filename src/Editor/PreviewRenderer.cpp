@@ -467,28 +467,51 @@ uint32_t PreviewRenderer::clampLodLevel(const Model* model, int32_t forcedLodLev
     return std::min((uint32_t) forcedLodLevel, model->getModelAsset()->getLodLadder().getMeshLodCount() - 1);
 }
 
-ImGuiImageWrapper* PreviewRenderer::renderModelPreview(Model* model, int32_t forcedLodLevel, uint32_t requestedWidth, uint32_t requestedHeight, std::shared_ptr<GraphicsProgram> graphicsProgram) {
-    ensureModelPreviewTarget(requestedWidth, requestedHeight);
+float PreviewRenderer::poseModelPreview(Model* model, std::vector<glm::mat4> &outJointTransforms) {
     if (model->getWorldObjectID() != modelPreview.modelObjectID || model->getAnimationName() != modelPreview.animationName) {
         //new model or animation: restart playback and reset orbit, a fresh target shouldn't inherit the last
         //one's rotation
         modelPreview.modelObjectID = model->getWorldObjectID();
         modelPreview.animationName = model->getAnimationName();
         modelPreview.startWallTime = world->wallTime;
+        modelPreview.pausedTime = 0.0f;
         modelPreview.orbit = OrbitState{};
     }
-    const bool animated = model->getModelAsset()->isAnimated();
-    long previewAnimationTime = static_cast<long>(world->wallTime - modelPreview.startWallTime);
-    std::vector<glm::mat4> jointTransforms(NR_BONE);
-    if (animated) {
+    float previewAnimationTime = modelPreview.paused ? modelPreview.pausedTime
+                                                     : static_cast<float>(world->wallTime - modelPreview.startWallTime);
+    if (model->getModelAsset()->isAnimated()) {
         // The model getTransform does not check the vector size, we need to resize here.
         std::vector<glm::mat4> skinningMatrices(NR_BONE);
         // get transform and get joint transform can be combined, but we don't want to, because that would change the hot path
         // logic for editor. This split is intentional
         model->getModelAsset()->getTransform(previewAnimationTime, true, model->getAnimationName(), skinningMatrices);
-        model->getModelAsset()->getJointTransforms(previewAnimationTime, true, model->getAnimationName(), jointTransforms);
+        model->getModelAsset()->getJointTransforms(previewAnimationTime, true, model->getAnimationName(), outJointTransforms);
         world->frameData.setBoneTransforms(modelPreview.rigId, skinningMatrices);
         //goes up with the next frame's uploadFrameData, so the preview shows last frame's pose
+    }
+    return previewAnimationTime;
+}
+
+ImGuiImageWrapper* PreviewRenderer::renderModelPreview(Model* model, int32_t forcedLodLevel, uint32_t requestedWidth, uint32_t requestedHeight,
+                                                       ModelPreviewPlayback &playback, std::shared_ptr<GraphicsProgram> graphicsProgram) {
+    ensureModelPreviewTarget(requestedWidth, requestedHeight);
+    const bool animated = model->getModelAsset()->isAnimated();
+    float duration = animated ? model->getModelAsset()->getAnimationDurationMilliseconds(model->getAnimationName()) : 0.0f;
+    if (playback.paused) {
+        modelPreview.paused = true;
+        modelPreview.pausedTime = playback.timeMilliseconds;
+    } else if (modelPreview.paused) {
+        //resumes from the frame it was paused or scrubbed to
+        modelPreview.paused = false;
+        modelPreview.startWallTime = world->wallTime - static_cast<uint64_t>(std::max(modelPreview.pausedTime, 0.0f));
+    }
+    std::vector<glm::mat4> jointTransforms(NR_BONE);
+    float shownTime = poseModelPreview(model, jointTransforms);
+    playback.durationMilliseconds = duration;
+    if (!playback.paused) {
+        playback.timeMilliseconds = duration > 0.0f ? std::fmod(shownTime, duration) : 0.0f;
+    } else if (modelPreview.pausedTime != playback.timeMilliseconds) {
+        playback.timeMilliseconds = modelPreview.pausedTime;//a new model or animation started over
     }
 
     glm::mat4 previewCameraMatrix, previewProjectionMatrix;
@@ -497,7 +520,7 @@ ImGuiImageWrapper* PreviewRenderer::renderModelPreview(Model* model, int32_t for
                           static_cast<int32_t>(modelPreview.rigId), modelPreview.playerBlockBuffer, graphicsProgram,
                           previewCameraMatrix, previewProjectionMatrix);
 
-    if (animated) {
+    if (animated && playback.showSkeleton) {
         bakeSkeletonOverlay(model, jointTransforms, previewCameraMatrix, previewProjectionMatrix, graphicsProgram);
     } else {
         modelPreview.boneScreenPositions.clear();//nothing to hit test, and stale positions would select a bone
@@ -554,6 +577,8 @@ LodComparisonImages PreviewRenderer::renderLodComparison(Model* model, int32_t f
     ensureComparisonTarget(comparisonLevelTarget, size, "EditorLodComparisonLevel");
     ensureComparisonTarget(comparisonOriginalTarget, size, "EditorLodComparisonOriginal");
 
+    std::vector<glm::mat4> jointTransforms(NR_BONE);
+    poseModelPreview(model, jointTransforms);
     //the same orbit for both, a comparison of two camera angles would say nothing
     glm::mat4 cameraMatrix, projectionMatrix;
     renderModelIntoTarget(model, clampLodLevel(model, forcedLodLevel), comparisonLevelTarget.renderStage.get(),

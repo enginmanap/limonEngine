@@ -22,12 +22,21 @@ class ImGuiImageWrapper;
 //Implemented by the Editor; injected here as a callback so callers need not depend on the Editor type.
 typedef std::function<bool(std::vector<LimonTypes::GenericParameter> &, uint32_t)> GenerateEditorElementsCallback;
 
+//kept by the caller across frames. Paused, the renderer shows timeMilliseconds; playing, it writes back the time it
+//showed, so pausing holds that frame
+struct ModelPreviewPlayback {
+    bool showSkeleton = false;
+    bool paused = false;
+    float timeMilliseconds = 0.0f;
+    float durationMilliseconds = 0.0f;//written by the renderer, 0 for a model with no animation
+};
+
 // Renders the selected model at the requested size, with its animation (or t-pose/base), but instead of using
-// game time, uses wall time. A LOD level past 0 pins that level for this image, -1 renders as selection would.
+// game time, uses wall time. A LOD level past 0 pins that level for this image.
 // The skeleton overlay (lines+joints, selection highlight) is baked into the same returned image by the editor
 // system, so the caller only ever gets one finished texture to display -- no camera/joint-transform data crosses
 // this boundary.
-typedef std::function<ImGuiImageWrapper*(Model*, int32_t, uint32_t, uint32_t)> RenderModelPreviewCallback;
+typedef std::function<ImGuiImageWrapper*(Model*, int32_t, uint32_t, uint32_t, ModelPreviewPlayback &)> RenderModelPreviewCallback;
 
 //The model rendered at a LOD level's design size, next to the original at that same size. Judging "is this
 //acceptable at 20 px" means looking at 20 px, so these come back small and are magnified by the panel.

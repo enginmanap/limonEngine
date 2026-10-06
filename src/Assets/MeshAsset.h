@@ -159,6 +159,23 @@ public:
         return textureCoordinates;
     }
 
+    //a mesh of an animated model keeps its vertices in its own space, this places them in the bind pose
+    const glm::mat4 &getParentTransform() const {
+        return parentTransform;
+    }
+
+    bool isAnimatedPart() const {
+        return isPartOfAnimated;
+    }
+
+    const std::vector<glm::lowp_uvec4> &getBoneIDs() const {
+        return boneIDs;
+    }
+
+    const std::vector<glm::vec4> &getBoneWeights() const {
+        return boneWeights;
+    }
+
     uint32_t getEbo() const { return ebo; }
 
     btTriangleMesh *getBulletMesh(std::map<uint32_t, btConvexHullShape *> *hullMap,

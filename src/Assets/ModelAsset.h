@@ -221,6 +221,8 @@ public:
                                    float startTime, float endTime);
 
     bool isAnimated() const;
+    //0 for a model with no animation. An unknown name gets the first clip, as playback does
+    float getAnimationDurationMilliseconds(const std::string &animationName) const;
 
     /**
      * This method is used to request a specific animations transform array for a specific time. If looped is false,

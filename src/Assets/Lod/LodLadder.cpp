@@ -18,7 +18,7 @@
 #include "limonAPI/util/HashUtil.h"
 
 //bumped by hand whenever the scorer, the search or a generator changes what it produces
-static const uint32_t LOD_CALIBRATOR_VERSION = 12;
+static const uint32_t LOD_CALIBRATOR_VERSION = 13;
 
 //the tuned defaults: maps keep about 80, 60 and 40 percent of their triangles at these distances
 static const uint32_t LOD_DEFAULT_STEP_COUNT = 3;
@@ -48,11 +48,11 @@ static const uint32_t LOD_SCORER_VIEW_COUNT = 14;
 //rendered at twice the screen size and judged in screen pixels, so a pixel holds what a real one would average
 static const float LOD_SCORER_SUPERSAMPLING = 2.0f;
 
-void LodLadder::bindAsset(const std::string &newAssetPath, const std::string &newFlipAxes, bool newCanCalibrate,
+void LodLadder::bindAsset(const std::string &newAssetPath, const std::string &newFlipAxes, bool newSkinned,
                           bool newStoreIsBinary) {
     assetPath = newAssetPath;
     flipAxes = newFlipAxes;
-    canCalibrate = newCanCalibrate;
+    skinned = newSkinned;
     storeIsBinary = newStoreIsBinary;
 }
 
@@ -72,7 +72,7 @@ void LodLadder::appendDefaultSteps() {
 }
 
 bool LodLadder::isWeldedStep(size_t stepIndex) const {
-    if (!shadowWeldedLevels) {
+    if (!shadowWeldedLevels || skinned) {
         return false;
     }
     return stepIndex + 1 >= shadowWeldedFromLevel;
@@ -88,6 +88,11 @@ void LodLadder::computeSettingsHash() {
     snprintf(packed, sizeof(packed), "v%u|s%u|r%u|h%u|f%.9g|w%d,%u|n%.9g", LOD_CALIBRATOR_VERSION, searchSteps,
              maximumResolution, referenceHeight, referenceFov, shadowWeldedLevels ? 1 : 0, shadowWeldedFromLevel,
              normalDeviation);
+    if (skinned) {
+        //only skinned models are simplified with it, so changing it must not recalibrate every static model
+        size_t packedLength = strlen(packed);
+        snprintf(packed + packedLength, sizeof(packed) - packedLength, "|b%.9g", boneWeightDeviation);
+    }
     settingsHash = consthash::city64(packed, strlen(packed));
 }
 
@@ -150,6 +155,7 @@ void LodLadder::readSettings(OptionsUtil::Options *options) {
         shadowWeldedLevels = options->getOption<bool>(HASH("LOD_shadowWeldedLevels")).getOrDefault(true);
         shadowWeldedFromLevel = (uint32_t) options->getOption<long>(HASH("LOD_shadowWeldedFromLevel")).getOrDefault(2L);
         normalDeviation = (float) options->getOption<double>(HASH("LOD_normalDeviation")).getOrDefault(0.2);
+        boneWeightDeviation = (float) options->getOption<double>(HASH("LOD_boneWeightDeviation")).getOrDefault(0.5);
         referenceHeight = (uint32_t) options->getOption<long>(HASH("LOD_referenceHeight")).getOrDefault(1080L);
         referenceFov = (float) options->getOption<double>(HASH("LOD_referenceFov")).getOrDefault(60.0);
         referencePixelsPerMeter = (float) (0.5 * (double) referenceHeight / std::tan(glm::radians(referenceFov * 0.5)));
@@ -180,7 +186,9 @@ void LodLadder::prepareGenerators(const std::vector<MeshGeometry> &meshes) {
         generators.push_back(std::unique_ptr<LodGenerator>(new LodGenerator(*mesh.vertices, *mesh.normals,
                                                                            *mesh.textureCoordinates,
                                                                            sourceIndices[meshIndex].data(),
-                                                                           sourceIndices[meshIndex].size())));
+                                                                           sourceIndices[meshIndex].size(),
+                                                                           mesh.boneIDs, mesh.boneWeights,
+                                                                           boneWeightDeviation)));
     }
 }
 
@@ -274,7 +282,7 @@ bool LodLadder::searchStep(const std::vector<MeshGeometry> &meshes, const LodSte
 }
 
 bool LodLadder::buildForTriangleShare(const std::vector<MeshGeometry> &meshes, const LodStep &step, float share,
-                                      size_t originalTriangles, bool measure, LodStep::Outcome &outOutcome) const {
+                                      size_t originalTriangles, LodStep::Outcome &outOutcome) const {
     if (share <= 0.0f || share >= 1.0f || originalTriangles == 0) {
         return false;
     }
@@ -290,9 +298,7 @@ bool LodLadder::buildForTriangleShare(const std::vector<MeshGeometry> &meshes, c
         std::cerr << "could not build a LOD step at " << share * 100.0f << " percent for " << assetPath << std::endl;
         return false;
     }
-    if (measure) {
-        measureCandidate(meshes, step.distance, step.limits, best);//only for the panel, a typed share is obeyed
-    }
+    measureCandidate(meshes, step.distance, step.limits, best);//only for the panel, a typed share is obeyed
     fillOutcome(best, targetError, originalTriangles, outOutcome);
     return true;
 }
@@ -368,19 +374,13 @@ void LodLadder::buildOneLadder(const std::vector<MeshGeometry> &meshes, LodGener
         }
         prepareGenerators(meshes);
         if (!welded && step.userSet && step.requestedRatio > 0.0f) {
-            if (buildForTriangleShare(meshes, step, step.requestedRatio, originalTriangles, canCalibrate, outcome)) {
+            if (buildForTriangleShare(meshes, step, step.requestedRatio, originalTriangles, outcome)) {
                 outMeasuredCount++;
             } else {
                 //the simplifier will not go that far on this model, so the share is dropped rather than kept as
                 //an intent nothing can satisfy. The limits take the step from the next build
                 step.requestedRatio = 0.0f;
                 step.userSet = false;
-                continue;
-            }
-        } else if (!canCalibrate) {
-            //a deforming mesh has no pose to render, so the project's hoped for share is all there is to go by.
-            //Its welded twin would need a measurement too, so it has none
-            if (welded || !buildForTriangleShare(meshes, step, step.triangleTarget, originalTriangles, false, outcome)) {
                 continue;
             }
         } else {
@@ -488,7 +488,7 @@ bool LodLadder::isLadderComplete() const {
         if (!steps[stepIndex].structure.built && steps[stepIndex].structure.skipReason == LodSkipReason::NONE) {
             return false;
         }
-        if (canCalibrate && isWeldedStep(stepIndex) && !steps[stepIndex].welded.built &&
+        if (isWeldedStep(stepIndex) && !steps[stepIndex].welded.built &&
             steps[stepIndex].welded.skipReason == LodSkipReason::NONE) {
             return false;
         }
@@ -626,7 +626,11 @@ float LodLadder::averagePositionPerUv(const MeshGeometry &mesh) {
             if (first >= vertices.size() || second >= vertices.size()) {
                 continue;
             }
-            positionLength += glm::length(vertices[first] - vertices[second]);
+            glm::vec3 edge = vertices[first] - vertices[second];
+            if (mesh.transform != nullptr) {
+                edge = glm::mat3(*mesh.transform) * edge;
+            }
+            positionLength += glm::length(edge);
             uvLength += glm::length(textureCoordinates[first] - textureCoordinates[second]);
         }
     }
@@ -667,6 +671,9 @@ void LodLadder::rasterize(const std::vector<MeshGeometry> &meshes, const Candida
         const bool hasNormals = mesh.normals != nullptr && mesh.normals->size() == vertices.size();
         const uint8_t meshAttributeMask = (uint8_t) ((hasTextureCoordinates ? RASTER_HAS_UV : 0) |
                                                      (hasNormals ? RASTER_HAS_NORMAL : 0));
+        //normals of touching meshes meet at one pixel, so they have to be in the same space as the positions
+        const glm::mat3 normalTransform = mesh.transform == nullptr ? glm::mat3(1.0f)
+                                                                     : glm::transpose(glm::inverse(glm::mat3(*mesh.transform)));
         for (size_t triangle = 0; triangle + 2 < indexCount; triangle = triangle + 3) {
             glm::vec3 projected[3];
             bool indexOutOfRange = false;
@@ -678,7 +685,8 @@ void LodLadder::rasterize(const std::vector<MeshGeometry> &meshes, const Candida
                     indexOutOfRange = true;
                     break;
                 }
-                glm::vec3 relative = vertices[vertexIndex] - center;
+                glm::vec3 relative = (mesh.transform == nullptr ? vertices[vertexIndex]
+                                      : glm::vec3(*mesh.transform * glm::vec4(vertices[vertexIndex], 1.0f))) - center;
                 projected[corner] = glm::vec3(glm::dot(relative, view.right) * scale + resolution * 0.5f,
                                               glm::dot(relative, view.up) * scale + resolution * 0.5f,
                                               glm::dot(relative, view.forward) * scale);
@@ -704,9 +712,9 @@ void LodLadder::rasterize(const std::vector<MeshGeometry> &meshes, const Candida
             }
             if (hasNormals) {
                 const std::vector<glm::vec3> &normals = *mesh.normals;
-                cornerNormal[0] = normals[corner0];
-                cornerNormal[1] = normals[corner1];
-                cornerNormal[2] = normals[corner2];
+                cornerNormal[0] = normalTransform * normals[corner0];
+                cornerNormal[1] = normalTransform * normals[corner1];
+                cornerNormal[2] = normalTransform * normals[corner2];
             }
             int32_t minX = std::max(0, (int32_t) std::floor(std::min(projected[0].x, std::min(projected[1].x, projected[2].x))));
             int32_t maxX = std::min((int32_t) resolution - 1, (int32_t) std::ceil(std::max(projected[0].x, std::max(projected[1].x, projected[2].x))));
@@ -793,9 +801,11 @@ bool LodLadder::measureCandidate(const std::vector<MeshGeometry> &meshes, float 
     glm::vec3 high(-FLT_MAX);
     for (size_t meshIndex = 0; meshIndex < meshes.size(); ++meshIndex) {
         const std::vector<glm::vec3> &vertices = *meshes[meshIndex].vertices;
+        const glm::mat4 *transform = meshes[meshIndex].transform;
         for (size_t vertex = 0; vertex < vertices.size(); ++vertex) {
-            low = glm::min(low, vertices[vertex]);
-            high = glm::max(high, vertices[vertex]);
+            glm::vec3 position = transform == nullptr ? vertices[vertex] : glm::vec3(*transform * glm::vec4(vertices[vertex], 1.0f));
+            low = glm::min(low, position);
+            high = glm::max(high, position);
         }
     }
     if (low.x > high.x) {
