@@ -153,6 +153,9 @@ void ModelAsset::loadCPUPart() {
     }
 
     this->hasAnimation = (scene->mNumAnimations != 0);
+    //before createMeshes: a model animated only by mixamo files would otherwise bake its node transforms into the
+    //vertices and get measured as static, then be skinned on top of that
+    loadMixamoAnimations();
 
     //std::cout << "ASSIMP::success::" << name << std::endl;
 
@@ -175,7 +178,7 @@ void ModelAsset::loadCPUPart() {
     }
     createMeshes(scene, scene->mRootNode, initialTransform);
     buildLodLevels(LodLadder::BuildMode::NORMAL);
-    if(this->hasAnimation) {
+    if(scene->mNumAnimations != 0) {
         fillAnimationSet(scene->mNumAnimations, scene->mAnimations);
     }
 
@@ -191,6 +194,12 @@ void ModelAsset::loadCPUPart() {
     //std::cout << "Model asset: " << name << "Assimp bounding box is " << GLMUtils::vectorToString(boundingBoxMin) << ", " <<  GLMUtils::vectorToString(boundingBoxMax) << std::endl;
     //Implicit call to import.FreeScene(), and removal of scene.
 
+    this->deserializeCustomizations();
+
+    buildPhysicsMeshes();
+}
+
+void ModelAsset::loadMixamoAnimations() {
     //it is possible that there are mixamo animation files, check if they do, add them too if needed.
     // we get a list of file paths, so we don't hold the lock in asset tree for longer than needed
     std::vector<std::string> mixamoFilePaths = assetManager->getMixamoAnimationFilePaths(this->name);
@@ -221,10 +230,6 @@ void ModelAsset::loadCPUPart() {
         }
         std::cout << mixamoCount << " mixamo animations found for model " << this->name << std::endl;
     }
-
-    this->deserializeCustomizations();
-
-    buildPhysicsMeshes();
 }
 
 

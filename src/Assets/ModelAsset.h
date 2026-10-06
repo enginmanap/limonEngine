@@ -145,6 +145,7 @@ private:
     void computeBoundsFromVertices();
     void buildLodLevels(LodLadder::BuildMode buildMode);//measures or reuses, then hands each mesh its plan
     void buildLodGeometry(std::vector<LodLadder::MeshGeometry> &outGeometry) const;
+    void loadMixamoAnimations();
     std::string getFlipAxes() const;
 
     int32_t buildEditorBoneTreeRecursive(std::shared_ptr<BoneNode> boneNode, int32_t selectedBoneNodeID, bool followSelection);
