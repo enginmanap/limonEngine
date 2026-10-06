@@ -11,6 +11,7 @@ const std::string HardCodedTags::OBJECT_MODEL_BASIC         = "basic_model_objec
 const std::string HardCodedTags::OBJECT_MODEL_ANIMATED      = "animated_model_object";
 const std::string HardCodedTags::OBJECT_MODEL_TRANSPARENT   = "transparent_model_object";
 const std::string HardCodedTags::OBJECT_MODEL_AMBIENT       = "ambient_model_object";
+const std::string HardCodedTags::OBJECT_MODEL_NON_OCCLUDER  = "non_occluder_model_object";
 
 const std::string HardCodedTags::OBJECT_PLAYER_BASIC        = "basic_player_attachment";
 const std::string HardCodedTags::OBJECT_PLAYER_ANIMATED     = "animated_player_attachment";
@@ -30,6 +31,7 @@ const std::vector<std::string> HardCodedTags::ALL_INTERNAL_TAGS              = {
     HardCodedTags::OBJECT_MODEL_ANIMATED        ,
     HardCodedTags::OBJECT_MODEL_TRANSPARENT     ,
     HardCodedTags::OBJECT_MODEL_AMBIENT         ,
+    HardCodedTags::OBJECT_MODEL_NON_OCCLUDER    ,
 
     HardCodedTags::OBJECT_PLAYER_BASIC          ,
     HardCodedTags::OBJECT_PLAYER_ANIMATED       ,

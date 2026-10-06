@@ -21,6 +21,7 @@ public:
     static const std::string OBJECT_MODEL_ANIMATED;
     static const std::string OBJECT_MODEL_TRANSPARENT;
     static const std::string OBJECT_MODEL_AMBIENT;
+    static const std::string OBJECT_MODEL_NON_OCCLUDER;//never rasterized into the software occlusion buffer
 
     static const std::string OBJECT_PLAYER_BASIC;
     static const std::string OBJECT_PLAYER_ANIMATED;

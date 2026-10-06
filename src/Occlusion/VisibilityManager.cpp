@@ -279,6 +279,7 @@ void VisibilityManager::fillVisibleObjectPerCamera(const VisibilityRequest* visi
     // commit 42a9b69c): it detects ortho from the VP bottom row and carries clip-Z in the invW slot.
     static const uint64_t playerCameraTag      = HashUtil::hashString(HardCodedTags::CAMERA_PLAYER);
     static const uint64_t directionalLightTag  = HashUtil::hashString(HardCodedTags::CAMERA_LIGHT_DIRECTIONAL);
+    static const uint64_t nonOccluderTag       = HashUtil::hashString(HardCodedTags::OBJECT_MODEL_NON_OCCLUDER);
     bool skipOcclusionCulling = false;
     const bool isDirectionalLightCamera = visibilityRequest->camera->hasTag(directionalLightTag);
     if (!visibilityRequest->camera->hasTag(playerCameraTag) &&
@@ -361,7 +362,7 @@ void VisibilityManager::fillVisibleObjectPerCamera(const VisibilityRequest* visi
                                 }
                                 occluderCounter += meshMetas.size();
                                 //an animated occluder would need its node transform and pose, which we don't have here, so it only ever occludes itself
-                                if (runOcclusion && !currentModel->isAnimated() && !occludersSubmitted) {
+                                if (runOcclusion && !currentModel->isAnimated() && !occludersSubmitted && !currentModel->hasTag(nonOccluderTag)) {
                                     visibilityRequest->occlusionCuller.renderOccluder(currentModel, occluderLodLevel);
                                     //std::cout << currentModel->getName() << ":" << " is occluder " << std::endl;
                                 }
@@ -401,7 +402,7 @@ void VisibilityManager::fillVisibleObjectPerCamera(const VisibilityRequest* visi
                                             maxScreenSize = objectScreenSize;
                                         }
                                         occluderCounter++;
-                                        if (runOcclusion && !currentModel->isAnimated() && !occludersSubmitted) {
+                                        if (runOcclusion && !currentModel->isAnimated() && !occludersSubmitted && !currentModel->hasTag(nonOccluderTag)) {
                                             visibilityRequest->occlusionCuller.renderOccluder(meshMeta, currentModel->getTransformation()->getWorldTransform(), occluderLodLevel);
                                         }
                                         visibilityEntry.second.addMeshMaterial(meshMeta->material, meshMeta->mesh, currentModel, lod, objectAverageDepth);

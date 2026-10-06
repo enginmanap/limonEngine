@@ -94,6 +94,7 @@ void Model::addDefaultTags() {
     }
     if(this->isTransparent()) {
         this->addTag(HardCodedTags::OBJECT_MODEL_TRANSPARENT);
+        this->addTag(HardCodedTags::OBJECT_MODEL_NON_OCCLUDER);
     }
     if(!animated && !this->isTransparent() && !hasAmbientMapInAnyMesh) {
         this->addTag(HardCodedTags::OBJECT_MODEL_BASIC);
@@ -1345,6 +1346,7 @@ void Model::refreshTransparencyTags() {
     //add before remove, removing the last tag would refill the list with the defaults
     if (transparent && !hasTransparentTag && (hasBasicTag || hasAmbientTag)) {
         this->addTag(HardCodedTags::OBJECT_MODEL_TRANSPARENT);
+        this->addTag(HardCodedTags::OBJECT_MODEL_NON_OCCLUDER);
         if (underPlayer) {
             this->addTag(HardCodedTags::OBJECT_PLAYER_TRANSPARENT);
         }
@@ -1362,6 +1364,9 @@ void Model::refreshTransparencyTags() {
             }
         }
         this->removeTag(HardCodedTags::OBJECT_MODEL_TRANSPARENT);
+        if (this->hasTag(HashUtil::hashString(HardCodedTags::OBJECT_MODEL_NON_OCCLUDER))) {//a removed one stays removed, so it may be gone already
+            this->removeTag(HardCodedTags::OBJECT_MODEL_NON_OCCLUDER);
+        }
         if (this->hasTag(HashUtil::hashString(HardCodedTags::OBJECT_PLAYER_TRANSPARENT))) {
             this->removeTag(HardCodedTags::OBJECT_PLAYER_TRANSPARENT);
         }
