@@ -53,7 +53,7 @@ public:
     }
 
 
-    std::string static join(const std::list<HashUtil::HashedString>& source, const std::string& delimiter)
+    std::string static join(const std::vector<HashUtil::HashedString>& source, const std::string& delimiter)
     {
         std::ostringstream joinedStream;
         if (source.empty()) {

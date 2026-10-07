@@ -110,7 +110,7 @@ void Model::addDefaultTags() {
 }
 
 void Model::setTags(const std::vector<std::string> &tagList) {
-    std::list<HashUtil::HashedString> previousTags = this->getTags();//first get a copy of old tags
+    std::vector<HashUtil::HashedString> previousTags = this->getTags();//first get a copy of old tags
     //If we don't add before clean up, the automatic fall back will add defaults
     for (const std::string& tagToSet:tagList) {
         this->addTag(tagToSet);

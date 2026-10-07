@@ -115,7 +115,7 @@ public:
             previousLodLevels[objectId] = level;
         }
 
-    static bool isAnyTagMatch(const std::vector<HashUtil::HashedString>& renderTags, const std::list<HashUtil::HashedString> & objectTags) {
+    static bool isAnyTagMatch(const std::vector<HashUtil::HashedString>& renderTags, const std::vector<HashUtil::HashedString> & objectTags) {
             for (const auto& renderTag:renderTags) {
                 for (const auto& objectTag:objectTags) {
                     if (renderTag.hash == objectTag.hash) {
@@ -126,7 +126,7 @@ public:
             return false;
         }
 
-    static bool isAnyTagMatch(const std::vector<uint64_t>& renderTags, const std::list<HashUtil::HashedString> & objectTags) {
+    static bool isAnyTagMatch(const std::vector<uint64_t>& renderTags, const std::vector<HashUtil::HashedString> & objectTags) {
             for (const auto& renderTag:renderTags) {
                 for (const auto& objectTag:objectTags) {
                     if (renderTag == objectTag.hash) {

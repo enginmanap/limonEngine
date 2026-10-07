@@ -6,7 +6,7 @@
 #define LIMONENGINE_GAMEOBJECT_H
 
 #include <string>
-#include <list>
+#include <vector>
 
 #include "limonAPI/LimonAPI.h"
 #include "Editor/ImGuiRequest.h"
@@ -62,15 +62,23 @@ public:
      *
      * @return all tags, including hardcoded ones
      */
-    const std::list<HashUtil::HashedString>& getTags() const {
+    const std::vector<HashUtil::HashedString>& getTags() const {
         return tags;
     }
 
     virtual bool removeTag(const std::string& text) {
         HashUtil::HashedString tag(text);
-        for (std::list<HashUtil::HashedString>::const_iterator it = tags.begin(); it != tags.end(); ++it) {
+        for (std::vector<HashUtil::HashedString>::const_iterator it = tags.begin(); it != tags.end(); ++it) {
             if(it->hash == tag.hash) {
-                tags.erase(it);
+                //HashedString members are const, so erase can't shift the rest down. Rebuild without it instead
+                std::vector<HashUtil::HashedString> remainingTags;
+                remainingTags.reserve(tags.size() - 1);
+                for (const HashUtil::HashedString& existingTag : tags) {
+                    if (existingTag.hash != tag.hash) {
+                        remainingTags.emplace_back(existingTag);
+                    }
+                }
+                tags.swap(remainingTags);
                 return true;
             }
         }
@@ -78,7 +86,7 @@ public:
         return false;
     }
 private:
-    std::list<HashUtil::HashedString> tags;
+    std::vector<HashUtil::HashedString> tags;//culling matches against this for every object, a list made each check a cache miss per tag
 
 };
 
