@@ -164,7 +164,13 @@ public:
 
         glm::vec3 minWorldAABB;
         glm::vec3 maxWorldAABB;
-        AABBConverter::getWorldSpaceAABB(model->getTransformation()->getWorldTransform(), meshMeta->mesh->getAabbMin(), meshMeta->mesh->getAabbMax(), minWorldAABB, maxWorldAABB);
+        if (model->isAnimated()) {
+            //mesh aabb is the bind pose, a posed limb outside it would get culled while on screen
+            minWorldAABB = model->getAabbMin();
+            maxWorldAABB = model->getAabbMax();
+        } else {
+            AABBConverter::getWorldSpaceAABB(model->getTransformation()->getWorldTransform(), meshMeta->mesh->getAabbMin(), meshMeta->mesh->getAabbMax(), minWorldAABB, maxWorldAABB);
+        }
         possibleVisibleSetMesh.push_back(OcculudeeMetaData(meshMeta, model, lod, averageDepth, renderList));
         possibleVisibleSetMeshAABBs.push_back(minWorldAABB.x);
         possibleVisibleSetMeshAABBs.push_back(minWorldAABB.y);
