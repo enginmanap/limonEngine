@@ -550,7 +550,7 @@ bool VisibilityManager::isSkippedByLodDistance(float skipRenderDistance, float s
     const float screenSizeY = (ndcMax.y - ndcMin.y) / 2.0f;//area below is what the occluder split uses
     objectScreenSize = (screenSizeX * screenSizeY);
 
-    objectAverageDepth = (ndcMax.z + ndcMin.z) / -2.0f;
+    objectAverageDepth = (ndcMax.z + ndcMin.z) / -2.0f;//larger is nearer
 
     objectDistance = distanceToBox(playerPosition, minAABB, maxAABB);
     if(skipRenderDistance !=0 && objectDistance > skipRenderDistance) {           //Is it distant enough to skip?

@@ -115,16 +115,6 @@ public:
             previousLodLevels[objectId] = level;
         }
 
-        std::vector<RenderList> getRenderListsForHashList(const std::vector<HashUtil::HashedString>& hashList) const {
-            std::vector<RenderList> renderLists;
-            for (const auto& visibilityEntry:(*visibility)) {
-                if (vectorComparator(visibilityEntry.first, hashList)) {
-                    renderLists.emplace_back(visibilityEntry.second);
-                }
-            }
-            return renderLists;
-        }
-
     static bool isAnyTagMatch(const std::vector<HashUtil::HashedString>& renderTags, const std::list<HashUtil::HashedString> & objectTags) {
             for (const auto& renderTag:renderTags) {
                 for (const auto& objectTag:objectTags) {

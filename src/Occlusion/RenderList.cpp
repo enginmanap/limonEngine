@@ -5,39 +5,62 @@
 #include "RenderList.h"
 
 #include "../GameObjects/Model.h"
+#include "../Assets/MeshAsset.h"
+#include <algorithm>
+
+static_assert(RenderList::LOD_BAND_COUNT == MeshAsset::LOD_MAX_LEVEL_COUNT, "a LOD level with no band would index past the bands");
+static_assert(RenderList::LOD_BAND_COUNT <= 16, "band masks are uint16_t");
+
 void RenderList::addMeshMaterial(const std::shared_ptr<const Material> &material, const std::shared_ptr<MeshAsset> &meshAsset, const Model *model, uint32_t lod, float maxDepth, int32_t rigIdOverride) {
-    std::unordered_map<std::shared_ptr<const Material>, PerMaterialRenderInformation>::iterator materialIterator;
-    getOrCreateMaterialEntry(material, materialIterator);
-    auto meshIterator = materialIterator->second.getOrCreateMeshEntry(meshAsset);
-    auto requestedObjectIterator = std::find_if(meshIterator->second.indices.begin(), meshIterator->second.indices.end(), [model](const glm::uvec4& entry) { return entry.x == model->getWorldObjectID(); });
-    //an object already in the list can still have moved, and the mesh renders at the finest level any of its instances wants
-    meshIterator->second.lod = std::min(meshIterator->second.lod, lod);
-    if (requestedObjectIterator == meshIterator->second.indices.end()) {
+    //a model that never simplified stays at level 0 at any distance, the last band keeps a far one from being drawn first
+    const uint32_t bandIndex = model->getModelAsset()->getLodLadder().getMeshLodCount() <= 1 ? LOD_BAND_COUNT - 1 : lod;
+    Band& band = bands[bandIndex];
+    PerMaterialRenderInformation& perMaterialRenderInformation = band.materials[material];
+    PerMeshRenderInformation& perMeshRenderInformation = perMaterialRenderInformation.meshes[meshAsset];
+    perMeshRenderInformation.lod = lod;
+    const uint32_t modelId = model->getWorldObjectID();
+    std::vector<glm::uvec4>::const_iterator requestedObjectIterator = std::find_if(perMeshRenderInformation.indices.begin(), perMeshRenderInformation.indices.end(), [modelId](const glm::uvec4& entry) { return entry.x == modelId; });
+    if (requestedObjectIterator == perMeshRenderInformation.indices.end()) {
+        uint16_t& bandMask = meshBandMasks[meshAsset];
+        const uint16_t otherBands = bandMask & ~(uint16_t)(1u << bandIndex);
+        if (otherBands != 0) {
+            //lists that are not cleared every frame still hold this object at its previous level
+            removeFromBands(material, meshAsset, modelId, otherBands);
+        }
+        bandMask |= (uint16_t)(1u << bandIndex);
         uint32_t rigId = rigIdOverride >= 0 ? (uint32_t)rigIdOverride : model->getRigId();
-        meshIterator->second.indices.emplace_back(model->getWorldObjectID(), material->getMaterialIndex(), rigId, 0);
-        meshIterator->second.depth = std::max(meshIterator->second.depth, maxDepth);
-        meshIterator->second.isAnimated = meshIterator->second.isAnimated || model->isAnimated();
-        materialIterator->second.maxDepthPerMesh[meshAsset] = std::max(materialIterator->second.maxDepthPerMesh[meshAsset], maxDepth);//This is the max depth of this material
-        materialIterator->second.meshRenderPriorityMap.clear();//Why? because we don't know if we need to sort the list again
-        maxDepthPerMaterial[material] = std::max(maxDepthPerMaterial[material], maxDepth);
-        materialRenderPriorityMap.clear();//Why? because we don't know if we need to sort the list again
+        perMeshRenderInformation.indices.emplace_back(modelId, material->getMaterialIndex(), rigId, 0);
+        perMeshRenderInformation.isAnimated = perMeshRenderInformation.isAnimated || model->isAnimated();
+        perMeshRenderInformation.depth = std::max(perMeshRenderInformation.depth, maxDepth);
+        perMaterialRenderInformation.depth = std::max(perMaterialRenderInformation.depth, maxDepth);
+        perMaterialRenderInformation.meshOrder.clear();
+        band.materialOrder.clear();
+    }
+}
+
+void RenderList::removeFromBands(const std::shared_ptr<const Material> &material, const std::shared_ptr<MeshAsset> &meshAsset, uint32_t modelId, uint16_t bandMask) {
+    for (uint32_t bandIndex = 0; bandIndex < LOD_BAND_COUNT; ++bandIndex) {
+        if ((bandMask & (1u << bandIndex)) == 0) {
+            continue;
+        }
+        MaterialMap::iterator materialIterator = bands[bandIndex].materials.find(material);
+        if (materialIterator == bands[bandIndex].materials.end()) {
+            continue;
+        }
+        MeshMap::iterator meshIterator = materialIterator->second.meshes.find(meshAsset);
+        if (meshIterator == materialIterator->second.meshes.end()) {
+            continue;
+        }
+        //emptied entries stay until cleanUpEmptyRenderLists, removing here would invalidate iterators
+        std::vector<glm::uvec4>& indices = meshIterator->second.indices;
+        indices.erase(std::remove_if(indices.begin(), indices.end(), [modelId](const glm::uvec4& entry) { return entry.x == modelId; }), indices.end());
     }
 }
 
 void RenderList::removeMeshMaterial(const std::shared_ptr<const Material> &material, const std::shared_ptr<MeshAsset> &meshAsset, uint32_t modelId) {
-    auto materialIterator = perMaterialMeshMap.find(material);
-    if(materialIterator != perMaterialMeshMap.end()) {
-        auto meshIterator = materialIterator->second.meshesToRender.find(meshAsset);
-        if (meshIterator != materialIterator->second.meshesToRender.end()) {
-            PerMeshRenderInformation& perMeshRenderInformation = meshIterator->second;
-            perMeshRenderInformation.indices.erase(
-                std::remove_if(perMeshRenderInformation.indices.begin(), perMeshRenderInformation.indices.end(), [modelId](const glm::uvec4& entry) { return entry.x == modelId; }), perMeshRenderInformation.indices.end());
-            if (perMeshRenderInformation.indices.empty()) {
-                //WE don't remove it intentionally, because it causes iterator invalidation
-            }
-        }
-        materialIterator->second.meshRenderPriorityMap.clear();
-        materialRenderPriorityMap.clear();
+    std::unordered_map<std::shared_ptr<MeshAsset>, uint16_t>::const_iterator maskIterator = meshBandMasks.find(meshAsset);
+    if (maskIterator != meshBandMasks.end()) {
+        removeFromBands(material, meshAsset, modelId, maskIterator->second);
     }
 }
 
@@ -46,16 +69,40 @@ void RenderList::removeMeshMaterial(const std::shared_ptr<const Material> &mater
  * @param modelId model ID to remove
  */
 void RenderList::removeModelFromAll(uint32_t modelId) {
-    for (auto& materialIterator: perMaterialMeshMap) {
-        for (auto& meshIterator: materialIterator.second.meshesToRender) {
-            PerMeshRenderInformation& perMeshRenderInformation = meshIterator.second;
-            perMeshRenderInformation.indices.erase(
-                std::remove_if(perMeshRenderInformation.indices.begin(), perMeshRenderInformation.indices.end(), [modelId](const glm::uvec4& entry) { return entry.x == modelId; }), perMeshRenderInformation.indices.end());
-            if (perMeshRenderInformation.indices.empty()) {
-                //WE don't remove it intentionally, because it causes iterator invalidation
+    for (Band& band : bands) {
+        for (MaterialEntry& materialEntry : band.materials) {
+            for (MeshEntry& meshEntry : materialEntry.second.meshes) {
+                std::vector<glm::uvec4>& indices = meshEntry.second.indices;
+                indices.erase(std::remove_if(indices.begin(), indices.end(), [modelId](const glm::uvec4& entry) { return entry.x == modelId; }), indices.end());
             }
-            materialIterator.second.meshRenderPriorityMap.clear();
-            materialRenderPriorityMap.clear();
+        }
+    }
+}
+
+bool RenderList::isMaterialNearer(const MaterialEntry* first, const MaterialEntry* second) {
+    return first->second.depth > second->second.depth;
+}
+
+bool RenderList::isMeshNearer(const MeshEntry* first, const MeshEntry* second) {
+    return first->second.depth > second->second.depth;
+}
+
+void RenderList::sortBands() const {
+    for (const Band& band : bands) {
+        if (band.materialOrder.empty() && !band.materials.empty()) {
+            for (const MaterialEntry& materialEntry : band.materials) {
+                band.materialOrder.emplace_back(&materialEntry);
+            }
+            std::sort(band.materialOrder.begin(), band.materialOrder.end(), isMaterialNearer);
+        }
+        for (const MaterialEntry* materialEntry : band.materialOrder) {
+            const PerMaterialRenderInformation& perMaterialRenderInformation = materialEntry->second;
+            if (perMaterialRenderInformation.meshOrder.empty() && !perMaterialRenderInformation.meshes.empty()) {
+                for (const MeshEntry& meshEntry : perMaterialRenderInformation.meshes) {
+                    perMaterialRenderInformation.meshOrder.emplace_back(&meshEntry);
+                }
+                std::sort(perMaterialRenderInformation.meshOrder.begin(), perMaterialRenderInformation.meshOrder.end(), isMeshNearer);
+            }
         }
     }
 }
@@ -149,35 +196,22 @@ void RenderList::render(GraphicsInterface *graphicsWrapper, const std::shared_pt
 
 void RenderList::cleanUpEmptyRenderLists() {
     //When a model is no longer visible, it will be removed. That means it is possible some Per Mesh Render Informations have no indices. We should clean them up
-    auto materialIterator = perMaterialMeshMap.begin();
-    int iterationCount = 0;
-    for (; materialIterator != perMaterialMeshMap.end();) {
-        iterationCount++;
-        for (auto it2 = materialIterator->second.meshesToRender.begin(); it2 != materialIterator->second.meshesToRender.end();) {
-            if (it2->second.indices.empty()) {
-                materialIterator->second.maxDepthPerMesh.erase(it2->first);
-                for (auto it3 = materialIterator->second.meshRenderPriorityMap.begin(); it3 != materialIterator->second.meshRenderPriorityMap.end(); ++it3) {
-                    if (it3->second == it2->first) {
-                        materialIterator->second.meshRenderPriorityMap.erase(it3);
-                        break;
-                    }
+    for (Band& band : bands) {
+        for (MaterialMap::iterator materialIterator = band.materials.begin(); materialIterator != band.materials.end();) {
+            for (MeshMap::iterator meshIterator = materialIterator->second.meshes.begin(); meshIterator != materialIterator->second.meshes.end();) {
+                if (meshIterator->second.indices.empty()) {
+                    meshIterator = materialIterator->second.meshes.erase(meshIterator);
+                    materialIterator->second.meshOrder.clear();//it pointed at the erased node
+                } else {
+                    ++meshIterator;
                 }
-                it2 = materialIterator->second.meshesToRender.erase(it2);
+            }
+            if (materialIterator->second.meshes.empty()) {
+                materialIterator = band.materials.erase(materialIterator);
+                band.materialOrder.clear();
             } else {
-                ++it2;
+                ++materialIterator;
             }
-        }
-        if (materialIterator->second.meshesToRender.empty()) {
-            maxDepthPerMaterial.erase(materialIterator->first);
-            for (auto it2 = materialRenderPriorityMap.begin(); it2 != materialRenderPriorityMap.end(); ++it2) {
-                if (it2->second == materialIterator->first) {
-                    materialRenderPriorityMap.erase(it2);
-                    break;
-                }
-            }
-            materialIterator = perMaterialMeshMap.erase(materialIterator);
-        } else {
-            ++materialIterator;
         }
     }
 }
