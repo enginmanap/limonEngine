@@ -239,19 +239,10 @@ TriggerObject * TriggerObject::deserialize(tinyxml2::XMLElement *triggersNode, L
 
     triggerObject->firstEnterTriggerCode = APISerializer::deserializeTriggerCode(triggersNode, triggerAttribute, "FirstEnterTriggerCode", triggerObject->limonAPI,
                                                                                     triggerObject->enabledFirstTrigger);
-    if(triggerObject->firstEnterTriggerCode == nullptr) {
-        std::cout << "First enter trigger code deserialization failed." << std::endl;
-    }
     triggerObject->enterTriggerCode = APISerializer::deserializeTriggerCode(triggersNode, triggerAttribute, "EnterTriggerCode", triggerObject->limonAPI,
                                                                                triggerObject->enabledEnterTrigger);
-    if(triggerObject->enterTriggerCode == nullptr) {
-        std::cout << "enter trigger code deserialization failed." << std::endl;
-    }
     triggerObject->exitTriggerCode = APISerializer::deserializeTriggerCode(triggersNode, triggerAttribute, "ExitTriggerCode", triggerObject->limonAPI,
                                                                               triggerObject->enabledExitTrigger);
-    if(triggerObject->exitTriggerCode == nullptr) {
-        std::cout << "Exit trigger code deserialization failed." << std::endl;
-    }
 
     triggerObject->enabledAny = triggerObject->enabledFirstTrigger ||triggerObject->enabledEnterTrigger || triggerObject->enabledExitTrigger;
 
