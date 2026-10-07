@@ -315,7 +315,7 @@ void VisibilityManager::fillVisibleObjectPerCamera(const VisibilityRequest* visi
     uint32_t lodSkipCounter = 0;
     uint32_t occluderCounter = 0;
     uint32_t occludedCounter = 0;
-    uint32_t nonOccludedCount = 0; // occludees that survived the depth test
+    uint32_t nonOccludedCount = 0; // occludees and occluders that survived the depth test
     float maxScreenSize = 0.0;
     for (auto objectIt = visibilityRequest->objects->begin(); objectIt != visibilityRequest->objects->end(); ++objectIt) {
         bool isHiddenPlayerAttachment = false;
@@ -367,7 +367,12 @@ void VisibilityManager::fillVisibleObjectPerCamera(const VisibilityRequest* visi
                                     //std::cout << currentModel->getName() << ":" << " is occluder " << std::endl;
                                 }
                                 for (auto& meshMeta:meshMetas) {
-                                    visibilityEntry.second.addMeshMaterial(meshMeta->material, meshMeta->mesh, currentModel, modelLod, objectAverageDepth);
+                                    //an occluder can be hidden by another one too. Its own aabb is in front of its surface, so it can't hide itself
+                                    if (runOcclusion) {
+                                        visibilityRequest->occlusionCuller.addOccludee(meshMeta, currentModel, modelLod, objectAverageDepth, &visibilityEntry.second);
+                                    } else {
+                                        visibilityEntry.second.addMeshMaterial(meshMeta->material, meshMeta->mesh, currentModel, modelLod, objectAverageDepth);
+                                    }
                                 }
                             } else {
                                 for (auto& meshMeta:meshMetas) {
@@ -405,7 +410,11 @@ void VisibilityManager::fillVisibleObjectPerCamera(const VisibilityRequest* visi
                                         if (runOcclusion && !currentModel->isAnimated() && !occludersSubmitted && !currentModel->hasTag(nonOccluderTag)) {
                                             visibilityRequest->occlusionCuller.renderOccluder(meshMeta, currentModel->getTransformation()->getWorldTransform(), occluderLodLevel);
                                         }
-                                        visibilityEntry.second.addMeshMaterial(meshMeta->material, meshMeta->mesh, currentModel, lod, objectAverageDepth);
+                                        if (runOcclusion) {
+                                            visibilityRequest->occlusionCuller.addOccludee(meshMeta, currentModel, lod, objectAverageDepth, &visibilityEntry.second);
+                                        } else {
+                                            visibilityEntry.second.addMeshMaterial(meshMeta->material, meshMeta->mesh, currentModel, lod, objectAverageDepth);
+                                        }
                                     } else {
                                         visibilityRequest->occlusionCuller.addOccludee(meshMeta, currentModel, lod, objectAverageDepth, &visibilityEntry.second);
                                     }
@@ -449,7 +458,7 @@ void VisibilityManager::fillVisibleObjectPerCamera(const VisibilityRequest* visi
             metaData->renderList->addMeshMaterial(metaData->meshMeta->material, metaData->meshMeta->mesh, metaData->model, metaData->lod, metaData->averageDepth);
         }
         nonOccludedCount = static_cast<uint32_t>(nonOccludedMeshes.size());
-        occludedCounter = totalCounter - occluderCounter - nonOccludedCount;
+        occludedCounter = totalCounter - nonOccludedCount;//occluders are queried too, so they are part of nonOccludedCount
         if (occluderCounter != 0 && occludedCounter != 0) {
             //std::cout << "Total occluder count is " << occluderCounter << " and it occluded " << occludedCounter << std::endl;
         }
@@ -498,7 +507,7 @@ void VisibilityManager::fillVisibleObjectPerCamera(const VisibilityRequest* visi
 
         tracy::Profiler::PlotData(stableName("Frustum Culled"), (int64_t)frustumCulledCount);
         tracy::Profiler::PlotData(stableName("LOD Skipped"),    (int64_t)lodSkipCounter);
-        tracy::Profiler::PlotData(stableName("Total Visible"),  (int64_t)(occluderCounter + nonOccludedCount));
+        tracy::Profiler::PlotData(stableName("Total Visible"),  (int64_t)(runOcclusion ? nonOccludedCount : occluderCounter));
         if (runOcclusion) {
             tracy::Profiler::PlotData(stableName("Occluders"), (int64_t)occluderCounter);
             tracy::Profiler::PlotData(stableName("Occluded"),  (int64_t)occludedCounter);
