@@ -24,7 +24,7 @@ Model::Model(uint32_t objectID,  std::shared_ptr<AssetManager> assetManager, con
         name(modelFile), flipAxes(flipAxes) {
 
     //this is required because the shader has fixed size arrays
-    boneTransforms.resize(128);
+    boneTransforms.resize(ModelAsset::MAX_BONES);
     std::string assetKey = flipAxes.empty() ? modelFile : modelFile + "?flip" + flipAxes;
     modelAsset = assetManager->loadAsset<ModelAsset>({assetKey});
     //set up the rigid body
