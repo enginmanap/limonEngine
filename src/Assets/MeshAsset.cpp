@@ -475,16 +475,14 @@ void MeshAsset::buildBulletMesh() {
             for (unsigned int index = 0; index < it->second.size(); index++) {
                 hullshape->addPoint(GLMConverter::GLMToBlt(vertices[it->second[index]]));
             }
-            bulletHull = new btShapeHull(hullshape);
+            btShapeHull shapeHull(hullshape);//the builder only lives for this bone, the shape below copies the points
             btScalar margin = hullshape->getMargin();
-            bulletHull->buildHull(margin);
+            shapeHull.buildHull(margin);
             delete hullshape;
-            hullshape = nullptr;
 
-            hullshape = new btConvexHullShape((const btScalar *) bulletHull->getVertexPointer(),
-                                              bulletHull->numVertices());
-            //FIXME clear memory leak here, no one deletes this shapes.
-            bulletHullMap[it->first] = hullshape;
+            hullshape = new btConvexHullShape((const btScalar *) shapeHull.getVertexPointer(),
+                                              shapeHull.numVertices());
+            bulletHullMap[it->first] = hullshape;//the destructor deletes these
             bulletParentTransformMap[it->first].setFromOpenGLMatrix(glm::value_ptr(parentTransform));
         }
 
