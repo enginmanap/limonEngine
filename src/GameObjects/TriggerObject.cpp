@@ -120,9 +120,7 @@ void TriggerObject::PutTriggerInGui(LimonAPI *limonAPI, const GenerateEditorElem
                 bool isThisCodeSelected =  (triggerCode != nullptr && triggerCode->getName() == *it);
                 if (ImGui::Selectable(it->c_str(), isThisCodeSelected)) {
                     if (!isThisCodeSelected) {//if this is not the previously selected trigger code
-                        if (triggerCode != nullptr) {
-                            delete triggerCode;
-                        }
+                        delete triggerCode;
                         triggerCode = TriggerInterface::createTrigger(*it, limonAPI);
                         triggerCode->setParameters(triggerCode->getParameters());
                         enabled = false;
