@@ -54,38 +54,11 @@ ModelAsset::ModelAsset(AssetManager *assetManager, uint32_t assetID, const std::
     }
 }
 
-ModelAsset::ModelAsset(AssetManager *assetManager, const aiScene *scene, uint32_t meshIndex, bool mirrorX,
-                       const std::string &sourcePath, const std::string &piecePath, const std::string &meshName)
-        : Asset(assetManager, 0, {piecePath}),
+ModelAsset::ModelAsset(AssetManager *assetManager, const std::string &path)
+        : Asset(assetManager, 0, {path}),
           boneIDCounter(0),
           boneIDCounterPerMesh(0) {
-    name = piecePath;
-    this->sourcePath = sourcePath;
-    reverseWinding = mirrorX;
-    hasAnimation = false;
-    rootNode = std::make_shared<BoneNode>();
-    rootNode->name = meshName;
-    rootNode->boneID = boneIDCounter++;
-    rootNode->transformation = glm::mat4(1.0f);
-
-    const aiMesh *sourceMesh = scene->mMeshes[meshIndex];
-    std::shared_ptr<Material> meshMaterial = loadMaterials(scene, sourceMesh->mMaterialIndex);
-    //no node transform on purpose, every node using this mesh places it through its own object transform
-    glm::mat4 mirrorTransform = mirrorX ? glm::scale(glm::mat4(1.0f), glm::vec3(-1.0f, 1.0f, 1.0f)) : glm::mat4(1.0f);
-    std::shared_ptr<MeshAsset> mesh = std::make_shared<MeshAsset>(sourceMesh, meshName, rootNode, mirrorTransform, false, reverseWinding);
-    meshMaterialMap[mesh] = meshMaterial;
-    if ((*mesh->getTriangleCount()) == 0) {
-        std::cerr << "Mesh " << meshIndex << " of " << sourcePath << " has no triangles, piece " << piecePath << " is empty." << std::endl;
-        exit(-1);
-    }
-    if (meshMaterial->hasOpacityMap()) {
-        transparentMaterialUsed = true;
-    }
-    meshes.push_back(mesh);
-
-    buildLodLevels(LodLadder::BuildMode::NORMAL);
-    computeBoundsFromVertices();
-    buildPhysicsMeshes();
+    name = path;
 }
 
 const aiScene *ModelAsset::importScene(Assimp::Importer &assimpImporter, const std::string &path) {
@@ -567,12 +540,16 @@ std::shared_ptr<Material> ModelAsset::loadMaterials(const aiScene *scene, unsign
     return newMaterial;
 }
 
-void ModelAsset::createMeshes(const aiScene *scene, aiNode *aiNode, glm::mat4 parentTransform) {
-    parentTransform = parentTransform * GLMConverter::AssimpToGLM(aiNode->mTransformation);
+void ModelAsset::createMeshes(const aiScene *scene, const aiNode *node, glm::mat4 parentTransform,
+                              const std::set<std::pair<const aiNode *, uint32_t>> *includedMeshes) {
+    parentTransform = parentTransform * GLMConverter::AssimpToGLM(node->mTransformation);
 
-    for (unsigned int i = 0; i < aiNode->mNumMeshes; ++i) {
+    for (unsigned int i = 0; i < node->mNumMeshes; ++i) {
+        if (includedMeshes != nullptr && includedMeshes->count(std::make_pair(node, node->mMeshes[i])) == 0) {
+            continue;
+        }
         aiMesh *currentMesh;
-        currentMesh = scene->mMeshes[aiNode->mMeshes[i]];
+        currentMesh = scene->mMeshes[node->mMeshes[i]];
         for (unsigned int j = 0; j < currentMesh->mNumBones; ++j) {
             boneInformationMap[currentMesh->mBones[j]->mName.C_Str()].globalMeshInverse = glm::inverse(parentTransform);
             boneInformationMap[currentMesh->mBones[j]->mName.C_Str()].offset = GLMConverter::AssimpToGLM(currentMesh->mBones[j]->mOffsetMatrix);
@@ -580,24 +557,24 @@ void ModelAsset::createMeshes(const aiScene *scene, aiNode *aiNode, glm::mat4 pa
         }
         if(currentMesh->mNumBones == 0 && hasAnimation) {
             //If animated, but a mesh without any bone exits, we should process that mesh specially
-            boneInformationMap[aiNode->mName.C_Str()].offset = glm::mat4(1.0f);
-            boneInformationMap[aiNode->mName.C_Str()].parentOffset = glm::mat4(1.0f);
-            boneInformationMap[aiNode->mName.C_Str()].globalMeshInverse = glm::mat4(1.0f);
+            boneInformationMap[node->mName.C_Str()].offset = glm::mat4(1.0f);
+            boneInformationMap[node->mName.C_Str()].parentOffset = glm::mat4(1.0f);
+            boneInformationMap[node->mName.C_Str()].globalMeshInverse = glm::mat4(1.0f);
         }
 
         std::shared_ptr<Material> meshMaterial = loadMaterials(scene, currentMesh->mMaterialIndex);
         std::shared_ptr<MeshAsset> mesh;
-        mesh = std::make_shared<MeshAsset>(currentMesh, aiNode->mName.C_Str(), rootNode,
+        mesh = std::make_shared<MeshAsset>(currentMesh, node->mName.C_Str(), rootNode,
                                            parentTransform, hasAnimation, reverseWinding);
         meshMaterialMap[mesh] = meshMaterial;
         if((*mesh->getTriangleCount()) == 0) {
             continue;
         }
 
-        if(!strncmp(aiNode->mName.C_Str(), "UCX_", strlen("UCX_"))) {
+        if(!strncmp(node->mName.C_Str(), "UCX_", strlen("UCX_"))) {
             //if starts with "UCX_"
             simplifiedMeshes[mesh->getName()] = mesh;
-            //std::cout << "simplified mesh " << currentMesh->mName.C_Str() << " for node " << aiNode->mName.C_Str() << std::endl;
+            //std::cout << "simplified mesh " << currentMesh->mName.C_Str() << " for node " << node->mName.C_Str() << std::endl;
         } else {
             if (meshMaterial->hasOpacityMap()) {
                 this->transparentMaterialUsed = true;
@@ -605,23 +582,26 @@ void ModelAsset::createMeshes(const aiScene *scene, aiNode *aiNode, glm::mat4 pa
             } else {
                 meshes.insert(meshes.begin(), mesh);
             }
-            //std::cout << "set mesh " << currentMesh->mName.C_Str() << " for node " << aiNode->mName.C_Str() << std::endl;
+            //std::cout << "set mesh " << currentMesh->mName.C_Str() << " for node " << node->mName.C_Str() << std::endl;
         }
 
     }
 
-    for (unsigned int i = 0; i < aiNode->mNumChildren; ++i) {
-        createMeshes(scene, aiNode->mChildren[i], parentTransform);
+    for (unsigned int i = 0; i < node->mNumChildren; ++i) {
+        createMeshes(scene, node->mChildren[i], parentTransform, includedMeshes);
     }
 }
 
-std::shared_ptr<BoneNode> ModelAsset::loadNodeTree(aiNode *aiNode) {
+std::shared_ptr<BoneNode> ModelAsset::loadNodeTree(const aiNode *node, const std::set<const aiNode *> *keptNodes) {
     auto currentNode = std::make_shared<BoneNode>();
-    currentNode->name = aiNode->mName.C_Str();
+    currentNode->name = node->mName.C_Str();
     currentNode->boneID = boneIDCounter++;
-    currentNode->transformation = GLMConverter::AssimpToGLM(aiNode->mTransformation);
-    for (unsigned int i = 0; i < aiNode->mNumChildren; ++i) {
-        currentNode->children.push_back(loadNodeTree(aiNode->mChildren[i]));
+    currentNode->transformation = GLMConverter::AssimpToGLM(node->mTransformation);
+    for (unsigned int i = 0; i < node->mNumChildren; ++i) {
+        if (keptNodes != nullptr && keptNodes->count(node->mChildren[i]) == 0) {
+            continue;
+        }
+        currentNode->children.push_back(loadNodeTree(node->mChildren[i], keptNodes));
     }
     return currentNode;
 }

@@ -13,6 +13,7 @@
 #include <BulletCollision/CollisionShapes/btShapeHull.h>
 #include <cstdint>
 #include <map>
+#include <set>
 #include <unordered_map>
 #ifdef CEREAL_SUPPORT
 #include <cereal/access.hpp>
@@ -102,10 +103,13 @@ private:
 
     std::shared_ptr<Material> loadMaterials(const aiScene *scene, unsigned int materialIndex);
 
-    void createMeshes(const aiScene *scene, aiNode *aiNode, glm::mat4 parentTransform);//parent transform is not reference on purpose
+    //null includedMeshes takes every mesh under the node, the pairs are a node and one of its mesh indices
+    void createMeshes(const aiScene *scene, const aiNode *node, glm::mat4 parentTransform,
+                      const std::set<std::pair<const aiNode *, uint32_t>> *includedMeshes = nullptr);//parent transform is not reference on purpose
     //if it was, then we would need a stack
 
-    std::shared_ptr<BoneNode> loadNodeTree(aiNode *aiNode);
+    //null keptNodes takes the whole subtree
+    std::shared_ptr<BoneNode> loadNodeTree(const aiNode *node, const std::set<const aiNode *> *keptNodes = nullptr);
 
     bool findNode(const std::string &nodeName, std::shared_ptr<BoneNode>& foundNode, std::shared_ptr<BoneNode> searchRoot) const;
 
@@ -158,10 +162,14 @@ private:
     friend class cereal::access;
 #endif
     friend class AssetManager;
+    friend class ModelAssetBuilder;
     /**
      * This is used by cereal for deserialize
      */
     ModelAsset() : Asset(nullptr, 0, std::vector<std::string>()) {};
+
+    //an empty asset ModelAssetBuilder fills from part of a scene
+    ModelAsset(AssetManager *assetManager, const std::string &path);
 
 public:
     void bakeAllOccluderLods();//the limonmodel export calls this, load only bakes the level the option asks for
@@ -196,11 +204,6 @@ public:
     static std::string stripFlipSuffix(const std::string &path, bool &outFlipX, bool &outFlipY, bool &outFlipZ);
 
     ModelAsset(AssetManager *assetManager, uint32_t assetID, const std::vector<std::string> &fileList);
-
-    //one mesh of an imported scene, for the map converter. Never in the asset cache and never sent to the GPU, it
-    //only exists to be written out. The caller must have added the scene's embedded textures under sourcePath
-    ModelAsset(AssetManager *assetManager, const aiScene *scene, uint32_t meshIndex, bool mirrorX,
-               const std::string &sourcePath, const std::string &piecePath, const std::string &meshName);
 
     //nullptr on failure, the scene lives as long as the importer
     static const aiScene *importScene(Assimp::Importer &assimpImporter, const std::string &path);
