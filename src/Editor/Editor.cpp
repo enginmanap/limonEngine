@@ -823,6 +823,7 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
                 Model* pickedModel = dynamic_cast<Model*>(this->pickedObject);
                 Model* newModel = dynamic_cast<Model*>(this->copyAttachable(pickedModel, copyRecursive));
                 newModel->getTransformation()->addTranslate(glm::vec3(copyOffsets[0], copyOffsets[1], copyOffsets[2]));
+                world->apiAccessor->refreshBroadphaseAabbs(newModel);//the copy joined the world before this move
 
                 this->pickedObject = static_cast<GameObject*>(newModel);
                 this->pickedObject->addTag(HardCodedTags::PICKED_OBJECT);
@@ -1592,11 +1593,6 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
                             }
                             if (!wasDisconnected) {
                                 world->apiAccessor->reconnectObjectToPhysics(selectedObject->getWorldObjectID());//multiple redirection but should be fine as this is single object in editor mode
-                                world->dynamicsWorld->updateSingleAabb(selectedObject->getRigidBody());
-                            }
-                        } else {
-                            if(!selectedObject->isDisconnected()) {
-                                world->dynamicsWorld->updateSingleAabb(selectedObject->getRigidBody());
                             }
                         }
                     }
@@ -1638,9 +1634,7 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
                             }
                         }
                         selectedObject->reloadWithFlip(objectEditorResult.newFlipAxes);
-                        if (!selectedObject->isDisconnected()) {
-                            world->dynamicsWorld->updateSingleAabb(selectedObject->getRigidBody());
-                        }
+                        world->apiAccessor->refreshBroadphaseAabbs(selectedObject);//the shape changed while the body stayed in the world
                     }
                     if (objectEditorResult.massChanged) {
                         //the widget already stored the new value on the model; world reloads the shape and re-registers
@@ -1716,6 +1710,7 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
             if (objectEditorResult.updated) {
                 Attachable* attachableAncestor = dynamic_cast<Attachable*>(this->pickedObject);
                 if (attachableAncestor != nullptr) {
+                    world->apiAccessor->refreshBroadphaseAabbs(attachableAncestor);
                     Attachable* parentAttachable = attachableAncestor->getParentObject();
                     while (parentAttachable != nullptr) {
                         ModelGroup* ancestorGroup = dynamic_cast<ModelGroup*>(parentAttachable);

@@ -126,7 +126,7 @@ public:
     void updateAABB() {
         btVector3 abMax, abMin;
         // Compute directly from shape + current transform instead of reading the broad-phase
-        // cache, which is stale until dynamicsWorld->updateSingleAabb() runs (next stepSimulation).
+        // cache, which a sleeping body only gets from WorldAPIAccessor::refreshBroadphaseAabbs.
         rigidBody->getCollisionShape()->getAabb(rigidBody->getWorldTransform(), abMin, abMax);
         this->aabbMin = GLMConverter::BltToGLM(abMin);
         this->aabbMax = GLMConverter::BltToGLM(abMax);

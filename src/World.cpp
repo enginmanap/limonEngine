@@ -123,6 +123,8 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
     solver = new btSequentialImpulseConstraintSolver;
 
     dynamicsWorld = new btDiscreteDynamicsWorld(dispatcher, broadphase, solver, collisionConfiguration);
+    //bullet skips sleeping bodies now, which every static one is. A moved one is refreshed by WorldAPIAccessor::refreshBroadphaseAabbs
+    dynamicsWorld->setForceUpdateAllAabbs(false);
     hierarchyFilterCallback = new HierarchyFilterCallback();
     dynamicsWorld->getPairCache()->setOverlapFilterCallback(hierarchyFilterCallback);
     dynamicsWorld->setGravity(btVector3(0, -10, 0));

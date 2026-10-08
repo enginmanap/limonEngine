@@ -144,9 +144,10 @@ void GPUParticleEmitter::setupVAO() {
 
 ImGuiResult GPUParticleEmitter::addImGuiEditorElements(const ImGuiRequest &request) {
 
+    ImGuiResult imGuiResult;
     //Allow transformation editing.
     if(transformation.addImGuiEditorElements(request.perspectiveCameraMatrix, request.perspectiveMatrix, false, parentObject != nullptr)) {
-        //true means transformation changed, activate rigid body
+        imGuiResult.updated = true;
     }
 
     if(ImGui::Checkbox("Enabled##ParticleEmitter", &enabled)) {
@@ -301,7 +302,6 @@ ImGuiResult GPUParticleEmitter::addImGuiEditorElements(const ImGuiRequest &reque
         }
     }
 
-    ImGuiResult imGuiResult;
     if(ImGui::Button("Remove##ParticleEmitter")) {
         imGuiResult.remove = true;
     }

@@ -79,6 +79,8 @@ public:
     BodyTypes calculateParentBodyType(const Attachable *parent) const;
     //recurses to children, a parent switching between static and moving changes theirs too
     void applyBodyType(PhysicalRenderable *renderable);
+    //bullet doesn't update static bodies and the editor doesn't step, so anything moving an object outside a tick must call this
+    void refreshBroadphaseAabbs(Attachable *moved);
     //writes the user index World's HierarchyFilterCallback reads, so one hierarchy doesn't collide with itself
     void setHierarchyRootIndex(Attachable *subtreeRoot, int rootIndex);
     /**

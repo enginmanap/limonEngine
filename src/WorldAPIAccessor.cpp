@@ -547,6 +547,7 @@ void WorldAPIAccessor::attach(Attachable *child, Attachable *parent, int32_t bon
     GameObject* rootObject = dynamic_cast<GameObject*>(root);
     setHierarchyRootIndex(root, rootObject != nullptr ? static_cast<int>(rootObject->getWorldObjectID()) : -1);
     refreshPlayerAttachmentTags(child, root == world->getStartingPlayer());
+    refreshBroadphaseAabbs(child);//attaching at a local offset moves the child, and a static parent doesn't re-add it
 }
 
 void WorldAPIAccessor::detach(Attachable *child) {
@@ -652,6 +653,20 @@ void WorldAPIAccessor::applyBodyType(PhysicalRenderable *renderable) {
     }
 }
 
+void WorldAPIAccessor::refreshBroadphaseAabbs(Attachable *moved) {
+    Model* model = dynamic_cast<Model*>(moved);
+    if(model != nullptr && !model->isDisconnected()) {
+        world->dynamicsWorld->updateSingleAabb(model->getRigidBody());
+    }
+    TriggerObject* trigger = dynamic_cast<TriggerObject*>(moved);
+    if(trigger != nullptr) {
+        world->dynamicsWorld->updateSingleAabb(trigger->getGhostObject());
+    }
+    for(Attachable* child : moved->getChildren()) {
+        refreshBroadphaseAabbs(child);
+    }
+}
+
 void WorldAPIAccessor::setHierarchyRootIndex(Attachable *subtreeRoot, int rootIndex) {
     Model* model = dynamic_cast<Model*>(subtreeRoot);
     if(model != nullptr && model->getRigidBody()->getUserIndex() != rootIndex) {
@@ -691,7 +706,6 @@ bool WorldAPIAccessor::changeModelMass(uint32_t objectID, float newMass) {
 
     //Bullet requires the body to be out of the world while its collision shape and mass props change.
     bool connected = !model->isDisconnected();
-    btRigidBody *rigidBody = model->getRigidBody();
     if (connected) {
         model->disconnectFromPhysicsWorld(world->dynamicsWorld);
     }
@@ -700,7 +714,6 @@ bool WorldAPIAccessor::changeModelMass(uint32_t objectID, float newMass) {
 
     if (connected) {
         world->connectModelToPhysics(model);
-        world->dynamicsWorld->updateSingleAabb(rigidBody);
     }
     //reloadPhysicsShape sets the type from mass alone, a parent may override it and children follow this one
     applyBodyType(model);
@@ -1054,6 +1067,7 @@ bool WorldAPIAccessor::setObjectTranslateAPI(uint32_t objectID, const LimonTypes
         return false;
     }
     model->getTransformation()->setTranslate(glm::vec3(GLMConverter::LimonToGLM(position)));
+    refreshBroadphaseAabbs(model);
     return true;
 }
 
@@ -1067,6 +1081,7 @@ bool WorldAPIAccessor::setObjectScaleAPI(uint32_t objectID, const LimonTypes::Ve
         return false;
     }
     model->getTransformation()->setScale(glm::vec3(GLMConverter::LimonToGLM(scale)));
+    refreshBroadphaseAabbs(model);
     return true;
 }
 
@@ -1077,6 +1092,7 @@ bool WorldAPIAccessor::setObjectOrientationAPI(uint32_t objectID, const LimonTyp
     }
     glm::quat orientationQuat(orientation.w, orientation.x, orientation.y, orientation.z);
     model->getTransformation()->setOrientation(orientationQuat);
+    refreshBroadphaseAabbs(model);
     return true;
 }
 
@@ -1086,6 +1102,7 @@ bool WorldAPIAccessor::addObjectTranslateAPI(uint32_t objectID, const LimonTypes
         return false;
     }
     model->getTransformation()->addTranslate(glm::vec3(GLMConverter::LimonToGLM(position)));
+    refreshBroadphaseAabbs(model);
     return true;
 }
 
@@ -1095,6 +1112,7 @@ bool WorldAPIAccessor::addObjectScaleAPI(uint32_t objectID, const LimonTypes::Ve
         return false;
     }
     model->getTransformation()->addScale(glm::vec3(GLMConverter::LimonToGLM(scale)));
+    refreshBroadphaseAabbs(model);
     return true;
 }
 
@@ -1105,6 +1123,7 @@ bool WorldAPIAccessor::addObjectOrientationAPI(uint32_t objectID, const LimonTyp
     }
     glm::quat orientationQuat(orientation.w, orientation.x, orientation.y, orientation.z);
     model->getTransformation()->addOrientation(orientationQuat);
+    refreshBroadphaseAabbs(model);
     return true;
 }
 

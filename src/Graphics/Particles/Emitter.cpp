@@ -132,9 +132,10 @@ void Emitter::setupVAO() {
 
 ImGuiResult Emitter::addImGuiEditorElements(const ImGuiRequest &request) {
 
+    ImGuiResult imGuiResult;
     //Allow transformation editing.
     if(transformation.addImGuiEditorElements(request.perspectiveCameraMatrix, request.perspectiveMatrix, false, parentObject != nullptr)) {
-        //true means transformation changed, activate rigid body
+        imGuiResult.updated = true;
     }
 
     if(parentObject != nullptr) {
@@ -309,7 +310,6 @@ ImGuiResult Emitter::addImGuiEditorElements(const ImGuiRequest &request) {
         }
     }
 
-    ImGuiResult imGuiResult;
     if(ImGui::Button("Remove##ParticleEmitter")) {
         imGuiResult.remove = true;
     }
