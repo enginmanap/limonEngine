@@ -356,9 +356,16 @@ void World::applyAudioVolumeOptionsIfChanged() {
          }
          {
              PROFILE_SIMULATION("World::play::TransformFromPhysics");
-             for (auto it = objects.begin(); it != objects.end(); ++it) {
-                 if (!it->second->getRigidBody()->isStaticOrKinematicObject() && it->second->getRigidBody()->isActive()) {
-                     it->second->updateTransformFromPhysics();
+             //bullet's own list of bodies that can move, walking every object costs a cache miss each
+             btAlignedObjectArray<btRigidBody*>& movableBodies = dynamicsWorld->getNonStaticRigidBodies();
+             for (int bodyIndex = 0; bodyIndex < movableBodies.size(); ++bodyIndex) {
+                 btRigidBody* body = movableBodies[bodyIndex];
+                 if (body->isKinematicObject() || !body->isActive()) {
+                     continue;
+                 }
+                 Model* model = dynamic_cast<Model*>(static_cast<GameObject*>(body->getUserPointer()));//the player capsule is in the list too
+                 if (model != nullptr) {
+                     model->updateTransformFromPhysics();
                  }
              }
          }
@@ -596,15 +603,17 @@ void World::evaluatePoseOnce(uint32_t modelID) {
 }
 
 void World::updateAnimatedSleepStates() {
-    for (auto it = objects.begin(); it != objects.end(); ++it) {
-        Model* model = it->second;
+    //an animated body in the physics world is always kinematic, so bullet's movable list holds every one of them
+    btAlignedObjectArray<btRigidBody*>& movableBodies = dynamicsWorld->getNonStaticRigidBodies();
+    for (int bodyIndex = 0; bodyIndex < movableBodies.size(); ++bodyIndex) {
+        btRigidBody* body = movableBodies[bodyIndex];
+        Model* model = dynamic_cast<Model*>(static_cast<GameObject*>(body->getUserPointer()));
         //parented or custom animated bodies move without their pose being evaluated, asleep they would pass through sleeping bodies
-        if (!model->isAnimated() || model->getParentObject() != nullptr || model->getCustomAnimation() || model->isDisconnected()) {
+        if (model == nullptr || !model->isAnimated() || model->getParentObject() != nullptr || model->getCustomAnimation()) {
             continue;
         }
-        btRigidBody* body = model->getRigidBody();
         //a kinematic body that isn't sleeping wakes everything it shares a manifold with, even a frozen one
-        const bool poseEvaluated = tempRenderedObjectsSet.find(it->first) != tempRenderedObjectsSet.end();
+        const bool poseEvaluated = tempRenderedObjectsSet.find(model->getWorldObjectID()) != tempRenderedObjectsSet.end();
         if (poseEvaluated && body->getActivationState() == ISLAND_SLEEPING) {
             body->forceActivationState(DISABLE_DEACTIVATION);
         } else if (!poseEvaluated && body->getActivationState() != ISLAND_SLEEPING) {
