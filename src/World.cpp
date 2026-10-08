@@ -388,6 +388,9 @@ void World::applyAudioVolumeOptionsIfChanged() {
              for (const auto &visibility: visibilityManager->getCullingResults()) {
                  for (auto &visibleTags: *visibility.second){
                      for (auto it = visibleTags.second.getIterator(); !it.isEnd(); ++it) {
+                         if (!it.get().needsPose) {
+                             continue;
+                         }
                          for (glm::uvec4 meshRenderInfo:it.get().indices) {
                              evaluatePoseOnce(meshRenderInfo.x);
                          }

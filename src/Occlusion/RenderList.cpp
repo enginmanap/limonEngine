@@ -36,6 +36,8 @@ void RenderList::addMeshMaterial(const std::shared_ptr<const Material> &material
         perMaterialRenderInformation.meshOrder.clear();
         band.materialOrder.clear();
     }
+    //outside the add, a model kept in a list that isn't cleared can be attached to a bone later
+    perMeshRenderInformation.needsPose = perMeshRenderInformation.needsPose || model->isAnimated() || model->getParentBoneID() != -1;
 }
 
 void RenderList::removeFromBands(const std::shared_ptr<const Material> &material, const std::shared_ptr<MeshAsset> &meshAsset, uint32_t modelId, uint16_t bandMask) {

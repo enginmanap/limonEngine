@@ -23,6 +23,7 @@ struct PerMeshRenderInformation {
     std::vector<glm::uvec4> indices; // x = model object Id. y: material index to use. z and w reserved for texture id usage + bone transform index.
     uint32_t lod = 0;
     bool isAnimated = false;
+    bool needsPose = false;//an instance is animated or hangs from a bone, the rest have nothing for World's pose pass to evaluate
     float depth = std::numeric_limits<float>::lowest(); //nearest instance, larger is nearer. Starting at 0 would tie everything past twice the near plane
 };
 
