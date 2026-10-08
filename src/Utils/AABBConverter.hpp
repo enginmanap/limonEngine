@@ -93,7 +93,6 @@ struct AABBConverter {
 
         float32x4_t resMin = vdupq_n_f32(std::numeric_limits<float>::max());
         float32x4_t resMax = vdupq_n_f32(std::numeric_limits<float>::lowest());
-        float32x4_t epsilon = vdupq_n_f32(0.0001f);
 
         #define PROCESS_CORNER_NEON(TX, TY, TZ) \
             { \
