@@ -11,6 +11,7 @@
 #include "snapdragon-oc/Source/app/FuzzyCulling/API/SDOCAPI.h"
 #include "OccludeeMetaData.h"
 #include "Utils/AABBConverter.hpp"
+#include "Profiler/ProfilerMacros.h"
 
 
 namespace SOC {
@@ -87,6 +88,7 @@ public:
     }
 
     void newFrame(const glm::vec3& cameraPosition[[gnu::unused]],const glm::vec3& viewDirection[[gnu::unused]],const glm::mat4& cameraMatrix, const glm::mat4& projectionMatrix) {
+        PROFILE_VISIBILITY("Culling::NewFrame");
         if (!sdocInstance) {
             sdocInstance = static_cast<SOC::SOCPrivate *>(sdocInit(widthOption.getOrDefault(512), heightOption.getOrDefault(256), 1.0f));//sdoc clamps near plane to 1.0f anyway.
             // Enable occluder debugging
@@ -182,6 +184,7 @@ public:
     }
 
     std::vector<OcculudeeMetaData*> getNonOccludedMeshMeta() {
+        PROFILE_VISIBILITY("Culling::QueryOccludees");//SDOC rasterizes the occluders here, at flush, not when they are submitted
         std::vector<OcculudeeMetaData*> returnList;
         size_t meshCount = possibleVisibleSetMesh.size();
         returnList.reserve(meshCount);

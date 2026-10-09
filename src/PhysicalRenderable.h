@@ -15,7 +15,6 @@ class PhysicalRenderable : public Renderable, public Attachable {
 protected:
     glm::mat4 centerOffsetMatrix;
     glm::vec3 centerOffset;//init by list for constructor
-    glm::vec3 aabbMax, aabbMin;
     float mass;//not const: can be switched between 0 (static) and >0 (dynamic) at runtime, which reloads the collision shape
     btRigidBody *rigidBody = nullptr;
     bool disconnected = false;
@@ -112,12 +111,20 @@ public:
         return true;
     }
 
-    const glm::vec3 &getAabbMax() const {
-        return aabbMax;
+    //only models have an aabb, they keep it in their CullingEntry
+    virtual const glm::vec3 &getAabbMax() const {
+        std::cerr << "ERROR: getAabbMax called on a physical renderable that isn't a model, only models have an aabb" << std::endl;
+        std::exit(-1);
     }
 
-    const glm::vec3 &getAabbMin() const {
-        return aabbMin;
+    virtual const glm::vec3 &getAabbMin() const {
+        std::cerr << "ERROR: getAabbMin called on a physical renderable that isn't a model, only models have an aabb" << std::endl;
+        std::exit(-1);
+    }
+
+    virtual void setAabb(const glm::vec3 &newAabbMin [[gnu::unused]], const glm::vec3 &newAabbMax [[gnu::unused]]) {
+        std::cerr << "ERROR: setAabb called on a physical renderable that isn't a model, only models have an aabb" << std::endl;
+        std::exit(-1);
     }
 
     // Redeclare as pure virtual so Model and ModelGroup must still implement it.
@@ -128,9 +135,8 @@ public:
         // Compute directly from shape + current transform instead of reading the broad-phase
         // cache, which a sleeping body only gets from WorldAPIAccessor::refreshBroadphaseAabbs.
         rigidBody->getCollisionShape()->getAabb(rigidBody->getWorldTransform(), abMin, abMax);
-        this->aabbMin = GLMConverter::BltToGLM(abMin);
-        this->aabbMax = GLMConverter::BltToGLM(abMax);
-        this->dirtyForFrustum = true;
+        setAabb(GLMConverter::BltToGLM(abMin), GLMConverter::BltToGLM(abMax));
+        setDirtyForFrustum();
     }
 
     const glm::vec3 &getCenterOffset() const {

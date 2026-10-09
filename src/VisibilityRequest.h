@@ -10,6 +10,7 @@
 
 #include "Occlusion/OcclusionCullerHelper.h"
 #include "Occlusion/RenderList.h"
+#include "CullingEntry.h"
 
 
 class PhysicalRenderable;
@@ -74,7 +75,7 @@ public:
         const OptionsUtil::Options::Option<double> lodSwitchHysteresisOption;
         const OptionsUtil::Options::Option<long> lodForceLevelOption;
 
-        const std::unordered_map<uint32_t, Model *>* const objects;
+        const std::vector<CullingEntry>* const cullingEntries;
         const Attachable* const playerObject;
         std::unordered_map<std::vector<uint64_t>, RenderList, uint64_vector_hasher>* visibility;
         mutable OcclusionCullerHelper occlusionCuller;
@@ -85,7 +86,7 @@ public:
         bool playerDead = false; // same reason, isDead() reaches the player and we cannot touch that from here
         bool renderListsCleared = false; // set where the clear happens, removals against a cleared list can't find anything
 
-        VisibilityRequest(Camera* camera, std::unordered_map<uint32_t, Model *>* objects, const Attachable* playerObject, std::unordered_map<std::vector<uint64_t>, RenderList, uint64_vector_hasher> * visibility, const glm::vec3& playerPosition, const OptionsUtil::Options* options, SDL2MultiThreading::Barrier* frameBarrier, const std::string& cameraName) :
+        VisibilityRequest(Camera* camera, const std::vector<CullingEntry>* cullingEntries, const Attachable* playerObject, std::unordered_map<std::vector<uint64_t>, RenderList, uint64_vector_hasher> * visibility, const glm::vec3& playerPosition, const OptionsUtil::Options* options, SDL2MultiThreading::Barrier* frameBarrier, const std::string& cameraName) :
                 visibilityLatch(cameraName), frameBarrier(frameBarrier), camera(camera), playerPosition(playerPosition), options(options),
                 skipRenderDistanceOption(options->getOption<double>(HASH("LOD_skipRenderDistance"))),
                 skipRenderSizeOption(options->getOption<double>(HASH("LOD_skipRenderSize"))),
@@ -99,7 +100,7 @@ public:
                 occlusionBakeLodLevelOption(options->getOption<long>(HASH("occlusion_bakeLodLevel"))),
                 lodSwitchHysteresisOption(options->getOption<double>(HASH("LOD_switchHysteresis"))),
                 lodForceLevelOption(options->getOption<long>(HASH("LOD_forceLevel"))),
-                objects(objects), playerObject(playerObject), visibility(visibility),
+                cullingEntries(cullingEntries), playerObject(playerObject), visibility(visibility),
                 occlusionCuller(options->getOption<long>(HASH("occlusion_renderWidth")),
                 options->getOption<long>(HASH("occlusion_renderHeight"))) {
         }

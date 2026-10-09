@@ -19,9 +19,10 @@
 #include <cereal/archives/binary.hpp>
 #endif
 Model::Model(uint32_t objectID,  std::shared_ptr<AssetManager> assetManager, const float mass, const std::string &modelFile,
-             bool disconnected, const std::string &flipAxes) :
-        PhysicalRenderable(assetManager->getGraphicsWrapper(), mass, disconnected), objectID(objectID), assetManager(assetManager),
-        name(modelFile), flipAxes(flipAxes) {
+             bool disconnected, CullingEntry* cullingEntry, const std::string &flipAxes) :
+        PhysicalRenderable(assetManager->getGraphicsWrapper(), mass, disconnected), objectID(objectID), cullingEntry(cullingEntry),
+        assetManager(assetManager), name(modelFile), flipAxes(flipAxes) {
+    cullingEntry->model = this;
 
     //this is required because the shader has fixed size arrays
     boneTransforms.resize(128);
@@ -37,7 +38,7 @@ Model::Model(uint32_t objectID,  std::shared_ptr<AssetManager> assetManager, con
     btTransform baseTransform;
     baseTransform.setIdentity();
     baseTransform.setOrigin(GLMConverter::GLMToBlt(-1.0f * centerOffset));
-    this->animated = modelAsset->isAnimated();
+    cullingEntry->animated = modelAsset->isAnimated();
     std::map<uint32_t, btConvexHullShape *> hullMap;
 
     std::map<uint32_t, btTransform> btTransformMap;
@@ -70,7 +71,7 @@ Model::Model(uint32_t objectID,  std::shared_ptr<AssetManager> assetManager, con
     rigidBody->setSleepingThresholds(0.1, 0.1);
     rigidBody->setUserPointer(static_cast<GameObject *>(this));
 
-    if(animated) {
+    if(isAnimated()) {
         rigidBody->setCollisionFlags(rigidBody->getCollisionFlags() | btCollisionObject::CF_KINEMATIC_OBJECT);
         rigidBody->setActivationState(DISABLE_DEACTIVATION);
         //for animated bodies, setup the first frame
@@ -89,14 +90,14 @@ void Model::addDefaultTags() {
             break;
         }
     }
-    if(animated && !hasAmbientMapInAnyMesh) {
+    if(isAnimated() && !hasAmbientMapInAnyMesh) {
         this->addTag(HardCodedTags::OBJECT_MODEL_ANIMATED);
     }
     if(this->isTransparent()) {
         this->addTag(HardCodedTags::OBJECT_MODEL_TRANSPARENT);
         this->addTag(HardCodedTags::OBJECT_MODEL_NON_OCCLUDER);
     }
-    if(!animated && !this->isTransparent() && !hasAmbientMapInAnyMesh) {
+    if(!isAnimated() && !this->isTransparent() && !hasAmbientMapInAnyMesh) {
         this->addTag(HardCodedTags::OBJECT_MODEL_BASIC);
     }
     if(hasAmbientMapInAnyMesh) {
@@ -123,7 +124,7 @@ void Model::setTags(const std::vector<std::string> &tagList) {
             this->removeTag(previousTag.text);
         }
     }
-    this->dirtyForFrustum = true;// incase we did not remove any tags
+    setDirtyForFrustum();// incase we did not remove any tags
 }
 
 void Model::setupForTime(uint32_t time) {
@@ -132,7 +133,7 @@ void Model::setupForTime(uint32_t time) {
 }
 
 void Model::advanceAnimationClock(uint32_t time) {
-    if(animated && !animationLastFramePlayed) {
+    if(isAnimated() && !animationLastFramePlayed) {
         animationTime = animationTime + (time - lastSetupTime) * animationTimeScale;
         if(animationBlend) {
             animationTimeOld = animationTimeOld + (time - lastSetupTime) * animationTimeScale;
@@ -203,7 +204,7 @@ void Model::evaluatePose() {
 void Model::renderWithProgram(std::shared_ptr<GraphicsProgram> program, uint32_t lodLevel) {
     for (auto iter = meshMetaData.begin(); iter != meshMetaData.end(); ++iter) {
 
-        if (animated) {
+        if (isAnimated()) {
             //set all of the bones to unitTransform for testing
             program->setUniformArray("boneTransformArray[0]", boneTransforms);
             program->setUniform("isAnimated", true);
@@ -246,7 +247,7 @@ bool Model::fillObjects(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *o
         objectElement->InsertEndChild(currentElement);
     }
 
-    if(animated) {
+    if(isAnimated()) {
         currentElement = document.NewElement("Animation");
         currentElement->SetText(animationName.c_str());
         objectElement->InsertEndChild(currentElement);
@@ -730,7 +731,7 @@ void Model::putPreviewInGui(const ImGuiRequest &request, ImGuiResult &result) {
 
     //bone picking needs the skeleton, judging a level needs it out of the way
     previewPanel.playback.showSkeleton = previewPanel.boneSectionOpen;
-    if (animated) {
+    if (isAnimated()) {
         ImGui::Checkbox("Pause##Preview", &previewPanel.playback.paused);
         ImGui::SameLine();
         ImGui::BeginDisabled(!previewPanel.playback.paused);
@@ -943,7 +944,7 @@ ImGuiResult Model::addImGuiEditorElements(const ImGuiRequest &request) {
         }
     }
     bool isLimonModel = name.substr(name.find_last_of(".") + 1) == "limonmodel";
-    if (!animated && !isLimonModel) {//a limonmodel carries its flip in the vertices, there is nothing left to toggle
+    if (!isAnimated() && !isLimonModel) {//a limonmodel carries its flip in the vertices, there is nothing left to toggle
         if (ImGui::CollapsingHeader("Flip axes")) {
             bool flipX = flipAxes.find('X') != std::string::npos;
             bool flipY = flipAxes.find('Y') != std::string::npos;
@@ -998,7 +999,7 @@ ImGuiResult Model::addImGuiEditorElements(const ImGuiRequest &request) {
                 //this model now holds a reference of its own, released when the mesh is reseated again or the model dies
                 this->setMeshMaterial(selectedIndex, request.materialSelectedInList);
                 result.materialChanged = true;
-                this->dirtyForFrustum = true;
+                setDirtyForFrustum();
             }
             if (request.materialSelectedInList == nullptr) {
                 ImGui::EndDisabled();
@@ -1036,6 +1037,8 @@ ImGuiResult Model::addImGuiEditorElements(const ImGuiRequest &request) {
 }
 
 Model::~Model() {
+    //leaving the parent below notifies the owner, this model's culling entry is already released by then
+    transformation.setUpdateCallback([]() noexcept {});
     if(this->transformation.getParentTransform() != nullptr) {
         this->transformation.removeParentTransform();
     }
@@ -1065,8 +1068,8 @@ Model::~Model() {
     assetManager->freeAsset({modelAsset->getAssetName()});
 }
 
-Model::Model(const Model &otherModel, uint32_t objectID) :
-        Model(objectID, otherModel.assetManager, otherModel.mass, otherModel.name, otherModel.disconnected, otherModel.flipAxes) {
+Model::Model(const Model &otherModel, uint32_t objectID, CullingEntry* cullingEntry) :
+        Model(objectID, otherModel.assetManager, otherModel.mass, otherModel.name, otherModel.disconnected, cullingEntry, otherModel.flipAxes) {
     //we have constructed the object, now set the properties that might have been changed
     this->transformation.setTransformationsNotPropagate(
             otherModel.transformation.getTranslate(),
@@ -1272,7 +1275,7 @@ void Model::attachAI(ActorInterface *AIActor) {
 }
 
 void Model::reloadWithFlip(const std::string &newFlipAxes) {
-    if (animated) {
+    if (isAnimated()) {
         std::cerr << "WARNING: flip change requested for animated model " << name << " — flip is not supported for animated meshes, ignoring." << std::endl;
         return;
     }
@@ -1305,7 +1308,7 @@ void Model::reloadWithFlip(const std::string &newFlipAxes) {
         meshMetaData.push_back(meshMeta);
     }
 
-    this->dirtyForFrustum = true;
+    setDirtyForFrustum();
     markTransformChanged();
 }
 
@@ -1347,7 +1350,7 @@ void Model::reloadPhysicsShape() {
 }
 
 bool Model::isTransparent() const {
-    if (animated) {
+    if (isAnimated()) {
         return false;//no stage renders animated transparent models
     }
     for (const MeshMeta* meshMeta : meshMetaData) {

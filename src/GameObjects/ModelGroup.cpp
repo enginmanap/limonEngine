@@ -102,7 +102,7 @@ ModelGroup *ModelGroup::deserialize(GraphicsInterface* graphicsWrapper, tinyxml2
     return modelGroup;
 }
 
-ModelGroup *ModelGroup::deserializeV1(GraphicsInterface* graphicsWrapper, std::shared_ptr<AssetManager> assetManager, tinyxml2::XMLElement *ModelGroupsNode,
+ModelGroup *ModelGroup::deserializeV1(World *world, GraphicsInterface* graphicsWrapper, std::shared_ptr<AssetManager> assetManager, tinyxml2::XMLElement *ModelGroupsNode,
                                     std::unordered_map<std::string, std::shared_ptr<Sound>> &requiredSounds,
                                     std::map<uint32_t, ModelGroup *> &childGroups,
                                     std::vector<std::unique_ptr<WorldLoader::ObjectInformation>> &childObjects, LimonAPI *limonAPI,
@@ -173,7 +173,7 @@ ModelGroup *ModelGroup::deserializeV1(GraphicsInterface* graphicsWrapper, std::s
 
             if(childNode->FirstChildElement("Object")) {
                 std::vector<std::unique_ptr<WorldLoader::ObjectInformation>> childVector =
-                WorldLoader::loadObject(assetManager, childNode->FirstChildElement("Object"), requiredSounds,
+                WorldLoader::loadObject(world, assetManager, childNode->FirstChildElement("Object"), requiredSounds,
                                         limonAPI, modelGroup);
 
                 childObjects.push_back(std::move(childVector[childVector.size() -1]));
@@ -182,7 +182,7 @@ ModelGroup *ModelGroup::deserializeV1(GraphicsInterface* graphicsWrapper, std::s
 
                 modelGroup->children[childIndex]->getTransformation()->setParentTransform(modelGroup->getTransformation());
             } else if(childNode->FirstChildElement("ObjectGroup")) {
-                ModelGroup* newModelGroup = ModelGroup::deserializeV1(graphicsWrapper, assetManager,
+                ModelGroup* newModelGroup = ModelGroup::deserializeV1(world, graphicsWrapper, assetManager,
                                                                     childNode->FirstChildElement("ObjectGroup"),
                                                                     requiredSounds, childGroups, childObjects, limonAPI,
                                                                     modelGroup);

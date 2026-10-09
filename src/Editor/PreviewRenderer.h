@@ -15,6 +15,7 @@
 #include <unordered_map>
 #include <vector>
 #include <glm/glm.hpp>
+#include "../CullingEntry.h"
 
 #define MAX_PRELOAD_MODEL_COUNT_EDITOR 10
 
@@ -40,6 +41,7 @@ class PreviewRenderer {
     UniformBlockData previewPlayerBlock;//refilled for every preview draw, kept to reuse the allocation
 
     std::vector<Model*> modelQueue;
+    std::unordered_map<const Model*, std::unique_ptr<CullingEntry>> modelQueueCullingEntries;//preview models aren't world models, culling must not see them
     std::set<uint32_t> modelIdSet;
     std::unordered_map<std::string, std::shared_ptr<ModelAsset>> modelAssetsWaitingCPULoad;
     std::unordered_map<std::string, std::shared_ptr<ModelAsset>> modelAssetsPreloaded;

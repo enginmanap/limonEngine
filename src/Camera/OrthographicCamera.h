@@ -118,15 +118,6 @@ public:
         this->dirty = false;
     }
 
-    bool isVisible(const PhysicalRenderable& renderable) const override {
-        glm::vec3 aabbMin = renderable.getAabbMin();
-        glm::vec3 aabbMax = renderable.getAabbMax();
-        if (playerMode) {
-            return this->isVisible(aabbMin, aabbMax);//player view casts no shadow, and has no caster planes
-        }
-        return this->isVisible(aabbMin, aabbMax) && isShadowCaster(aabbMin, aabbMax);
-    }
-
     bool isVisible(const glm::vec3& aabbMin, const glm::vec3& aabbMax) const override {
         bool inside = true;
         //test all 6 frustum planes
@@ -136,7 +127,10 @@ public:
             inside &= distanceOfFurthestCorner(aabbMin, aabbMax, frustumPlanes[i]) > 0;
             //return false; //with flag works faster
         }
-        return inside;
+        if (playerMode) {
+            return inside;//player view casts no shadow, and has no caster planes
+        }
+        return inside && isShadowCaster(aabbMin, aabbMax);
     }
 
     //does the box's shadow, extruded along the light, reach the part of the player view this cascade covers

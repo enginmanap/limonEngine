@@ -49,10 +49,6 @@ public:
         this->dirty = false;
     }
 
-    bool isVisible(const PhysicalRenderable& renderable) const override {
-        return glm::distance2(renderable.getTransformation()->getTranslate(), this->position) < activeDistance * activeDistance;
-    }
-
     bool isVisible(const glm::vec3& aabbMin, const glm::vec3& aabbMax) const override {
         float radius = std::max((aabbMax.x - aabbMin.x) * 0.5f,
             std::max((aabbMax.y - aabbMin.y) * 0.5f, (aabbMax.z - aabbMin.z) * 0.5f));

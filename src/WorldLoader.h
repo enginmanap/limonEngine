@@ -86,10 +86,10 @@ public:
 
     World *loadWorld(const std::string &worldFile, LimonAPI *limonAPI) const;
 
-    static std::vector<std::unique_ptr<ObjectInformation>> loadObject( std::shared_ptr<AssetManager> assetManager, tinyxml2::XMLElement *objectNode,
+    static std::vector<std::unique_ptr<ObjectInformation>> loadObject(World *world, std::shared_ptr<AssetManager> assetManager, tinyxml2::XMLElement *objectNode,
                                                                        std::unordered_map<std::string, std::shared_ptr<Sound>> &requiredSounds, LimonAPI *limonAPI,
                                                                        PhysicalRenderable *parentObject);
-    static std::vector<std::unique_ptr<ObjectInformation>> loadObjectV2(std::shared_ptr<AssetManager> assetManager, tinyxml2::XMLElement *objectNode,
+    static std::vector<std::unique_ptr<ObjectInformation>> loadObjectV2(World *world, std::shared_ptr<AssetManager> assetManager, tinyxml2::XMLElement *objectNode,
                                                                         std::unordered_map<std::string, std::shared_ptr<Sound>> &requiredSounds, LimonAPI *limonAPI);
     static void loadObjectTags(tinyxml2::XMLElement *objectNode, Model *model);
 };

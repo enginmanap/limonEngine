@@ -36,7 +36,7 @@ void VisibilityManager::start() {
     } else {
         if(visibilityThreadPool.empty()) {
             for (auto &cameraVisibility: cullingResults) {
-                VisibilityRequest* request = new VisibilityRequest(cameraVisibility.first, &world->objects, world->getStartingPlayer(), cameraVisibility.second, world->currentPlayer->getPosition(), world->options, &cullingBarrier, cameraVisibility.first->getName());
+                VisibilityRequest* request = new VisibilityRequest(cameraVisibility.first, &world->cullingEntries, world->getStartingPlayer(), cameraVisibility.second, world->currentPlayer->getPosition(), world->options, &cullingBarrier, cameraVisibility.first->getName());
                 visibilityThreadPool[request] = nullptr;
             }
         }
@@ -83,7 +83,7 @@ void VisibilityManager::addCamera(Camera* camera) {
     // fillVisibleObjectsUsingTags processes this camera. During initial load the pool is empty and start()
     // creates the threads.
     if (!visibilityThreadPool.empty()) {
-        VisibilityRequest* request = new VisibilityRequest(camera, &world->objects, world->getStartingPlayer(), tagMap,
+        VisibilityRequest* request = new VisibilityRequest(camera, &world->cullingEntries, world->getStartingPlayer(), tagMap,
                                                            world->currentPlayer->getPosition(),
                                                            world->options, &cullingBarrier, camera->getName());
         if (multiThreadedCulling) {
@@ -176,9 +176,9 @@ void VisibilityManager::fillVisibleObjectsUsingTags() {
         }
     }
 
-    for (auto objectIt = world->objects.begin(); objectIt != world->objects.end(); ++objectIt) {
-        //all cameras calculated, clear dirty for object
-        objectIt->second->setCleanForFrustum();
+    //all cameras calculated, clear dirty for object
+    for (CullingEntry& cullingEntry : world->cullingEntries) {
+        cullingEntry.dirtyForFrustum = false;
     }
     for (auto &it: cullingResults) {
         for (auto& it2:*it.second) {
@@ -190,7 +190,7 @@ void VisibilityManager::fillVisibleObjectsUsingTags() {
 std::map<VisibilityRequest*, SDL2MultiThreading::InternalThread*> VisibilityManager::occlusionThreadManager() {
     std::map<VisibilityRequest*, SDL2MultiThreading::InternalThread*> visibilityProcessing;
     for (auto &cameraVisibility: cullingResults) {
-        VisibilityRequest* request = new VisibilityRequest(cameraVisibility.first, &world->objects, world->getStartingPlayer(), cameraVisibility.second, world->currentPlayer->getPosition(), world->options, &cullingBarrier, cameraVisibility.first->getName());
+        VisibilityRequest* request = new VisibilityRequest(cameraVisibility.first, &world->cullingEntries, world->getStartingPlayer(), cameraVisibility.second, world->currentPlayer->getPosition(), world->options, &cullingBarrier, cameraVisibility.first->getName());
         SDL2MultiThreading::InternalThread* thread = new SDL2MultiThreading::InternalThread(
             request->camera->getName(),
             [request]() { VisibilityManager::staticOcclusionThread(request); }
@@ -317,21 +317,31 @@ void VisibilityManager::fillVisibleObjectPerCamera(const VisibilityRequest* visi
     uint32_t occludedCounter = 0;
     uint32_t nonOccludedCount = 0; // occludees and occluders that survived the depth test
     float maxScreenSize = 0.0;
-    for (auto objectIt = visibilityRequest->objects->begin(); objectIt != visibilityRequest->objects->end(); ++objectIt) {
+    {
+    PROFILE_VISIBILITY("Culling::ObjectLoop");
+    const std::vector<CullingEntry>& cullingEntries = *visibilityRequest->cullingEntries;
+    for (size_t entryIndex = 0; entryIndex < cullingEntries.size(); ++entryIndex) {
+        const CullingEntry& cullingEntry = cullingEntries[entryIndex];
         bool isHiddenPlayerAttachment = false;
         if (visibilityRequest->playerDead) {
-            const Attachable* hierarchyRoot = objectIt->second;
+            const Attachable* hierarchyRoot = cullingEntry.model;
             while (hierarchyRoot->getParentObject() != nullptr) {
                 hierarchyRoot = hierarchyRoot->getParentObject();
             }
             isHiddenPlayerAttachment = hierarchyRoot == visibilityRequest->playerObject;
         }
         //a dead player's attachments stop moving, so the dirty skip would leave them in the light cameras
-        if(!visibilityRequest->cameraIsDirty && !objectIt->second->isDirtyForFrustum() && skipOcclusionCulling && !isHiddenPlayerAttachment) {
+        if(!visibilityRequest->cameraIsDirty && !cullingEntry.dirtyForFrustum && skipOcclusionCulling && !isHiddenPlayerAttachment) {
             continue; //if neither object nor camera dirty, no need to recalculate
         }
-        Model *currentModel = objectIt->second;
-        bool isVisible = !isHiddenPlayerAttachment && visibilityRequest->camera->isVisible(*currentModel);//find if visible
+        bool isVisible = !isHiddenPlayerAttachment && visibilityRequest->camera->isVisible(cullingEntry.aabbMin, cullingEntry.aabbMax);
+        if (!isVisible) {
+            frustumCulledCount++;//counts models, not meshes. The split mesh path is going away, it doesn't need its own count
+            if (visibilityRequest->renderListsCleared) {
+                continue;//nothing to remove from a cleared list, so a culled object needs nothing from its model
+            }
+        }
+        Model *currentModel = cullingEntry.model;
         //the whole model path below depends on the object and the camera, never on the tag set, so it runs once
         //here instead of once per matching tag set
         const std::vector<Model::MeshMeta *> &meshMetas = currentModel->getMeshMetaData();
@@ -424,8 +434,6 @@ void VisibilityManager::fillVisibleObjectPerCamera(const VisibilityRequest* visi
                                         visibilityEntry.second.removeMeshMaterial(meshMeta->material, meshMeta->mesh, currentModel->getWorldObjectID());
                                     }
                                 }
-                            } else {
-                                frustumCulledCount++;
                             }
                         }
                     }
@@ -435,7 +443,6 @@ void VisibilityManager::fillVisibleObjectPerCamera(const VisibilityRequest* visi
                     }
                 } else { //if not visible
                     const std::vector<Model::MeshMeta *> &meshMetas =currentModel->getMeshMetaData();
-                    frustumCulledCount += static_cast<uint32_t>(meshMetas.size());
                     if (!visibilityRequest->renderListsCleared) {
                         for (auto& meshMeta:meshMetas) {
                             visibilityEntry.second.removeMeshMaterial(meshMeta->material, meshMeta->mesh, currentModel->getWorldObjectID());
@@ -451,11 +458,15 @@ void VisibilityManager::fillVisibleObjectPerCamera(const VisibilityRequest* visi
             }
         }
     }
+    }
     //now we can actually check the occlusion:
     if (runOcclusion) {
         std::vector<OcculudeeMetaData*> nonOccludedMeshes = visibilityRequest->occlusionCuller.getNonOccludedMeshMeta();
-        for (auto metaData:nonOccludedMeshes) {
-            metaData->renderList->addMeshMaterial(metaData->meshMeta->material, metaData->meshMeta->mesh, metaData->model, metaData->lod, metaData->averageDepth);
+        {
+            PROFILE_VISIBILITY("Culling::AddVisible");
+            for (auto metaData:nonOccludedMeshes) {
+                metaData->renderList->addMeshMaterial(metaData->meshMeta->material, metaData->meshMeta->mesh, metaData->model, metaData->lod, metaData->averageDepth);
+            }
         }
         nonOccludedCount = static_cast<uint32_t>(nonOccludedMeshes.size());
         occludedCounter = totalCounter - nonOccludedCount;//occluders are queried too, so they are part of nonOccludedCount

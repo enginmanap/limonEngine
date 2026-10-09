@@ -386,7 +386,7 @@ uint32_t WorldAPIAccessor::addModelApi(const std::string &modelFilePath, float m
                                        const glm::vec3 &position, const glm::vec3 &scale, const glm::quat &orientation) {
     uint32_t objectID = world->getNextObjectID();
 
-    Model* newModel = new Model(objectID, world->assetManager, modelWeight, modelFilePath, !physical);
+    Model* newModel = new Model(objectID, world->assetManager, modelWeight, modelFilePath, !physical, world->allocateCullingEntry());
     newModel->getTransformation()->setTransformations(position, scale, orientation);
 
     world->addModelToWorld(newModel);

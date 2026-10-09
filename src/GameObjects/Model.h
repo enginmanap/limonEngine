@@ -13,6 +13,7 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include "../PhysicalRenderable.h"
+#include "../CullingEntry.h"
 #include "../Assets/TextureAsset.h"
 #include "../Material.h"
 #include "../Assets/ModelAsset.h"
@@ -33,6 +34,7 @@ private:
     uint32_t objectID;
     uint32_t rigID = 0; //initialize as 0, because thats the value for non animated.
     std::unordered_set<Model*>* pendingTransformUploads = nullptr;//only set while a world holds this model
+    CullingEntry* cullingEntry;//a world's entry, or a standalone one for models drawn outside a world. Null once released
 
     ActorInterface *AIActor = nullptr;
     std::shared_ptr<AssetManager> assetManager;
@@ -55,7 +57,6 @@ private:
     float animationTimeScale = 1.0f;
     std::string name;
     std::string flipAxes;
-    bool animated = false;
     bool isAIParametersDirty = true;
     bool temporary = false;
     std::vector<LimonTypes::GenericParameter> aiParameters;
@@ -117,18 +118,13 @@ public:
         return rigID;
     }
 
-    Model(uint32_t objectID,  std::shared_ptr<AssetManager> assetManager, const std::string &modelFile) : Model(objectID, assetManager,
-                                                                                                                0, modelFile, false) {};
+    Model(uint32_t objectID,  std::shared_ptr<AssetManager> assetManager, const std::string &modelFile, CullingEntry* cullingEntry) :
+            Model(objectID, assetManager, 0, modelFile, false, cullingEntry) {};
 
     Model(uint32_t objectID,  std::shared_ptr<AssetManager> assetManager, const float mass, const std::string &modelFile,
-              bool disconnected, const std::string &flipAxes = "");
+              bool disconnected, CullingEntry* cullingEntry, const std::string &flipAxes = "");
 
-    Model(const Model& otherModel, uint32_t objectID); //kind of copy constructor, except ID
-
-    Attachable* clone(uint32_t newObjectID, LimonAPI* limonAPI [[gnu::unused]],
-                      const std::unordered_map<uint32_t, uint32_t>& idRemap [[gnu::unused]]) const override {
-        return new Model(*this, newObjectID);
-    }
+    Model(const Model& otherModel, uint32_t objectID, CullingEntry* cullingEntry); //kind of copy constructor, except ID
 
     void reloadWithFlip(const std::string &newFlipAxes);
 
@@ -212,7 +208,7 @@ public:
     RenderList convertToRenderList(uint32_t lodLevel, float depth, int32_t rigIdOverride = -1) const;
     void renderWithProgramInstanced(const std::vector<glm::uvec4> & modelIndices, GraphicsProgram &program, uint32_t lodLevel);
 
-    bool isAnimated() const { return animated;}
+    bool isAnimated() const { return cullingEntry->animated;}
 
     void setAnimation(const std::string &animationName, bool looped = true) {
         this->animationName = animationName;
@@ -394,18 +390,47 @@ public:
         return materials;
     }
 
-    //a camera that has not moved only re-checks objects marked dirty, so anything changing shape has to say so
-    void setDirtyForFrustum() {
-        this->dirtyForFrustum = true;
+    void setDirtyForFrustum() override {
+        cullingEntry->dirtyForFrustum = true;
+    }
+
+    bool isDirtyForFrustum() override {
+        return cullingEntry->dirtyForFrustum;
+    }
+
+    void setCleanForFrustum() override {
+        cullingEntry->dirtyForFrustum = false;
+    }
+
+    const glm::vec3 &getAabbMax() const override {
+        return cullingEntry->aabbMax;
+    }
+
+    const glm::vec3 &getAabbMin() const override {
+        return cullingEntry->aabbMin;
+    }
+
+    void setAabb(const glm::vec3 &newAabbMin, const glm::vec3 &newAabbMax) override {
+        cullingEntry->aabbMin = newAabbMin;
+        cullingEntry->aabbMax = newAabbMax;
+    }
+
+    CullingEntry* getCullingEntry() const {
+        return cullingEntry;
+    }
+
+    //World moves the last entry into a released one, the model whose entry moved is pointed at its new place
+    void setCullingEntry(CullingEntry* newCullingEntry) {
+        this->cullingEntry = newCullingEntry;
     }
 
     bool addTag(const std::string& text) override {
-        this->dirtyForFrustum = true;
+        setDirtyForFrustum();
         return GameObject::addTag(text);
     }
 
     bool removeTag(const std::string& text) override {
-        this->dirtyForFrustum = true;
+        setDirtyForFrustum();
         bool removed = GameObject::removeTag(text);
         if(getTags().empty()) {
             addDefaultTags();//a model with no tags matches no render stage at all, it would be invisible everywhere

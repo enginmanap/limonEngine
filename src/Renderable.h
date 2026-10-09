@@ -22,7 +22,6 @@ protected:
     uint32_t vao = 0, ebo = 0;
     GraphicsInterface* graphicsWrapper;
     bool isInCameraFrustum = true;
-    bool dirtyForFrustum = true;//is this object require a frustum recalculate
     bool customAnimation = false;
 
     explicit Renderable(GraphicsInterface* graphicsWrapper) :
@@ -64,12 +63,21 @@ public:
         Renderable::inLightFrustum[lightIndex] = isInFrustum;
     }
 
-    bool isDirtyForFrustum() {
-        return this->dirtyForFrustum;
+    //only models are culled, they keep this in their CullingEntry
+    virtual bool isDirtyForFrustum() {
+        std::cerr << "ERROR: isDirtyForFrustum called on a renderable that isn't a model, only models are culled" << std::endl;
+        std::exit(-1);
     }
 
-    void setCleanForFrustum() {
-        this->dirtyForFrustum = false;
+    virtual void setCleanForFrustum() {
+        std::cerr << "ERROR: setCleanForFrustum called on a renderable that isn't a model, only models are culled" << std::endl;
+        std::exit(-1);
+    }
+
+    //a camera that has not moved only re-checks objects marked dirty, so anything changing shape has to say so
+    virtual void setDirtyForFrustum() {
+        std::cerr << "ERROR: setDirtyForFrustum called on a renderable that isn't a model, only models are culled" << std::endl;
+        std::exit(-1);
     }
 
     Transformation* getTransformation() override {

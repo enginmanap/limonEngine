@@ -797,7 +797,7 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
                     if (addFlipY) newFlipAxes += 'Y';
                     if (addFlipZ) newFlipAxes += 'Z';
                     Model* newModel = new Model(world->getNextObjectID(), world->assetManager, newObjectWeight,
-                                                selectedAsset->fullPath, false, newFlipAxes);
+                                                selectedAsset->fullPath, false, world->allocateCullingEntry(), newFlipAxes);
                     newModel->getTransformation()->setTranslate(newObjectPosition);
                     world->addModelToWorld(newModel);
                     newModel->getRigidBody()->activate();
@@ -1918,7 +1918,13 @@ Attachable* Editor::copyAttachableRecursive(Attachable* source, Attachable* newP
         return nullptr; // already warned by buildCopyIDRemap
     }
     uint32_t newObjectID = idRemap.at(sourceGameObject->getWorldObjectID());
-    Attachable* newObj = source->clone(newObjectID, world->apiInstance, idRemap);
+    Attachable* newObj;
+    if (sourceGameObject->getTypeID() == GameObject::ObjectTypes::MODEL) {
+        //a model's copy takes its culling entry from this world, clone has no way to reach it
+        newObj = new Model(*static_cast<Model*>(sourceGameObject), newObjectID, world->allocateCullingEntry());
+    } else {
+        newObj = source->clone(newObjectID, world->apiInstance, idRemap);
+    }
     if (newObj == nullptr) {
         std::cerr << "Editor::copyAttachable: copying is not supported for object " << sourceGameObject->getWorldObjectID()
                    << " (" << sourceGameObject->getName() << "), skipping." << std::endl;

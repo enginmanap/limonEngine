@@ -243,6 +243,8 @@ private:
     std::unordered_map<uint32_t, Model *> objects;
     std::unordered_map<uint32_t, const std::vector<glm::mat4>*> changedBoneTransforms;//These are used for uploading to GPU. Don't put in if not passing culling.
     std::unordered_set<Model*> pendingTransformUploads;//filled by the models during ticks, uploaded in prepareFrame
+    std::vector<CullingEntry> cullingEntries;//reserved once, models point into it. Removal moves the last entry into the hole
+    CullingEntry playerPlaceHolderCullingEntry;//the placeholder is drawn but isn't a world model, culling must not see it
     std::unordered_set<uint32_t> tempRenderedObjectsSet;
     std::vector<uint32_t> physicsActivatedModels;//refilled every tick, kept to reuse the allocation
     std::unordered_set<uint32_t> physicsSimulationActiveModels;//requested through LimonAPI, usually by AI
@@ -386,6 +388,9 @@ private:
     void updateWorldAABB(glm::vec3 aabbMin, glm::vec3 aabbMax);
 
     bool addModelToWorld(Model *xmlModel);
+    //every model built for this world takes its entry from here, and gives it back when it leaves
+    CullingEntry* allocateCullingEntry();
+    void releaseCullingEntry(Model *model);
     void applyChangedTransforms();
 
     void untrackRigidBody(const btRigidBody *body);

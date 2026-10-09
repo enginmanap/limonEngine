@@ -69,6 +69,7 @@ PreviewRenderer::~PreviewRenderer() {
     for (Model* queuedModel : modelQueue) {
         delete queuedModel;
     }
+    modelQueueCullingEntries.clear();
 }
 
 Model* PreviewRenderer::getModelAndMoveToEnd(const std::string& modelFilePath) {
@@ -87,14 +88,18 @@ Model* PreviewRenderer::createRenderAndAddModelToLRU(const std::string &modelFil
     uint32_t newWorldObjectId;
     if(modelQueue.size() >= MAX_PRELOAD_MODEL_COUNT_EDITOR) {
         newWorldObjectId = modelQueue[0]->getWorldObjectID();
-        delete modelQueue[0];
+        Model* evictedModel = modelQueue[0];
+        delete evictedModel;
+        modelQueueCullingEntries.erase(evictedModel);
         modelQueue.erase(modelQueue.begin());
     } else {
         newWorldObjectId = (*modelIdSet.begin());
         modelIdSet.erase(modelIdSet.begin());
     }
 
-    Model* model = new Model(newWorldObjectId, world->assetManager, modelFileName);// FIXME this will cause gaps, we should reserve and reuse
+    std::unique_ptr<CullingEntry> cullingEntry = std::make_unique<CullingEntry>();
+    Model* model = new Model(newWorldObjectId, world->assetManager, modelFileName, cullingEntry.get());// FIXME this will cause gaps, we should reserve and reuse
+    modelQueueCullingEntries[model] = std::move(cullingEntry);
     modelQueue.push_back(model);
     setTransformToModel(model, newObjectPosition);
     renderSelectedObject(model, graphicsProgram);

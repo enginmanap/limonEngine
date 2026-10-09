@@ -207,6 +207,7 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
     onLoadActions.push_back(new ActionForOnload());//this is here for editor, as if no action is added, editor would fail to allow setting the first one.
 
     modelIndicesBuffer.reserve(NR_MAX_MODELS);
+    cullingEntries.reserve(NR_MAX_MODELS);//models hold pointers into it, it can never reallocate
     tempRenderedObjectsSet.reserve(NR_MAX_MODELS);
 
     renderInformationsOption = options->getOption<bool>(HASH("debug_renderInformations"));
@@ -372,9 +373,10 @@ void World::applyAudioVolumeOptionsIfChanged() {
 
          {
              PROFILE_SIMULATION("World::play::AnimationClocks");
-             for (auto it = objects.begin(); it != objects.end(); ++it) {
-                 if (it->second->isAnimated()) {
-                     it->second->advanceAnimationClock(gameTime);
+             //the dense array holds every model in the world, connected or not, so no animated model loses its clock
+             for (const CullingEntry& cullingEntry : cullingEntries) {
+                 if (cullingEntry.animated) {
+                     cullingEntry.model->advanceAnimationClock(gameTime);
                  }
              }
          }
@@ -1027,7 +1029,7 @@ void World::ImGuiFrameSetup(std::shared_ptr<GraphicsProgram> graphicsProgram, co
            std::string assetFile;
            glm::vec3 scale;
            physicalPlayer->getRenderProperties(assetFile, scale);
-           playerPlaceHolder = new Model(getNextObjectID(), assetManager, 0, assetFile, true);
+           playerPlaceHolder = new Model(getNextObjectID(), assetManager, 0, assetFile, true, &playerPlaceHolderCullingEntry);
            playerPlaceHolder->getTransformation()->setScale(scale);
        }
 
@@ -1226,9 +1228,33 @@ void World::untrackRigidBody(const btRigidBody *body) {
     }
 }
 
+CullingEntry* World::allocateCullingEntry() {
+    if (cullingEntries.size() == cullingEntries.capacity()) {
+        std::cerr << "More than NR_MAX_MODELS (" << NR_MAX_MODELS << ") models, can't create another" << std::endl;
+        std::exit(-1);
+    }
+    cullingEntries.emplace_back();
+    return &cullingEntries.back();
+}
+
+void World::releaseCullingEntry(Model *model) {
+    CullingEntry* entry = model->getCullingEntry();
+    if (cullingEntries.empty() || entry < cullingEntries.data() || entry > &cullingEntries.back() || entry->model != model) {
+        std::cerr << "Culling entry of model " << model->getWorldObjectID() << " is not in this world's list, this should never happen" << std::endl;
+        std::exit(-1);
+    }
+    if (entry != &cullingEntries.back()) {
+        *entry = cullingEntries.back();
+        entry->model->setCullingEntry(entry);
+    }
+    cullingEntries.pop_back();
+    model->setCullingEntry(nullptr);
+}
+
 bool World::addModelToWorld(Model *xmlModel) {
     if(objects.find(xmlModel->getWorldObjectID()) != objects.end()) {
         //the object is already registered. fail
+        releaseCullingEntry(xmlModel);
         return false;
     }
     objects[xmlModel->getWorldObjectID()] = xmlModel;
@@ -2033,6 +2059,7 @@ void World::fillPlayerBlock(UniformBlockData &playerBlock, const glm::vec3 &came
            }
            //clear object itself
            objects.erase(modelToClear->getWorldObjectID());
+           releaseCullingEntry(modelToClear);
            pendingTransformUploads.erase(modelToClear);
            modelToClear->setPendingTransformUploads(nullptr);
            physicsSimulationActiveModels.erase(modelToClear->getWorldObjectID());//the ID is reused, the request must not carry over

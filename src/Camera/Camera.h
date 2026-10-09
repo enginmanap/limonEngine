@@ -158,7 +158,6 @@ public:
 
     virtual void clearDirty() = 0;
 
-    virtual bool isVisible(const PhysicalRenderable& renderable) const = 0;
     virtual bool isVisible(const glm::vec3& position, float radius) const = 0;
     virtual bool isVisible(const glm::vec3& aabbMin, const glm::vec3& aabbMax) const = 0;
 

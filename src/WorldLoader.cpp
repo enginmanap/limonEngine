@@ -273,7 +273,7 @@ bool WorldLoader::loadObjectGroupsFromXMLV1(tinyxml2::XMLNode *worldNode, World 
     std::vector<std::unique_ptr<ObjectInformation>> innerModels;
 
     while(objectGroupNode != nullptr) {
-        ModelGroup* modelGroup = ModelGroup::deserializeV1(graphicsWrapper, assetManager, objectGroupNode, requiredSounds,
+        ModelGroup* modelGroup = ModelGroup::deserializeV1(world, graphicsWrapper, assetManager, objectGroupNode, requiredSounds,
                                                          modelGroups, innerModels, limonAPI, nullptr);
         world->modelGroups[modelGroup->getWorldObjectID()] = modelGroup;
         objectGroupNode = objectGroupNode->NextSiblingElement("ObjectGroup");
@@ -358,7 +358,7 @@ void WorldLoader::loadPlayerAttachmentV1(tinyxml2::XMLElement* attachmentNode, W
     if(objectNode == nullptr) {
         return;
     }
-    std::vector<std::unique_ptr<ObjectInformation>> objectInfos = loadObject(assetManager, objectNode, requiredSounds, limonAPI, nullptr);
+    std::vector<std::unique_ptr<ObjectInformation>> objectInfos = loadObject(world, assetManager, objectNode, requiredSounds, limonAPI, nullptr);
     if(objectInfos.empty()) {
         return;
     }
@@ -433,7 +433,7 @@ bool WorldLoader::loadObjectsFromXML(tinyxml2::XMLNode *objectsNode, World *worl
 
     while(objectNode != nullptr) {
 
-        std::vector<std::unique_ptr<ObjectInformation>> objectInfos = loadObject(assetManager, objectNode,
+        std::vector<std::unique_ptr<ObjectInformation>> objectInfos = loadObject(world, assetManager, objectNode,
                                                                                  requiredSounds, limonAPI, nullptr);//this map is used to load all the sounds, while sharing same objects.
 
         for (auto objectIterator = objectInfos.begin(); objectIterator != objectInfos.end(); ++objectIterator) {
@@ -494,7 +494,7 @@ bool WorldLoader::loadObjectsFromXML(tinyxml2::XMLNode *objectsNode, World *worl
  * @return
  */
 std::vector<std::unique_ptr<WorldLoader::ObjectInformation>>
-WorldLoader::loadObject( std::shared_ptr<AssetManager> assetManager, tinyxml2::XMLElement *objectNode,
+WorldLoader::loadObject(World *world, std::shared_ptr<AssetManager> assetManager, tinyxml2::XMLElement *objectNode,
                         std::unordered_map<std::string, std::shared_ptr<Sound>> &requiredSounds, LimonAPI *limonAPI,
                         PhysicalRenderable *parentObject) {
     std::vector<std::unique_ptr<WorldLoader::ObjectInformation>> loadedObjects;
@@ -546,7 +546,7 @@ WorldLoader::loadObject( std::shared_ptr<AssetManager> assetManager, tinyxml2::X
     }
 
     std::unique_ptr<ObjectInformation> loadedObjectInformation = std::make_unique<ObjectInformation>();
-    loadedObjectInformation->model = new Model(id, assetManager, modelMass, modelFile, disconnected, flipAxes);
+    loadedObjectInformation->model = new Model(id, assetManager, modelMass, modelFile, disconnected, world->allocateCullingEntry(), flipAxes);
 
     int32_t parentBoneID = -1;
     objectAttribute =  objectNode->FirstChildElement("ParentBoneID");
@@ -573,6 +573,7 @@ WorldLoader::loadObject( std::shared_ptr<AssetManager> assetManager, tinyxml2::X
     objectAttribute =  objectNode->FirstChildElement("Transformation");
     if(objectAttribute == nullptr) {
             std::cerr << "Object does not have transformation. Can't be loaded" << std::endl;
+            world->releaseCullingEntry(loadedObjectInformation->model);
             delete loadedObjectInformation->model;
         return loadedObjects;
     }
@@ -629,7 +630,7 @@ WorldLoader::loadObject( std::shared_ptr<AssetManager> assetManager, tinyxml2::X
             tinyxml2::XMLElement *childNode = childrenNode->FirstChildElement("Child");
             while (childNode != nullptr) {
                 tinyxml2::XMLElement *childObjectNode = childNode->FirstChildElement("Object");
-                std::vector<std::unique_ptr<WorldLoader::ObjectInformation>> objectInfos = loadObject(assetManager,
+                std::vector<std::unique_ptr<WorldLoader::ObjectInformation>> objectInfos = loadObject(world, assetManager,
                                                                                                       childObjectNode,
                                                                                                       requiredSounds,
                                                                                                       limonAPI,
@@ -707,7 +708,7 @@ void WorldLoader::loadObjectTags(tinyxml2::XMLElement *objectNode, Model *model)
 // V2 object loader: loads a single object with no parent/children handling.
 // Attachment is deferred to loadObjectsFromXMLV2 which calls attachTo() after all objects are in the world.
 std::vector<std::unique_ptr<WorldLoader::ObjectInformation>>
-WorldLoader::loadObjectV2(std::shared_ptr<AssetManager> assetManager, tinyxml2::XMLElement *objectNode,
+WorldLoader::loadObjectV2(World *world, std::shared_ptr<AssetManager> assetManager, tinyxml2::XMLElement *objectNode,
                           std::unordered_map<std::string, std::shared_ptr<Sound>> &requiredSounds, LimonAPI *limonAPI) {
     std::vector<std::unique_ptr<WorldLoader::ObjectInformation>> loadedObjects;
 
@@ -745,7 +746,7 @@ WorldLoader::loadObjectV2(std::shared_ptr<AssetManager> assetManager, tinyxml2::
     }
 
     std::unique_ptr<ObjectInformation> loadedObjectInformation = std::make_unique<ObjectInformation>();
-    loadedObjectInformation->model = new Model(id, assetManager, modelMass, modelFile, disconnected, flipAxes);
+    loadedObjectInformation->model = new Model(id, assetManager, modelMass, modelFile, disconnected, world->allocateCullingEntry(), flipAxes);
 
     objectAttribute = objectNode->FirstChildElement("StepOnSound");
     if (objectAttribute != nullptr) {
@@ -760,6 +761,7 @@ WorldLoader::loadObjectV2(std::shared_ptr<AssetManager> assetManager, tinyxml2::
     objectAttribute = objectNode->FirstChildElement("Transformation");
     if(objectAttribute == nullptr) {
         std::cerr << "Object does not have transformation. Can't be loaded" << std::endl;
+        world->releaseCullingEntry(loadedObjectInformation->model);
         delete loadedObjectInformation->model;
         return loadedObjects;
     }
@@ -864,7 +866,7 @@ bool WorldLoader::loadObjectsFromXMLV2(tinyxml2::XMLNode *objectsNode, World *wo
 
     // First pass: load all objects as roots (no attachment yet)
     while(objectNode != nullptr) {
-        std::vector<std::unique_ptr<ObjectInformation>> objectInfos = loadObjectV2(assetManager, objectNode, requiredSounds, limonAPI);
+        std::vector<std::unique_ptr<ObjectInformation>> objectInfos = loadObjectV2(world, assetManager, objectNode, requiredSounds, limonAPI);
 
         Model* loadedModel = nullptr;
         for (auto objectIterator = objectInfos.begin(); objectIterator != objectInfos.end(); ++objectIterator) {
