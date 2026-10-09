@@ -21,7 +21,8 @@ class AIMovementNode : public std::enable_shared_from_this<AIMovementNode>{
      *     -x   , na   ,    +x
      *     -x +z,    +z, +z +x
      */
-    std::shared_ptr<AIMovementNode> neighbours[9] = {0};
+    //weak, because neighbours point to each other. The grid owns the nodes, shared links between them would never be freed
+    std::weak_ptr<AIMovementNode> neighbours[9];
     uint32_t nodeID = 0;
     bool isMovable = false;
 
@@ -46,7 +47,7 @@ public:
     }
 
     std::shared_ptr<AIMovementNode> getNeighbour(int i) const {
-        return (neighbours[i]);
+        return neighbours[i].lock();
     }
 
     bool isIsMovable() const {
