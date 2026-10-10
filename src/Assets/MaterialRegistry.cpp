@@ -43,6 +43,11 @@ std::shared_ptr<Material> MaterialRegistry::registerMaterial(std::shared_ptr<Mat
     return material;
 }
 
+bool MaterialRegistry::isRegistered(const Material &material) const {
+    std::lock_guard<std::mutex> lock(materialsMutex);
+    return materials.count(material.getRegistrationID()) != 0;
+}
+
 void MaterialRegistry::unregisterMaterial(std::shared_ptr<const Material> material) {
     std::lock_guard<std::mutex> lock(materialsMutex);
     //keyed by identity, so this can not miss because someone edited the material. A miss here is a real
@@ -118,10 +123,13 @@ std::shared_ptr<Material> MaterialRegistry::createScratchCopy(const std::shared_
     std::shared_ptr<Material> copiedMaterial = std::make_shared<Material>(*source);
     //record what it replaces, so it reads as world owned later and is not split a second time
     copiedMaterial->setOriginalHash(source->getHash());
-    std::lock_guard<std::mutex> lock(materialsMutex);
-    copiedMaterial->materialIndex = acquireMaterialIndexInternal();
-    materials[copiedMaterial->getRegistrationID()] = std::make_pair(copiedMaterial, 1);
-    materialsVersion++;
+    {
+        std::lock_guard<std::mutex> lock(materialsMutex);
+        copiedMaterial->materialIndex = acquireMaterialIndexInternal();
+        materials[copiedMaterial->getRegistrationID()] = std::make_pair(copiedMaterial, 1);
+        materialsVersion++;
+    }
+    copiedMaterial->loadGPUSide(copiedMaterial->assetManager);//after the lock, it asks us if it is registered
     return copiedMaterial;
 }
 
@@ -155,7 +163,7 @@ std::shared_ptr<Material> MaterialRegistry::splitOffOverride(const std::shared_p
         std::cerr << "Material " << overrideMaterial->getName() << " already overrides a different material, "
                   << "leaving its base alone. This edit matched its content exactly." << std::endl;
     }
-    graphicsWrapper->setMaterial(*overrideMaterial);
+    overrideMaterial->loadGPUSide(overrideMaterial->assetManager);//a deduplicated winner is uploaded again, with the content it already has
     return overrideMaterial;
 }
 

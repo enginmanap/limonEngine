@@ -12,16 +12,21 @@
 #include "limonAPI/Graphics/GraphicsProgram.h"
 
 void Material::loadGPUSide(AssetManager *assetManager) {
-    if(deserialized) {
+    if (!assetManager->getMaterialRegistry().isRegistered(*this)) {
+        // If someone tries to upload without registering, we won't allow it.
+        std::cerr << "Material " << name << " got loadGPUSide before registerMaterial, nothing loaded." << std::endl;
         return;
     }
     this->assetManager = assetManager;
-    for (const TextureSlot &slot : getTextureSlots()) {
-        if (this->*slot.texture != nullptr) {
-            assetManager->partialLoadGPUSide(this->*slot.texture);
+    if(!deserialized) {
+        for (const TextureSlot &slot : getTextureSlots()) {
+            if (this->*slot.texture != nullptr) {
+                assetManager->partialLoadGPUSide(this->*slot.texture);
+            }
         }
+        assetManager->getGraphicsWrapper()->setMaterial(*this);
+        deserialized = true;
     }
-    deserialized = true;
 }
 
 ImGuiResult Material::addImGuiEditorElements(const ImGuiRequest &request) {

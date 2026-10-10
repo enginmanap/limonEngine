@@ -506,7 +506,6 @@ void Editor::beginAlteredMaterialEdit(Model* model, int32_t meshIndex) {
     std::shared_ptr<const Material> sourceMaterial = model->getMeshMetaData()[meshIndex]->material;
     std::shared_ptr<Material> copiedMaterial = world->assetManager->getMaterialRegistry().createScratchCopy(sourceMaterial);
     model->setMeshMaterial(meshIndex, copiedMaterial);
-    world->graphicsWrapper->setMaterial(*copiedMaterial);
 
     alteredMaterialEdit.objectID = model->getWorldObjectID();
     alteredMaterialEdit.meshIndex = meshIndex;

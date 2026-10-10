@@ -484,6 +484,35 @@ bool WorldLoader::loadObjectsFromXML(tinyxml2::XMLNode *objectsNode, World *worl
     return true;
 }
 
+static std::vector<Model::MeshMaterialOverride> readMeshMaterialOverrides(tinyxml2::XMLElement *objectNode, AssetManager *assetManager) {
+    std::vector<Model::MeshMaterialOverride> meshMaterialOverrides;
+    tinyxml2::XMLElement* meshMaterialListNode = objectNode->FirstChildElement("MeshMaterialList");
+    if (meshMaterialListNode == nullptr) {
+        return meshMaterialOverrides;
+    }
+    for (tinyxml2::XMLElement *meshMaterialNode = meshMaterialListNode->FirstChildElement("MeshMaterial");
+         meshMaterialNode != nullptr; meshMaterialNode = meshMaterialNode->NextSiblingElement("MeshMaterial")) {
+        if (meshMaterialNode->Attribute("MeshName") == nullptr) {
+            std::cerr << "A mesh material definition with no MeshName found. Can't be processed. Skipping." << std::endl;
+            continue;
+        }
+        tinyxml2::XMLElement *materialNode = meshMaterialNode->FirstChildElement("Material");
+        if (materialNode == nullptr) {
+            std::cerr << "A mesh material definition with no Material found. Can't be processed. Skipping." << std::endl;
+            continue;
+        }
+        Model::MeshMaterialOverride meshOverride;
+        meshOverride.meshName = meshMaterialNode->Attribute("MeshName");
+        if (meshMaterialNode->Attribute("BaseMaterial") != nullptr) {//absent in files saved before split meshes were told apart
+            meshOverride.baseMaterialName = meshMaterialNode->Attribute("BaseMaterial");
+            meshMaterialNode->QueryUnsignedAttribute("Ordinal", &meshOverride.ordinal);
+        }
+        meshOverride.material = Material::deserialize(assetManager, materialNode);
+        meshMaterialOverrides.push_back(meshOverride);
+    }
+    return meshMaterialOverrides;
+}
+
 /**
  * Last element in the vector is the parent of all
  * @param assetManager
@@ -644,26 +673,7 @@ WorldLoader::loadObject(World *world, std::shared_ptr<AssetManager> assetManager
         }
     }
     //Now Load material changes
-    std::vector<std::pair<std::string, std::shared_ptr<Material>>> custumizedMeshMaterialList;
-    tinyxml2::XMLElement* meshMaterialListNode = objectNode->FirstChildElement("MeshMaterialList");
-    if (meshMaterialListNode != nullptr) {
-        tinyxml2::XMLElement *meshMaterialNode = meshMaterialListNode->FirstChildElement("MeshMaterial");
-        while (meshMaterialNode != nullptr) {
-            if (meshMaterialNode->Attribute("MeshName") == nullptr) {
-                std::cerr << "A mesh material definition with no MeshName found. Can't be processed. Skipping." << std::endl;
-            } else {
-                std::string meshName = meshMaterialNode->Attribute("MeshName");
-                tinyxml2::XMLElement *materialNode = meshMaterialNode->FirstChildElement("Material");
-                if (materialNode == nullptr) {
-                    std::cerr << "A mesh material definition with no Material found. Can't be processed. Skipping." << std::endl;
-                } else {
-                    std::shared_ptr<Material> newMaterial = Material::deserialize(assetManager.get(), materialNode);
-                    custumizedMeshMaterialList.emplace_back(meshName, newMaterial);
-                }
-            }
-            meshMaterialNode = meshMaterialNode->NextSiblingElement("MeshMaterial");
-        }
-    }
+    std::vector<Model::MeshMaterialOverride> custumizedMeshMaterialList = readMeshMaterialOverrides(objectNode, assetManager.get());
     if (!custumizedMeshMaterialList.empty()) {
         loadedObjectInformation->model->loadOverriddenMeshMaterial(custumizedMeshMaterialList);
     }
@@ -784,26 +794,7 @@ WorldLoader::loadObjectV2(World *world, std::shared_ptr<AssetManager> assetManag
         loadedObjectInformation->model->setAnimation(objectAttribute->GetText());
     }
 
-    std::vector<std::pair<std::string, std::shared_ptr<Material>>> custumizedMeshMaterialList;
-    tinyxml2::XMLElement* meshMaterialListNode = objectNode->FirstChildElement("MeshMaterialList");
-    if (meshMaterialListNode != nullptr) {
-        tinyxml2::XMLElement *meshMaterialNode = meshMaterialListNode->FirstChildElement("MeshMaterial");
-        while (meshMaterialNode != nullptr) {
-            if (meshMaterialNode->Attribute("MeshName") != nullptr) {
-                std::string meshName = meshMaterialNode->Attribute("MeshName");
-                tinyxml2::XMLElement *materialNode = meshMaterialNode->FirstChildElement("Material");
-                if (materialNode != nullptr) {
-                    std::shared_ptr<Material> newMaterial = Material::deserialize(assetManager.get(), materialNode);
-                    custumizedMeshMaterialList.emplace_back(meshName, newMaterial);
-                } else {
-                    std::cerr << "A mesh material definition with no Material found. Can't be processed. Skipping." << std::endl;
-                }
-            } else {
-                std::cerr << "A mesh material definition with no MeshName found. Can't be processed. Skipping." << std::endl;
-            }
-            meshMaterialNode = meshMaterialNode->NextSiblingElement("MeshMaterial");
-        }
-    }
+    std::vector<Model::MeshMaterialOverride> custumizedMeshMaterialList = readMeshMaterialOverrides(objectNode, assetManager.get());
     if (!custumizedMeshMaterialList.empty()) {
         loadedObjectInformation->model->loadOverriddenMeshMaterial(custumizedMeshMaterialList);
     }
@@ -1412,8 +1403,8 @@ bool WorldLoader::loadMaterials(tinyxml2::XMLNode *worldNode, World *world) cons
           * actually loaded - see World::resolvePendingMaterialOverrides.
           */
          std::shared_ptr<Material> material = Material::deserialize(world->assetManager.get(), materialNode);
-         material->loadGPUSide(world->assetManager.get());
          material = world->assetManager->getMaterialRegistry().registerMaterial(material);
+         material->loadGPUSide(world->assetManager.get());//the meshes only install a world override, this is what fills its slot
          world->addPendingMaterialOverride(material);
     }
     return true;

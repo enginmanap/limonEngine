@@ -29,7 +29,10 @@ public:
     explicit MaterialRegistry(GraphicsInterface* graphicsWrapper) : graphicsWrapper(graphicsWrapper) { }
 
     //returns the material to use, which is the already registered one if an identical material exists
+    //This method intentionally doesn't touch GPU side, so it can run in any thread. Call loadGPUSide on main thread before using Material
     std::shared_ptr<Material> registerMaterial(std::shared_ptr<Material> material);
+
+    bool isRegistered(const Material &material) const;
 
     void unregisterMaterial(std::shared_ptr<const Material> material);
 
