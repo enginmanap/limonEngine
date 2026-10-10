@@ -2,6 +2,7 @@
 #include "PythonLimonAPIBinding.h"
 #include "PythonTypeCasters.h"
 #include <pybind11/embed.h>
+#include <pybind11/stl.h>
 #include <glm/vec3.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <limonAPI/LimonAPI.h>
@@ -20,6 +21,14 @@ void bindLimonAPI(pybind11::module_& m) {
             .def_readwrite("y", &LimonTypes::Vec4::y)
             .def_readwrite("z", &LimonTypes::Vec4::z)
             .def_readwrite("w", &LimonTypes::Vec4::w);
+
+    // Bind LimonTypes::Vec2, add_particle_emitter takes its size as one
+    pybind11::class_<LimonTypes::Vec2>(m, "Vec2")
+            .def(pybind11::init<>())
+            .def(pybind11::init<float, float>(),
+                 pybind11::arg("x") = 0.0f, pybind11::arg("y") = 0.0f)
+            .def_readwrite("x", &LimonTypes::Vec2::x)
+            .def_readwrite("y", &LimonTypes::Vec2::y);
 
     // Bind audio mixing channels (buses)
     pybind11::enum_<LimonTypes::AudioChannel>(m, "AudioChannel")
