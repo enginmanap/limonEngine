@@ -26,14 +26,8 @@ GPUParticleEmitter::GPUParticleEmitter(long worldObjectId, std::string name, std
 
     setupVAO();
 
-    particleDataTexture = std::make_shared<Texture>(this->graphicsWrapper,
-                                                    GraphicsInterface::TextureTypes::T2D,
-                                                    GraphicsInterface::InternalFormatTypes::RGBA32F,
-                                                    GraphicsInterface::FormatTypes::RGBA,
-                                                    GraphicsInterface::DataTypes::FLOAT,
-                                                    maxCount, 2);
-    particleDataTexture->setFilterMode(GraphicsInterface::FilterModes::NEAREST);
-    particleDataTexture->setWrapModes(GraphicsInterface::TextureWrapModes::BORDER, GraphicsInterface::TextureWrapModes::BORDER);
+    particleDataTexture = graphicsWrapper->createFrameBufferedTexture(2, (int) maxCount, GraphicsInterface::InternalFormatTypes::RGBA32F,
+                                                                      GraphicsInterface::FormatTypes::RGBA, GraphicsInterface::DataTypes::FLOAT);
     /*
      * we want 4 piece of info per particle,
      * 1) Current Position
@@ -75,7 +69,7 @@ GPUParticleEmitter::~GPUParticleEmitter() {
     if(parentObject != nullptr) {
         detach();
     }
-    particleDataTexture.reset();
+    graphicsWrapper->deleteFrameBufferedTexture(particleDataTexture);
     assetManager->freeAsset(textureAsset->getName());
 }
 
@@ -174,16 +168,11 @@ ImGuiResult GPUParticleEmitter::addImGuiEditorElements(const ImGuiRequest &reque
 
     uint32_t maxCountTemp = maxCount;
     if(ImGui::InputScalar("Maximum particle count##ParticleEmitter", ImGuiDataType_U32, &maxCountTemp)) {
-        particleDataTexture = std::make_shared<Texture>(this->graphicsWrapper,
-                                                        GraphicsInterface::TextureTypes::T2D,
-                                                        GraphicsInterface::InternalFormatTypes::RGBA32F,
-                                                        GraphicsInterface::FormatTypes::RGBA,
-                                                        GraphicsInterface::DataTypes::FLOAT,
-                                                        maxCount, 2);
-        particleDataTexture->setFilterMode(GraphicsInterface::FilterModes::NEAREST);
-
-
         maxCount = maxCountTemp;
+        graphicsWrapper->deleteFrameBufferedTexture(particleDataTexture);
+        particleDataTexture = graphicsWrapper->createFrameBufferedTexture(2, (int) maxCount, GraphicsInterface::InternalFormatTypes::RGBA32F,
+                                                                          GraphicsInterface::FormatTypes::RGBA, GraphicsInterface::DataTypes::FLOAT);
+        particleUploadData.clear();//stale size until setupParticles runs again
         perMsParticleCount = (float) maxCount / lifeTime;
         dirty = true;
     }

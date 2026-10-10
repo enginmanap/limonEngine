@@ -513,6 +513,12 @@ void World::applyChangedTransforms() {
 void World::uploadFrameData() {
     PROFILE_VISIBILITY("World::uploadFrameData");
     frameData.upload(graphicsWrapper, *frameResourceHandles);
+    for(const auto& emitter:emitters) {
+        emitter.second->uploadFrameData();
+    }
+    for(const auto& gpuEmitter:gpuParticleEmitters) {
+        gpuEmitter.second->uploadFrameData();
+    }
 }
 
 void World::animateCustomAnimations() {

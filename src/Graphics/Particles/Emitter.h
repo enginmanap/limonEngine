@@ -28,7 +28,7 @@ public:
         if(parentObject != nullptr) {
             detach();
         }
-        particleDataTexture.reset();
+        graphicsWrapper->deleteFrameBufferedTexture(particleDataTextureHandle);
         assetManager->freeAsset(textureAsset->getName());
     }
 
@@ -59,7 +59,8 @@ private:
     long currentCount = 0;
     uint32_t lastSetupTime = 0;
     uint32_t lastCreationTime = 0;
-    std::shared_ptr<Texture> particleDataTexture;
+    uint32_t particleDataTextureHandle = 0;//This is a handle from backend, for multi buffered texture store. We don't know what GPU texture will it be.
+    std::vector<glm::vec4> particleUploadData;//newest particle first, filled by setupForTime
 
     std::random_device randomDevice;
     std::default_random_engine randomFloatGenerator;
@@ -156,13 +157,18 @@ public:
 
             currentCount = currentCount - (removalEnd - removalStart);
         }
-        std::vector<glm::vec4> temp;
-        temp.insert(temp.end(), positions.rbegin(), positions.rend());
-        for (int i = temp.size(); i < maxCount; ++i) {
-            temp.emplace_back(glm::vec4(0,0,0, 1));
-        }
-        particleDataTexture->loadData(temp.data());
+        particleUploadData.assign(positions.rbegin(), positions.rend());
         lastSetupTime = time;
+    }
+
+    // Texels past currentCount are never drawn, so there is nothing to clear when the count drops to 0
+    void uploadFrameData() {
+        if(particleUploadData.empty()) {
+            return;
+        }
+        graphicsWrapper->writeFrameBufferedTexture(particleDataTextureHandle, 0, 0, (int) particleUploadData.size(), 1,
+                                                   GraphicsInterface::FormatTypes::RGBA, GraphicsInterface::DataTypes::FLOAT,
+                                                   particleUploadData.data());
     }
 
     void renderWithProgram(std::shared_ptr<GraphicsProgram> renderProgram, uint32_t lodLevel[[gnu::unused]]) override {
@@ -172,7 +178,7 @@ public:
             return;
         }
         graphicsWrapper->attachTexture((int) texture->getTextureID(), spriteUnit);
-        graphicsWrapper->attachTexture((int) particleDataTexture->getTextureID(), positionsUnit);
+        graphicsWrapper->attachTexture((int) particleDataTextureHandle, positionsUnit);
         renderProgram->setUniform("size", glm::vec3(size.x, size.y, 1.0f));
         graphicsWrapper->renderInstanced(renderProgram->getID(), vao, ebo, 3 * 2, currentCount);
     }

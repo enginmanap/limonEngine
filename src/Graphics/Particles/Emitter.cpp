@@ -41,12 +41,8 @@ Emitter::Emitter(long worldObjectId, std::string name, std::shared_ptr<AssetMana
 
     setupVAO();
 
-    particleDataTexture = std::make_shared<Texture>(this->graphicsWrapper,
-                                                    GraphicsInterface::TextureTypes::T2D,
-                                                    GraphicsInterface::InternalFormatTypes::RGBA32F,
-                                                    GraphicsInterface::FormatTypes::RGBA,
-                                                    GraphicsInterface::DataTypes::FLOAT,
-                                                    maxCount, 1);
+    particleDataTextureHandle = graphicsWrapper->createFrameBufferedTexture(1, (int) maxCount, GraphicsInterface::InternalFormatTypes::RGBA32F,
+                                                                      GraphicsInterface::FormatTypes::RGBA, GraphicsInterface::DataTypes::FLOAT);
     if(particlePerMs > 0) {
         this->perMsParticleCount = particlePerMs;
     } else {
@@ -167,14 +163,12 @@ ImGuiResult Emitter::addImGuiEditorElements(const ImGuiRequest &request) {
     int maxCountTemp = (int) maxCount;
     if(ImGui::DragInt("Maximum particle count##ParticleEmitter", &maxCountTemp, 1, 1, INT_MAX)) {
         maxCount = maxCountTemp;
-        particleDataTexture = std::make_shared<Texture>(this->graphicsWrapper,
-                                                        GraphicsInterface::TextureTypes::T2D,
-                                                        GraphicsInterface::InternalFormatTypes::RGBA32F,
-                                                        GraphicsInterface::FormatTypes::RGBA,
-                                                        GraphicsInterface::DataTypes::FLOAT,
-                                                        maxCount, 1);
+        graphicsWrapper->deleteFrameBufferedTexture(particleDataTextureHandle);
+        particleDataTextureHandle = graphicsWrapper->createFrameBufferedTexture(1, (int) maxCount, GraphicsInterface::InternalFormatTypes::RGBA32F,
+                                                                          GraphicsInterface::FormatTypes::RGBA, GraphicsInterface::DataTypes::FLOAT);
         perMsParticleCount = (float) maxCount / lifeTime;
         currentCount = 0;
+        particleUploadData.clear();
         positions.clear();
         speeds.clear();
         creationTime.clear();

@@ -50,7 +50,8 @@ private:
     bool dirty;
 
     std::shared_ptr<TextureAsset> textureAsset;//it is the root asset for texture
-    std::shared_ptr<Texture> particleDataTexture;
+    uint32_t particleDataTexture = 0;//This is a handle from backend, for multi buffered texture store. We don't know what GPU texture will it be.
+    std::vector<glm::vec4> particleUploadData;//positions row then speeds row, empty until setupParticles runs
 
     std::random_device randomDevice;
     std::default_random_engine randomFloatGenerator;
@@ -92,7 +93,7 @@ public:
     }
 
     void setupParticles(uint32_t time) {
-        std::vector<glm::vec4> temp;
+        particleUploadData.clear();
         float particleBeforeTimeIncrease = perMsParticleCount;
         float timeLeftBeforeNextParticle = 0;
         uint32_t startingTime = time;
@@ -123,23 +124,34 @@ public:
             }
         }
         for(long currentCount = 0; currentCount < maxCount; ++ currentCount) {
-            temp.emplace_back(glm::vec4(particles[currentCount].position, particles[currentCount].creationTime));
+            particleUploadData.emplace_back(glm::vec4(particles[currentCount].position, particles[currentCount].creationTime));
         }
         for(long currentCount = 0; currentCount < maxCount; ++ currentCount) {
-            temp.emplace_back(glm::vec4(particles[currentCount].speed, particles[currentCount].destroyTime));
+            particleUploadData.emplace_back(glm::vec4(particles[currentCount].speed, particles[currentCount].destroyTime));
         }
-        particleDataTexture->loadData(temp.data());
+    }
 
+    // The data only changes on dirty, but every copy of the texture needs it, so it goes up every frame
+    void uploadFrameData() {
+        if(!enabled || particleUploadData.empty()) {
+            return;
+        }
+        graphicsWrapper->writeFrameBufferedTexture(particleDataTexture, 0, 0, (int) maxCount, 2,
+                                                   GraphicsInterface::FormatTypes::RGBA, GraphicsInterface::DataTypes::FLOAT,
+                                                   particleUploadData.data());
     }
 
     void renderWithProgram(std::shared_ptr<GraphicsProgram> renderProgram, uint32_t lodLevel[[gnu::unused]]) override {
+        if (!enabled) {
+            return;
+        }
         int32_t spriteUnit = renderProgram->getTextureUnit("sprite");
         int32_t positionsUnit = renderProgram->getTextureUnit("positions");
         if (spriteUnit < 0 || positionsUnit < 0) {
             return;
         }
         graphicsWrapper->attachTexture((int) texture->getTextureID(), spriteUnit);
-        graphicsWrapper->attachTexture((int) particleDataTexture->getTextureID(), positionsUnit);
+        graphicsWrapper->attachTexture((int) particleDataTexture, positionsUnit);
         renderProgram->setUniform("size", size.x);
         renderProgram->setUniform("gravity", gravity);
         renderProgram->setUniform("continuousEmit", continuousEmit);
