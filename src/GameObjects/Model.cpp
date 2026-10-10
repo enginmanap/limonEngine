@@ -305,17 +305,19 @@ bool Model::fillObjects(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *o
     }
 
     //Material customizations
-    const std::vector<std::pair<std::string, std::shared_ptr<const Material>>> meshMaterialMap = getNewMeshMaterials();
+    const std::vector<MeshMaterialOverride> meshMaterialMap = getNewMeshMaterials();
     if (!meshMaterialMap.empty()) {
         tinyxml2::XMLElement *childrenNode = document.NewElement("MeshMaterialList");
         tinyxml2::XMLElement *childrenCountNode = document.NewElement("Count");
         childrenCountNode->SetText(std::to_string(meshMaterialMap.size()).c_str());
         childrenNode->InsertEndChild(childrenCountNode);
         objectElement->InsertEndChild(childrenNode);
-        for (auto& meshMaterial:meshMaterialMap) {
+        for (const MeshMaterialOverride& meshMaterial:meshMaterialMap) {
             tinyxml2::XMLElement *childNode = document.NewElement("MeshMaterial");
-            childNode->SetAttribute("MeshName", meshMaterial.first.c_str());
-            meshMaterial.second->serialize(document, childNode);
+            childNode->SetAttribute("MeshName", meshMaterial.meshName.c_str());
+            childNode->SetAttribute("BaseMaterial", meshMaterial.baseMaterialName.c_str());
+            childNode->SetAttribute("Ordinal", meshMaterial.ordinal);
+            meshMaterial.material->serialize(document, childNode);
             childrenNode->InsertEndChild(childNode);
         }
     }
@@ -1108,12 +1110,15 @@ Model::Model(const Model &otherModel, uint32_t objectID, CullingEntry* cullingEn
     }
     this->setTags(otherTags);//setTags, so a default tag the original had removed stays removed on the copy
 
-    for (const auto& materialOverride : otherModel.getNewMeshMaterials()) {
-        for (size_t meshIndex = 0; meshIndex < this->meshMetaData.size(); ++meshIndex) {
-            if (this->meshMetaData[meshIndex]->mesh->getName() == materialOverride.first) {
+    //same asset, same flip, so the meshes are in the same order and the index is the exact match, names are not unique
+    if (this->meshMetaData.size() != otherModel.meshMetaData.size()) {
+        std::cerr << "Copy of " << name << " has " << this->meshMetaData.size() << " meshes but the original has "
+                  << otherModel.meshMetaData.size() << ", mesh materials are not copied." << std::endl;
+    } else {
+        for (size_t meshIndex = 0; meshIndex < otherModel.meshMetaData.size(); ++meshIndex) {
+            if (otherModel.meshMetaData[meshIndex]->material != this->meshMetaData[meshIndex]->material) {
                 //the copy holds its own reference to the override, it does not share the original's
-                this->setMeshMaterial(meshIndex, materialOverride.second);
-                break;
+                this->setMeshMaterial(meshIndex, otherModel.meshMetaData[meshIndex]->material);
             }
         }
     }
@@ -1188,10 +1193,32 @@ ImGuiResult Model::putAIonGUI(ActorInterface *actorInterface,
     return result;
 }
 
-std::vector<std::pair<std::string, std::shared_ptr<const Material>>> Model::getNewMeshMaterials() const{
-    std::vector<std::pair<std::string, std::shared_ptr<const Material>>> meshMaterialList;
+uint32_t Model::getMeshOrdinal(size_t meshIndex) const {
+    const std::string &meshName = meshMetaData[meshIndex]->mesh->getName();
+    std::shared_ptr<Material> baseMaterial = modelAsset->getMeshMaterial(meshMetaData[meshIndex]->mesh);
+    if (baseMaterial == nullptr) {
+        std::cerr << "Mesh " << meshName << " of " << name << " is not part of its asset. This should not happen." << std::endl;
+        return 0;
+    }
+    uint32_t ordinal = 0;
+    for (size_t earlierIndex = 0; earlierIndex < meshIndex; ++earlierIndex) {
+        std::shared_ptr<Material> earlierBaseMaterial = modelAsset->getMeshMaterial(meshMetaData[earlierIndex]->mesh);
+        if (earlierBaseMaterial == nullptr) {
+            std::cerr << "Mesh " << meshMetaData[earlierIndex]->mesh->getName() << " of " << name << " is not part of its asset. This should not happen." << std::endl;
+            continue;
+        }
+        if (meshMetaData[earlierIndex]->mesh->getName() == meshName && earlierBaseMaterial->getName() == baseMaterial->getName()) {
+            ++ordinal;
+        }
+    }
+    return ordinal;
+}
 
-    for (const auto& thisMeshMaterial:meshMetaData) {
+std::vector<Model::MeshMaterialOverride> Model::getNewMeshMaterials() const{
+    std::vector<MeshMaterialOverride> meshMaterialList;
+
+    for (size_t meshIndex = 0; meshIndex < meshMetaData.size(); ++meshIndex) {
+        const MeshMeta* thisMeshMaterial = meshMetaData[meshIndex];
         std::shared_ptr<Material> material = this->modelAsset->getMeshMaterial(thisMeshMaterial->mesh);
         if (material == nullptr) {
             std::cerr << "Model has a mesh that is not part of asset. This should not happen. " << std::endl;
@@ -1206,7 +1233,12 @@ std::vector<std::pair<std::string, std::shared_ptr<const Material>>> Model::getN
              * Filtering on originalHash instead would give that field a second meaning and collide with the
              * "is this world owned" test in Editor::ensureWorldOwnedMaterial.
              */
-            meshMaterialList.emplace_back(thisMeshMaterial->mesh->getName(), thisMeshMaterial->material);
+            MeshMaterialOverride meshOverride;
+            meshOverride.meshName = thisMeshMaterial->mesh->getName();
+            meshOverride.baseMaterialName = material->getName();
+            meshOverride.ordinal = getMeshOrdinal(meshIndex);
+            meshOverride.material = thisMeshMaterial->material;
+            meshMaterialList.push_back(meshOverride);
         }
     }
     return meshMaterialList;
@@ -1246,24 +1278,35 @@ std::shared_ptr<const Material> Model::setMeshMaterial(size_t meshIndex, std::sh
     return materialToUse;
 }
 
-void Model::loadOverriddenMeshMaterial(std::vector<std::pair<std::string, std::shared_ptr<Material>>> &customisedMeshMaterialList) {
-    for (const auto& thisMeshMaterial:customisedMeshMaterialList) {
-        //find the mesh
+void Model::loadOverriddenMeshMaterial(const std::vector<MeshMaterialOverride> &customisedMeshMaterialList) {
+    for (const MeshMaterialOverride& thisMeshMaterial:customisedMeshMaterialList) {
         bool found = false;
         for (size_t meshIndex = 0; meshIndex < this->meshMetaData.size(); ++meshIndex) {
-            if (this->meshMetaData[meshIndex]->mesh->getName() == thisMeshMaterial.first) {
-                std::shared_ptr<Material> newMaterial = thisMeshMaterial.second;
-                newMaterial->loadGPUSide(assetManager.get());
-                //setMeshMaterial registers, and can hand back a deduplicated instance instead
-                std::shared_ptr<const Material> installedMaterial = setMeshMaterial(meshIndex, newMaterial);
+            if (this->meshMetaData[meshIndex]->mesh->getName() != thisMeshMaterial.meshName) {
+                continue;
+            }
+            //no base material means a file from before halves of a split mesh were told apart, it is the whole name or nothing
+            bool isThisMesh = thisMeshMaterial.baseMaterialName.empty();
+            if (!isThisMesh) {
+                std::shared_ptr<Material> baseMaterial = modelAsset->getMeshMaterial(this->meshMetaData[meshIndex]->mesh);
+                if (baseMaterial == nullptr) {
+                    std::cerr << "Mesh " << thisMeshMaterial.meshName << " of " << name << " is not part of its asset. This should not happen." << std::endl;
+                    continue;
+                }
+                isThisMesh = baseMaterial->getName() == thisMeshMaterial.baseMaterialName && getMeshOrdinal(meshIndex) == thisMeshMaterial.ordinal;
+            }
+            if (isThisMesh) {
+                //setMeshMaterial tries registering material, and might get existing material if deduplicates. If that is the case, upload GPU side will shortcircut and return safely.
+                std::shared_ptr<const Material> installedMaterial = setMeshMaterial(meshIndex, thisMeshMaterial.material);
                 if (installedMaterial != nullptr) {
-                    graphicsWrapper->setMaterial(*installedMaterial);
+                    std::const_pointer_cast<Material>(installedMaterial)->loadGPUSide(assetManager.get());
                 }
                 found = true;
             }
         }
         if (!found) {
-            std::cerr << "Model " << this->name << " doesn't have a mesh with name " << thisMeshMaterial.first << " This should never happen" << std::endl;
+            std::cerr << "Model " << this->name << " has no mesh " << thisMeshMaterial.meshName << " with base material "
+                      << thisMeshMaterial.baseMaterialName << " number " << thisMeshMaterial.ordinal << ", its material is not applied. The source model changed since this was saved." << std::endl;
         }
     }
 }

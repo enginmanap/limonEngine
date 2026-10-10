@@ -90,9 +90,23 @@ private:
     //the context the engine would use for this object, so the panel and selection cannot drift apart
     float getLodObjectScale() const;
 
+    //position among the meshes that share this mesh's name and the asset's own material for it
+    uint32_t getMeshOrdinal(size_t meshIndex) const;
+
 public:
     /**
-     * This method returns a list of MeshAsset->Material pairs, that has been customized specifically for this model, that is not shared with the
+     * A mesh is told apart by node name, base material and ordinal. Assimp splits a node with several materials into
+     * several meshes that all carry the node name, so the name alone matches all of them.
+     */
+    struct MeshMaterialOverride {
+        std::string meshName;
+        std::string baseMaterialName;//empty in files saved before this field existed, those apply to every mesh with the name
+        uint32_t ordinal = 0;
+        std::shared_ptr<const Material> material;
+    };
+
+    /**
+     * This method returns a list of the meshes that has been customized specifically for this model, that is not shared with the
      * ModelAsset. Model asset has a default material, and world has overrides for that asset. This method returns overrides for not the asset level,
      * but the model level.
      *
@@ -102,9 +116,9 @@ public:
      *
      * @return list of meshes that had different material than asset
      */
-    std::vector<std::pair<std::string, std::shared_ptr<const Material>>> getNewMeshMaterials() const;
+    std::vector<MeshMaterialOverride> getNewMeshMaterials() const;
 
-    void loadOverriddenMeshMaterial(std::vector<std::pair<std::string, std::shared_ptr<Material>>> & customisedMeshMaterialList);
+    void loadOverriddenMeshMaterial(const std::vector<MeshMaterialOverride> &customisedMeshMaterialList);
 
     //every path that changes a mesh material has to come through here, releaseOwnedMeshMaterial relies on
     //it. Returns what was installed, dedup can give back a different instance than the one passed in
