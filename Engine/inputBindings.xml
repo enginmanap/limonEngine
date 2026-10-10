@@ -44,6 +44,11 @@
       threshold="±N"  — digital: fires when axis value >= N (pos) or <= N (neg)
       scale="N"       — analog:  value × scale added to action each frame while held
 
+    ── Multiple gamepads (gamepad_button, gamepad_axis, joystick_button) ─────
+      gamepadIndex="N" — only the Nth connected pad (0-based) feeds this binding.
+      Absent means every pad does. A pad keeps its index while others come and
+      go, and a reconnecting pad takes the lowest free index.
+
     ── Raw joystick buttons (source="joystick_button") ──────────────────────
       index="N"  — raw SDL joystick button index (0-based). Use for buttons
       outside SDL's GameController mapping (proprietary/extra buttons).

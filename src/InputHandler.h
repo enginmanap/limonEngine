@@ -15,16 +15,25 @@
 
 class InputHandler {
 public:
+    static constexpr int ANY_GAMEPAD = -1; // binding without a gamepadIndex listens to every connected pad
+
+    struct GamepadButtonBinding {
+        uint64_t action;
+        int gamepadIndex = ANY_GAMEPAD;
+    };
+
     struct DigitalAxisBinding {
         SDL_GamepadAxis axis;
         float threshold; // positive = trigger when value >= threshold, negative = trigger when value <= threshold
         uint64_t action;
+        int gamepadIndex = ANY_GAMEPAD;
     };
 
     struct AnalogAxisBinding {
         SDL_GamepadAxis axis;
         float scale;
         uint64_t action;
+        int gamepadIndex = ANY_GAMEPAD;
     };
 
     struct KeyboardAnalogBinding {
@@ -54,27 +63,40 @@ private:
     uint64_t mouseWheelDownAction  = 0;
     uint64_t mouseWheelLeftAction  = 0;
     uint64_t mouseWheelRightAction = 0;
-    std::unordered_map<SDL_GamepadButton, std::vector<uint64_t>>   gamepadButtonBindings;
+    std::unordered_map<SDL_GamepadButton, std::vector<GamepadButtonBinding>> gamepadButtonBindings;
     std::vector<DigitalAxisBinding>                                 gamepadDigitalAxisBindings;
     std::vector<AnalogAxisBinding>                                  gamepadAnalogAxisBindings;
-    std::unordered_map<int, std::vector<uint64_t>>                 joystickButtonBindings;
+    std::unordered_map<int, std::vector<GamepadButtonBinding>>      joystickButtonBindings;
 
-    SDL_Gamepad    *gameController     = nullptr;
-    SDL_JoystickID  joystickInstanceID = 0;
-    float currentAxisValues[SDL_GAMEPAD_AXIS_COUNT] = {0.0f};
+    // slots are never erased, a vacated one is the first to be reused so a reconnecting pad gets its old index back
+    struct GamepadSlot {
+        SDL_Gamepad *gamepad = nullptr;
+        SDL_JoystickID instanceID = 0;
+        float axisValues[SDL_GAMEPAD_AXIS_COUNT] = {0.0f};
+    };
+    std::vector<GamepadSlot> gamepadSlots;
     bool textInputActive = false;
 
     bool loadBindingsFromXML(const std::string &filePath);
     void loadDefaultBindings();
+    void openGamepad(SDL_JoystickID instanceID);
+    void closeGamepad(SDL_JoystickID instanceID);
+    int findGamepadSlot(SDL_JoystickID instanceID) const;
     void applyGamepadAnalogAxes();
     void applyKeyboardAnalogBindings();
+
+    static bool bindingMatchesSlot(int bindingGamepadIndex, int slotIndex) {
+        return bindingGamepadIndex == ANY_GAMEPAD || bindingGamepadIndex == slotIndex;
+    }
 
 public:
     InputHandler(SDL_Window *, OptionsUtil::Options *options);
 
     ~InputHandler() {
-        if (gameController != nullptr) {
-            SDL_CloseGamepad(gameController);
+        for (GamepadSlot &slot : gamepadSlots) {
+            if (slot.gamepad != nullptr) {
+                SDL_CloseGamepad(slot.gamepad);
+            }
         }
         SDL_SetWindowMouseGrab(window, false);
         SDL_SetWindowRelativeMouseMode(window, false);

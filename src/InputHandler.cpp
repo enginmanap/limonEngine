@@ -65,6 +65,15 @@ static SDL_GamepadAxis parseGamepadAxisName(const char *name) {
     return SDL_GAMEPAD_AXIS_INVALID;
 }
 
+// Absent attribute leaves ANY_GAMEPAD, returns false for a negative or non numeric value.
+static bool parseGamepadIndex(const tinyxml2::XMLElement *bindingElement, int &gamepadIndex) {
+    gamepadIndex = InputHandler::ANY_GAMEPAD;
+    if (bindingElement->Attribute("gamepadIndex") == nullptr) {
+        return true;
+    }
+    return bindingElement->QueryIntAttribute("gamepadIndex", &gamepadIndex) == tinyxml2::XML_SUCCESS && gamepadIndex >= 0;
+}
+
 // ── Constructor ───────────────────────────────────────────────────────────────
 
 InputHandler::InputHandler(SDL_Window *window, OptionsUtil::Options *options) :
@@ -87,18 +96,60 @@ InputHandler::InputHandler(SDL_Window *window, OptionsUtil::Options *options) :
         if (joysticks != nullptr) {
             for (int i = 0; i < joystickCount; ++i) {
                 if (SDL_IsGamepad(joysticks[i])) {
-                    gameController = SDL_OpenGamepad(joysticks[i]);
-                    if (gameController != nullptr) {
-                        SDL_Joystick *joystick = SDL_GetGamepadJoystick(gameController);
-                        joystickInstanceID = SDL_GetJoystickID(joystick);
-                        std::cout << "InputHandler: opened gamepad \"" << SDL_GetGamepadName(gameController) << "\"" << std::endl;
-                        break;
-                    }
+                    openGamepad(joysticks[i]);
                 }
             }
             SDL_free(joysticks);
         }
     }
+}
+
+// ── Gamepad slots ─────────────────────────────────────────────────────────────
+
+int InputHandler::findGamepadSlot(SDL_JoystickID instanceID) const {
+    for (size_t slotIndex = 0; slotIndex < gamepadSlots.size(); ++slotIndex) {
+        if (gamepadSlots[slotIndex].gamepad != nullptr && gamepadSlots[slotIndex].instanceID == instanceID) {
+            return static_cast<int>(slotIndex);
+        }
+    }
+    return -1;
+}
+
+void InputHandler::openGamepad(SDL_JoystickID instanceID) {
+    if (findGamepadSlot(instanceID) >= 0) { // SDL queues ADDED for pads we already opened at startup
+        return;
+    }
+    SDL_Gamepad *gamepad = SDL_OpenGamepad(instanceID);
+    if (gamepad == nullptr) {
+        std::cerr << "InputHandler: could not open gamepad: " << SDL_GetError() << std::endl;
+        return;
+    }
+
+    int slotIndex = -1;
+    for (size_t candidate = 0; candidate < gamepadSlots.size(); ++candidate) {
+        if (gamepadSlots[candidate].gamepad == nullptr) {
+            slotIndex = static_cast<int>(candidate);
+            break;
+        }
+    }
+    if (slotIndex < 0) {
+        gamepadSlots.emplace_back();
+        slotIndex = static_cast<int>(gamepadSlots.size()) - 1;
+    }
+    gamepadSlots[slotIndex].gamepad = gamepad;
+    gamepadSlots[slotIndex].instanceID = instanceID;
+    std::cout << "InputHandler: gamepad " << slotIndex << " connected: \"" << SDL_GetGamepadName(gamepad) << "\"" << std::endl;
+}
+
+void InputHandler::closeGamepad(SDL_JoystickID instanceID) {
+    int slotIndex = findGamepadSlot(instanceID);
+    if (slotIndex < 0) {
+        return;
+    }
+    GamepadSlot &slot = gamepadSlots[slotIndex];
+    std::cout << "InputHandler: gamepad " << slotIndex << " disconnected." << std::endl;
+    SDL_CloseGamepad(slot.gamepad);
+    slot = GamepadSlot();
 }
 
 // ── Default bindings (used when inputBindings.xml is absent) ─────────────────
@@ -137,9 +188,9 @@ void InputHandler::loadDefaultBindings() {
     mouseWheelDownAction = InputActions::MOUSE_WHEEL_DOWN;
 
     // Gamepad buttons
-    gamepadButtonBindings[SDL_GAMEPAD_BUTTON_SOUTH]         = {InputActions::JUMP};
-    gamepadButtonBindings[SDL_GAMEPAD_BUTTON_LEFT_SHOULDER] = {InputActions::RUN, InputActions::KEY_SHIFT};
-    gamepadButtonBindings[SDL_GAMEPAD_BUTTON_RIGHT_SHOULDER]= {InputActions::MOUSE_BUTTON_RIGHT};
+    gamepadButtonBindings[SDL_GAMEPAD_BUTTON_SOUTH]         = {{InputActions::JUMP}};
+    gamepadButtonBindings[SDL_GAMEPAD_BUTTON_LEFT_SHOULDER] = {{InputActions::RUN}, {InputActions::KEY_SHIFT}};
+    gamepadButtonBindings[SDL_GAMEPAD_BUTTON_RIGHT_SHOULDER]= {{InputActions::MOUSE_BUTTON_RIGHT}};
 
     // Gamepad digital axes
     gamepadDigitalAxisBindings.push_back({SDL_GAMEPAD_AXIS_LEFTY,         -0.3f, InputActions::MOVE_FORWARD});
@@ -256,7 +307,12 @@ bool InputHandler::loadBindingsFromXML(const std::string &filePath) {
                     std::cerr << "InputHandler: unknown gamepad button '" << buttonName << "'" << std::endl;
                     continue;
                 }
-                gamepadButtonBindings[button].push_back(actionHash);
+                int gamepadIndex;
+                if (!parseGamepadIndex(bindingElement, gamepadIndex)) {
+                    std::cerr << "InputHandler: gamepadIndex must be a number >= 0 for " << actionName << std::endl;
+                    continue;
+                }
+                gamepadButtonBindings[button].push_back({actionHash, gamepadIndex});
 
             } else if (std::strcmp(source, "joystick_button") == 0) {
                 // Raw joystick button index — for buttons outside SDL's Gamepad mapping
@@ -271,7 +327,12 @@ bool InputHandler::loadBindingsFromXML(const std::string &filePath) {
                     std::cerr << "InputHandler: joystick_button index must be >= 0 for " << actionName << std::endl;
                     continue;
                 }
-                joystickButtonBindings[buttonIndex].push_back(actionHash);
+                int gamepadIndex;
+                if (!parseGamepadIndex(bindingElement, gamepadIndex)) {
+                    std::cerr << "InputHandler: gamepadIndex must be a number >= 0 for " << actionName << std::endl;
+                    continue;
+                }
+                joystickButtonBindings[buttonIndex].push_back({actionHash, gamepadIndex});
 
             } else if (std::strcmp(source, "gamepad_axis") == 0) {
                 const char *axisName = bindingElement->Attribute("axis");
@@ -284,13 +345,18 @@ bool InputHandler::loadBindingsFromXML(const std::string &filePath) {
                     std::cerr << "InputHandler: unknown gamepad axis '" << axisName << "'" << std::endl;
                     continue;
                 }
+                int gamepadIndex;
+                if (!parseGamepadIndex(bindingElement, gamepadIndex)) {
+                    std::cerr << "InputHandler: gamepadIndex must be a number >= 0 for " << actionName << std::endl;
+                    continue;
+                }
                 const char *thresholdAttr = bindingElement->Attribute("threshold");
                 const char *scaleAttr     = bindingElement->Attribute("scale");
                 if (thresholdAttr != nullptr) {
-                    gamepadDigitalAxisBindings.push_back({axis, std::stof(thresholdAttr), actionHash});
+                    gamepadDigitalAxisBindings.push_back({axis, std::stof(thresholdAttr), actionHash, gamepadIndex});
                 } else {
                     float scale = (scaleAttr != nullptr) ? std::stof(scaleAttr) : 1.0f;
-                    gamepadAnalogAxisBindings.push_back({axis, scale, actionHash});
+                    gamepadAnalogAxisBindings.push_back({axis, scale, actionHash, gamepadIndex});
                 }
 
             } else {
@@ -306,15 +372,17 @@ bool InputHandler::loadBindingsFromXML(const std::string &filePath) {
 // ── Per-frame analog axis application ────────────────────────────────────────
 
 void InputHandler::applyGamepadAnalogAxes() {
-    if (gameController == nullptr) {
-        return;
-    }
     float deadZone = static_cast<float>(gamepadDeadZoneOption.get());
     for (const AnalogAxisBinding &binding : gamepadAnalogAxisBindings) {
-        float value = currentAxisValues[static_cast<int>(binding.axis)];
-        if (std::abs(value) > deadZone) {
-            inputState.setActiveDevice(InputStates::ActiveDevice::GAMEPAD);
-            inputState.addAnalogValue(binding.action, value * binding.scale);
+        for (size_t slotIndex = 0; slotIndex < gamepadSlots.size(); ++slotIndex) {
+            if (gamepadSlots[slotIndex].gamepad == nullptr || !bindingMatchesSlot(binding.gamepadIndex, static_cast<int>(slotIndex))) {
+                continue;
+            }
+            float value = gamepadSlots[slotIndex].axisValues[static_cast<int>(binding.axis)];
+            if (std::abs(value) > deadZone) {
+                inputState.setActiveDevice(InputStates::ActiveDevice::GAMEPAD);
+                inputState.addAnalogValue(binding.action, value * binding.scale);
+            }
         }
     }
 }
@@ -425,47 +493,28 @@ void InputHandler::mapInput() {
 
             // ── Gamepad device connect / disconnect ───────────────────────────
             case SDL_EVENT_GAMEPAD_ADDED:
-                if (gameController == nullptr) {
-                    gameController = SDL_OpenGamepad(event.gdevice.which);
-                    if (gameController != nullptr) {
-                        SDL_Joystick *joystick = SDL_GetGamepadJoystick(gameController);
-                        joystickInstanceID = SDL_GetJoystickID(joystick);
-                        std::cout << "InputHandler: gamepad connected: \"" << SDL_GetGamepadName(gameController) << "\"" << std::endl;
-                    }
-                }
+                openGamepad(event.gdevice.which);
                 break;
             case SDL_EVENT_GAMEPAD_REMOVED:
-                if (gameController != nullptr &&
-                    SDL_GetGamepadFromID(event.gdevice.which) == gameController) {
-                    std::cout << "InputHandler: gamepad disconnected." << std::endl;
-                    SDL_CloseGamepad(gameController);
-                    gameController     = nullptr;
-                    joystickInstanceID = 0;
-                    for (float &axisValue : currentAxisValues) {
-                        axisValue = 0.0f;
-                    }
-                }
+                closeGamepad(event.gdevice.which);
                 break;
 
             // ── Gamepad buttons ───────────────────────────────────────────────
-            case SDL_EVENT_GAMEPAD_BUTTON_DOWN: {
-                inputState.setActiveDevice(InputStates::ActiveDevice::GAMEPAD);
-                SDL_GamepadButton button = static_cast<SDL_GamepadButton>(event.gbutton.button);
-                auto it = gamepadButtonBindings.find(button);
-                if (it != gamepadButtonBindings.end()) {
-                    for (uint64_t action : it->second) {
-                        inputState.setInputStatus(action, true);
-                    }
-                }
-                break;
-            }
+            case SDL_EVENT_GAMEPAD_BUTTON_DOWN:
             case SDL_EVENT_GAMEPAD_BUTTON_UP: {
+                int slotIndex = findGamepadSlot(event.gbutton.which);
+                if (slotIndex < 0) {
+                    break;
+                }
                 inputState.setActiveDevice(InputStates::ActiveDevice::GAMEPAD);
+                bool pressed = (event.type == SDL_EVENT_GAMEPAD_BUTTON_DOWN);
                 SDL_GamepadButton button = static_cast<SDL_GamepadButton>(event.gbutton.button);
-                auto it = gamepadButtonBindings.find(button);
-                if (it != gamepadButtonBindings.end()) {
-                    for (uint64_t action : it->second) {
-                        inputState.setInputStatus(action, false);
+                std::unordered_map<SDL_GamepadButton, std::vector<GamepadButtonBinding>>::const_iterator bindingIterator = gamepadButtonBindings.find(button);
+                if (bindingIterator != gamepadButtonBindings.end()) {
+                    for (const GamepadButtonBinding &binding : bindingIterator->second) {
+                        if (bindingMatchesSlot(binding.gamepadIndex, slotIndex)) {
+                            inputState.setInputStatus(binding.action, pressed);
+                        }
                     }
                 }
                 break;
@@ -473,11 +522,15 @@ void InputHandler::mapInput() {
 
             // ── Gamepad axes ──────────────────────────────────────────────────
             case SDL_EVENT_GAMEPAD_AXIS_MOTION: {
+                int slotIndex = findGamepadSlot(event.gaxis.which);
+                if (slotIndex < 0) {
+                    break;
+                }
                 SDL_GamepadAxis axis = static_cast<SDL_GamepadAxis>(event.gaxis.axis);
                 float normalizedValue = event.gaxis.value / 32767.0f;
 
                 if (axis < SDL_GAMEPAD_AXIS_COUNT) {
-                    currentAxisValues[static_cast<int>(axis)] = normalizedValue;
+                    gamepadSlots[slotIndex].axisValues[static_cast<int>(axis)] = normalizedValue;
                 }
 
                 if (std::abs(normalizedValue) > static_cast<float>(gamepadDeadZoneOption.get())) {
@@ -485,7 +538,7 @@ void InputHandler::mapInput() {
                 }
 
                 for (const DigitalAxisBinding &binding : gamepadDigitalAxisBindings) {
-                    if (binding.axis != axis) {
+                    if (binding.axis != axis || !bindingMatchesSlot(binding.gamepadIndex, slotIndex)) {
                         continue;
                     }
                     bool pressed;
@@ -500,23 +553,22 @@ void InputHandler::mapInput() {
             }
 
             // ── Raw joystick buttons (for buttons outside SDL Gamepad mapping) ──
-            case SDL_EVENT_JOYSTICK_BUTTON_DOWN: {
-                if (event.jbutton.which != joystickInstanceID) break;
-                inputState.setActiveDevice(InputStates::ActiveDevice::GAMEPAD);
-                auto it = joystickButtonBindings.find(static_cast<int>(event.jbutton.button));
-                if (it != joystickButtonBindings.end()) {
-                    for (uint64_t action : it->second) {
-                        inputState.setInputStatus(action, true);
-                    }
-                }
-                break;
-            }
+            case SDL_EVENT_JOYSTICK_BUTTON_DOWN:
             case SDL_EVENT_JOYSTICK_BUTTON_UP: {
-                if (event.jbutton.which != joystickInstanceID) break;
-                auto it = joystickButtonBindings.find(static_cast<int>(event.jbutton.button));
-                if (it != joystickButtonBindings.end()) {
-                    for (uint64_t action : it->second) {
-                        inputState.setInputStatus(action, false);
+                int slotIndex = findGamepadSlot(event.jbutton.which);
+                if (slotIndex < 0) {
+                    break;
+                }
+                bool pressed = (event.type == SDL_EVENT_JOYSTICK_BUTTON_DOWN);
+                if (pressed) {
+                    inputState.setActiveDevice(InputStates::ActiveDevice::GAMEPAD);
+                }
+                std::unordered_map<int, std::vector<GamepadButtonBinding>>::const_iterator bindingIterator = joystickButtonBindings.find(static_cast<int>(event.jbutton.button));
+                if (bindingIterator != joystickButtonBindings.end()) {
+                    for (const GamepadButtonBinding &binding : bindingIterator->second) {
+                        if (bindingMatchesSlot(binding.gamepadIndex, slotIndex)) {
+                            inputState.setInputStatus(binding.action, pressed);
+                        }
                     }
                 }
                 break;
