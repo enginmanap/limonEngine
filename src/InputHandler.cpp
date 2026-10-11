@@ -12,6 +12,9 @@
 // ── XML parsing helpers ───────────────────────────────────────────────────────
 
 static SDL_Keycode parseKeyName(const char *name) {
+    // SDL names these per platform once video is up (Windows says "Left Windows"), so every spelling resolves on every platform
+    if (SDL_strcasecmp(name, "Left GUI") == 0 || SDL_strcasecmp(name, "Left Windows") == 0)   return SDLK_LGUI;
+    if (SDL_strcasecmp(name, "Right GUI") == 0 || SDL_strcasecmp(name, "Right Windows") == 0) return SDLK_RGUI;
     return SDL_GetKeyFromName(name); // SDLK_UNKNOWN on failure (case-insensitive)
 }
 
