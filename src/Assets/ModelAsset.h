@@ -33,6 +33,13 @@ class AnimationAssimp;
 
 class ModelAsset : public Asset {
 private:
+
+
+    #ifdef ASSIMP_VALIDATE_WORKAROUND
+    static constexpr unsigned int ASSIMP_FLAGS = (aiProcess_GlobalScale|aiProcess_GenBoundingBoxes | aiProcess_FlipUVs | aiProcessPreset_TargetRealtime_MaxQuality) & ~aiProcess_FindInvalidData;
+    #else
+    static constexpr  unsigned int ASSIMP_FLAGS = (aiProcess_GlobalScale|aiProcess_GenBoundingBoxes | aiProcess_FlipUVs | aiProcessPreset_TargetRealtime_MaxQuality);
+    #endif
     void loadCPUPart() override;
     void loadGPUPart() override;
 

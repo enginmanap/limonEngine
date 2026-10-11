@@ -64,11 +64,7 @@ ModelAsset::ModelAsset(AssetManager *assetManager, const std::string &path)
 const aiScene *ModelAsset::importScene(Assimp::Importer &assimpImporter, const std::string &path) {
     assimpImporter.SetPropertyBool("AI_CONFIG_IMPORT_FBX_EMBEDDED_TEXTURES_LEGACY_NAMING", true);
     assimpImporter.SetPropertyInteger(AI_CONFIG_PP_SLM_VERTEX_LIMIT, 65536);//faces are u16vec3, a bigger submesh wraps its indices and scrambles the mesh
-    unsigned int flags = (aiProcess_GlobalScale|aiProcess_GenBoundingBoxes | aiProcess_FlipUVs | aiProcessPreset_TargetRealtime_MaxQuality);
-#ifdef ASSIMP_VALIDATE_WORKAROUND
-    flags = flags & ~aiProcess_FindInvalidData;
-#endif
-    const aiScene *scene = assimpImporter.ReadFile(path, flags);
+    const aiScene *scene = assimpImporter.ReadFile(path, ASSIMP_FLAGS);
 
     if (!scene || scene->mFlags == AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
         std::cerr << "ERROR::ASSIMP::" << path << "::" << assimpImporter.GetErrorString() << std::endl;
@@ -183,7 +179,7 @@ void ModelAsset::loadMixamoAnimations() {
         const aiScene *mixamoScene = nullptr;
         for (size_t i = 0; i < mixamoFilePaths.size(); ++i) {
             const std::string &mixamoFilePath = mixamoFilePaths[i];
-            mixamoScene = importer2.ReadFile(mixamoFilePath, 0);
+            mixamoScene = importer2.ReadFile(mixamoFilePath, ASSIMP_FLAGS);
             if (!mixamoScene || !mixamoScene->mRootNode) {//it might have mixamoScene->mFlags == AI_SCENE_FLAGS_INCOMPLETE, but that is expected
                 std::cerr << "ERROR::ASSIMP::MIXAMO" << importer2.GetErrorString() << std::endl;
                 //delete mixamoScene; don't delete, importer deletes
