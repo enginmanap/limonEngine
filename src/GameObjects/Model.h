@@ -363,7 +363,7 @@ public:
             glm::vec3 translate, scale;
             glm::quat orientation;
 
-            glm::decompose(this->transformation.getWorldTransform() * boneTransforms[selectedBoneID], scale, orientation, translate, temp1, temp2);//update the current of thes
+            glm::decompose(this->transformation.getWorldTransform() * boneTransforms[selectedBoneID] * glm::inverse(modelAsset->getBoneBindOffset(selectedBoneID)), scale, orientation, translate, temp1, temp2);//the bone's own frame, not its skinning matrix, so an offset of zero is the joint
 
             exposedBoneTransforms[selectedBoneID]->setTranslate(translate);
             exposedBoneTransforms[selectedBoneID]->setScale(scale);

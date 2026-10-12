@@ -148,7 +148,8 @@ void bindLimonAPI(pybind11::module_& m) {
                  pybind11::arg("object_id"), pybind11::arg("temporary"))
             .def("attach_object_to_object", &LimonAPI::attachObjectToObject,
                  "Attach child to parent; child's current transform is treated as local offset relative to parent. "
-                 "With bone_name, the child follows that bone of the parent model instead of the model itself.",
+                 "With bone_name, the child follows that bone of the parent model instead of the model itself, "
+                 "and the offset is in the bone's own frame: zero is the joint, the axes are the bone's.",
                  pybind11::arg("object_id"), pybind11::arg("object_to_attach_to_id"), pybind11::arg("bone_name") = "")
             .def("attach_object_to_object_at_world_position", &LimonAPI::attachObjectToObjectAtWorldPosition,
                  "Attach child to parent; child keeps its current world position (local offset is derived automatically). "

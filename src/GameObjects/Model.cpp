@@ -196,7 +196,7 @@ void Model::evaluatePose() {
         glm::vec3 translate, scale;
         glm::quat orientation;
 
-        glm::decompose(this->transformation.getWorldTransform() * boneTransforms[boneIterator->first], scale, orientation, translate, temp1, temp2);
+        glm::decompose(this->transformation.getWorldTransform() * boneTransforms[boneIterator->first] * glm::inverse(modelAsset->getBoneBindOffset(boneIterator->first)), scale, orientation, translate, temp1, temp2);//the bone's own frame, see getAttachmentTransform
         exposedBoneTransforms[boneIterator->first]->setTransformations(translate,scale, orientation);
     }
 }

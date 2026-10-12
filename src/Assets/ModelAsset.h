@@ -165,6 +165,8 @@ private:
 
     int32_t findBoneIDByNameRecursive(const std::shared_ptr<BoneNode> &boneNode, const std::string &boneName) const;
 
+    bool findBoneBindOffsetRecursive(const std::shared_ptr<BoneNode> &boneNode, int32_t boneID, glm::mat4 &offset) const;
+
 #ifdef CEREAL_SUPPORT
     friend class cereal::access;
 #endif
@@ -331,6 +333,16 @@ public:
     //-1 if this model has no bone with that name, the names are the ones the editor lists
     int32_t getBoneIDByName(const std::string &boneName) const {
         return findBoneIDByNameRecursive(rootNode, boneName);
+    }
+
+    /**
+     * The inverse bind matrix of the bone, identity for an unknown bone. A bone's skinning matrix is its pose times this,
+     * so skinning matrix * inverse(this) is the bone's own frame in model space.
+     */
+    glm::mat4 getBoneBindOffset(int32_t boneID) const {
+        glm::mat4 offset(1.0f);
+        findBoneBindOffsetRecursive(rootNode, boneID, offset);
+        return offset;
     }
 
     std::vector<std::pair<uint32_t, uint32_t>> getBoneHierarchyEdges() const {

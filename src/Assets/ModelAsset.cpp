@@ -1220,6 +1220,25 @@ int32_t ModelAsset::findBoneIDByNameRecursive(const std::shared_ptr<BoneNode> &b
     return -1;
 }
 
+bool ModelAsset::findBoneBindOffsetRecursive(const std::shared_ptr<BoneNode> &boneNode, int32_t boneID, glm::mat4 &offset) const {
+    if (boneNode == nullptr) {
+        return false;
+    }
+    if (static_cast<int32_t>(boneNode->boneID) == boneID) {
+        std::unordered_map<std::string, BoneInformation>::const_iterator information = boneInformationMap.find(boneNode->name);
+        if (information != boneInformationMap.end()) {
+            offset = information->second.offset;
+        }
+        return true;
+    }
+    for (size_t i = 0; i < boneNode->children.size(); ++i) {
+        if (findBoneBindOffsetRecursive(boneNode->children[i], boneID, offset)) {
+            return true;
+        }
+    }
+    return false;
+}
+
 void ModelAsset::buildPhysicsMeshes() {
     baseTransform.setIdentity();
     baseTransform.setOrigin(GLMConverter::GLMToBlt(-1.0f * centerOffset));
