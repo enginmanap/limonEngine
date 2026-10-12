@@ -167,6 +167,19 @@ public:
         return "Player";//Players doesn't have specific names
     };
 
+    //every player type gets a gizmo for its start pose, PhysicalPlayer overrides this to move its rigid body too
+    ImGuiResult addImGuiEditorElements(const ImGuiRequest &request) override {
+        ImGuiResult imGuiResult;
+        Transformation editedTransformation;
+        editedTransformation.setTransformations(getPosition(), calculateLookRotation());
+        if(editedTransformation.addImGuiEditorElements(request.perspectiveCameraMatrix, request.perspectiveMatrix)) {
+            ownControl(editedTransformation.getTranslate(), glm::normalize(editedTransformation.getOrientation() * glm::vec3(0, 0, 1)));
+            updateTransformation();
+            imGuiResult.updated = true;
+        }
+        return imGuiResult;
+    }
+
     /************Game Object methods **************/
     virtual void processInput(const InputStates &inputState, uint32_t time [[gnu::unused]]) {
         float xPosition = 0.0f, yPosition = 0.0f, xChangeUnused = 0.0f, yChangeUnused = 0.0f;

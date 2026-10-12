@@ -1029,6 +1029,15 @@ void World::ImGuiFrameSetup(std::shared_ptr<GraphicsProgram> graphicsProgram, co
    for (auto it = triggers.begin(); it != triggers.end(); ++it) {
        it->second->render(debugDrawer);
    }
+   //We need to save the position for not only physical player, but menu player, editor player etc.
+   Player* startingPlayerOfTheMap = getStartingPlayer();
+   if (startingPlayerOfTheMap == nullptr || startingPlayerOfTheMap == currentPlayer) {
+       startingPlayerOfTheMap = physicalPlayer;
+   }
+   if (startingPlayerOfTheMap != nullptr) {
+       startingPlayer.orientation = startingPlayerOfTheMap->getLookDirection();//the startingPlayer here is not the player, it is the metadata we save with the player.
+       startingPlayer.position = startingPlayerOfTheMap->getPosition();
+   }
    //Render player place holder
    if (physicalPlayer != nullptr) {
        if (playerPlaceHolder == nullptr) {
@@ -1038,9 +1047,6 @@ void World::ImGuiFrameSetup(std::shared_ptr<GraphicsProgram> graphicsProgram, co
            playerPlaceHolder = new Model(getNextObjectID(), assetManager, 0, assetFile, true, &playerPlaceHolderCullingEntry);
            playerPlaceHolder->getTransformation()->setScale(scale);
        }
-
-       startingPlayer.orientation = physicalPlayer->getLookDirection();
-       startingPlayer.position = physicalPlayer->getPosition();
 
        playerPlaceHolder->getTransformation()->setTransformations(physicalPlayer->getPosition()
        ,physicalPlayer->getLookDirectionQuaternion());
