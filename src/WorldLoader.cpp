@@ -503,8 +503,10 @@ static std::vector<Model::MeshMaterialOverride> readMeshMaterialOverrides(tinyxm
         }
         Model::MeshMaterialOverride meshOverride;
         meshOverride.meshName = meshMaterialNode->Attribute("MeshName");
-        if (meshMaterialNode->Attribute("BaseMaterial") != nullptr) {//absent in files saved before split meshes were told apart
-            meshOverride.baseMaterialName = meshMaterialNode->Attribute("BaseMaterial");
+        //BaseMaterial names are ignored, dedup names a material after whichever asset loaded first
+        uint64_t baseMaterialHash = 0;
+        if (meshMaterialNode->QueryUnsigned64Attribute("BaseHash", &baseMaterialHash) == tinyxml2::XML_SUCCESS) {
+            meshOverride.baseMaterialHash = static_cast<size_t>(baseMaterialHash);
             meshMaterialNode->QueryUnsignedAttribute("Ordinal", &meshOverride.ordinal);
         }
         meshOverride.material = Material::deserialize(assetManager, materialNode);
@@ -1404,7 +1406,7 @@ bool WorldLoader::loadMaterials(tinyxml2::XMLNode *worldNode, World *world) cons
           */
          std::shared_ptr<Material> material = Material::deserialize(world->assetManager.get(), materialNode);
          material = world->assetManager->getMaterialRegistry().registerMaterial(material);
-         material->loadGPUSide(world->assetManager.get());//the meshes only install a world override, this is what fills its slot
+         material->loadGPUSide(world->assetManager.get());
          world->addPendingMaterialOverride(material);
     }
     return true;

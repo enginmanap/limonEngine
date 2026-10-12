@@ -97,6 +97,7 @@ class Editor {
 
     //the Revert button: discard the alteration and put the mesh back on what it had
     void revertAlteredMaterialEdit();
+    void resetModelMaterials(Model* model);
 
     //the panel is going away for another reason. The alteration stands, we just let go of it
     void releaseAlteredMaterialEdit();

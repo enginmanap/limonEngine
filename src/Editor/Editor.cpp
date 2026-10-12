@@ -557,6 +557,24 @@ void Editor::releaseAlteredMaterialEdit() {
     alteredMaterialEdit = AlteredMaterialEdit();
 }
 
+void Editor::resetModelMaterials(Model* model) {
+    if (model == nullptr) {
+        return;
+    }
+    int32_t alteredMeshIndex = -1;
+    if (alteredMaterialEdit.material != nullptr && alteredMaterialEdit.objectID == model->getWorldObjectID()) {
+        alteredMeshIndex = alteredMaterialEdit.meshIndex;
+        releaseAlteredMaterialEdit();//before the reset, or the copy stays registered
+    }
+    model->resetMeshMaterials();
+    world->applyMaterialOverrides(model);
+    world->onModelMaterialChanged(model->getWorldObjectID());
+    if (alteredMeshIndex >= 0) {
+        //the list is on the copy that just went away
+        selectedRegistrationID = model->getMeshMetaData()[alteredMeshIndex]->material->getRegistrationID();
+    }
+}
+
 bool Editor::isMaterialListedBefore(const std::pair<uint32_t, std::shared_ptr<Material>> &left,
                                     const std::pair<uint32_t, std::shared_ptr<Material>> &right) {
     if (left.second->getName() != right.second->getName()) {
@@ -1505,6 +1523,9 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
             }
             if (objectEditorResult.alterMaterialForMeshIndex >= 0) {
                 beginAlteredMaterialEdit(dynamic_cast<Model*>(this->pickedObject), objectEditorResult.alterMaterialForMeshIndex);
+            }
+            if (objectEditorResult.resetModelMaterials) {
+                resetModelMaterials(dynamic_cast<Model*>(this->pickedObject));
             }
             //the player owns its camera, so the active camera rig's parameters are tuned here, under the player.
             //the rig is CHOSEN in the "Camera Extension" panel; this edits the live, already-active instance in place.

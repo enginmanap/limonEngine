@@ -27,6 +27,7 @@ struct ImGuiResult {
     //the copy and its edit window are owned by the Editor, these only say what the user asked for
     int32_t alterMaterialForMeshIndex = -1;//user pressed "Alter material for this model" for this mesh
     bool revertAlteredMaterial = false;
+    bool resetModelMaterials = false;//user pressed "Reset model"
     //user picked a mesh, so the material list can follow along. Null means the pick did not change
     std::shared_ptr<const Material> selectedMeshMaterial = nullptr;
     bool recalculateTranslateForOnTop = false;

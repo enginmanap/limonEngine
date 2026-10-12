@@ -90,17 +90,15 @@ private:
     //the context the engine would use for this object, so the panel and selection cannot drift apart
     float getLodObjectScale() const;
 
-    //position among the meshes that share this mesh's name and the asset's own material for it
+    //among meshes with the same name and base material content
     uint32_t getMeshOrdinal(size_t meshIndex) const;
 
 public:
-    /**
-     * A mesh is told apart by node name, base material and ordinal. Assimp splits a node with several materials into
-     * several meshes that all carry the node name, so the name alone matches all of them.
-     */
+    //halves of a split mesh share the node name, and a material name is whichever identical material loaded first,
+    //so a mesh is told apart by name, base material content and ordinal
     struct MeshMaterialOverride {
         std::string meshName;
-        std::string baseMaterialName;//empty in files saved before this field existed, those apply to every mesh with the name
+        size_t baseMaterialHash = 0;//0 for old files, they match by name only
         uint32_t ordinal = 0;
         std::shared_ptr<const Material> material;
     };
@@ -119,6 +117,9 @@ public:
     std::vector<MeshMaterialOverride> getNewMeshMaterials() const;
 
     void loadOverriddenMeshMaterial(const std::vector<MeshMaterialOverride> &customisedMeshMaterialList);
+
+    //the caller applies the world's overrides afterwards
+    void resetMeshMaterials();
 
     //every path that changes a mesh material has to come through here, releaseOwnedMeshMaterial relies on
     //it. Returns what was installed, dedup can give back a different instance than the one passed in

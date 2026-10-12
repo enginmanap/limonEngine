@@ -129,7 +129,7 @@ std::shared_ptr<Material> MaterialRegistry::createScratchCopy(const std::shared_
         materials[copiedMaterial->getRegistrationID()] = std::make_pair(copiedMaterial, 1);
         materialsVersion++;
     }
-    copiedMaterial->loadGPUSide(copiedMaterial->assetManager);//after the lock, it asks us if it is registered
+    copiedMaterial->loadGPUSide(copiedMaterial->assetManager);//after the lock, loadGPUSide takes it too
     return copiedMaterial;
 }
 
@@ -163,7 +163,7 @@ std::shared_ptr<Material> MaterialRegistry::splitOffOverride(const std::shared_p
         std::cerr << "Material " << overrideMaterial->getName() << " already overrides a different material, "
                   << "leaving its base alone. This edit matched its content exactly." << std::endl;
     }
-    overrideMaterial->loadGPUSide(overrideMaterial->assetManager);//a deduplicated winner is uploaded again, with the content it already has
+    overrideMaterial->loadGPUSide(overrideMaterial->assetManager);
     return overrideMaterial;
 }
 
