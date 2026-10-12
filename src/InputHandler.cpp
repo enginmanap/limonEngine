@@ -7,6 +7,7 @@
 #include "ImGuiHelper.h"
 #include <tinyxml2.h>
 #include <cstring>
+#include <filesystem>
 #include <iostream>
 
 // ── XML parsing helpers ───────────────────────────────────────────────────────
@@ -86,8 +87,10 @@ InputHandler::InputHandler(SDL_Window *window, OptionsUtil::Options *options) :
     lookAroundSpeedOption = options->getOption<double>(HASH("player_lookAroundSpeed"));
     gamepadDeadZoneOption = options->getOption<double>(HASH("gamepad_deadZone"));
 
-    if (!loadBindingsFromXML("./Engine/inputBindings.xml")) {
-        loadDefaultBindings();
+    loadEngineBindings();
+    // If a game wants to override bindings, we expect them to put the file under ./Data
+    if (std::filesystem::exists("./Data/inputBindings.xml")) {
+        applyOverrideBindings("./Data/inputBindings.xml");
     }
 
     // ── SDL Gamepad subsystem ─────────────────────────────────────────────────
@@ -191,26 +194,191 @@ void InputHandler::loadDefaultBindings() {
     mouseWheelDownAction = InputActions::MOUSE_WHEEL_DOWN;
 
     // Gamepad buttons
-    gamepadButtonBindings[SDL_GAMEPAD_BUTTON_SOUTH]         = {{InputActions::JUMP}};
-    gamepadButtonBindings[SDL_GAMEPAD_BUTTON_LEFT_SHOULDER] = {{InputActions::RUN}, {InputActions::KEY_SHIFT}};
-    gamepadButtonBindings[SDL_GAMEPAD_BUTTON_RIGHT_SHOULDER]= {{InputActions::MOUSE_BUTTON_RIGHT}};
+    PadBindings &everyPad = padBindings[ANY_GAMEPAD];
+    everyPad.buttons[SDL_GAMEPAD_BUTTON_SOUTH]         = {InputActions::JUMP};
+    everyPad.buttons[SDL_GAMEPAD_BUTTON_LEFT_SHOULDER] = {InputActions::RUN, InputActions::KEY_SHIFT};
+    everyPad.buttons[SDL_GAMEPAD_BUTTON_RIGHT_SHOULDER]= {InputActions::MOUSE_BUTTON_RIGHT};
 
     // Gamepad digital axes
-    gamepadDigitalAxisBindings.push_back({SDL_GAMEPAD_AXIS_LEFTY,         -0.3f, InputActions::MOVE_FORWARD});
-    gamepadDigitalAxisBindings.push_back({SDL_GAMEPAD_AXIS_LEFTY,          0.3f, InputActions::MOVE_BACKWARD});
-    gamepadDigitalAxisBindings.push_back({SDL_GAMEPAD_AXIS_LEFTX,         -0.3f, InputActions::MOVE_LEFT});
-    gamepadDigitalAxisBindings.push_back({SDL_GAMEPAD_AXIS_LEFTX,          0.3f, InputActions::MOVE_RIGHT});
-    gamepadDigitalAxisBindings.push_back({SDL_GAMEPAD_AXIS_RIGHT_TRIGGER,  0.3f, InputActions::MOUSE_BUTTON_LEFT});
+    everyPad.digitalAxes.push_back({SDL_GAMEPAD_AXIS_LEFTY,         -0.3f, InputActions::MOVE_FORWARD});
+    everyPad.digitalAxes.push_back({SDL_GAMEPAD_AXIS_LEFTY,          0.3f, InputActions::MOVE_BACKWARD});
+    everyPad.digitalAxes.push_back({SDL_GAMEPAD_AXIS_LEFTX,         -0.3f, InputActions::MOVE_LEFT});
+    everyPad.digitalAxes.push_back({SDL_GAMEPAD_AXIS_LEFTX,          0.3f, InputActions::MOVE_RIGHT});
+    everyPad.digitalAxes.push_back({SDL_GAMEPAD_AXIS_RIGHT_TRIGGER,  0.3f, InputActions::MOUSE_BUTTON_LEFT});
 
     // Gamepad analog axes — scale normalized to match mouse unit (xrel / screenWidth*0.5)
     float analogLookScale = GAMEPAD_LOOK_PIXELS_PER_FRAME / (options->getScreenWidth() * 0.5f);
-    gamepadAnalogAxisBindings.push_back({SDL_GAMEPAD_AXIS_RIGHTX, analogLookScale, InputActions::LOOK_X});
-    gamepadAnalogAxisBindings.push_back({SDL_GAMEPAD_AXIS_RIGHTY, analogLookScale, InputActions::LOOK_Y});
+    everyPad.analogAxes.push_back({SDL_GAMEPAD_AXIS_RIGHTX, analogLookScale, InputActions::LOOK_X});
+    everyPad.analogAxes.push_back({SDL_GAMEPAD_AXIS_RIGHTY, analogLookScale, InputActions::LOOK_Y});
 }
 
 // ── XML binding loader ────────────────────────────────────────────────────────
 
-bool InputHandler::loadBindingsFromXML(const std::string &filePath) {
+bool InputHandler::bindingSourceDevice(const char *source, BindingDeviceType &device) {
+    if (std::strcmp(source, "keyboard") == 0) {
+        device = BindingDeviceType::KEYBOARD;
+    } else if (std::strcmp(source, "mouse_button") == 0 || std::strcmp(source, "mouse_wheel") == 0 || std::strcmp(source, "mouse_axis") == 0) {
+        device = BindingDeviceType::MOUSE;
+    } else if (std::strcmp(source, "gamepad_button") == 0 || std::strcmp(source, "gamepad_axis") == 0 || std::strcmp(source, "joystick_button") == 0) {
+        device = BindingDeviceType::PAD;
+    } else {
+        return false;
+    }
+    return true;
+}
+
+void InputHandler::clearDeviceBindings(BindingDeviceType device) {
+    switch (device) {
+        case BindingDeviceType::KEYBOARD:
+            keyboardBindings.clear();
+            keyboardAnalogBindings.clear();
+            break;
+        case BindingDeviceType::MOUSE:
+            mouseButtonBindings.clear();
+            mouseAnalogXAction = mouseAnalogYAction = 0;
+            mouseWheelUpAction = mouseWheelDownAction = mouseWheelLeftAction = mouseWheelRightAction = 0;
+            break;
+        case BindingDeviceType::PAD:
+            padBindings.clear();
+            break;
+    }
+}
+
+InputHandler::PadBindingsForSlot InputHandler::bindingsForSlot(int slotIndex) const {
+    PadBindingsForSlot slotBindings;
+    std::map<int, PadBindings>::const_iterator ownBindings = padBindings.find(slotIndex);
+    if (ownBindings != padBindings.end()) {
+        slotBindings.own = &ownBindings->second;
+    }
+    std::map<int, PadBindings>::const_iterator everyPad = padBindings.find(ANY_GAMEPAD);
+    if (everyPad != padBindings.end() && (ownBindings == padBindings.end() || !ownBindings->second.overridden)) {
+        slotBindings.everyPad = &everyPad->second;
+    }
+    return slotBindings;
+}
+
+void InputHandler::collectBoundActions(std::set<uint64_t> &boundActions) const {
+    for (const std::pair<const SDL_Keycode, std::vector<uint64_t>> &entry : keyboardBindings) {
+        boundActions.insert(entry.second.begin(), entry.second.end());
+    }
+    for (const KeyboardAnalogBinding &binding : keyboardAnalogBindings) {
+        boundActions.insert(binding.action);
+    }
+    for (const std::pair<const uint8_t, std::vector<uint64_t>> &entry : mouseButtonBindings) {
+        boundActions.insert(entry.second.begin(), entry.second.end());
+    }
+    const uint64_t singleActions[] = {mouseAnalogXAction, mouseAnalogYAction, mouseWheelUpAction, mouseWheelDownAction, mouseWheelLeftAction, mouseWheelRightAction};
+    for (uint64_t action : singleActions) {
+        if (action != 0) {
+            boundActions.insert(action);
+        }
+    }
+    for (const std::pair<const int, PadBindings> &pad : padBindings) {
+        for (const std::pair<const SDL_GamepadButton, std::vector<uint64_t>> &entry : pad.second.buttons) {
+            boundActions.insert(entry.second.begin(), entry.second.end());
+        }
+        for (const DigitalAxisBinding &binding : pad.second.digitalAxes) {
+            boundActions.insert(binding.action);
+        }
+        for (const AnalogAxisBinding &binding : pad.second.analogAxes) {
+            boundActions.insert(binding.action);
+        }
+        for (const std::pair<const int, std::vector<uint64_t>> &entry : pad.second.joystickButtons) {
+            boundActions.insert(entry.second.begin(), entry.second.end());
+        }
+    }
+}
+
+void InputHandler::loadEngineBindings() {
+    engineActionNames.clear();
+    if (!addBindingsFromXML("./Engine/inputBindings.xml", &engineActionNames)) {
+        loadDefaultBindings();
+    }
+}
+
+bool InputHandler::applyOverrideBindings(const std::string &filePath) {
+    tinyxml2::XMLDocument document;
+    if (document.LoadFile(filePath.c_str()) != tinyxml2::XML_SUCCESS) {
+        std::cerr << "InputHandler: could not read " << filePath << ", the engine's bindings stay." << std::endl;
+        return false;
+    }
+    tinyxml2::XMLElement *root = document.FirstChildElement("InputBindings");
+    if (root == nullptr) {
+        std::cerr << "InputHandler: " << filePath << " has no <InputBindings> root element, the engine's bindings stay." << std::endl;
+        return false;
+    }
+
+    // what the file binds: keyboard and mouse as a whole, and pads either all of them (a binding without gamepadIndex) or by index
+    bool usesKeyboard = false;
+    bool usesMouse = false;
+    bool usesAllPads = false;
+    std::set<int> usedPads;
+    for (tinyxml2::XMLElement *actionElement = root->FirstChildElement("Action"); actionElement != nullptr; actionElement = actionElement->NextSiblingElement("Action")) {
+        for (tinyxml2::XMLElement *bindingElement = actionElement->FirstChildElement("Binding"); bindingElement != nullptr; bindingElement = bindingElement->NextSiblingElement("Binding")) {
+            const char *source = bindingElement->Attribute("source");
+            BindingDeviceType device;
+            if (source == nullptr || !bindingSourceDevice(source, device)) {
+                continue;
+            }
+            if (device == BindingDeviceType::KEYBOARD) {
+                usesKeyboard = true;
+            } else if (device == BindingDeviceType::MOUSE) {
+                usesMouse = true;
+            } else {
+                int gamepadIndex;
+                if (!parseGamepadIndex(bindingElement, gamepadIndex)) {
+                    continue;//the loader reports it
+                }
+                if (gamepadIndex == ANY_GAMEPAD) {
+                    usesAllPads = true;
+                } else {
+                    usedPads.insert(gamepadIndex);
+                }
+            }
+        }
+    }
+
+    std::string replaced;
+    if (usesKeyboard) {
+        clearDeviceBindings(BindingDeviceType::KEYBOARD);
+        replaced += (replaced.empty() ? "" : ", ") + std::string("keyboard");
+    }
+    if (usesMouse) {
+        clearDeviceBindings(BindingDeviceType::MOUSE);
+        replaced += (replaced.empty() ? "" : ", ") + std::string("mouse");
+    }
+    if (usesAllPads) {
+        clearDeviceBindings(BindingDeviceType::PAD);
+        replaced += (replaced.empty() ? "" : ", ") + std::string("all gamepads");
+    } else {
+        // the engine's bindings of these pads go, and the ones for every pad stop applying to them
+        for (int gamepadIndex : usedPads) {
+            padBindings.erase(gamepadIndex);
+            padBindings[gamepadIndex].overridden = true;
+            replaced += (replaced.empty() ? "" : ", ") + std::string("gamepad ") + std::to_string(gamepadIndex);
+        }
+    }
+    if (!addBindingsFromXML(filePath)) {
+        return false;
+    }
+
+    std::cout << "InputHandler: " << filePath << " replaces the engine's bindings for: " << (replaced.empty() ? "nothing" : replaced) << std::endl;
+    std::set<uint64_t> boundActions;
+    collectBoundActions(boundActions);
+    std::string unbound;
+    for (const std::pair<uint64_t, std::string> &engineAction : engineActionNames) {
+        if (boundActions.find(engineAction.first) == boundActions.end() && unbound.find(" " + engineAction.second + ",") == std::string::npos) {
+            unbound += " " + engineAction.second + ",";
+        }
+    }
+    if (!unbound.empty()) {
+        unbound.pop_back();
+        std::cout << "InputHandler: engine actions with no binding left:" << unbound << std::endl;
+    }
+    return true;
+}
+
+bool InputHandler::addBindingsFromXML(const std::string &filePath, std::vector<std::pair<uint64_t, std::string>> *actionNames) {
     tinyxml2::XMLDocument document;
     tinyxml2::XMLError result = document.LoadFile(filePath.c_str());
     if (result != tinyxml2::XML_SUCCESS) {
@@ -235,6 +403,9 @@ bool InputHandler::loadBindingsFromXML(const std::string &filePath) {
         }
 
         uint64_t actionHash = hash(actionName);
+        if (actionNames != nullptr) {
+            actionNames->push_back({actionHash, actionName});
+        }
 
         for (tinyxml2::XMLElement *bindingElement = actionElement->FirstChildElement("Binding");
              bindingElement != nullptr;
@@ -315,7 +486,7 @@ bool InputHandler::loadBindingsFromXML(const std::string &filePath) {
                     std::cerr << "InputHandler: gamepadIndex must be a number >= 0 for " << actionName << std::endl;
                     continue;
                 }
-                gamepadButtonBindings[button].push_back({actionHash, gamepadIndex});
+                padBindings[gamepadIndex].buttons[button].push_back(actionHash);
 
             } else if (std::strcmp(source, "joystick_button") == 0) {
                 // Raw joystick button index — for buttons outside SDL's Gamepad mapping
@@ -335,7 +506,7 @@ bool InputHandler::loadBindingsFromXML(const std::string &filePath) {
                     std::cerr << "InputHandler: gamepadIndex must be a number >= 0 for " << actionName << std::endl;
                     continue;
                 }
-                joystickButtonBindings[buttonIndex].push_back({actionHash, gamepadIndex});
+                padBindings[gamepadIndex].joystickButtons[buttonIndex].push_back(actionHash);
 
             } else if (std::strcmp(source, "gamepad_axis") == 0) {
                 const char *axisName = bindingElement->Attribute("axis");
@@ -356,10 +527,10 @@ bool InputHandler::loadBindingsFromXML(const std::string &filePath) {
                 const char *thresholdAttr = bindingElement->Attribute("threshold");
                 const char *scaleAttr     = bindingElement->Attribute("scale");
                 if (thresholdAttr != nullptr) {
-                    gamepadDigitalAxisBindings.push_back({axis, std::stof(thresholdAttr), actionHash, gamepadIndex});
+                    padBindings[gamepadIndex].digitalAxes.push_back({axis, std::stof(thresholdAttr), actionHash});
                 } else {
                     float scale = (scaleAttr != nullptr) ? std::stof(scaleAttr) : 1.0f;
-                    gamepadAnalogAxisBindings.push_back({axis, scale, actionHash, gamepadIndex});
+                    padBindings[gamepadIndex].analogAxes.push_back({axis, scale, actionHash});
                 }
 
             } else {
@@ -376,15 +547,22 @@ bool InputHandler::loadBindingsFromXML(const std::string &filePath) {
 
 void InputHandler::applyGamepadAnalogAxes() {
     float deadZone = static_cast<float>(gamepadDeadZoneOption.get());
-    for (const AnalogAxisBinding &binding : gamepadAnalogAxisBindings) {
-        for (size_t slotIndex = 0; slotIndex < gamepadSlots.size(); ++slotIndex) {
-            if (gamepadSlots[slotIndex].gamepad == nullptr || !bindingMatchesSlot(binding.gamepadIndex, static_cast<int>(slotIndex))) {
+    for (size_t slotIndex = 0; slotIndex < gamepadSlots.size(); ++slotIndex) {
+        if (gamepadSlots[slotIndex].gamepad == nullptr) {
+            continue;
+        }
+        const PadBindingsForSlot slotBindings = bindingsForSlot(static_cast<int>(slotIndex));
+        const PadBindings *bindingSets[] = {slotBindings.own, slotBindings.everyPad};
+        for (const PadBindings *bindings : bindingSets) {
+            if (bindings == nullptr) {
                 continue;
             }
-            float value = gamepadSlots[slotIndex].axisValues[static_cast<int>(binding.axis)];
-            if (std::abs(value) > deadZone) {
-                inputState.setActiveDevice(InputStates::ActiveDevice::GAMEPAD);
-                inputState.addAnalogValue(binding.action, value * binding.scale);
+            for (const AnalogAxisBinding &binding : bindings->analogAxes) {
+                float value = gamepadSlots[slotIndex].axisValues[static_cast<int>(binding.axis)];
+                if (std::abs(value) > deadZone) {
+                    inputState.setActiveDevice(InputStates::ActiveDevice::GAMEPAD);
+                    inputState.addAnalogValue(binding.action, value * binding.scale);
+                }
             }
         }
     }
@@ -512,11 +690,16 @@ void InputHandler::mapInput() {
                 inputState.setActiveDevice(InputStates::ActiveDevice::GAMEPAD);
                 bool pressed = (event.type == SDL_EVENT_GAMEPAD_BUTTON_DOWN);
                 SDL_GamepadButton button = static_cast<SDL_GamepadButton>(event.gbutton.button);
-                std::unordered_map<SDL_GamepadButton, std::vector<GamepadButtonBinding>>::const_iterator bindingIterator = gamepadButtonBindings.find(button);
-                if (bindingIterator != gamepadButtonBindings.end()) {
-                    for (const GamepadButtonBinding &binding : bindingIterator->second) {
-                        if (bindingMatchesSlot(binding.gamepadIndex, slotIndex)) {
-                            inputState.setInputStatus(binding.action, pressed);
+                const PadBindingsForSlot slotBindings = bindingsForSlot(slotIndex);
+                const PadBindings *bindingSets[] = {slotBindings.own, slotBindings.everyPad};
+                for (const PadBindings *bindings : bindingSets) {
+                    if (bindings == nullptr) {
+                        continue;
+                    }
+                    std::unordered_map<SDL_GamepadButton, std::vector<uint64_t>>::const_iterator bindingIterator = bindings->buttons.find(button);
+                    if (bindingIterator != bindings->buttons.end()) {
+                        for (uint64_t action : bindingIterator->second) {
+                            inputState.setInputStatus(action, pressed);
                         }
                     }
                 }
@@ -540,17 +723,24 @@ void InputHandler::mapInput() {
                     inputState.setActiveDevice(InputStates::ActiveDevice::GAMEPAD);
                 }
 
-                for (const DigitalAxisBinding &binding : gamepadDigitalAxisBindings) {
-                    if (binding.axis != axis || !bindingMatchesSlot(binding.gamepadIndex, slotIndex)) {
+                const PadBindingsForSlot slotBindings = bindingsForSlot(slotIndex);
+                const PadBindings *bindingSets[] = {slotBindings.own, slotBindings.everyPad};
+                for (const PadBindings *bindings : bindingSets) {
+                    if (bindings == nullptr) {
                         continue;
                     }
-                    bool pressed;
-                    if (binding.threshold >= 0.0f) {
-                        pressed = normalizedValue >= binding.threshold;
-                    } else {
-                        pressed = normalizedValue <= binding.threshold;
+                    for (const DigitalAxisBinding &binding : bindings->digitalAxes) {
+                        if (binding.axis != axis) {
+                            continue;
+                        }
+                        bool pressed;
+                        if (binding.threshold >= 0.0f) {
+                            pressed = normalizedValue >= binding.threshold;
+                        } else {
+                            pressed = normalizedValue <= binding.threshold;
+                        }
+                        inputState.setInputStatus(binding.action, pressed);
                     }
-                    inputState.setInputStatus(binding.action, pressed);
                 }
                 break;
             }
@@ -566,11 +756,16 @@ void InputHandler::mapInput() {
                 if (pressed) {
                     inputState.setActiveDevice(InputStates::ActiveDevice::GAMEPAD);
                 }
-                std::unordered_map<int, std::vector<GamepadButtonBinding>>::const_iterator bindingIterator = joystickButtonBindings.find(static_cast<int>(event.jbutton.button));
-                if (bindingIterator != joystickButtonBindings.end()) {
-                    for (const GamepadButtonBinding &binding : bindingIterator->second) {
-                        if (bindingMatchesSlot(binding.gamepadIndex, slotIndex)) {
-                            inputState.setInputStatus(binding.action, pressed);
+                const PadBindingsForSlot slotBindings = bindingsForSlot(slotIndex);
+                const PadBindings *bindingSets[] = {slotBindings.own, slotBindings.everyPad};
+                for (const PadBindings *bindings : bindingSets) {
+                    if (bindings == nullptr) {
+                        continue;
+                    }
+                    std::unordered_map<int, std::vector<uint64_t>>::const_iterator bindingIterator = bindings->joystickButtons.find(static_cast<int>(event.jbutton.button));
+                    if (bindingIterator != bindings->joystickButtons.end()) {
+                        for (uint64_t action : bindingIterator->second) {
+                            inputState.setInputStatus(action, pressed);
                         }
                     }
                 }

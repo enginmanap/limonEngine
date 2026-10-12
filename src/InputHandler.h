@@ -12,28 +12,26 @@
 
 #include "limonAPI/Options.h"
 #include "limonAPI/InputStates.h"
+#include <map>
+#include <set>
+#include <string>
+#include <utility>
+#include <vector>
 
 class InputHandler {
 public:
-    static constexpr int ANY_GAMEPAD = -1; // binding without a gamepadIndex listens to every connected pad
-
-    struct GamepadButtonBinding {
-        uint64_t action;
-        int gamepadIndex = ANY_GAMEPAD;
-    };
+    static constexpr int ANY_GAMEPAD = -1; // the bindings of a pad index, or this for the ones that listen to every connected pad
 
     struct DigitalAxisBinding {
         SDL_GamepadAxis axis;
         float threshold; // positive = trigger when value >= threshold, negative = trigger when value <= threshold
         uint64_t action;
-        int gamepadIndex = ANY_GAMEPAD;
     };
 
     struct AnalogAxisBinding {
         SDL_GamepadAxis axis;
         float scale;
         uint64_t action;
-        int gamepadIndex = ANY_GAMEPAD;
     };
 
     struct KeyboardAnalogBinding {
@@ -63,10 +61,16 @@ private:
     uint64_t mouseWheelDownAction  = 0;
     uint64_t mouseWheelLeftAction  = 0;
     uint64_t mouseWheelRightAction = 0;
-    std::unordered_map<SDL_GamepadButton, std::vector<GamepadButtonBinding>> gamepadButtonBindings;
-    std::vector<DigitalAxisBinding>                                 gamepadDigitalAxisBindings;
-    std::vector<AnalogAxisBinding>                                  gamepadAnalogAxisBindings;
-    std::unordered_map<int, std::vector<GamepadButtonBinding>>      joystickButtonBindings;
+
+    // Everything bound on one pad. A pad is one device with any number of members, like the keyboard is one device.
+    struct PadBindings {
+        std::unordered_map<SDL_GamepadButton, std::vector<uint64_t>> buttons;
+        std::vector<DigitalAxisBinding> digitalAxes;
+        std::vector<AnalogAxisBinding> analogAxes;
+        std::unordered_map<int, std::vector<uint64_t>> joystickButtons; // raw buttons outside SDL's gamepad mapping. We listen them together with buttons
+        bool overridden = false; // the override file binds this pad itself, so the bindings for every pad do not apply to it
+    };
+    std::map<int, PadBindings> padBindings; // by pad index, ANY_GAMEPAD holds the bindings for every pad
 
     // slots are never erased, a vacated one is the first to be reused so a reconnecting pad gets its old index back
     struct GamepadSlot {
@@ -77,7 +81,24 @@ private:
     std::vector<GamepadSlot> gamepadSlots;
     bool textInputActive = false;
 
-    bool loadBindingsFromXML(const std::string &filePath);
+    // A binding source belongs to a device: the keyboard, the mouse, or a pad. An override file takes over whole devices
+    enum class BindingDeviceType { KEYBOARD, MOUSE, PAD };
+    static bool bindingSourceDevice(const char *source, BindingDeviceType &device);
+    void clearDeviceBindings(BindingDeviceType device); // every pad for BindingDevice::PAD
+    void collectBoundActions(std::set<uint64_t> &boundActions) const;
+    // What a pad slot listens to: the bindings of its own pad index, and the ones for every pad unless the pad is overridden.
+    // Either can be missing.
+    struct PadBindingsForSlot {
+        const PadBindings *own = nullptr;
+        const PadBindings *everyPad = nullptr;
+    };
+    PadBindingsForSlot bindingsForSlot(int slotIndex) const;
+
+    // Adds the bindings of one file to the ones already loaded, actionNames, when given, receives every action the file defines.
+    bool addBindingsFromXML(const std::string &filePath, std::vector<std::pair<uint64_t, std::string>> *actionNames = nullptr);
+
+    void loadEngineBindings(); // ./Engine/inputBindings.xml, or the hardcoded defaults when it can't be read
+    bool applyOverrideBindings(const std::string &filePath);// loads ./Data/inputBindings.xml. If a device has any entry, all defaults dropped.
     void loadDefaultBindings();
     void openGamepad(SDL_JoystickID instanceID);
     void closeGamepad(SDL_JoystickID instanceID);
@@ -85,9 +106,7 @@ private:
     void applyGamepadAnalogAxes();
     void applyKeyboardAnalogBindings();
 
-    static bool bindingMatchesSlot(int bindingGamepadIndex, int slotIndex) {
-        return bindingGamepadIndex == ANY_GAMEPAD || bindingGamepadIndex == slotIndex;
-    }
+    std::vector<std::pair<uint64_t, std::string>> engineActionNames;
 
 public:
     InputHandler(SDL_Window *, OptionsUtil::Options *options);
