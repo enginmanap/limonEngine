@@ -891,20 +891,18 @@ ImGuiResult Model::addImGuiEditorElements(const ImGuiRequest &request) {
             selectedBoneID = -1;
         }
     }
-    if (isAnimated()) { //in animated objects can't have AI, can they?
-        if (ImGui::CollapsingHeader("AI properties")) {
-            if(isAIParametersDirty) {
-                if(this->AIActor != nullptr) {
-                    this->aiParameters = this->AIActor->getParameters();
-                } else {
-                    this->aiParameters.clear();
-                }
-                isAIParametersDirty = false;
+    if (ImGui::CollapsingHeader("AI properties")) {
+        if(isAIParametersDirty) {
+            if(this->AIActor != nullptr) {
+                this->aiParameters = this->AIActor->getParameters();
+            } else {
+                this->aiParameters.clear();
             }
-            result = putAIonGUI(this->AIActor, this->aiParameters, request, lastSelectedAIName);//ATTENTION is somehow user manages to update transform and AI at the same frame, this will override transform.
-            if(result.removeAI || result.addAI) {
-                isAIParametersDirty = true;
-            }
+            isAIParametersDirty = false;
+        }
+        result = putAIonGUI(this->AIActor, this->aiParameters, request, lastSelectedAIName);//ATTENTION is somehow user manages to update transform and AI at the same frame, this will override transform.
+        if(result.removeAI || result.addAI) {
+            isAIParametersDirty = true;
         }
     }
     if (ImGui::CollapsingHeader("Sound properties")) {
