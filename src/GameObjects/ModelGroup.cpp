@@ -244,37 +244,29 @@ void ModelGroup::recenterOnChildren() {
     groupTransform->addTranslate(worldDelta);
 }
 
+//through world matrices, a children's translate average is only right while the group has no rotation or scale
 void ModelGroup::addChild(PhysicalRenderable *renderable) {
-    glm::vec3 averageTranslateDifference(0.0f, 0.0f, 0.0f);
-    if(!children.empty()) {
-        for (auto & iterator : children) {
-            averageTranslateDifference += iterator->getTransformation()->getTranslateSingle();//single because we are the parent
-        }
-    }
+    //offset free world, getWorldTransform would bring the centerOffset along, see recenterOnChildren
+    Transformation* childTransform = renderable->getTransformation();
+    childTransform->getWorldTransform();//refresh world members
+    glm::mat4 childWorld = glm::translate(glm::mat4(1.0f), childTransform->getTranslate()) *
+                           glm::mat4_cast(childTransform->getOrientation()) *
+                           glm::scale(glm::mat4(1.0f), childTransform->getScale());
+    this->transformation.getWorldTransform();//refresh world members
+    glm::mat4 groupWorld = glm::translate(glm::mat4(1.0f), this->transformation.getTranslate()) *
+                           glm::mat4_cast(this->transformation.getOrientation()) *
+                           glm::scale(glm::mat4(1.0f), this->transformation.getScale());
+    glm::vec3 localTranslate, localScale, skew;
+    glm::quat localOrientation;
+    glm::vec4 perspective;
+    glm::decompose(glm::inverse(groupWorld) * childWorld, localScale, localOrientation, localTranslate, skew, perspective);
 
-    averageTranslateDifference += renderable->getTransformation()->getTranslateSingle() - this->transformation.getTranslate();//if already had parent, don't use it
-
-    averageTranslateDifference = averageTranslateDifference * (1.0f / (children.size()+1)); //+1 because new renderable is not put in yet
-    //at this point, we know where the model group imguizmo should be, now move it, and update old children
-
-    glm::vec3 difference = averageTranslateDifference;
-    for (auto iterator = children.begin(); iterator != children.end(); ++iterator) {
-        (*iterator)->getTransformation()->setTransformationsNotPropagate((*iterator)->getTransformation()->getTranslateSingle() - difference);
-    }
-
-    this->getTransformation()->addTranslate(averageTranslateDifference);
-    glm::vec3 translate, scale;
-    glm::quat orientation;
-    this->transformation.getDifferenceAddition(*renderable->getTransformation(), translate, scale, orientation);
-
-    translate = translate * (1.0f / this->transformation.getScale());
-    translate = translate * this->transformation.getOrientation();
-
-    renderable->getTransformation()->setTranslate(translate);
-    renderable->getTransformation()->setScale(scale);
-    renderable->getTransformation()->setOrientation(orientation);
-    renderable->getTransformation()->setParentTransform(&this->transformation);
+    childTransform->setTranslate(localTranslate);
+    childTransform->setScale(localScale);
+    childTransform->setOrientation(glm::normalize(localOrientation));
+    childTransform->setParentTransform(&this->transformation);
     renderable->setParentObject(this);
-
     children.push_back(renderable);
+
+    recenterOnChildren();
 }

@@ -658,6 +658,97 @@ void ModelToWorldConverter::buildGroupClips(const aiScene *scene) {
     }
 }
 
+//a node is a group when it holds more than one object and branches: its own objects plus the children that have any.
+//Chains that only pass a single object down collapse into that object
+uint32_t ModelToWorldConverter::markModelGroupNodes(const aiNode *node, const std::map<const aiNode *, uint32_t> &objectsAtNode,
+                                                    std::map<const aiNode *, uint32_t> &contributingChildren,
+                                                    std::set<const aiNode *> &groupNodes) const {
+    std::map<const aiNode *, uint32_t>::const_iterator ownEntry = objectsAtNode.find(node);
+    uint32_t ownObjects = ownEntry == objectsAtNode.end() ? 0 : ownEntry->second;
+    uint32_t subtreeObjects = ownObjects;
+    uint32_t contributing = 0;
+    for (uint32_t i = 0; i < node->mNumChildren; ++i) {
+        uint32_t childObjects = markModelGroupNodes(node->mChildren[i], objectsAtNode, contributingChildren, groupNodes);
+        if (childObjects > 0) {
+            ++contributing;
+        }
+        subtreeObjects += childObjects;
+    }
+    contributingChildren[node] = contributing;
+    if (parentNodes.at(node) != nullptr && subtreeObjects >= 2 && ownObjects + contributing >= 2) {
+        groupNodes.insert(node);
+    }
+    return subtreeObjects;
+}
+
+void ModelToWorldConverter::orderModelGroups(const aiNode *node, const std::set<const aiNode *> &groupNodes,
+                                             const std::map<const aiNode *, uint32_t> &objectsAtNode,
+                                             const std::map<const aiNode *, uint32_t> &contributingChildren, int32_t enclosingGroup) {
+    int32_t currentGroup = enclosingGroup;
+    if (groupNodes.count(node) != 0) {
+        ModelGroupNode group;
+        group.node = node;
+        group.parentGroup = enclosingGroup;
+        group.name = node->mName.C_Str();
+        //assimp splits one node per material, so a group of only those is one source object. Its node is
+        //SkeletalMeshComponent0 for every car, the parent is the car
+        const aiNode *parent = parentNodes.at(node);
+        if (contributingChildren.at(node) == 0 && parent != nullptr && parentNodes.at(parent) != nullptr && groupNodes.count(parent) == 0) {
+            group.name = parent->mName.C_Str();
+        }
+        glm::mat4 global = buildGlobalTransform(node, rootTransform);
+        group.translate = glm::vec3(global[3]);
+        glm::vec3 translate, scale;
+        glm::quat orientation;
+        if (glm::determinant(glm::mat3(global)) > 0.0f && decomposeWithoutShear(global, translate, orientation, scale)) {
+            group.orientation = orientation;//so rotating the group follows the base's own axes
+            group.scale = scale;
+        }
+        currentGroup = (int32_t) modelGroups.size();
+        modelGroupOfNode[node] = (uint32_t) currentGroup;
+        modelGroups.push_back(group);
+    }
+    for (uint32_t i = 0; i < node->mNumChildren; ++i) {
+        orderModelGroups(node->mChildren[i], groupNodes, objectsAtNode, contributingChildren, currentGroup);
+    }
+}
+
+int32_t ModelToWorldConverter::findEnclosingModelGroup(const aiNode *node) const {
+    for (const aiNode *current = node; current != nullptr; current = parentNodes.at(current)) {
+        std::map<const aiNode *, uint32_t>::const_iterator group = modelGroupOfNode.find(current);
+        if (group != modelGroupOfNode.end()) {
+            return (int32_t) group->second;
+        }
+    }
+    return -1;
+}
+
+//the source's own grouping, a base mesh with parts attached to it, kept as ModelGroups. An object sits at its
+//node, an animated one at its root
+void ModelToWorldConverter::findModelGroups(const aiScene *scene) {
+    std::map<const aiNode *, uint32_t> objectsAtNode;
+    for (const Instance &instance : instances) {
+        objectsAtNode[instance.node]++;
+    }
+    for (const AnimationGroup &group : animationGroups) {
+        if (!group.filePath.empty()) {
+            objectsAtNode[group.root]++;
+        }
+    }
+    std::map<const aiNode *, uint32_t> contributingChildren;
+    std::set<const aiNode *> groupNodes;
+    markModelGroupNodes(scene->mRootNode, objectsAtNode, contributingChildren, groupNodes);
+    orderModelGroups(scene->mRootNode, groupNodes, objectsAtNode, contributingChildren, -1);
+    for (Instance &instance : instances) {
+        instance.modelGroup = findEnclosingModelGroup(instance.node);
+    }
+    for (AnimationGroup &group : animationGroups) {
+        if (!group.filePath.empty()) {
+            group.modelGroup = findEnclosingModelGroup(group.root);
+        }
+    }
+}
+
 size_t ModelToWorldConverter::findUnionRoot(std::vector<size_t> &unionParents, size_t index) {
     while (unionParents[index] != index) {
         unionParents[index] = unionParents[unionParents[index]];
@@ -910,6 +1001,7 @@ void ModelToWorldConverter::collectInstances(const aiScene *scene, const aiNode 
         }
         Instance instance;
         instance.key = key;
+        instance.node = node;
         instance.translate = translate;
         instance.orientation = orientation;
         instance.scale = scale;
@@ -958,8 +1050,9 @@ bool ModelToWorldConverter::convert() {
         std::cerr << sourcePath << " has no mesh to convert." << std::endl;
         return false;
     }
+    findModelGroups(scene);
     //one more for the light. An object at or above NR_MAX_MODELS gets no transform and silently doesn't render
-    uint64_t lastID = FIRST_OBJECT_ID + instances.size() + usableGroupCount;
+    uint64_t lastID = FIRST_OBJECT_ID + instances.size() + usableGroupCount + modelGroups.size();
     if (lastID >= NR_MAX_MODELS) {
         std::cerr << sourcePath << " would need object IDs up to " << lastID << ", but NR_MAX_MODELS is " << NR_MAX_MODELS << "." << std::endl;
         return false;
@@ -983,6 +1076,7 @@ bool ModelToWorldConverter::convert() {
             ++groupFileCount;
         }
     }
+    std::cout << modelGroups.size() << " model groups from the source's hierarchy" << std::endl;
     std::cout << instances.size() << " static objects using " << pieces.size() << " pieces, " << usableGroupCount << " of "
               << animationGroups.size() << " animation groups using " << groupFileCount << " files" << std::endl;
     std::vector<std::map<PieceKey, Piece>::iterator> pieceQueue;
@@ -1085,6 +1179,15 @@ bool ModelToWorldConverter::writeWorld(const std::string &worldPath) const {
     startingPlayer.position = highestPoint + glm::vec3(0.0f, 2.0f, 0.0f);
     startingPlayer.serialize(document, worldNode);
 
+    //groups take the IDs after every object, so an object can name its group before the group is written
+    uint32_t animatedObjectCount = 0;
+    for (const AnimationGroup &group : animationGroups) {
+        if (!group.filePath.empty()) {
+            ++animatedObjectCount;
+        }
+    }
+    uint32_t firstModelGroupID = FIRST_OBJECT_ID + (uint32_t) instances.size() + animatedObjectCount;
+
     tinyxml2::XMLElement *objectsNode = document.NewElement("Objects");
     uint32_t objectID = FIRST_OBJECT_ID;
     for (const Instance &instance : instances) {
@@ -1095,6 +1198,9 @@ bool ModelToWorldConverter::writeWorld(const std::string &worldPath) const {
         XMLHelper::writeElement(document, objectNode, "Disconnected", "False");
         XMLHelper::writeElement(document, objectNode, "Mass", 0.0f);
         XMLHelper::writeElement(document, objectNode, "ID", objectID);
+        if (instance.modelGroup != -1) {
+            XMLHelper::writeElement(document, objectNode, "ParentID", firstModelGroupID + (uint32_t) instance.modelGroup);
+        }
         //the model renders around its own centerOffset, so the saved position has to put that back
         Transformation transformation;
         transformation.setScale(instance.scale);
@@ -1113,6 +1219,9 @@ bool ModelToWorldConverter::writeWorld(const std::string &worldPath) const {
         XMLHelper::writeElement(document, objectNode, "Disconnected", "False");
         XMLHelper::writeElement(document, objectNode, "Mass", 0.0f);
         XMLHelper::writeElement(document, objectNode, "ID", objectID);
+        if (group.modelGroup != -1) {
+            XMLHelper::writeElement(document, objectNode, "ParentID", firstModelGroupID + (uint32_t) group.modelGroup);
+        }
         Transformation transformation;
         transformation.setScale(group.scale);
         transformation.setOrientation(group.orientation);
@@ -1121,6 +1230,24 @@ bool ModelToWorldConverter::writeWorld(const std::string &worldPath) const {
         ++objectID;
     }
     worldNode->InsertEndChild(objectsNode);
+
+    tinyxml2::XMLElement *objectGroupsNode = document.NewElement("ObjectGroups");
+    for (const ModelGroupNode &modelGroup : modelGroups) {
+        tinyxml2::XMLElement *groupNode = document.NewElement("ObjectGroup");
+        objectGroupsNode->InsertEndChild(groupNode);
+        XMLHelper::writeElement(document, groupNode, "ID", objectID);
+        XMLHelper::writeElement(document, groupNode, "Name", modelGroup.name);
+        Transformation transformation;
+        transformation.setScale(modelGroup.scale);
+        transformation.setOrientation(modelGroup.orientation);
+        transformation.setTranslate(modelGroup.translate);
+        transformation.serialize(document, groupNode);
+        if (modelGroup.parentGroup != -1) {
+            XMLHelper::writeElement(document, groupNode, "ParentID", firstModelGroupID + (uint32_t) modelGroup.parentGroup);
+        }
+        ++objectID;
+    }
+    worldNode->InsertEndChild(objectGroupsNode);
 
     //same sun as World001
     tinyxml2::XMLElement *lightsNode = document.NewElement("Lights");

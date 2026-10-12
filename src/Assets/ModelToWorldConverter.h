@@ -55,6 +55,7 @@ class ModelToWorldConverter {
         std::set<const aiNode *> treeNodes;
         std::vector<const aiNode *> orderedNodes;//rig order, copies are compared and their channels renamed position by position
         int32_t sharedGroup = -1;//a copy uses that group's file instead of writing its own
+        int32_t modelGroup = -1;
         std::string filePath;//empty when the group can't be converted
         glm::vec3 translate = glm::vec3(0.0f);//no centerOffset to put back, animated models carry it in the bones
         glm::quat orientation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
@@ -63,9 +64,21 @@ class ModelToWorldConverter {
 
     struct Instance {
         PieceKey key;
+        const aiNode *node;
         glm::vec3 translate;//of the node, the piece's centerOffset is not applied yet
         glm::quat orientation;
         glm::vec3 scale;
+        int32_t modelGroup = -1;
+    };
+
+    //a source node that holds several objects, like a building base with its floors attached
+    struct ModelGroupNode {
+        const aiNode *node;
+        std::string name;
+        int32_t parentGroup = -1;
+        glm::vec3 translate = glm::vec3(0.0f);//the loader moves the group to its children's average, the rotation stays
+        glm::quat orientation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
+        glm::vec3 scale = glm::vec3(1.0f);
     };
 
     struct ClipCandidate {
@@ -97,6 +110,8 @@ class ModelToWorldConverter {
     std::set<std::pair<const aiNode *, uint32_t>> animatedMeshReferences;
     std::vector<AnimationGroup> animationGroups;
     std::vector<std::vector<std::unique_ptr<aiAnimation>>> groupClips;//per file writing group, every copy's clips renamed to its tree
+    std::vector<ModelGroupNode> modelGroups;//parents before children, so a group's parent is always written first
+    std::map<const aiNode *, uint32_t> modelGroupOfNode;
 
     void indexNodes(const aiNode *node, const aiNode *parent);
     void collectMeshReferences(const aiScene *scene, const aiNode *node, std::vector<std::pair<const aiNode *, uint32_t>> &meshReferences) const;
@@ -118,6 +133,13 @@ class ModelToWorldConverter {
     bool areGroupsEquivalent(const aiScene *scene, const AnimationGroup &first, const AnimationGroup &second) const;
     bool isSkinReboundToRest(const aiMesh *mesh, const aiNode *meshNode) const;
     void findSharedGroups(const aiScene *scene);
+    void findModelGroups(const aiScene *scene);
+    uint32_t markModelGroupNodes(const aiNode *node, const std::map<const aiNode *, uint32_t> &objectsAtNode,
+                                 std::map<const aiNode *, uint32_t> &contributingChildren, std::set<const aiNode *> &groupNodes) const;
+    void orderModelGroups(const aiNode *node, const std::set<const aiNode *> &groupNodes,
+                          const std::map<const aiNode *, uint32_t> &objectsAtNode,
+                          const std::map<const aiNode *, uint32_t> &contributingChildren, int32_t enclosingGroup);
+    int32_t findEnclosingModelGroup(const aiNode *node) const;
     void buildGroupClips(const aiScene *scene);
 
     static aiNodeAnim *copyChannel(const aiNodeAnim *channel, const aiString &nodeName, const aiNode *rebaseRoot);
