@@ -28,8 +28,13 @@ in VS_FS {
 /** Model rendering definitions */
 
 uniform int renderModelIMGUI;
+uniform float renderModelTransparency;// 0 (never set) is the opaque player placeholder, occlusion debug overlay sets it
 
 vec4 renderModel() {
+    //the stage doesn't cull, a translucent closed mesh would blend its far wall over its near one
+    if (renderModelTransparency > 0.0 && !gl_FrontFacing) {
+        discard;
+    }
     vec4 objectColor = getMaterialAlbedo(from_vs.materialIndex, from_vs.textureCoord);
     vec3 normal = getMaterialNormal(from_vs.materialIndex, from_vs.textureCoord, from_vs.normal);
 
@@ -68,7 +73,7 @@ vec4 renderModel() {
     min(lightingColorFactor.x, 1.0),
     min(lightingColorFactor.y, 1.0),
     min(lightingColorFactor.z, 1.0),
-    1.0) * objectColor;
+    1.0 - renderModelTransparency) * objectColor;
 }
 
 void main() {

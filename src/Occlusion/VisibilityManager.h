@@ -58,6 +58,8 @@ public:
     void update();
     void onPipelineChange();
     std::unordered_map<Camera*, std::unordered_map<std::vector<uint64_t>, RenderList, VisibilityRequest::uint64_vector_hasher>*>& getCullingResults();
+    //what occlusion_debugReverse left out of the normal lists for the player camera, null if there is no player camera request
+    const RenderList* getDebugOverlayRenderList() const;
     void addCamera(Camera* camera);
     void removeCamera(Camera* camera);
     void removeCameras(const std::vector<Camera*>& cameras);

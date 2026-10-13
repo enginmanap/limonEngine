@@ -313,6 +313,24 @@
         <Index>16</Index>
     </Parameter>
     <Parameter>
+        <RequestType>FreeText</RequestType>
+        <Description>occlusion_debugReverse</Description>
+        <!--Debug only. The player camera renders only the meshes occlusion culling removed, the visible ones go to a translucent overlay (see occlusion_debugOverlayOpacity). Needs occlusion_enabled. Can be toggled at runtime from the editor.-->
+        <Value>False</Value>
+        <valueType>Boolean</valueType>
+        <IsSet>True</IsSet>
+        <Index>85</Index>
+    </Parameter>
+    <Parameter>
+        <RequestType>FreeNumber</RequestType>
+        <Description>occlusion_debugOverlayOpacity</Description>
+        <!--Opacity of the overlay occlusion_debugReverse draws the visible meshes with. 0 draws nothing, 1 draws them opaque. Can be changed at runtime from the editor.-->
+        <Value>0.25</Value>
+        <valueType>Double</valueType>
+        <IsSet>True</IsSet>
+        <Index>86</Index>
+    </Parameter>
+    <Parameter>
         <RequestType>FreeNumber</RequestType>
         <Description>occlusion_occluderSizeOrthographic</Description>
         <!--Same threshold for orthographic (shadow) cameras. Shadow frusta are larger so the optimal value is much lower than for the perspective player camera-->

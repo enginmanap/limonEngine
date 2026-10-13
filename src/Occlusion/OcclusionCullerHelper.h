@@ -205,6 +205,27 @@ public:
         return returnList;
     }
 
+    //same query as getNonOccludedMeshMeta, for occlusion_debugReverse which needs the removed ones too
+    void splitOccludees(std::vector<OcculudeeMetaData*>& nonOccluded, std::vector<OcculudeeMetaData*>& occluded) {
+        PROFILE_VISIBILITY("Culling::QueryOccludeesDebugReverse");
+        size_t meshCount = possibleVisibleSetMesh.size();
+        nonOccluded.reserve(meshCount);
+        if (possibleVisibleSetMeshAABBs.size() != meshCount * 6) {
+            std::cerr << "Inconsistent AABB data size: expected " << meshCount * 6 << " floats, got " << possibleVisibleSetMeshAABBs.size() << " floats, can't calculate" << std::endl;
+            return;
+        }
+        bool* results = new bool[meshCount];
+        sdocQueryOccludees(sdocInstance, possibleVisibleSetMeshAABBs.data(), meshCount, results);
+        for (size_t i = 0; i < meshCount; ++i) {
+            if (results[i]) {
+                nonOccluded.push_back(&possibleVisibleSetMesh[i]);
+            } else {
+                occluded.push_back(&possibleVisibleSetMesh[i]);
+            }
+        }
+        delete[] results;
+    }
+
     void dumpDepth(const std::string& fileName) {
         if (!sdocInstance) return;
 

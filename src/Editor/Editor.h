@@ -17,6 +17,7 @@
 #include "Assets/Lod/LodLadder.h"
 #include "Editor/ImGuiRequest.h"
 #include "limonAPI/LimonTypes.h"
+#include "limonAPI/Options.h"
 
 class InputHandler;
 class Attachable;
@@ -41,6 +42,9 @@ class PreviewRenderer;
 
 class Editor {
     World* world;
+
+    OptionsUtil::Options::Option<bool> occlusionDebugReverseOption;
+    OptionsUtil::Options::Option<double> occlusionDebugOverlayOpacityOption;
 
     //points every mesh in this world that uses baseMaterial at overrideMaterial
     void reseatWorldMeshes(const std::shared_ptr<const Material> &baseMaterial, const std::shared_ptr<Material> &overrideMaterial);
@@ -187,6 +191,8 @@ public:
     ImGuiImageWrapper* renderModelPreview(Model* model, int32_t forcedLodLevel, uint32_t width, uint32_t height, ModelPreviewPlayback &playback, std::shared_ptr<GraphicsProgram> graphicsProgram);
     LodComparisonImages renderLodComparison(Model* model, int32_t forcedLodLevel, uint32_t designSizePixels, std::shared_ptr<GraphicsProgram> graphicsProgram);
     void renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram);
+    //World calls this every frame, editor shown or not, so occlusion_debugReverse works with the editor closed
+    void renderOcclusionDebugOverlay(const std::shared_ptr<GraphicsProgram> &graphicsProgram) const;
     void applyPendingPick();
 
     void addGUITextControls();

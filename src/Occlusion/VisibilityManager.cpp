@@ -118,6 +118,16 @@ void VisibilityManager::removeCamera(Camera* camera) {
     }
 }
 
+const RenderList* VisibilityManager::getDebugOverlayRenderList() const {
+    static const uint64_t playerCameraTag = HashUtil::hashString(HardCodedTags::CAMERA_PLAYER);
+    for (const auto &item: visibilityThreadPool) {
+        if (item.first->camera->hasTag(playerCameraTag)) {
+            return &item.first->debugOverlayRenderList;
+        }
+    }
+    return nullptr;
+}
+
 void VisibilityManager::removeCameras(const std::vector<Camera*>& cameras) {
     for (Camera* camera : cameras) {
         removeCamera(camera);
@@ -136,6 +146,7 @@ void VisibilityManager::fillVisibleObjectsUsingTags() {
             for(auto& renderEntries:*request->visibility) {
                 renderEntries.second.clear();
             }
+            request->debugOverlayRenderList.clear();
         }
     }
     if(multiThreadedCulling) {
@@ -461,8 +472,25 @@ void VisibilityManager::fillVisibleObjectPerCamera(const VisibilityRequest* visi
     }
     //now we can actually check the occlusion:
     if (runOcclusion) {
-        std::vector<OcculudeeMetaData*> nonOccludedMeshes = visibilityRequest->occlusionCuller.getNonOccludedMeshMeta();
-        {
+        //shadow cascades keep their normal lists, the debug view is about what the player sees
+        const bool debugReverse = visibilityRequest->occlusionDebugReverseOption.getOrDefault(false) && visibilityRequest->camera->hasTag(playerCameraTag);
+        std::vector<OcculudeeMetaData*> nonOccludedMeshes;
+        std::vector<OcculudeeMetaData*> occludedMeshes;
+        if (debugReverse) {
+            visibilityRequest->occlusionCuller.splitOccludees(nonOccludedMeshes, occludedMeshes);
+        } else {
+            nonOccludedMeshes = visibilityRequest->occlusionCuller.getNonOccludedMeshMeta();
+        }
+        if (debugReverse) {
+            PROFILE_VISIBILITY("Culling::AddVisibleDebugReverse");
+            for (auto metaData:occludedMeshes) {
+                metaData->renderList->addMeshMaterial(metaData->meshMeta->material, metaData->meshMeta->mesh, metaData->model, metaData->lod, metaData->averageDepth);
+            }
+            //every tag list of the player camera holds the same mesh, the overlay list keeps it once
+            for (auto metaData:nonOccludedMeshes) {
+                visibilityRequest->debugOverlayRenderList.addMeshMaterial(metaData->meshMeta->material, metaData->meshMeta->mesh, metaData->model, metaData->lod, metaData->averageDepth);
+            }
+        } else {
             PROFILE_VISIBILITY("Culling::AddVisible");
             for (auto metaData:nonOccludedMeshes) {
                 metaData->renderList->addMeshMaterial(metaData->meshMeta->material, metaData->meshMeta->mesh, metaData->model, metaData->lod, metaData->averageDepth);

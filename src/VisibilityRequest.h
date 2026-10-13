@@ -71,6 +71,7 @@ public:
         const OptionsUtil::Options::Option<double> occlusionOccluderSizePerspectiveOption;
         const OptionsUtil::Options::Option<double> occlusionOccluderSizeOrthographicOption;
         const OptionsUtil::Options::Option<bool> occlusionEnabledOption;
+        const OptionsUtil::Options::Option<bool> occlusionDebugReverseOption;
         const OptionsUtil::Options::Option<long> occlusionBakeLodLevelOption;
         const OptionsUtil::Options::Option<double> lodSwitchHysteresisOption;
         const OptionsUtil::Options::Option<long> lodForceLevelOption;
@@ -78,6 +79,8 @@ public:
         const std::vector<CullingEntry>* const cullingEntries;
         const Attachable* const playerObject;
         std::unordered_map<std::vector<uint64_t>, RenderList, uint64_vector_hasher>* visibility;
+        //occlusion_debugReverse parks the meshes that survived the occlusion test here, World draws it translucent. Empty unless that option is on
+        mutable RenderList debugOverlayRenderList;
         mutable OcclusionCullerHelper occlusionCuller;
         mutable std::unordered_map<uint32_t, const std::vector<glm::mat4>*> changedBoneTransforms;
         mutable std::unordered_map<uint32_t, uint32_t> previousLodLevels;
@@ -97,6 +100,7 @@ public:
                 occlusionOccluderSizePerspectiveOption(options->getOption<double>(HASH("occlusion_occluderSizePerspective"))),
                 occlusionOccluderSizeOrthographicOption(options->getOption<double>(HASH("occlusion_occluderSizeOrthographic"))),
                 occlusionEnabledOption(options->getOption<bool>(HASH("occlusion_enabled"))),
+                occlusionDebugReverseOption(options->getOption<bool>(HASH("occlusion_debugReverse"))),
                 occlusionBakeLodLevelOption(options->getOption<long>(HASH("occlusion_bakeLodLevel"))),
                 lodSwitchHysteresisOption(options->getOption<double>(HASH("LOD_switchHysteresis"))),
                 lodForceLevelOption(options->getOption<long>(HASH("LOD_forceLevel"))),

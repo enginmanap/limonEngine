@@ -1001,6 +1001,8 @@ void World::renderLight(unsigned int lightIndex, unsigned int renderLayer, const
 void World::ImGuiFrameSetup(std::shared_ptr<GraphicsProgram> graphicsProgram, const std::string &cameraName [[gnu::unused]], const std::vector<HashUtil::HashedString> &tags [[gnu::unused]]) {//TODO not const because it removes the object. Should be separated
    PROFILE_RENDERING("World::ImGuiFrameSetup");
 
+   editor->renderOcclusionDebugOverlay(graphicsProgram);//before the early returns, it has to work with the editor closed
+
    if (showProfilerOverlay && !currentPlayersSettings->editorShown) {
        editor->imgGuiHelper->NewFrame(graphicsProgram);
        ProfilerUI::DrawProfilerWindow(profilerSystem, frameTimeTracker, graphicsWrapper, nullptr);

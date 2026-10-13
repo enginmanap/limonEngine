@@ -46,6 +46,8 @@
 #include <glm/gtx/euler_angles.hpp>
 
 Editor::Editor(World *world) : world(world){
+    occlusionDebugReverseOption = world->options->getOption<bool>(HASH("occlusion_debugReverse"));
+    occlusionDebugOverlayOpacityOption = world->options->getOption<double>(HASH("occlusion_debugOverlayOpacity"));
     imgGuiHelper = new ImGuiHelper(world->assetManager, world->options);
     previewRenderer = std::make_unique<PreviewRenderer>(world, imgGuiHelper);
 
@@ -703,6 +705,26 @@ void Editor::putPickReferencedObjectButton(GameObject* referencedObject, const s
         hasPendingPick = true;
     }
     ImGui::EndDisabled();
+}
+
+void Editor::renderOcclusionDebugOverlay(const std::shared_ptr<GraphicsProgram> &graphicsProgram) const {
+    if (!occlusionDebugReverseOption.getOrDefault(false)) {
+        return;
+    }
+    const RenderList* overlayRenderList = world->visibilityManager->getDebugOverlayRenderList();
+    if (overlayRenderList == nullptr) {
+        return;
+    }
+    PROFILE_RENDERING("Editor::renderOcclusionDebugOverlay");
+    const double opacity = std::min(1.0, std::max(0.0, occlusionDebugOverlayOpacityOption.getOrDefault(0.25)));
+    if (opacity <= 0.0) {
+        return;
+    }
+    graphicsProgram->setUniform("renderModelIMGUI", 1);
+    graphicsProgram->setUniform("renderModelTransparency", (float)(1.0 - opacity));
+    overlayRenderList->render(world->graphicsWrapper, graphicsProgram);
+    graphicsProgram->setUniform("renderModelTransparency", 0.0f);
+    graphicsProgram->setUniform("renderModelIMGUI", 0);
 }
 
 void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
@@ -1381,6 +1403,30 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
                 if (occlusionCullingOption.isUsable()) {
                     occlusionCullingOption.set(occlusionCullingEnabled);
                 }
+            }
+            bool debugReverseEnabled = occlusionDebugReverseOption.getOrDefault(false);
+            if (ImGui::Checkbox("Reverse Occlusion (only occluded)", &debugReverseEnabled)) {
+                if (occlusionDebugReverseOption.isUsable()) {
+                    occlusionDebugReverseOption.set(debugReverseEnabled);
+                }
+            }
+            if (!occlusionDebugReverseOption.isUsable() && ImGui::IsItemActivated()) {
+                std::cerr << "occlusion_debugReverse is not in the loaded options, so Reverse Occlusion can't be toggled. Is Engine/Options.xml up to date?" << std::endl;
+            }
+            if (ImGui::IsItemHovered()) {
+                ImGui::SetTooltip("The scene renders only what occlusion culling removed. Needs Occlusion Culling on. Applies on the next tick.");
+            }
+            float debugOverlayOpacityPercent = (float)(occlusionDebugOverlayOpacityOption.getOrDefault(0.25) * 100.0);
+            if (ImGui::SliderFloat("Visible meshes opacity", &debugOverlayOpacityPercent, 0.0f, 100.0f, "%.0f%%")) {
+                if (occlusionDebugOverlayOpacityOption.isUsable()) {
+                    occlusionDebugOverlayOpacityOption.set((double)debugOverlayOpacityPercent / 100.0);
+                }
+            }
+            if (!occlusionDebugOverlayOpacityOption.isUsable() && ImGui::IsItemActivated()) {
+                std::cerr << "occlusion_debugOverlayOpacity is not in the loaded options, so the overlay opacity can't be changed. Is Engine/Options.xml up to date?" << std::endl;
+            }
+            if (ImGui::IsItemHovered()) {
+                ImGui::SetTooltip("Reverse Occlusion draws the meshes that passed occlusion over the occluded ones, with this opacity. 0 hides them, 100 draws them opaque.");
             }
             static int listbox_item_current = -1;//not static because I don't want user to select a item.
             // This is a pointer because otherwise it would be destroyed at process exit, which clashes with asset manager,
