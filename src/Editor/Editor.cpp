@@ -1428,6 +1428,45 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
             if (ImGui::IsItemHovered()) {
                 ImGui::SetTooltip("Reverse Occlusion draws the meshes that passed occlusion over the occluded ones, with this opacity. 0 hides them, 100 draws them opaque.");
             }
+            OptionsUtil::Options::Option<double> occluderSizePerspectiveOption = world->options->getOption<double>(world->options->getHash("occlusion_occluderSizePerspective"));
+            float occluderSizePerspective = (float)occluderSizePerspectiveOption.getOrDefault(0.1);
+            if (ImGui::SliderFloat("Occluder size (perspective)", &occluderSizePerspective, 0.0001f, 1.0f, "%.4f", ImGuiSliderFlags_Logarithmic)) {
+                if (occluderSizePerspectiveOption.isUsable()) {
+                    occluderSizePerspectiveOption.set((double)occluderSizePerspective);
+                }
+            }
+            if (!occluderSizePerspectiveOption.isUsable() && ImGui::IsItemActivated()) {
+                std::cerr << "occlusion_occluderSizePerspective is not in the loaded options, so the occluder size can't be changed. Is Engine/Options.xml up to date?" << std::endl;
+            }
+            if (ImGui::IsItemHovered()) {
+                ImGui::SetTooltip("Share of the screen a mesh has to cover to become an occluder for the player camera. 1 is the full screen. Applies on the next tick.");
+            }
+            OptionsUtil::Options::Option<double> occluderSizeOrthographicOption = world->options->getOption<double>(world->options->getHash("occlusion_occluderSizeOrthographic"));
+            float occluderSizeOrthographic = (float)occluderSizeOrthographicOption.getOrDefault(0.01);
+            if (ImGui::SliderFloat("Occluder size (orthographic)", &occluderSizeOrthographic, 0.0001f, 1.0f, "%.4f", ImGuiSliderFlags_Logarithmic)) {
+                if (occluderSizeOrthographicOption.isUsable()) {
+                    occluderSizeOrthographicOption.set((double)occluderSizeOrthographic);
+                }
+            }
+            if (!occluderSizeOrthographicOption.isUsable() && ImGui::IsItemActivated()) {
+                std::cerr << "occlusion_occluderSizeOrthographic is not in the loaded options, so the occluder size can't be changed. Is Engine/Options.xml up to date?" << std::endl;
+            }
+            if (ImGui::IsItemHovered()) {
+                ImGui::SetTooltip("The same threshold for the directional shadow cascades, it changes shadow culling, not what the player camera culls. Applies on the next tick.");
+            }
+            OptionsUtil::Options::Option<long> occluderBakeLodOption = world->options->getOption<long>(world->options->getHash("occlusion_bakeLodLevel"));
+            int occluderBakeLod = (int)occluderBakeLodOption.getOrDefault(0L);
+            if (ImGui::SliderInt("Occluder bake LOD", &occluderBakeLod, 0, (int)MeshAsset::LOD_MAX_LEVEL_COUNT - 1)) {
+                if (occluderBakeLodOption.isUsable()) {
+                    occluderBakeLodOption.set((long)occluderBakeLod);
+                }
+            }
+            if (!occluderBakeLodOption.isUsable() && ImGui::IsItemActivated()) {
+                std::cerr << "occlusion_bakeLodLevel is not in the loaded options, so the occluder bake LOD can't be changed. Is Engine/Options.xml up to date?" << std::endl;
+            }
+            if (ImGui::IsItemHovered()) {
+                ImGui::SetTooltip("Which LOD is rasterized as the occluder. 0 is the full mesh, higher is cheaper but culls more. A mesh with fewer levels uses its simplest one. Applies on the next tick.");
+            }
             static int listbox_item_current = -1;//not static because I don't want user to select a item.
             // This is a pointer because otherwise it would be destroyed at process exit, which clashes with asset manager,
             // deleting the texture by ref count

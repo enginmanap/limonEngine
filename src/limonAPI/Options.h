@@ -188,6 +188,13 @@ namespace OptionsUtil {
                 return true;
             }
 
+            template<typename Q =  T, std::enable_if_t<std::is_same<Q, long>::value>* = nullptr>
+            bool set(long newValue)  {
+                value->value.longValue = newValue;
+                this->isSet = true;
+                return true;
+            }
+
             template<typename Q =  T, std::enable_if_t<std::is_same<Q, bool>::value>* = nullptr>
             bool set(bool newValue)  {
                 value->value.boolValue = newValue;
