@@ -4,3 +4,6 @@
 .DS_Store
 cmake-build-*/
 
+
+# debugging material kept between sessions, never committed
+future-use/
