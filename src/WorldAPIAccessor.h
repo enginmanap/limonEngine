@@ -150,6 +150,7 @@ public:
     LimonTypes::Vec4 getCameraPositionAPI();
     LimonTypes::Vec4 getCameraLookDirectionAPI();
     uint32_t getPlayerObjectIDAPI() const;
+    uint32_t getTicksPerSecondAPI() const;
     void killPlayerAPI();
 
     // Animation queries / control

@@ -181,6 +181,7 @@ public:
     LimonTypes::Vec4 getCameraPosition();
     LimonTypes::Vec4 getCameraLookDirection();
     uint32_t getPlayerObjectID();
+    uint32_t getTicksPerSecond();
     void killPlayer();
 
     std::string getModelAnimationName(uint32_t modelID);
@@ -424,6 +425,7 @@ private:
     std::function<LimonTypes::Vec4()> worldGetCameraPosition;
     std::function<LimonTypes::Vec4()> worldGetCameraLookDirection;
     std::function<uint32_t ()> worldGetPlayerObjectID;
+    std::function<uint32_t ()> worldGetTicksPerSecond;
     std::function<std::vector<uint32_t> (uint32_t)> worldGetObjectChildren;
     std::function<void ()> worldKillPlayer;
 

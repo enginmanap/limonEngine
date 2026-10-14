@@ -98,6 +98,7 @@ WorldAPIAccessor::WorldAPIAccessor(World* world, LimonAPI* limonAPI) : world(wor
     limonAPI->worldCancelTimedEvent               = std::bind(&WorldAPIAccessor::cancelTimedEventAPI,                this, std::placeholders::_1);
     limonAPI->worldKillPlayer                     = std::bind(&WorldAPIAccessor::killPlayerAPI,                      this);
     limonAPI->worldGetPlayerObjectID              = std::bind(&WorldAPIAccessor::getPlayerObjectIDAPI,               this);
+    limonAPI->worldGetTicksPerSecond              = std::bind(&WorldAPIAccessor::getTicksPerSecondAPI,               this);
     limonAPI->worldGetModelAnimationName          = std::bind(&WorldAPIAccessor::getModelAnimationNameAPI,           this, std::placeholders::_1);
     limonAPI->worldGetModelAnimationFinished      = std::bind(&WorldAPIAccessor::getModelAnimationFinishedAPI,       this, std::placeholders::_1);
     limonAPI->worldGetModelAnimationProgress      = std::bind(&WorldAPIAccessor::getModelAnimationProgressAPI,       this, std::placeholders::_1);
@@ -1214,6 +1215,10 @@ LimonTypes::Vec4 WorldAPIAccessor::getCameraLookDirectionAPI() {
 
 uint32_t WorldAPIAccessor::getPlayerObjectIDAPI() const {
     return world->getStartingPlayer()->getWorldObjectID();
+}
+
+uint32_t WorldAPIAccessor::getTicksPerSecondAPI() const {
+    return TICK_PER_SECOND;
 }
 
 void WorldAPIAccessor::killPlayerAPI() {

@@ -565,6 +565,10 @@ void bindLimonAPI(pybind11::module_& m) {
     limon.def("get_player_object_id", &LimonAPI::getPlayerObjectID,
               "Get the world object ID of the player, the parent of player attachments");
 
+    limon.def("get_ticks_per_second", &LimonAPI::getTicksPerSecond,
+              "Get how many simulation ticks the engine runs per second. process_input, actor play and every other per tick callback "
+              "run once per tick, so a script that moves or counts in ticks has to derive its step from this, it is not always 60");
+
     // World management
     limon.def("load_and_switch_world", &LimonAPI::loadAndSwitchWorld,
               "Load and switch to a new world",

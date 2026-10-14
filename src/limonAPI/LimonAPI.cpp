@@ -441,6 +441,10 @@ uint32_t LimonAPI::getPlayerObjectID() {
     return worldGetPlayerObjectID();
 }
 
+uint32_t LimonAPI::getTicksPerSecond() {
+    return worldGetTicksPerSecond();
+}
+
 std::string LimonAPI::getModelAnimationName(uint32_t modelID) {
     return worldGetModelAnimationName(modelID);
 }
