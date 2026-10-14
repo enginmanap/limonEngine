@@ -76,28 +76,51 @@ vec4 renderModel() {
     1.0 - renderModelTransparency) * objectColor;
 }
 
+uniform int remapRange;//render debugging only, 0 for everything else so UI and fonts are untouched
+uniform float rangeMin;
+uniform float rangeMax;
+uniform int channel;//0 all, 1 red, 2 green, 3 blue, 4 alpha
+
+vec4 debugRemap(vec4 sampled) {
+    if (remapRange == 0) {
+        return sampled;
+    }
+    vec3 shown = sampled.rgb;
+    if (channel == 1) {
+        shown = vec3(sampled.r);
+    } else if (channel == 2) {
+        shown = vec3(sampled.g);
+    } else if (channel == 3) {
+        shown = vec3(sampled.b);
+    } else if (channel == 4) {
+        shown = vec3(sampled.a);
+    }
+    shown = clamp((shown - rangeMin) / max(rangeMax - rangeMin, 0.000001), 0.0, 1.0);
+    return vec4(shown, 1.0);//alpha would hide the image on the dark window background
+}
+
 void main() {
     if (renderModelIMGUI == 0) {
         if (isArray == 2) {
             if (int(mod(layer, 6.0)) == 0) {
-                Out_Color = Frag_Color * texture(TextureCubeArray, vec4(1.0, Frag_UV.st, (layer) / 6.0));
+                Out_Color = Frag_Color * debugRemap(texture(TextureCubeArray, vec4(1.0, Frag_UV.st, (layer) / 6.0)));
             } else if (int(mod(layer, 6.0)) == 1) {
-                Out_Color = Frag_Color * texture(TextureCubeArray, vec4(Frag_UV.s, 1.0, Frag_UV.t, (layer - 1.0) / 6.0));
+                Out_Color = Frag_Color * debugRemap(texture(TextureCubeArray, vec4(Frag_UV.s, 1.0, Frag_UV.t, (layer - 1.0) / 6.0)));
             } else if (int(mod(layer, 6.0)) == 2) {
-                Out_Color = Frag_Color * texture(TextureCubeArray, vec4(Frag_UV.st, 1.0, (layer - 2.0) / 6.0));
+                Out_Color = Frag_Color * debugRemap(texture(TextureCubeArray, vec4(Frag_UV.st, 1.0, (layer - 2.0) / 6.0)));
             } else if (int(mod(layer, 6.0)) == 3) {
-                Out_Color = Frag_Color * texture(TextureCubeArray, vec4(-1.0, Frag_UV.st, (layer - 3.0) / 6.0));
+                Out_Color = Frag_Color * debugRemap(texture(TextureCubeArray, vec4(-1.0, Frag_UV.st, (layer - 3.0) / 6.0)));
             } else if (int(mod(layer, 6.0)) == 4) {
-                Out_Color = Frag_Color * texture(TextureCubeArray, vec4(Frag_UV.s, -1.0, Frag_UV.t, (layer - 4.0) / 6.0));
+                Out_Color = Frag_Color * debugRemap(texture(TextureCubeArray, vec4(Frag_UV.s, -1.0, Frag_UV.t, (layer - 4.0) / 6.0)));
             } else if (int(mod(layer, 6.0)) == 5) {
-                Out_Color = Frag_Color * texture(TextureCubeArray, vec4(Frag_UV.st, -1.0, (layer - 5.0) / 6.0));
+                Out_Color = Frag_Color * debugRemap(texture(TextureCubeArray, vec4(Frag_UV.st, -1.0, (layer - 5.0) / 6.0)));
             } else {
                 Out_Color = vec4(0.0, 0.7, 0.7, 0.0);
             }
         } else if (isArray == 1) {
-            Out_Color = Frag_Color * texture(TextureArray, vec3(Frag_UV.st, layer));
+            Out_Color = Frag_Color * debugRemap(texture(TextureArray, vec3(Frag_UV.st, layer)));
         } else {
-            Out_Color = Frag_Color * texture(Texture, Frag_UV.st);
+            Out_Color = Frag_Color * debugRemap(texture(Texture, Frag_UV.st));
         }
     } else {
         Out_Color = renderModel();
