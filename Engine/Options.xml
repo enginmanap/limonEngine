@@ -350,6 +350,24 @@
     </Parameter>
     <Parameter>
         <RequestType>FreeText</RequestType>
+        <Description>occlusion_occluderSizeByGroup</Description>
+        <!--A model in a model group is an occluder when its nearest group's box passes the occluder size, not its own box. Keeps a building's floors from dropping out of the occluders one by one. Can be toggled at runtime from the editor.-->
+        <Value>True</Value>
+        <valueType>Boolean</valueType>
+        <IsSet>True</IsSet>
+        <Index>87</Index>
+    </Parameter>
+    <Parameter>
+        <RequestType>FreeNumber</RequestType>
+        <Description>occlusion_occluderGroupMemberMinFraction</Description>
+        <!--With occlusion_occluderSizeByGroup, a group member still has to cover this fraction of the occluder size itself, so small props in a big group are not rasterized as occluders.-->
+        <Value>0.1</Value>
+        <valueType>Double</valueType>
+        <IsSet>True</IsSet>
+        <Index>88</Index>
+    </Parameter>
+    <Parameter>
+        <RequestType>FreeText</RequestType>
         <Description>occlusion_renderDump</Description>
         <!--This option enables dumping the software rasterized depth buffer to a ppm file. For debug purposes only.-->
         <Value>False</Value>

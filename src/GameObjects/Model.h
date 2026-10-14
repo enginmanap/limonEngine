@@ -425,10 +425,7 @@ public:
         return cullingEntry->aabbMin;
     }
 
-    void setAabb(const glm::vec3 &newAabbMin, const glm::vec3 &newAabbMax) override {
-        cullingEntry->aabbMin = newAabbMin;
-        cullingEntry->aabbMax = newAabbMax;
-    }
+    void setAabb(const glm::vec3 &newAabbMin, const glm::vec3 &newAabbMax) override;
 
     CullingEntry* getCullingEntry() const {
         return cullingEntry;

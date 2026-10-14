@@ -22,6 +22,7 @@ class Light;
 class Attachable;
 class Model;
 class PhysicalRenderable;
+class ModelGroup;
 
 class WorldAPIAccessor {
     World* world;
@@ -83,6 +84,9 @@ public:
     void refreshBroadphaseAabbs(Attachable *moved);
     //writes the user index World's HierarchyFilterCallback reads, so one hierarchy doesn't collide with itself
     void setHierarchyRootIndex(Attachable *subtreeRoot, int rootIndex);
+    //re-resolves CullingEntry::nearestModelGroup for a node whose parent changed and every model below it
+    void refreshNearestModelGroup(Attachable *subtreeRoot);
+    void assignNearestModelGroup(Attachable *node, ModelGroup *group);
     /**
      * Changes a model's mass, reloading its collision shape (mass 0 = static triangle mesh, >0 = dynamic convex hull).
      * Removes the body from the dynamics world, reloads the shape, then re-adds it with the collision group matching

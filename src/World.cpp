@@ -480,6 +480,15 @@ void World::prepareFrame() {
         }
     }
     fillLightBlock();
+    {
+        PROFILE_VISIBILITY("World::prepareFrame::modelGroupAabbs");
+        //the culling threads read group boxes, every move this frame has marked its group by now
+        for (std::map<uint32_t, ModelGroup*>::iterator groupIt = modelGroups.begin(); groupIt != modelGroups.end(); ++groupIt) {
+            if (groupIt->second->isAabbStale()) {
+                groupIt->second->recomputeAabb();
+            }
+        }
+    }
     visibilityManager->update();
 
     playerCamera->clearDirty();
@@ -1256,6 +1265,9 @@ void World::releaseCullingEntry(Model *model) {
     if (cullingEntries.empty() || entry < cullingEntries.data() || entry > &cullingEntries.back() || entry->model != model) {
         std::cerr << "Culling entry of model " << model->getWorldObjectID() << " is not in this world's list, this should never happen" << std::endl;
         std::exit(-1);
+    }
+    if (entry->nearestModelGroup != nullptr) {
+        entry->nearestModelGroup->markAabbStale();//the model is leaving the world, its box must leave the group's
     }
     if (entry != &cullingEntries.back()) {
         *entry = cullingEntries.back();

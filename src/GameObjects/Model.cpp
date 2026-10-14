@@ -14,6 +14,7 @@
 #include <random>
 #include <Editor/Editor.h>
 #include <Occlusion/RenderList.h>
+#include "ModelGroup.h"
 
 #ifdef CEREAL_SUPPORT
 #include <cereal/archives/binary.hpp>
@@ -1040,6 +1041,14 @@ ImGuiResult Model::addImGuiEditorElements(const ImGuiRequest &request) {
         ImGuiHelper::ShowHelpMarker("Removes switched materials and per-model overrides from this model. Materials the world overrides globally stay overridden");
     }
     return result;
+}
+
+void Model::setAabb(const glm::vec3 &newAabbMin, const glm::vec3 &newAabbMax) {
+    cullingEntry->aabbMin = newAabbMin;
+    cullingEntry->aabbMax = newAabbMax;
+    if (cullingEntry->nearestModelGroup != nullptr) {
+        cullingEntry->nearestModelGroup->markAabbStale();
+    }
 }
 
 Model::~Model() {

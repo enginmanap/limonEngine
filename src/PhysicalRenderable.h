@@ -111,19 +111,19 @@ public:
         return true;
     }
 
-    //only models have an aabb, they keep it in their CullingEntry
+    //models keep their aabb in their CullingEntry, model groups the union of their members
     virtual const glm::vec3 &getAabbMax() const {
-        std::cerr << "ERROR: getAabbMax called on a physical renderable that isn't a model, only models have an aabb" << std::endl;
+        std::cerr << "ERROR: getAabbMax called on a physical renderable that is neither a model nor a model group, only those have an aabb" << std::endl;
         std::exit(-1);
     }
 
     virtual const glm::vec3 &getAabbMin() const {
-        std::cerr << "ERROR: getAabbMin called on a physical renderable that isn't a model, only models have an aabb" << std::endl;
+        std::cerr << "ERROR: getAabbMin called on a physical renderable that is neither a model nor a model group, only those have an aabb" << std::endl;
         std::exit(-1);
     }
 
     virtual void setAabb(const glm::vec3 &newAabbMin [[gnu::unused]], const glm::vec3 &newAabbMax [[gnu::unused]]) {
-        std::cerr << "ERROR: setAabb called on a physical renderable that isn't a model, only models have an aabb" << std::endl;
+        std::cerr << "ERROR: setAabb called on a physical renderable that isn't a model, a model group computes its own aabb" << std::endl;
         std::exit(-1);
     }
 

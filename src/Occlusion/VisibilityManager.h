@@ -11,6 +11,7 @@
 
 class World;
 class Camera;
+class ModelGroup;
 class RenderList;
 class GraphicsPipeline;
 class VisibilityManager {
@@ -35,6 +36,7 @@ class VisibilityManager {
     void resetTagsAndRefillCulling();
 
     static void fillVisibleObjectPerCamera(const VisibilityRequest* request);
+    static bool passesOccluderSize(const ModelGroup* group, float ownScreenSize, const glm::mat4& cameraProjectionMatrix, float occluderSize, float groupMemberMinSize);
     static void staticOcclusionThread(VisibilityRequest* request);
     static bool isSkippedByLodDistance(float skipRenderDistance, float skipRenderSize, float maxSkipRenderSize, const glm::mat4 &cameraProjectionMatrix, const glm::vec3& playerPosition, glm::vec3 minAABB, glm::vec3 maxAABB, float &objectAverageDepth, float &objectScreenSize, float &objectDistance);
     static float getLodObjectScale(const Model* model);

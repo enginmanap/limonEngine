@@ -549,6 +549,7 @@ void WorldAPIAccessor::attach(Attachable *child, Attachable *parent, int32_t bon
     setHierarchyRootIndex(root, rootObject != nullptr ? static_cast<int>(rootObject->getWorldObjectID()) : -1);
     refreshPlayerAttachmentTags(child, root == world->getStartingPlayer());
     refreshBroadphaseAabbs(child);//attaching at a local offset moves the child, and a static parent doesn't re-add it
+    refreshNearestModelGroup(child);
 }
 
 void WorldAPIAccessor::detach(Attachable *child) {
@@ -565,6 +566,7 @@ void WorldAPIAccessor::detach(Attachable *child) {
     GameObject* childObject = dynamic_cast<GameObject*>(child);
     setHierarchyRootIndex(child, childObject != nullptr && child->hasChildren() ? static_cast<int>(childObject->getWorldObjectID()) : -1);
     refreshPlayerAttachmentTags(child, false);
+    refreshNearestModelGroup(child);
 }
 
 void WorldAPIAccessor::refreshPlayerAttachmentTags(Attachable *subtreeRoot, bool underPlayer) {
@@ -683,6 +685,35 @@ void WorldAPIAccessor::setHierarchyRootIndex(Attachable *subtreeRoot, int rootIn
     }
 }
 
+void WorldAPIAccessor::refreshNearestModelGroup(Attachable *subtreeRoot) {
+    assignNearestModelGroup(subtreeRoot, ModelGroup::findNearestFor(subtreeRoot));
+}
+
+void WorldAPIAccessor::assignNearestModelGroup(Attachable *node, ModelGroup *group) {
+    ModelGroup* nodeAsGroup = dynamic_cast<ModelGroup*>(node);
+    if (nodeAsGroup != nullptr) {
+        group = nodeAsGroup;//below a group its members belong to it, wherever the group itself hangs
+    } else {
+        Model* model = dynamic_cast<Model*>(node);
+        if (model != nullptr) {
+            CullingEntry* cullingEntry = model->getCullingEntry();
+            if (cullingEntry->nearestModelGroup != group) {
+                //both boxes change, the one left behind as much as the new one
+                if (cullingEntry->nearestModelGroup != nullptr) {
+                    cullingEntry->nearestModelGroup->markAabbStale();
+                }
+                if (group != nullptr) {
+                    group->markAabbStale();
+                }
+                cullingEntry->nearestModelGroup = group;
+            }
+        }
+    }
+    for (Attachable* child : node->getChildren()) {
+        assignNearestModelGroup(child, group);
+    }
+}
+
 bool WorldAPIAccessor::changeModelMass(uint32_t objectID, float newMass) {
     Model *model = world->findModelByID(objectID);
     if (model == nullptr) {
@@ -728,10 +759,17 @@ bool WorldAPIAccessor::removeObject(uint32_t objectID, const bool &removeChildre
         return false;
     }
     world->clearWorldRefsBeforeAttachment(modelToRemove, removeChildren, true);
+    std::vector<Attachable*> survivingChildren;
     if(removeChildren) {
         // clearWorldRefsBeforeAttachment already handles child removal recursively
+    } else {
+        survivingChildren = modelToRemove->getChildren();
     }
     delete modelToRemove;
+    //the destructor cut them loose, a group they reached through the removed model is no longer theirs
+    for(Attachable* child : survivingChildren) {
+        refreshNearestModelGroup(child);
+    }
     return true;
 }
 

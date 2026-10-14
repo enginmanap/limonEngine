@@ -1467,6 +1467,32 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
             if (ImGui::IsItemHovered()) {
                 ImGui::SetTooltip("Which LOD is rasterized as the occluder. 0 is the full mesh, higher is cheaper but culls more. A mesh with fewer levels uses its simplest one. Applies on the next tick.");
             }
+            OptionsUtil::Options::Option<bool> occluderSizeByGroupOption = world->options->getOption<bool>(world->options->getHash("occlusion_occluderSizeByGroup"));
+            bool occluderSizeByGroup = occluderSizeByGroupOption.getOrDefault(true);
+            if (ImGui::Checkbox("Occluder size by group", &occluderSizeByGroup)) {
+                if (occluderSizeByGroupOption.isUsable()) {
+                    occluderSizeByGroupOption.set(occluderSizeByGroup);
+                }
+            }
+            if (!occluderSizeByGroupOption.isUsable() && ImGui::IsItemActivated()) {
+                std::cerr << "occlusion_occluderSizeByGroup is not in the loaded options, so it can't be toggled. Is Engine/Options.xml up to date?" << std::endl;
+            }
+            if (ImGui::IsItemHovered()) {
+                ImGui::SetTooltip("A model in a model group is an occluder when its nearest group's box passes the occluder size, instead of its own box. Applies on the next tick.");
+            }
+            OptionsUtil::Options::Option<double> occluderGroupMemberMinFractionOption = world->options->getOption<double>(world->options->getHash("occlusion_occluderGroupMemberMinFraction"));
+            float occluderGroupMemberMinFraction = (float)occluderGroupMemberMinFractionOption.getOrDefault(0.1);
+            if (ImGui::SliderFloat("Group member min fraction", &occluderGroupMemberMinFraction, 0.0f, 1.0f, "%.3f")) {
+                if (occluderGroupMemberMinFractionOption.isUsable()) {
+                    occluderGroupMemberMinFractionOption.set((double)occluderGroupMemberMinFraction);
+                }
+            }
+            if (!occluderGroupMemberMinFractionOption.isUsable() && ImGui::IsItemActivated()) {
+                std::cerr << "occlusion_occluderGroupMemberMinFraction is not in the loaded options, so it can't be changed. Is Engine/Options.xml up to date?" << std::endl;
+            }
+            if (ImGui::IsItemHovered()) {
+                ImGui::SetTooltip("With occluder size by group, a member still has to cover this fraction of the occluder size itself, so small props of a big group are not rasterized. 1 is the old per model rule for grouped models. Applies on the next tick.");
+            }
             static int listbox_item_current = -1;//not static because I don't want user to select a item.
             // This is a pointer because otherwise it would be destroyed at process exit, which clashes with asset manager,
             // deleting the texture by ref count

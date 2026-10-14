@@ -13,7 +13,34 @@
 class ModelGroup : public PhysicalRenderable, public GameObject {
     uint32_t worldObjectID;
     std::string name;
+    //union of the models whose nearest group this is, nested groups keep their own
+    glm::vec3 aabbMin = glm::vec3(0.0f);
+    glm::vec3 aabbMax = glm::vec3(0.0f);
+    bool aabbStale = true;
+
+    void growAabbBy(const Attachable* node, bool& anyModel);
 public:
+    //nearest ModelGroup above the attachable, null when there is none
+    static ModelGroup* findNearestFor(const Attachable* attachable);
+
+    const glm::vec3 &getAabbMax() const override {
+        return aabbMax;
+    }
+
+    const glm::vec3 &getAabbMin() const override {
+        return aabbMin;
+    }
+
+    //a member's box changed or a member came or went, World::prepareFrame recomputes before culling reads it
+    void markAabbStale() {
+        aabbStale = true;
+    }
+
+    bool isAabbStale() const {
+        return aabbStale;
+    }
+
+    void recomputeAabb();
 
     ModelGroup(GraphicsInterface* graphicsWrapper, uint32_t worldObjectID, const std::string& name)
     : PhysicalRenderable(graphicsWrapper, 0, true), worldObjectID(worldObjectID), name(name) {

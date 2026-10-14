@@ -199,6 +199,48 @@ ModelGroup *ModelGroup::deserializeV1(World *world, GraphicsInterface* graphicsW
     return modelGroup;
 }
 
+ModelGroup* ModelGroup::findNearestFor(const Attachable* attachable) {
+    Attachable* parent = attachable->getParentObject();
+    while (parent != nullptr) {
+        ModelGroup* group = dynamic_cast<ModelGroup*>(parent);
+        if (group != nullptr) {
+            return group;
+        }
+        parent = parent->getParentObject();
+    }
+    return nullptr;
+}
+
+//a model attached to a member is a member too, a nested group is not
+void ModelGroup::growAabbBy(const Attachable* node, bool& anyModel) {
+    for (Attachable* child : node->getChildren()) {
+        if (dynamic_cast<ModelGroup*>(child) != nullptr) {
+            continue;
+        }
+        const Model* model = dynamic_cast<const Model*>(child);
+        if (model != nullptr) {
+            if (anyModel) {
+                aabbMin = glm::min(aabbMin, model->getAabbMin());
+                aabbMax = glm::max(aabbMax, model->getAabbMax());
+            } else {
+                aabbMin = model->getAabbMin();
+                aabbMax = model->getAabbMax();
+                anyModel = true;
+            }
+        }
+        growAabbBy(child, anyModel);
+    }
+}
+
+void ModelGroup::recomputeAabb() {
+    bool anyModel = false;
+    growAabbBy(this, anyModel);
+    if (!anyModel) {
+        aabbMin = aabbMax = this->transformation.getTranslate();//no member asks for it, it only must not be garbage
+    }
+    aabbStale = false;
+}
+
 void ModelGroup::recenterOnChildren() {
     if(children.empty()) {
         return;

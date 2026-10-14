@@ -4,6 +4,7 @@
 #include <glm/glm.hpp>
 
 class Model;
+class ModelGroup;
 
 //the only home of these fields. World keeps its models' entries packed, so culling reads them without touching the models
 struct CullingEntry {
@@ -12,6 +13,7 @@ struct CullingEntry {
     bool dirtyForFrustum = true;
     bool animated = false;//never changes after the model is constructed
     Model* model = nullptr;
+    ModelGroup* nearestModelGroup = nullptr;//kept by WorldAPIAccessor::refreshNearestModelGroup on every parent change, culling never walks parents
 };
 
 #endif //LIMONENGINE_CULLINGENTRY_H

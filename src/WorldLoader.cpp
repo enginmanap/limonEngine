@@ -468,12 +468,14 @@ bool WorldLoader::loadObjectsFromXML(tinyxml2::XMLNode *objectsNode, World *worl
         if (objectIt->second->getParentObject() == nullptr && objectIt->second->hasChildren()) {
             world->apiAccessor->applyBodyType(objectIt->second);
             world->apiAccessor->setHierarchyRootIndex(objectIt->second, static_cast<int>(objectIt->second->getWorldObjectID()));
+            world->apiAccessor->refreshNearestModelGroup(objectIt->second);
         }
     }
     for (auto groupIt = world->modelGroups.begin(); groupIt != world->modelGroups.end(); ++groupIt) {
         if (groupIt->second->getParentObject() == nullptr) {
             world->apiAccessor->applyBodyType(groupIt->second);
             world->apiAccessor->setHierarchyRootIndex(groupIt->second, static_cast<int>(groupIt->first));
+            world->apiAccessor->refreshNearestModelGroup(groupIt->second);
         }
     }
 

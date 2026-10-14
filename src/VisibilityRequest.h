@@ -72,6 +72,8 @@ public:
         const OptionsUtil::Options::Option<double> occlusionOccluderSizeOrthographicOption;
         const OptionsUtil::Options::Option<bool> occlusionEnabledOption;
         const OptionsUtil::Options::Option<bool> occlusionDebugReverseOption;
+        const OptionsUtil::Options::Option<bool> occlusionOccluderSizeByGroupOption;
+        const OptionsUtil::Options::Option<double> occlusionOccluderGroupMemberMinFractionOption;
         const OptionsUtil::Options::Option<long> occlusionBakeLodLevelOption;
         const OptionsUtil::Options::Option<double> lodSwitchHysteresisOption;
         const OptionsUtil::Options::Option<long> lodForceLevelOption;
@@ -101,6 +103,8 @@ public:
                 occlusionOccluderSizeOrthographicOption(options->getOption<double>(HASH("occlusion_occluderSizeOrthographic"))),
                 occlusionEnabledOption(options->getOption<bool>(HASH("occlusion_enabled"))),
                 occlusionDebugReverseOption(options->getOption<bool>(HASH("occlusion_debugReverse"))),
+                occlusionOccluderSizeByGroupOption(options->getOption<bool>(HASH("occlusion_occluderSizeByGroup"))),
+                occlusionOccluderGroupMemberMinFractionOption(options->getOption<double>(HASH("occlusion_occluderGroupMemberMinFraction"))),
                 occlusionBakeLodLevelOption(options->getOption<long>(HASH("occlusion_bakeLodLevel"))),
                 lodSwitchHysteresisOption(options->getOption<double>(HASH("LOD_switchHysteresis"))),
                 lodForceLevelOption(options->getOption<long>(HASH("LOD_forceLevel"))),

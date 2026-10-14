@@ -3,6 +3,7 @@
 #include "Camera/Camera.h"
 #include "Graphics/GraphicsPipeline.h"
 #include "GameObjects/Model.h"
+#include "GameObjects/ModelGroup.h"
 #include "GameObjects/Players/Player.h"
 #include "Utils/HardCodedTags.h"
 #include "../Profiler/ProfilerMacros.h"
@@ -331,8 +332,17 @@ void VisibilityManager::fillVisibleObjectPerCamera(const VisibilityRequest* visi
     {
     PROFILE_VISIBILITY("Culling::ObjectLoop");
     const std::vector<CullingEntry>& cullingEntries = *visibilityRequest->cullingEntries;
+    const bool occluderSizeByGroup = runOcclusion && visibilityRequest->occlusionOccluderSizeByGroupOption.getOrDefault(true);
+    const float groupMemberMinSize = softwareOcclusionOccluderSize * static_cast<float>(visibilityRequest->occlusionOccluderGroupMemberMinFractionOption.getOrDefault(0.1));
     for (size_t entryIndex = 0; entryIndex < cullingEntries.size(); ++entryIndex) {
         const CullingEntry& cullingEntry = cullingEntries[entryIndex];
+#ifndef NDEBUG
+        if (cullingEntry.nearestModelGroup != ModelGroup::findNearestFor(cullingEntry.model)) {
+            std::cerr << "Model " << cullingEntry.model->getWorldObjectID() << " has a stale nearest model group, a parent change skipped WorldAPIAccessor::refreshNearestModelGroup" << std::endl;
+            std::exit(-1);
+        }
+#endif
+        const ModelGroup* occluderGroup = occluderSizeByGroup ? cullingEntry.nearestModelGroup : nullptr;
         bool isHiddenPlayerAttachment = false;
         if (visibilityRequest->playerDead) {
             const Attachable* hierarchyRoot = cullingEntry.model;
@@ -377,7 +387,7 @@ void VisibilityManager::fillVisibleObjectPerCamera(const VisibilityRequest* visi
                     if (wholeModelPath) {
                         totalCounter += meshMetas.size();
                         if (!modelLodSkipped) {
-                            if (objectScreenSize > softwareOcclusionOccluderSize || !runOcclusion) {
+                            if (!runOcclusion || passesOccluderSize(occluderGroup, objectScreenSize, cameraProjectionMatrix, softwareOcclusionOccluderSize, groupMemberMinSize)) {
                                 if (objectScreenSize > maxScreenSize) {
                                     maxScreenSize = objectScreenSize;
                                 }
@@ -423,7 +433,7 @@ void VisibilityManager::fillVisibleObjectPerCamera(const VisibilityRequest* visi
                                                               visibilityRequest->getPreviousLodLevel(currentModel->getWorldObjectID()));
                                 visibilityRequest->setPreviousLodLevel(currentModel->getWorldObjectID(), lod);
                                 if (!lodSkipped) {
-                                    if (objectScreenSize > softwareOcclusionOccluderSize || !runOcclusion) {
+                                    if (!runOcclusion || passesOccluderSize(occluderGroup, objectScreenSize, cameraProjectionMatrix, softwareOcclusionOccluderSize, groupMemberMinSize)) {
                                         if (objectScreenSize > maxScreenSize) {
                                             maxScreenSize = objectScreenSize;
                                         }
@@ -566,6 +576,20 @@ void VisibilityManager::staticOcclusionThread(VisibilityRequest* visibilityReque
         fillVisibleObjectPerCamera(visibilityRequest);
         visibilityRequest->frameBarrier->arrive();
     }
+}
+
+//a grouped model is judged by its group's box, so a building's floors don't drop out of the occluders one by one.
+//It still needs groupMemberMinSize itself, otherwise every small prop of a big group would be rasterized
+bool VisibilityManager::passesOccluderSize(const ModelGroup* group, float ownScreenSize, const glm::mat4& cameraProjectionMatrix, float occluderSize, float groupMemberMinSize) {
+    if (group == nullptr) {
+        return ownScreenSize > occluderSize;
+    }
+    if (ownScreenSize < groupMemberMinSize) {
+        return false;
+    }
+    glm::vec3 ndcMin, ndcMax;
+    AABBConverter::getNCDAABB(group->getAabbMin(), group->getAabbMax(), cameraProjectionMatrix, ndcMin, ndcMax);
+    return ((ndcMax.x - ndcMin.x) / 2.0f) * ((ndcMax.y - ndcMin.y) / 2.0f) > occluderSize;//same measure isSkippedByLodDistance gives a model
 }
 
 //level distances are set for the model as authored, so a model scaled up is used at proportionally further distances
