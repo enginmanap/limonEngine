@@ -26,7 +26,12 @@ typedef union SDL_Event SDL_Event;
 
 struct ImGuiImageWrapper {
     std::shared_ptr<Texture> texture;
-    int32_t layer;
+    int32_t layer = 0;
+    // render debugging only, everything else keeps the neutral defaults
+    bool remapRange = false;
+    float rangeMin = 0.0f;
+    float rangeMax = 1.0f;
+    int32_t channel = 0;//0 all, 1 red, 2 green, 3 blue, 4 alpha
 };
 
 class ImGuiHelper {

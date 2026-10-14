@@ -107,6 +107,10 @@ void ImGuiHelper::RenderDrawLists(std::shared_ptr<GraphicsProgram> graphicsProgr
                         default:
                             std::cerr << "Unsupported texture type for IMGUI" << std::endl;
                     }
+                    graphicsProgram->setUniform("remapRange", imGuiImageWrapper->remapRange ? 1 : 0);
+                    graphicsProgram->setUniform("rangeMin", imGuiImageWrapper->rangeMin);
+                    graphicsProgram->setUniform("rangeMax", imGuiImageWrapper->rangeMax);
+                    graphicsProgram->setUniform("channel", imGuiImageWrapper->channel);
                     graphicsWrapper->render(graphicsProgram->getID(), g_VaoHandle, g_ElementsHandle, pcmd->ElemCount, idx_buffer_offset);
                 }
             }

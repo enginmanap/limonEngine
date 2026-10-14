@@ -6,6 +6,54 @@
 #include <Assets/TextureAsset.h>
 #include "Texture.h"
 
+std::string Texture::describe() const {
+    std::string typeName;
+    switch (textureInfo.textureType) {
+        case GraphicsInterface::TextureTypes::T2D: typeName = "2D"; break;
+        case GraphicsInterface::TextureTypes::T2D_ARRAY: typeName = "2D array"; break;
+        case GraphicsInterface::TextureTypes::TCUBE_MAP: typeName = "Cube map"; break;
+        case GraphicsInterface::TextureTypes::TCUBE_MAP_ARRAY: typeName = "Cube map array"; break;
+    }
+    std::string internalFormatName;
+    switch (textureInfo.internalFormatType) {
+        case GraphicsInterface::InternalFormatTypes::RED: internalFormatName = "RED"; break;
+        case GraphicsInterface::InternalFormatTypes::RG8: internalFormatName = "RG8"; break;
+        case GraphicsInterface::InternalFormatTypes::R32F: internalFormatName = "R32F"; break;
+        case GraphicsInterface::InternalFormatTypes::RGB: internalFormatName = "RGB"; break;
+        case GraphicsInterface::InternalFormatTypes::RGBA: internalFormatName = "RGBA"; break;
+        case GraphicsInterface::InternalFormatTypes::RGB16F: internalFormatName = "RGB16F"; break;
+        case GraphicsInterface::InternalFormatTypes::RGBA16F: internalFormatName = "RGBA16F"; break;
+        case GraphicsInterface::InternalFormatTypes::RGB32F: internalFormatName = "RGB32F"; break;
+        case GraphicsInterface::InternalFormatTypes::RGBA32F: internalFormatName = "RGBA32F"; break;
+        case GraphicsInterface::InternalFormatTypes::DEPTH: internalFormatName = "DEPTH"; break;
+        case GraphicsInterface::InternalFormatTypes::COMPRESSED_RGB: internalFormatName = "COMPRESSED_RGB"; break;
+        case GraphicsInterface::InternalFormatTypes::COMPRESSED_RGBA: internalFormatName = "COMPRESSED_RGBA"; break;
+    }
+    std::string formatName;
+    switch (textureInfo.formatType) {
+        case GraphicsInterface::FormatTypes::RED: formatName = "RED"; break;
+        case GraphicsInterface::FormatTypes::RG: formatName = "RG"; break;
+        case GraphicsInterface::FormatTypes::RGB: formatName = "RGB"; break;
+        case GraphicsInterface::FormatTypes::RGBA: formatName = "RGBA"; break;
+        case GraphicsInterface::FormatTypes::DEPTH: formatName = "DEPTH"; break;
+    }
+    std::string dataTypeName;
+    switch (textureInfo.dataType) {
+        case GraphicsInterface::DataTypes::UNSIGNED_BYTE: dataTypeName = "UNSIGNED_BYTE"; break;
+        case GraphicsInterface::DataTypes::FLOAT: dataTypeName = "FLOAT"; break;
+        case GraphicsInterface::DataTypes::HALF_FLOAT: dataTypeName = "HALF_FLOAT"; break;
+        case GraphicsInterface::DataTypes::UNSIGNED_SHORT: dataTypeName = "UNSIGNED_SHORT"; break;
+        case GraphicsInterface::DataTypes::UNSIGNED_INT: dataTypeName = "UNSIGNED_INT"; break;
+    }
+    std::string description = "Name: " + textureInfo.name + "\nGL id: " + std::to_string(textureID) + "\nType: " + typeName +
+                              "\nSize: " + std::to_string(getWidth()) + " x " + std::to_string(getHeight());
+    if (textureInfo.depth > 0) {
+        description += "\nDepth (layers, cubes for cube arrays): " + std::to_string(textureInfo.depth);
+    }
+    description += "\nInternal format: " + internalFormatName + "\nFormat: " + formatName + "\nData type: " + dataTypeName;
+    return description;
+}
+
 bool Texture::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentNode, OptionsUtil::Options *options [[gnu::unused]]) {
     tinyxml2::XMLElement *textureNode = document.NewElement("Texture");
     parentNode->InsertEndChild(textureNode);

@@ -22,7 +22,7 @@ PreviewRenderer::PreviewRenderer(World* world, ImGuiHelper* imgGuiHelper) : worl
     colorTexture->setFilterMode(GraphicsInterface::FilterModes::NEAREST);
     depthTexture = std::make_shared<Texture>(world->graphicsWrapper, GraphicsInterface::TextureTypes::T2D, GraphicsInterface::InternalFormatTypes::DEPTH, GraphicsInterface::FormatTypes::DEPTH, GraphicsInterface::DataTypes::FLOAT, 640, 480);
     depthTexture->setName("EditorDepthTexture");
-    colorTexture->setFilterMode(GraphicsInterface::FilterModes::NEAREST);
+    depthTexture->setFilterMode(GraphicsInterface::FilterModes::NEAREST);
     backgroundRenderStage->setOutput(GraphicsInterface::FrameBufferAttachPoints::COLOR0, colorTexture, true);
     backgroundRenderStage->setOutput(GraphicsInterface::FrameBufferAttachPoints::DEPTH, depthTexture, true);
     wrapper = new ImGuiImageWrapper();
@@ -37,6 +37,7 @@ PreviewRenderer::PreviewRenderer(World* world, ImGuiHelper* imgGuiHelper) : worl
     modelPreview.colorTexture->setFilterMode(GraphicsInterface::FilterModes::NEAREST);
     modelPreview.depthTexture = std::make_shared<Texture>(world->graphicsWrapper, GraphicsInterface::TextureTypes::T2D, GraphicsInterface::InternalFormatTypes::DEPTH, GraphicsInterface::FormatTypes::DEPTH, GraphicsInterface::DataTypes::FLOAT, DEFAULT_PREVIEW_WIDTH, DEFAULT_PREVIEW_HEIGHT);
     modelPreview.depthTexture->setName("EditorBonePreviewDepthTexture");
+    modelPreview.depthTexture->setFilterMode(GraphicsInterface::FilterModes::NEAREST);
     modelPreview.renderStage->setOutput(GraphicsInterface::FrameBufferAttachPoints::COLOR0, modelPreview.colorTexture, true);
     modelPreview.renderStage->setOutput(GraphicsInterface::FrameBufferAttachPoints::DEPTH, modelPreview.depthTexture, true);
     modelPreview.wrapper = new ImGuiImageWrapper();
@@ -421,6 +422,7 @@ void PreviewRenderer::ensureModelPreviewTarget(uint32_t width, uint32_t height) 
     modelPreview.colorTexture->setFilterMode(GraphicsInterface::FilterModes::NEAREST);
     modelPreview.depthTexture = std::make_shared<Texture>(world->graphicsWrapper, GraphicsInterface::TextureTypes::T2D, GraphicsInterface::InternalFormatTypes::DEPTH, GraphicsInterface::FormatTypes::DEPTH, GraphicsInterface::DataTypes::FLOAT, width, height);
     modelPreview.depthTexture->setName("EditorModelPreviewDepthTexture");
+    modelPreview.depthTexture->setFilterMode(GraphicsInterface::FilterModes::NEAREST);
     modelPreview.renderStage->setOutput(GraphicsInterface::FrameBufferAttachPoints::COLOR0, modelPreview.colorTexture, true);
     modelPreview.renderStage->setOutput(GraphicsInterface::FrameBufferAttachPoints::DEPTH, modelPreview.depthTexture, true);
 }
@@ -563,6 +565,7 @@ void PreviewRenderer::ensureComparisonTarget(ComparisonTarget &target, uint32_t 
     target.colorTexture->setFilterMode(GraphicsInterface::FilterModes::NEAREST);
     target.depthTexture = std::make_shared<Texture>(world->graphicsWrapper, GraphicsInterface::TextureTypes::T2D, GraphicsInterface::InternalFormatTypes::DEPTH, GraphicsInterface::FormatTypes::DEPTH, GraphicsInterface::DataTypes::FLOAT, size, size);
     target.depthTexture->setName(textureName + "Depth");
+    target.depthTexture->setFilterMode(GraphicsInterface::FilterModes::NEAREST);//unset takes the global option, trilinear without mipmaps samples black
     target.renderStage->setOutput(GraphicsInterface::FrameBufferAttachPoints::COLOR0, target.colorTexture, true);
     target.renderStage->setOutput(GraphicsInterface::FrameBufferAttachPoints::DEPTH, target.depthTexture, true);
     if (target.wrapper == nullptr) {

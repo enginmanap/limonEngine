@@ -175,6 +175,22 @@ public:
         return textureInfo;
     }
 
+    //false for normalized storage (8 bit color, depth), values stay in 0..1
+    bool hasUnboundedRange() const {
+        switch (textureInfo.internalFormatType) {
+            case GraphicsInterface::InternalFormatTypes::R32F:
+            case GraphicsInterface::InternalFormatTypes::RGB16F:
+            case GraphicsInterface::InternalFormatTypes::RGBA16F:
+            case GraphicsInterface::InternalFormatTypes::RGB32F:
+            case GraphicsInterface::InternalFormatTypes::RGBA32F:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    std::string describe() const;
+
     bool serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentNode, OptionsUtil::Options *options);
 
     static std::shared_ptr<Texture>

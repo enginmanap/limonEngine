@@ -1502,26 +1502,71 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
             allTextures.emplace_back(previewRenderer->getBackgroundDepthTexture());
             allTextures.emplace_back(previewRenderer->getModelPreviewColorTexture());
             allTextures.emplace_back(previewRenderer->getModelPreviewDepthTexture());
-            if(ImGui::ListBox("Current Textures##Render Debugging", &listbox_item_current, World::getNameOfTexture,
-                              static_cast<void *>(&allTextures), allTextures.size(), 10)) {
-                wrapper->layer = 0;
+            if (listbox_item_current >= (int)allTextures.size()) {
+                listbox_item_current = -1;//pipeline changed under us
+            }
+            if (ImGui::BeginListBox("Current Textures##Render Debugging", ImVec2(-FLT_MIN, 10 * ImGui::GetTextLineHeightWithSpacing()))) {
+                for (size_t textureIndex = 0; textureIndex < allTextures.size(); ++textureIndex) {
+                    ImGui::PushID((int)textureIndex);//names are not unique
+                    if (ImGui::Selectable(allTextures[textureIndex]->getName().c_str(), listbox_item_current == (int)textureIndex)) {
+                        listbox_item_current = (int)textureIndex;
+                        wrapper->layer = 0;
+                        wrapper->rangeMin = 0.0f;
+                        wrapper->rangeMax = 1.0f;
+                        wrapper->channel = 0;
+                    }
+                    if (ImGui::IsItemHovered()) {
+                        ImGui::SetTooltip("%s", allTextures[textureIndex]->describe().c_str());
+                    }
+                    ImGui::PopID();
+                }
+                ImGui::EndListBox();
             }
             if(listbox_item_current != -1) {
                 wrapper->texture = allTextures[listbox_item_current];
+                wrapper->remapRange = true;//identity at 0..1 and all channels, apart from alpha being shown opaque
+                static bool fitToWindow = true;
                 float aspect = (float) wrapper->texture->getHeight() / (float)wrapper->texture->getWidth();
                 ImVec2 size;
-                size.x = 640;
+                size.x = fitToWindow ? std::max(ImGui::GetContentRegionAvail().x, 1.0f) : (float)wrapper->texture->getWidth();
                 size.y = std::floor(size.x * aspect);
                 ImGui::Text("%s", ("Texture id selected is: " + std::to_string(wrapper->texture->getTextureID())).c_str());
+                ImGui::Checkbox("Fit to window##CurrentTextures", &fitToWindow);
 
-                if(wrapper->texture->getType() == GraphicsInterface::TextureTypes::T2D_ARRAY ||
-                   wrapper->texture->getType() == GraphicsInterface::TextureTypes::TCUBE_MAP_ARRAY) {
-                    ImGui::InputInt("Layer##CurrentTextures", &wrapper->layer);
-
+                GraphicsInterface::TextureTypes selectedType = wrapper->texture->getType();
+                if(selectedType == GraphicsInterface::TextureTypes::T2D_ARRAY ||
+                   selectedType == GraphicsInterface::TextureTypes::TCUBE_MAP_ARRAY) {
+                    bool isCubeArray = selectedType == GraphicsInterface::TextureTypes::TCUBE_MAP_ARRAY;
+                    int layerCount = wrapper->texture->getTextureInfo().depth * (isCubeArray ? 6 : 1);//cube array depth counts cubes
+                    if (layerCount > 0) {
+                        ImGui::SliderInt("Layer##CurrentTextures", &wrapper->layer, 0, layerCount - 1);
+                        if (isCubeArray) {
+                            ImGui::SameLine();
+                            ImGui::Text("cube %d, face %d", wrapper->layer / 6, wrapper->layer % 6);
+                        }
+                    } else {
+                        ImGui::Text("Layer count is not known for this texture");
+                    }
                 }
-                ImGui::Dummy(ImVec2(0.0f, size.y));
-                size.y = -1 * size.y;//This is because ImGui assumes y up. Since this code is shared with fonts, and fixing font generation is hard, I am using this hack for upside down fix.
-                ImGui::Image((ImTextureID)(intptr_t)wrapper, size);
+                //normalized storage (8 bit color, depth) never leaves 0..1, float storage is unbounded
+                bool unboundedRange = wrapper->texture->hasUnboundedRange();
+                float rangeLimitMin = unboundedRange ? -FLT_MAX : 0.0f;
+                float rangeLimitMax = unboundedRange ? FLT_MAX : 1.0f;
+                const float MINIMUM_RANGE_WIDTH = 0.0001f;
+                if (ImGui::DragFloat("Range min##CurrentTextures", &wrapper->rangeMin, 0.001f, rangeLimitMin, rangeLimitMax, "%.4f", ImGuiSliderFlags_AlwaysClamp)) {
+                    wrapper->rangeMin = std::min(wrapper->rangeMin, wrapper->rangeMax - MINIMUM_RANGE_WIDTH);
+                }
+                if (ImGui::DragFloat("Range max##CurrentTextures", &wrapper->rangeMax, 0.001f, rangeLimitMin, rangeLimitMax, "%.4f", ImGuiSliderFlags_AlwaysClamp)) {
+                    wrapper->rangeMax = std::max(wrapper->rangeMax, wrapper->rangeMin + MINIMUM_RANGE_WIDTH);
+                }
+                if (ImGui::Button("Reset range##CurrentTextures")) {
+                    wrapper->rangeMin = 0.0f;
+                    wrapper->rangeMax = 1.0f;
+                }
+                static const char* channelNames[] = {"All", "Red", "Green", "Blue", "Alpha"};
+                ImGui::Combo("Channel##CurrentTextures", &wrapper->channel, channelNames, 5);
+                //textures are stored y up, flip with uv. A negative size inverts the item rect and ImGui culls it unless it is fully visible
+                ImGui::Image((ImTextureID)(intptr_t)wrapper, size, ImVec2(0.0f, 1.0f), ImVec2(1.0f, 0.0f));
             }
 
 
