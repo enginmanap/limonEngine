@@ -82,7 +82,9 @@ after that, you can use step 2 - 4 of Ubuntu instructions, on the same terminal.
 
 ### Start up: 
 - Engine take a parameter as path of world to load
-- If no parameter passed, falls back to `./Data/Maps/World001.xml`
+- If no parameter passed, the world named in `./Data/Release.xml` is loaded, and if that can't be read, `./Data/Maps/World001.xml`
+- `--convert <model file> [output directory] [--scale <factor>]` creates a world from a model file
+- `--help` prints these options
 ```bash
 $ ./LimonEngine ./Data/Maps/World001.xml
 ```
