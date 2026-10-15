@@ -34,6 +34,14 @@ public:
 
     bool saveOptions();
 
+    // Read game files the way the engine does: ./Data/... from the loose ./Data folder first, then Data.pak, and
+    // ./Engine/... from ./Engine only. fopen or ifstream only ever see loose files, so they miss everything packed.
+    bool readFile(const std::string &path, std::vector<uint8_t> &contents);
+    bool readTextFile(const std::string &path, std::string &contents);
+    bool fileExists(const std::string &path);
+    bool isDirectory(const std::string &path);
+    bool listDirectory(const std::string &path, std::vector<LimonTypes::DirectoryEntry> &entries);//names, not paths
+
     //TODO remove after 0.7 released and 0.8 work starts.
     [[deprecated("Animation indices are positional and depend on load order; use animateModelByName() instead.")]]
     uint32_t animateModel(uint32_t modelID, uint32_t animationID, bool looped, const std::string& soundPath = "");
@@ -308,9 +316,19 @@ public:
              std::function<void ()> worldExitMethod,
              std::function<void ()> worldReturnPreviousMethod,
              std::function<const OptionsUtil::Options*()> worldGetOptions,
-             std::function<bool ()> worldSaveOptions) {
+             std::function<bool ()> worldSaveOptions,
+             std::function<bool (const std::string&, std::vector<uint8_t>&)> readFileMethod,
+             std::function<bool (const std::string&, std::string&)> readTextFileMethod,
+             std::function<bool (const std::string&)> fileExistsMethod,
+             std::function<bool (const std::string&)> isDirectoryMethod,
+             std::function<bool (const std::string&, std::vector<LimonTypes::DirectoryEntry>&)> listDirectoryMethod) {
         limonGetOptions = std::move(worldGetOptions);
         limonSaveOptions = std::move(worldSaveOptions);
+        limonReadFile = std::move(readFileMethod);
+        limonReadTextFile = std::move(readTextFileMethod);
+        limonFileExists = std::move(fileExistsMethod);
+        limonIsDirectory = std::move(isDirectoryMethod);
+        limonListDirectory = std::move(listDirectoryMethod);
         limonLoadWorld = std::move(worldLoadMethod);
         limonReturnOrLoadWorld = std::move(worldReturnOrLoadMethod);
         limonLoadNewAndRemoveCurrentWorld = std::move(worldLoadNewAndRemoveCurrentMethod);
@@ -456,6 +474,12 @@ private:
 
     std::function<void ()> limonExitGame;
     std::function<void ()> limonReturnPrevious;
+    //last on purpose, plugins built before these were added keep the offsets of everything above
+    std::function<bool (const std::string&, std::vector<uint8_t>&)> limonReadFile;
+    std::function<bool (const std::string&, std::string&)> limonReadTextFile;
+    std::function<bool (const std::string&)> limonFileExists;
+    std::function<bool (const std::string&)> limonIsDirectory;
+    std::function<bool (const std::string&, std::vector<LimonTypes::DirectoryEntry>&)> limonListDirectory;
     /*** Non World API calls *******************************************************/
 };
 

@@ -13,6 +13,26 @@ bool LimonAPI::saveOptions() {
     return limonSaveOptions();
 }
 
+bool LimonAPI::readFile(const std::string &path, std::vector<uint8_t> &contents) {
+    return limonReadFile(path, contents);
+}
+
+bool LimonAPI::readTextFile(const std::string &path, std::string &contents) {
+    return limonReadTextFile(path, contents);
+}
+
+bool LimonAPI::fileExists(const std::string &path) {
+    return limonFileExists(path);
+}
+
+bool LimonAPI::isDirectory(const std::string &path) {
+    return limonIsDirectory(path);
+}
+
+bool LimonAPI::listDirectory(const std::string &path, std::vector<LimonTypes::DirectoryEntry> &entries) {
+    return limonListDirectory(path, entries);
+}
+
 uint32_t LimonAPI::animateModel(uint32_t modelID, uint32_t animationID, bool looped, const std::string& soundPath) {
     return worldAddAnimationToObject(modelID, animationID, looped, soundPath);
 }

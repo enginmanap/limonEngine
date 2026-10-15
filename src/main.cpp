@@ -312,9 +312,18 @@ LimonAPI *GameEngine::getNewLimonAPI() {
     };
     std::function<const OptionsUtil::Options*()> limonGetOptions = [this] { return options; };
     std::function<bool()> limonSaveOptions = [this] { return options->saveOptions(USER_OPTIONS_FILE); };
+    //readFile is overloaded, the casts pick the overload each slot takes
+    std::function<bool(const std::string &, std::vector<uint8_t> &)> limonReadFile =
+            static_cast<bool (*)(const std::string &, std::vector<uint8_t> &)>(&LimonFileSystem::readFile);
+    std::function<bool(const std::string &, std::string &)> limonReadTextFile =
+            static_cast<bool (*)(const std::string &, std::string &)>(&LimonFileSystem::readFile);
+    std::function<bool(const std::string &)> limonFileExists = &LimonFileSystem::fileExists;
+    std::function<bool(const std::string &)> limonIsDirectory = &LimonFileSystem::isDirectory;
+    std::function<bool(const std::string &, std::vector<LimonTypes::DirectoryEntry> &)> limonListDirectory = &LimonFileSystem::listDirectory;
 
     return new LimonAPI(limonLoadWorld, limonReturnOrLoadWorld, limonLoadNewAndRemoveCurrentWorld, limonExitGame,
-                            limonReturnPrevious, limonGetOptions, limonSaveOptions);
+                            limonReturnPrevious, limonGetOptions, limonSaveOptions,
+                            limonReadFile, limonReadTextFile, limonFileExists, limonIsDirectory, limonListDirectory);
 }
 
 void GameEngine::run() {

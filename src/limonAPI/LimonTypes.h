@@ -229,6 +229,11 @@ namespace LimonTypes {
         }
     };
 
+    struct DirectoryEntry {
+        std::string name;
+        bool isDirectory = false;
+    };
+
 }
 
 #endif //LIMONENGINE_LIMONTYPES_H

@@ -10,6 +10,35 @@
 #include "GenericParameterConverter.h"
 #include "PyTimedEventCallback.h"
 
+//None rather than an empty value, so a script can tell a missing file from an empty one
+static pybind11::object readFileForPython(LimonAPI &limonAPI, const std::string &path) {
+    std::vector<uint8_t> contents;
+    if (!limonAPI.readFile(path, contents)) {
+        return pybind11::none();
+    }
+    return pybind11::bytes(reinterpret_cast<const char *>(contents.data()), contents.size());
+}
+
+static pybind11::object readTextFileForPython(LimonAPI &limonAPI, const std::string &path) {
+    std::string contents;
+    if (!limonAPI.readTextFile(path, contents)) {
+        return pybind11::none();
+    }
+    return pybind11::str(contents);
+}
+
+static pybind11::object listDirectoryForPython(LimonAPI &limonAPI, const std::string &path) {
+    std::vector<LimonTypes::DirectoryEntry> entries;
+    if (!limonAPI.listDirectory(path, entries)) {
+        return pybind11::none();
+    }
+    pybind11::list result;
+    for (const LimonTypes::DirectoryEntry &entry : entries) {
+        result.append(pybind11::make_tuple(entry.name, entry.isDirectory));
+    }
+    return result;
+}
+
 void bindLimonAPI(pybind11::module_& m) {
     // Bind LimonTypes::Vec4
     pybind11::class_<LimonTypes::Vec4>(m, "Vec4")
@@ -51,6 +80,16 @@ void bindLimonAPI(pybind11::module_& m) {
 
     limon.def("get_options", &LimonAPI::getOptions, "Get engine options")
             .def("save_options", &LimonAPI::saveOptions, "Save current options to user options file; returns True on success")
+
+            // File Methods
+            .def("read_file", &readFileForPython, pybind11::arg("path"),
+                 "Read a file through the engine's layers (loose ./Data over Data.pak); bytes, or None if it can't be read")
+            .def("read_text_file", &readTextFileForPython, pybind11::arg("path"),
+                 "Read a UTF-8 text file through the engine's layers; str, or None if it can't be read")
+            .def("file_exists", &LimonAPI::fileExists, pybind11::arg("path"), "True if the path is a file in any layer")
+            .def("is_directory", &LimonAPI::isDirectory, pybind11::arg("path"), "True if the path is a directory in any layer")
+            .def("list_directory", &listDirectoryForPython, pybind11::arg("path"),
+                 "List of (name, is_directory) across all layers, or None if the path is not a directory")
 
             // GUI Methods
             .def("add_gui_text",

@@ -11,14 +11,12 @@
 #include <vector>
 #include <SDL3/SDL_filesystem.h>
 #include <tinyxml2.h>
+#include "limonAPI/LimonTypes.h"
 
 //every read of game data goes through here, so a package can sit under it without touching the callers
 class LimonFileSystem {
 public:
-    struct DirectoryEntry {
-        std::string name;
-        bool isDirectory = false;
-    };
+    using DirectoryEntry = LimonTypes::DirectoryEntry;//plugins get the same entries through LimonAPI::listDirectory
 
     //cereal reads through an istream, this lets it read a buffer from readFile without another copy
     class MemoryStreamBuffer : public std::streambuf {
