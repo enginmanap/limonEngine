@@ -28,12 +28,11 @@ class TextureAsset : public Asset {
     TextureMetaData textureMetaData;
     SDL_Surface* cpuSurface = nullptr;//gets deleted after gpu load, don't use
     bool transparentTexels = false;
+    bool loadFailed = false;
     void loadCPUPart() override;
     void loadGPUPart() override;
 
     void scanForTransparentTexels();
-
-    static void getPossibleTexturesList(const AssetManager::AvailableAssetsNode *assetsNode, std::vector<std::string>& possibleTexturesList);
 
 protected:
     std::vector<std::string> name;//texture file, or for embedded "*index" then the model it is embedded in
@@ -50,6 +49,11 @@ public:
 
     //nullptr with the reason in SDL_GetError, the same contract as IMG_Load
     static SDL_Surface *loadSurface(const std::string &path);
+
+    //the requested file couldn't be loaded and this holds the not found texture instead. Valid once the load is done
+    bool hasLoadFailed() const {
+        return loadFailed;
+    }
 
     uint32_t getID() const {
         return texture->getTextureID();

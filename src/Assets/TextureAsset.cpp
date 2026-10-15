@@ -72,42 +72,12 @@ void TextureAsset::loadCPUPart() {
         cpuSurface = loadSurface(name[0]);
         if(!cpuSurface) {
             originalErrorMessage = SDL_GetError();
-            const std::string textureFullFileName = name[0].substr(name[0].find_last_of("\\/") + 1);
-            const AssetManager::AvailableAssetsNode *fullMatchAssets = assetManager->getAvailableAssetsTreeFiltered(AssetManager::Asset_type_TEXTURE, textureFullFileName);
-            if (fullMatchAssets != nullptr) {
-                std::vector<std::string> possibleAssets;
-                getPossibleTexturesList(fullMatchAssets, possibleAssets);
-
-                if (!possibleAssets.empty()) {
-                    for (size_t i = 0; i < possibleAssets.size(); ++i) {
-                        cpuSurface = loadSurface(possibleAssets[i]);
-                        if (cpuSurface) {
-                            break;
-                        }
-                    }
-                }
-            }
-            if (!cpuSurface) {
-                std::cerr << "Couldn't find any asset with same name and same extension for "<< textureFullFileName <<". Will search for same name different extension." << std::endl;
-                const std::string textureNameOnly = textureFullFileName.substr(0, textureFullFileName.find_last_of('.'));
-                const AssetManager::AvailableAssetsNode *nameOnlyMatchAssets = assetManager->getAvailableAssetsTreeFiltered(AssetManager::Asset_type_TEXTURE, textureNameOnly);
-                if (nameOnlyMatchAssets != nullptr) {
-                    std::vector<std::string> possibleAssets;
-                    getPossibleTexturesList(nameOnlyMatchAssets, possibleAssets);
-                    if (!possibleAssets.empty()) {
-                        for (size_t i = 0; i < possibleAssets.size(); ++i) {
-                            cpuSurface = loadSurface(possibleAssets[i]);
-                            if (cpuSurface) {
-                                break;
-                            }
-                        }
-                    }
-                }
-            }
         }
     }
 
     if (!cpuSurface) {
+        //no search for a file with the same name here, whoever asked fixes the path, loadFailed tells them to
+        loadFailed = true;
         std::cerr << "TextureAsset Load from disk failed for " << name[0] <<  ". Error:" << std::endl << originalErrorMessage << std::endl;
         std::cerr << "Loading \"not found fallback\" texture" << std::endl;
         cpuSurface = loadSurface(FALLBACK_TEXTURE_NAME);
@@ -193,16 +163,6 @@ void TextureAsset::loadGPUPart() {
     }
     SDL_DestroySurface(cpuSurface);
     cpuSurface = nullptr;
-}
-
-void TextureAsset::getPossibleTexturesList(const AssetManager::AvailableAssetsNode *assetsNode, std::vector<std::string> &possibleTexturesList) {
-    if (assetsNode->assetType != AssetManager::Asset_type_DIRECTORY) {
-        possibleTexturesList.emplace_back(assetsNode->fullPath);
-    } else {
-        for (size_t i = 0; i < assetsNode->children.size(); ++i) {
-            getPossibleTexturesList(assetsNode->children[i], possibleTexturesList);
-        }
-    }
 }
 
 TextureAsset::~TextureAsset() {

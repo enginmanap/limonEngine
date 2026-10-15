@@ -144,9 +144,17 @@ private:
     }
     //for loading by name, doesn't touch maps or free what the slot held, same as the public setters
     void loadTextureIntoSlot(const TextureSlot &slot, const std::vector<std::string> &textureFiles) {
-        this->*slot.texture = assetManager->partialLoadAssetAsync<TextureAsset>(textureFiles);
+        if (textureFiles.size() == 1) {//two names are an embedded texture and its model, nothing to resolve
+            this->*slot.texture = assetManager->partialLoadAssetAsync<TextureAsset>({resolveTexturePath(textureFiles[0])});
+        } else {
+            this->*slot.texture = assetManager->partialLoadAssetAsync<TextureAsset>(textureFiles);
+        }
         this->*slot.isMap = true;
     }
+
+    std::string resolveTexturePath(const std::string &requestedPath) const;
+
+    std::string findTextureByName(const std::string &fileName) const;
     //acquiredTexture already holds its reference, nullptr empties the slot
     void assignTexture(const TextureSlot &slot, const std::shared_ptr<TextureAsset> &acquiredTexture);
     bool putRemoveTextureButton(const TextureSlot &slot);
@@ -302,7 +310,7 @@ public:
 
     void setAmbientTexture(const std::string &ambientTexture, std::string* sourceAsset = nullptr) {
         std::vector<std::string> textureFiles;
-        textureFiles.push_back(ambientTexture);
+        textureFiles.push_back(sourceAsset == nullptr ? resolveTexturePath(ambientTexture) : ambientTexture);
         if(sourceAsset != nullptr) {
             textureFiles.push_back(*sourceAsset);
         }
@@ -316,7 +324,7 @@ public:
 
     void setDiffuseTexture(const std::string &diffuseTexture, std::string* sourceAsset = nullptr) {
         std::vector<std::string> textureFiles;
-        textureFiles.push_back(diffuseTexture);
+        textureFiles.push_back(sourceAsset == nullptr ? resolveTexturePath(diffuseTexture) : diffuseTexture);
         if(sourceAsset != nullptr) {
             textureFiles.push_back(*sourceAsset);
         }
@@ -330,7 +338,7 @@ public:
 
     void setSpecularTexture(const std::string &specularTexture, std::string* sourceAsset = nullptr) {
         std::vector<std::string> textureFiles;
-        textureFiles.push_back(specularTexture);
+        textureFiles.push_back(sourceAsset == nullptr ? resolveTexturePath(specularTexture) : specularTexture);
         if(sourceAsset != nullptr) {
             textureFiles.push_back(*sourceAsset);
         }
@@ -340,7 +348,7 @@ public:
 
     void setNormalTexture(const std::string &normalTexture, std::string* sourceAsset = nullptr) {
         std::vector<std::string> textureFiles;
-        textureFiles.push_back(normalTexture);
+        textureFiles.push_back(sourceAsset == nullptr ? resolveTexturePath(normalTexture) : normalTexture);
         if(sourceAsset != nullptr) {
             textureFiles.push_back(*sourceAsset);
         }
@@ -355,7 +363,7 @@ public:
 
     void setOpacityTexture(const std::string &opacityTexture, std::string* sourceAsset = nullptr) {
         std::vector<std::string> textureFiles;
-        textureFiles.push_back(opacityTexture);
+        textureFiles.push_back(sourceAsset == nullptr ? resolveTexturePath(opacityTexture) : opacityTexture);
         if(sourceAsset != nullptr) {
             textureFiles.push_back(*sourceAsset);
         }

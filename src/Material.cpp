@@ -7,9 +7,46 @@
 
 #include <ImGuiHelper.h>
 #include "XMLHelper.h"
+#include "LimonFileSystem.h"
 
 #include "limonAPI/Graphics/GraphicsInterface.h"
 #include "limonAPI/Graphics/GraphicsProgram.h"
+
+static std::string firstTextureIn(const AssetManager::AvailableAssetsNode *assetsNode) {
+    if (assetsNode->assetType != AssetManager::Asset_type_DIRECTORY) {
+        return assetsNode->fullPath;
+    }
+    for (const AssetManager::AvailableAssetsNode *child : assetsNode->children) {
+        std::string found = firstTextureIn(child);
+        if (!found.empty()) {
+            return found;
+        }
+    }
+    return "";
+}
+
+std::string Material::findTextureByName(const std::string &fileName) const {
+    const AssetManager::AvailableAssetsNode *matches = assetManager->getAvailableAssetsTreeFiltered(AssetManager::Asset_type_TEXTURE, fileName);
+    return matches == nullptr ? "" : firstTextureIn(matches);
+}
+
+//model files name textures wherever the artist kept them, so a path that isn't a file is looked up by name. The slot keeps
+//what was found, so saving the material writes a path that loads directly from then on
+std::string Material::resolveTexturePath(const std::string &requestedPath) const {
+    if (LimonFileSystem::fileExists(requestedPath)) {
+        return requestedPath;
+    }
+    std::string fileName = requestedPath.substr(requestedPath.find_last_of("\\/") + 1);
+    std::string foundPath = findTextureByName(fileName);
+    if (foundPath.empty()) {
+        foundPath = findTextureByName(fileName.substr(0, fileName.find_last_of('.')));
+    }
+    if (foundPath.empty()) {
+        return requestedPath;//TextureAsset reports it and loads the not found texture
+    }
+    std::cerr << "Material " << name << " names texture " << requestedPath << ", using " << foundPath << " found by file name." << std::endl;
+    return foundPath;
+}
 
 void Material::loadGPUSide(AssetManager *assetManager) {
     if (!assetManager->getMaterialRegistry().isRegistered(*this)) {
@@ -69,7 +106,7 @@ ImGuiResult Material::addImGuiEditorElements(const ImGuiRequest &request) {
         }
         if(selectedAsset != nullptr) {
             if (selectedSlotIndex >= 0) {
-                assignTexture(textureSlots[selectedSlotIndex], assetManager->loadAsset<TextureAsset>({selectedAsset->name}));
+                assignTexture(textureSlots[selectedSlotIndex], assetManager->loadAsset<TextureAsset>({selectedAsset->fullPath}));
             }
             dirty = true;//without it the edit stays on the asset's material, never splits into a world override
             selectedAsset = nullptr;
