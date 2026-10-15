@@ -3,6 +3,7 @@
 //
 
 
+#include <filesystem>
 #include <string>
 #include <unordered_set>
 
@@ -194,9 +195,19 @@ bool WorldSaver::saveWorld(const std::string& mapName, const World* world) {
     rootNode->InsertEndChild(currentElement);//add GUI layers
 
 
+    //the save overwrites the file and there is no undo, so keep what was there as <world file>.bak
+    std::error_code backupError;
+    if (std::filesystem::is_regular_file(mapName, backupError)) {
+        std::filesystem::copy_file(mapName, mapName + ".bak", std::filesystem::copy_options::overwrite_existing, backupError);
+        if (backupError) {
+            std::cerr << "World backup failed, saving anyway: " << backupError.message() << std::endl;
+        }
+    }
+
     tinyxml2::XMLError eResult = mapDocument.SaveFile(mapName.c_str());
     if(eResult != tinyxml2::XML_SUCCESS) {
-        std::cerr  << "ERROR " << eResult << std::endl;
+        std::cerr  << "World file " << mapName << " could not be written, tinyxml2 error " << eResult << std::endl;
+        return false;
     }
 
     return true;
