@@ -93,6 +93,7 @@ private:
 
     std::shared_ptr<AssetManager> assetManager;
     TexturePreviewCache previewCache;
+    const AssetManager::AvailableAssetsNode* pickedTextureAsset = nullptr;//only one texture picker popup is open at a time
     GraphicsInterface* graphicsWrapper = nullptr;
     OptionsUtil::Options* options;
     OptionsUtil::Options::Option<long> displayHeight;
@@ -176,6 +177,10 @@ public:
         ImGui::EndChild();
         ImGui::Separator();
     }
+
+    //a Change button that opens a texture tree popup. Returns the picked texture's full path in the frame it is
+    //picked, empty otherwise. idSuffix keeps pickers of different objects apart
+    std::string pickTexture(const std::string &idSuffix);
 
     static void ShowHelpMarker(const std::string &helpDescription)
     {

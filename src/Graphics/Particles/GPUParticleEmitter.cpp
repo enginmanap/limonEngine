@@ -8,6 +8,7 @@
 #include "ImGui/imgui.h"
 #include "GPUParticleEmitter.h"
 #include "../../XMLHelper.h"
+#include "../../ImGuiHelper.h"
 
 #include <glm/gtc/type_ptr.hpp>
 
@@ -136,6 +137,13 @@ void GPUParticleEmitter::setupVAO() {
     bufferObjects.push_back(vbo);
 }
 
+void GPUParticleEmitter::changeTexture(const std::string &textureFile) {
+    std::shared_ptr<TextureAsset> newTextureAsset = assetManager->loadAsset<TextureAsset>({textureFile});//before the free, picking the same file must not unload it
+    assetManager->freeAsset(textureAsset->getName());
+    textureAsset = newTextureAsset;
+    texture = textureAsset->getTexture();
+}
+
 ImGuiResult GPUParticleEmitter::addImGuiEditorElements(const ImGuiRequest &request) {
 
     ImGuiResult imGuiResult;
@@ -147,6 +155,17 @@ ImGuiResult GPUParticleEmitter::addImGuiEditorElements(const ImGuiRequest &reque
     if(ImGui::Checkbox("Enabled##ParticleEmitter", &enabled)) {
             dirty = true;
     }
+
+    ImGui::Text("Texture: %s", textureAsset->getName().front().c_str());
+    if (request.imgGuiHelper != nullptr) {
+        ImGui::SameLine();
+        std::string pickedTexture = request.imgGuiHelper->pickTexture("GPUParticleEmitterTexture" + std::to_string(getWorldObjectID()));
+        if (!pickedTexture.empty()) {
+            changeTexture(pickedTexture);
+            imGuiResult.updated = true;
+        }
+    }
+
     float startPositionValues[3];
     startPositionValues[0] = transformation.getTranslate().x;
     startPositionValues[1] = transformation.getTranslate().y;

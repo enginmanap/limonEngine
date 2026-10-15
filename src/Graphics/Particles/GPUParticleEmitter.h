@@ -179,6 +179,8 @@ public:
         return texture;
     }
 
+    void changeTexture(const std::string &textureFile);
+
     long getMaxCount() const {
         return maxCount;
     }

@@ -126,6 +126,13 @@ void Emitter::setupVAO() {
     bufferObjects.push_back(vbo);
 }
 
+void Emitter::changeTexture(const std::string &textureFile) {
+    std::shared_ptr<TextureAsset> newTextureAsset = assetManager->loadAsset<TextureAsset>({textureFile});//before the free, picking the same file must not unload it
+    assetManager->freeAsset(textureAsset->getName());
+    textureAsset = newTextureAsset;
+    texture = textureAsset->getTexture();
+}
+
 ImGuiResult Emitter::addImGuiEditorElements(const ImGuiRequest &request) {
 
     ImGuiResult imGuiResult;
@@ -147,6 +154,16 @@ ImGuiResult Emitter::addImGuiEditorElements(const ImGuiRequest &request) {
     }
 
     ImGui::Text("Active Particles: %ld / %ld", currentCount, maxCount);
+
+    ImGui::Text("Texture: %s", textureAsset->getName().front().c_str());
+    if (request.imgGuiHelper != nullptr) {
+        ImGui::SameLine();
+        std::string pickedTexture = request.imgGuiHelper->pickTexture("ParticleEmitterTexture" + std::to_string(getWorldObjectID()));
+        if (!pickedTexture.empty()) {
+            changeTexture(pickedTexture);
+            imGuiResult.updated = true;
+        }
+    }
 
     float startDistanceValues[3];
     startDistanceValues[0] = maxStartDistances.x;

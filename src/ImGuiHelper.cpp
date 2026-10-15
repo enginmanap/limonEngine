@@ -417,7 +417,7 @@ void    ImGuiHelper::InvalidateDeviceObjects() {
 }
 
 void ImGuiHelper::showTexturePreviewTooltip(const AssetManager::AvailableAssetsNode* node) {
-    ImGuiImageWrapper* wrapper = previewCache.get(node->name);
+    ImGuiImageWrapper* wrapper = previewCache.get(node->fullPath);
     if (wrapper == nullptr || wrapper->texture == nullptr) return;
 
     constexpr float maxPreviewSize = 256.0f;
@@ -429,6 +429,27 @@ void ImGuiHelper::showTexturePreviewTooltip(const AssetManager::AvailableAssetsN
     ImGui::BeginTooltip();
     ImGui::Image((ImTextureID)(intptr_t)wrapper, ImVec2(w * scale, h * scale));
     ImGui::EndTooltip();
+}
+
+std::string ImGuiHelper::pickTexture(const std::string &idSuffix) {
+    std::string popupName = "Select Texture##" + idSuffix;
+    if (ImGui::Button(("Change##" + idSuffix).c_str())) {
+        pickedTextureAsset = nullptr;
+        ImGui::OpenPopup(popupName.c_str());
+    }
+    std::string pickedPath;
+    ImGui::SetNextWindowSize(ImVec2(400.0f, 400.0f));
+    if (ImGui::BeginPopup(popupName.c_str(), ImGuiWindowFlags_AlwaysAutoResize)) {
+        buildTreeFromAssets(assetManager->getAvailableAssetsTreeFiltered(AssetManager::Asset_type_TEXTURE, ""),
+                            AssetManager::Asset_type_TEXTURE, "TexturePicker" + idSuffix, &pickedTextureAsset, PreviewMode::Preview);
+        if (pickedTextureAsset != nullptr) {
+            pickedPath = pickedTextureAsset->fullPath;
+            pickedTextureAsset = nullptr;
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::EndPopup();
+    }
+    return pickedPath;
 }
 
 ImGuiHelper::ImGuiHelper(std::shared_ptr<AssetManager> assetManager, OptionsUtil::Options* options)
