@@ -31,6 +31,10 @@ std::shared_ptr<AIMovementNode>AIMovementGrid::isAlreadyVisited(const glm::vec3 
 std::shared_ptr<const AIMovementNode>
 AIMovementGrid::aStarPath(std::shared_ptr<const AIMovementNode> start, const glm::vec3 &destination, uint32_t maximumNumberOfNodes,
                           std::vector<glm::vec3> *route) {
+    if (start == nullptr) {
+        //no root, grid generation failed. Nothing to search from
+        return nullptr;
+    }
 
     std::priority_queue<AINodeWithPriority, std::vector<AINodeWithPriority>, std::greater<AINodeWithPriority>> frontier;
     frontier.push(AINodeWithPriority(start, 0));
