@@ -177,6 +177,7 @@ public:
     bool setSoundTemporaryAPI(uint32_t soundID, bool temporary);
 
     // Music (dedicated MUSIC channel, single level track, optional crossfade)
+    bool setMusicAPI(const std::string& musicPath, float fadeSeconds, bool looped);
     bool setMusic(const std::string& musicPath, float fadeSeconds, bool looped);
     bool stopMusic(float fadeSeconds);
     std::string getMusicName() const;

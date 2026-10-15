@@ -11,6 +11,10 @@
 class MayanLever : public TriggerInterface {
 
 public:
+    static std::vector<std::string> getPackFileAccessList() {
+        return {"./Data/Sounds/castleDoor.wav"};
+    }
+
     MayanLever(LimonAPI *limonAPI);
 
     bool run(std::vector<LimonTypes::GenericParameter> parameters) override;

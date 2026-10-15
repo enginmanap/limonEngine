@@ -8,40 +8,65 @@
 #include "LimonAPI.h"
 
 /**
- * On shared library load, void registerAsTrigger(std::map<std::string, TriggerInterface*(*)(LimonAPI*)>*) function should be callable.
+ * On shared library load, void registerTriggerTypes(std::map<std::string, TriggerInterface::Registration>*) function should be callable.
  *
  * This method will be called after object load.
- * For each trigger, the name of trigger and a constructor should be put in the map.
+ * For each trigger, put its name and TriggerInterface::registration<YourTrigger>() in the map.
  */
 
 
 class TriggerInterface {
-    static std::map<std::string, TriggerInterface*(*)(LimonAPI*)>* typeMap;
+public:
+    struct Registration {
+        TriggerInterface*(*factory)(LimonAPI*) = nullptr;
+        std::vector<std::string> packFileAccessList;
+    };
+private:
+    static std::map<std::string, Registration>* typeMap;
 protected:
     LimonAPI* limonAPI = nullptr;
     std::vector<LimonTypes::GenericParameter> parameters;
-    static std::map<std::string, TriggerInterface*(*)(LimonAPI*)> * getMap() {
+    static std::map<std::string, Registration> * getMap() {
         // never delete'ed. (exist until program termination)
         // because we can't guarantee correct destruction order
         if (!typeMap) {
-            typeMap = new std::map<std::string, TriggerInterface*(*)(LimonAPI*)>();
+            typeMap = new std::map<std::string, Registration>();
         }
         return typeMap;
     }
     explicit TriggerInterface(LimonAPI* limonAPI): limonAPI(limonAPI) {}
 
 public:
+    /**
+     * Every ./Data/ file this type reads or passes to LimonAPI, a trailing / meaning the whole folder. Hide this with
+     * your own static. A path no world references and no type lists is refused, and the packer ships only what is listed.
+     */
+    static std::vector<std::string> getPackFileAccessList() {
+        return {};
+    }
+
+    template<typename T>
+    static Registration registration();
+
     // Not virtual
     static std::vector<std::string> getTriggerNames() {
         std::vector<std::string> names;
-        for (auto it = typeMap->begin(); it != typeMap->end(); it++) {
+        for (auto it = getMap()->begin(); it != getMap()->end(); it++) {
             names.push_back(it->first);
         }
         return names;
     }
 
-    static void registerType(const std::string& typeName, TriggerInterface*(*constructor)(LimonAPI*)) {
-        (*typeMap)[typeName] = constructor;
+    static void registerType(const std::string& typeName, const Registration& registration) {
+        (*getMap())[typeName] = registration;
+    }
+
+    static std::vector<std::string> getRegisteredPackFileAccessList(const std::string& typeName) {
+        auto it = getMap()->find(typeName);
+        if (it == getMap()->end()) {
+            return {};
+        }
+        return it->second.packFileAccessList;
     }
 
     /**
@@ -71,11 +96,11 @@ public:
 
 
     static TriggerInterface * createTrigger(std::string const& s, LimonAPI* apiInstance) {
-        std::map<std::string, TriggerInterface*(*)(LimonAPI*)>::iterator it = getMap()->find(s);
+        std::map<std::string, Registration>::iterator it = getMap()->find(s);
         if(it == getMap()->end()) {
             return nullptr;
         }
-        return it->second(apiInstance);
+        return it->second.factory(apiInstance);
     }
 
 };
@@ -83,6 +108,14 @@ public:
 template<typename T>
 TriggerInterface* createT(LimonAPI* limonAPI) {
     return new T(limonAPI);
+}
+
+template<typename T>
+TriggerInterface::Registration TriggerInterface::registration() {
+    Registration result;
+    result.factory = &createT<T>;
+    result.packFileAccessList = T::getPackFileAccessList();
+    return result;
 }
 
 template<typename T>
@@ -100,7 +133,7 @@ class TriggerRegister : TriggerInterface {
 
 public:
     TriggerRegister(std::string const& s) : TriggerInterface(nullptr) {
-        getMap()->insert(std::make_pair(s, &createT<T>));
+        getMap()->insert(std::make_pair(s, registration<T>()));
     }
 
 };

@@ -1267,7 +1267,7 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
                 // the editor player sets audioPlaying = false (the audio thread is paused).
                 if (selectedSoundAsset != nullptr) {
                     if (ImGui::Button("Change Music")) {
-                        world->apiInstance->setMusic(selectedSoundAsset->fullPath, 0.0f, true);
+                        world->apiAccessor->setMusic(selectedSoundAsset->fullPath, 0.0f, true);
                     }
                 } else {
                     ImGui::Button("Change Music");
@@ -1276,7 +1276,7 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
                 }
                 ImGui::SameLine();
                 if (ImGui::Button("Clear Music")) {
-                    world->apiInstance->setMusic("", 0.0f, true);
+                    world->apiAccessor->setMusic("", 0.0f, true);
                 }
             }
             if(ImGui::CollapsingHeader("Sound Settings")) {

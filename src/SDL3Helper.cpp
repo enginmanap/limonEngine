@@ -196,6 +196,16 @@ bool SDL3Helper::loadCustomTriggers(const std::string &fileName) {
         std::cerr << "Failed to load " << fileName << ": " << SDL_GetError() << std::endl;
         return false;
     }
+    //those filled maps of bare factory pointers, handing one a map of Registration would corrupt memory
+    const char *oldRegisterFunctionNames[] = {"registerAsTrigger", "registerActors", "registerPlayerExtensions",
+                                              "registerCameraExtensions", "registerRenderMethods"};
+    for (const char *oldRegisterFunctionName : oldRegisterFunctionNames) {
+        if (SDL_LoadFunction(objectHandle, oldRegisterFunctionName) != nullptr) {
+            std::cerr << fileName << " exports " << oldRegisterFunctionName << ", it was built against the registration API before "
+                      << "getPackFileAccessList. Rebuild it against this LimonAPI. Nothing from it is registered." << std::endl;
+            return false;
+        }
+    }
     bool result = loadTriggers(objectHandle);
     result = loadActors(objectHandle) && result;
     result = loadPlayerExtensions(objectHandle) && result;
@@ -204,14 +214,14 @@ bool SDL3Helper::loadCustomTriggers(const std::string &fileName) {
 }
 
 bool SDL3Helper::loadPlayerExtensions(SDL_SharedObject *objectHandle) const {
-    const std::string registerFunctionName = "registerPlayerExtensions";
-    void(*registerFunction)(std::map<std::string, PlayerExtensionInterface*(*)(LimonAPI*)>*);
+    const std::string registerFunctionName = "registerPlayerExtensionTypes";
+    void(*registerFunction)(std::map<std::string, PlayerExtensionInterface::Registration>*);
     registerFunction = (void(*)(
-            std::map<std::string, PlayerExtensionInterface*(*)(LimonAPI*)>*))SDL_LoadFunction(objectHandle, registerFunctionName.c_str());
+            std::map<std::string, PlayerExtensionInterface::Registration>*))SDL_LoadFunction(objectHandle, registerFunctionName.c_str());
     if(registerFunction != nullptr) {
         std::cout << "Player extension register method found " << std::endl;
         //register requires parameter
-        std::map<std::string, PlayerExtensionInterface*(*)(LimonAPI*)> elements;
+        std::map<std::string, PlayerExtensionInterface::Registration> elements;
         registerFunction(&elements);
         //now add this elements to registered map
         for (auto it = elements.begin(); it != elements.end(); it++) {
@@ -226,13 +236,13 @@ bool SDL3Helper::loadPlayerExtensions(SDL_SharedObject *objectHandle) const {
 }
 
 bool SDL3Helper::loadCameraExtensions(SDL_SharedObject *objectHandle) const {
-    const std::string registerFunctionName = "registerCameraExtensions";
-    void(*registerFunction)(std::map<std::string, CameraExtensionInterface*(*)(LimonAPI*)>*);
+    const std::string registerFunctionName = "registerCameraExtensionTypes";
+    void(*registerFunction)(std::map<std::string, CameraExtensionInterface::Registration>*);
     registerFunction = (void(*)(
-            std::map<std::string, CameraExtensionInterface*(*)(LimonAPI*)>*))SDL_LoadFunction(objectHandle, registerFunctionName.c_str());
+            std::map<std::string, CameraExtensionInterface::Registration>*))SDL_LoadFunction(objectHandle, registerFunctionName.c_str());
     if(registerFunction != nullptr) {
         std::cout << "Camera extension register method found " << std::endl;
-        std::map<std::string, CameraExtensionInterface*(*)(LimonAPI*)> elements;
+        std::map<std::string, CameraExtensionInterface::Registration> elements;
         registerFunction(&elements);
         for (auto it = elements.begin(); it != elements.end(); it++) {
             CameraExtensionInterface::registerType(it->first, it->second);
@@ -244,14 +254,14 @@ bool SDL3Helper::loadCameraExtensions(SDL_SharedObject *objectHandle) const {
 }
 
 bool SDL3Helper::loadTriggers(SDL_SharedObject *objectHandle) const {
-    const std::string registerFunctionName = "registerAsTrigger";
-    void(*registerFunction)(std::map<std::string, TriggerInterface*(*)(LimonAPI*)>*);
+    const std::string registerFunctionName = "registerTriggerTypes";
+    void(*registerFunction)(std::map<std::string, TriggerInterface::Registration>*);
     registerFunction = (void(*)(
-            std::map<std::string, TriggerInterface*(*)(LimonAPI*)>*))SDL_LoadFunction(objectHandle, registerFunctionName.c_str());
+            std::map<std::string, TriggerInterface::Registration>*))SDL_LoadFunction(objectHandle, registerFunctionName.c_str());
     if(registerFunction != nullptr) {
         std::cout << "Trigger register method found" << std::endl;
         //register requires parameter
-        std::map<std::string, TriggerInterface*(*)(LimonAPI*)> elements;
+        std::map<std::string, TriggerInterface::Registration> elements;
         registerFunction(&elements);
         //now add this elements to registered map
         for (auto it = elements.begin(); it != elements.end(); it++) {
@@ -266,14 +276,14 @@ bool SDL3Helper::loadTriggers(SDL_SharedObject *objectHandle) const {
 }
 
 bool SDL3Helper::loadActors(SDL_SharedObject *objectHandle) const {
-    const std::string registerFunctionName = "registerActors";
-    void(*registerFunction)(std::map<std::string, ActorInterface*(*)(uint32_t, LimonAPI*)>*);
+    const std::string registerFunctionName = "registerActorTypes";
+    void(*registerFunction)(std::map<std::string, ActorInterface::Registration>*);
     registerFunction = (void(*)(
-            std::map<std::string, ActorInterface*(*)(uint32_t, LimonAPI*)>*))SDL_LoadFunction(objectHandle, registerFunctionName.c_str());
+            std::map<std::string, ActorInterface::Registration>*))SDL_LoadFunction(objectHandle, registerFunctionName.c_str());
     if(registerFunction != nullptr) {
         std::cout << "Actor register method found" << std::endl;
         //register requires parameter
-        std::map<std::string, ActorInterface*(*)(uint32_t, LimonAPI*)> elements;
+        std::map<std::string, ActorInterface::Registration> elements;
         registerFunction(&elements);
         //now add this elements to registered map
         for (auto it = elements.begin(); it != elements.end(); it++) {
@@ -288,14 +298,14 @@ bool SDL3Helper::loadActors(SDL_SharedObject *objectHandle) const {
 }
 
 bool SDL3Helper::loadRenderMethods(SDL_SharedObject *objectHandle) const {
-    const std::string registerFunctionName = "registerRenderMethods";
-    void(*registerFunction)(std::map<std::string, RenderMethodInterface*(*)(GraphicsInterface*)>*);
+    const std::string registerFunctionName = "registerRenderMethodTypes";
+    void(*registerFunction)(std::map<std::string, RenderMethodInterface::Registration>*);
     registerFunction = (void(*)(
-            std::map<std::string, RenderMethodInterface*(*)(GraphicsInterface*)>*))SDL_LoadFunction(objectHandle, registerFunctionName.c_str());
+            std::map<std::string, RenderMethodInterface::Registration>*))SDL_LoadFunction(objectHandle, registerFunctionName.c_str());
     if(registerFunction != nullptr) {
         std::cout << "RenderMethod register method found" << std::endl;
         //register requires parameter
-        std::map<std::string, RenderMethodInterface*(*)(GraphicsInterface*)> elements;
+        std::map<std::string, RenderMethodInterface::Registration> elements;
         registerFunction(&elements);
         //now add this elements to registered map
         for (auto it = elements.begin(); it != elements.end(); it++) {

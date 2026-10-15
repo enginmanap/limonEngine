@@ -56,6 +56,8 @@ class ScriptManager {
     }
     void LoadScript(WorldInterpreter * worldInterpreter, const std::string& moduleName);
 
+    std::vector<std::string> readPackFileAccessList(const pybind11::object& pythonClass, const std::string& typeName);
+
     void removeWorldInterpreterInternal(WorldInterpreter* world_interpreter);
 public:
     // builtinDirectoryPath is the engine's own scripts (./Engine/Scripts);

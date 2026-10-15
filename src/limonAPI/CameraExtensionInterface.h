@@ -19,8 +19,8 @@ class LimonAPI;
 /**
  * A registered, configurable camera rig.
  *
- * On shared library load, void registerCameraExtensions(std::map<std::string, CameraExtensionInterface*(*)(LimonAPI*)>*)
- * should be callable; for each rig type, its name and a constructor are inserted into the map.
+ * On shared library load, void registerCameraExtensionTypes(std::map<std::string, CameraExtensionInterface::Registration>*)
+ * should be callable; for each rig type, its name and CameraExtensionInterface::registration<YourRig>() are inserted into the map.
  *
  * A CameraExtensionInterface IS-A CameraAttachment, so the engine's player camera consumes it directly for
  * pose (getCameraVariables) and projection (getProjection).
@@ -40,15 +40,21 @@ class LimonAPI;
  * Single-active: many rigs may exist in a world, but only one is bound to the player camera at a time.
  */
 class CameraExtensionInterface : public CameraAttachment {
-    static std::map<std::string, CameraExtensionInterface*(*)(LimonAPI*)>* extensionTypesMap;
+public:
+    struct Registration {
+        CameraExtensionInterface*(*factory)(LimonAPI*) = nullptr;
+        std::vector<std::string> packFileAccessList;
+    };
+private:
+    static std::map<std::string, Registration>* extensionTypesMap;
 protected:
     LimonAPI* limonAPI = nullptr;
     std::vector<LimonTypes::GenericParameter> parameters;
 
-    static std::map<std::string, CameraExtensionInterface*(*)(LimonAPI*)>* getMap() {
+    static std::map<std::string, Registration>* getMap() {
         // never deleted (exists until program termination) because we can't guarantee destruction order
         if (!extensionTypesMap) {
-            extensionTypesMap = new std::map<std::string, CameraExtensionInterface*(*)(LimonAPI*)>();
+            extensionTypesMap = new std::map<std::string, Registration>();
         }
         return extensionTypesMap;
     }
@@ -64,8 +70,24 @@ public:
         return names;
     }
 
-    static void registerType(const std::string& typeName, CameraExtensionInterface*(*constructor)(LimonAPI*)) {
-        (*getMap())[typeName] = constructor;
+    //same contract as TriggerInterface::getPackFileAccessList
+    static std::vector<std::string> getPackFileAccessList() {
+        return {};
+    }
+
+    template<typename T>
+    static Registration registration();
+
+    static void registerType(const std::string& typeName, const Registration& registration) {
+        (*getMap())[typeName] = registration;
+    }
+
+    static std::vector<std::string> getRegisteredPackFileAccessList(const std::string& typeName) {
+        auto it = getMap()->find(typeName);
+        if (it == getMap()->end()) {
+            return {};
+        }
+        return it->second.packFileAccessList;
     }
 
     static CameraExtensionInterface* createExtension(const std::string& name, LimonAPI* apiInstance) {
@@ -73,7 +95,7 @@ public:
         if (it == getMap()->end()) {
             return nullptr;
         }
-        return it->second(apiInstance);
+        return it->second.factory(apiInstance);
     }
 
     virtual std::string getName() const = 0;
@@ -107,6 +129,14 @@ CameraExtensionInterface* createCameraExtension(LimonAPI* limonAPI) {
 }
 
 template<typename T>
+CameraExtensionInterface::Registration CameraExtensionInterface::registration() {
+    Registration result;
+    result.factory = &createCameraExtension<T>;
+    result.packFileAccessList = T::getPackFileAccessList();
+    return result;
+}
+
+template<typename T>
 class CameraExtensionRegister : CameraExtensionInterface {
     std::string getName() const override {
         return "This object is not meant to be used";
@@ -118,7 +148,7 @@ class CameraExtensionRegister : CameraExtensionInterface {
 
 public:
     explicit CameraExtensionRegister(const std::string& name) : CameraExtensionInterface(nullptr) {
-        getMap()->insert(std::make_pair(name, &createCameraExtension<T>));
+        getMap()->insert(std::make_pair(name, registration<T>()));
     }
 };
 

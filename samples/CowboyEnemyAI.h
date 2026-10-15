@@ -89,6 +89,18 @@ class CowboyEnemyAI : public ActorInterface {
     std::string playZoneName;
     std::string interactionZoneName;
 public:
+    static std::vector<std::string> getPackFileAccessList() {
+        return {"./Data/Sounds/guns/pistol.wav",
+                "./Data/Sounds/guns/rifle.wav",
+                "./Data/Sounds/guns/shotgun.wav",
+                "./Data/Sounds/guns/pistol2.wav",
+                "./Data/Sounds/guns/rifle2.wav",
+                "./Data/Sounds/guns/shotgun2.wav",
+                "./Data/Sounds/guns/pistol3.wav",
+                "./Data/Sounds/guns/rifle3.wav",
+                "./Data/Sounds/guns/shotgun3.wav"};
+    }
+
     CowboyEnemyAI(uint32_t id, LimonAPI *limonAPI) : ActorInterface(id, limonAPI),
         playZoneName("CowboyEnemyAI::play[" + std::to_string(id) + "]"),
         interactionZoneName("CowboyEnemyAI::interaction[" + std::to_string(id) + "]") {
@@ -140,7 +152,7 @@ public:
 };
 
 
-extern "C" void registerActors(std::map<std::string, ActorInterface*(*)(uint32_t, LimonAPI*)>*);
+extern "C" void registerActorTypes(std::map<std::string, ActorInterface::Registration>*);
 
 
 

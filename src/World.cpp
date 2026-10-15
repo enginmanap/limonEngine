@@ -43,6 +43,7 @@
 #include "Utils/FrameTimeTracker.h"
 #include "XMLHelper.h"
 #include "GamePlay/APISerializer.h"
+#include "Package/FileAccessPolicy.h"
 
 const std::map<World::PlayerInfo::Types, std::string> World::PlayerInfo::typeNames =
     {
@@ -1093,6 +1094,7 @@ void World::removeActiveCustomAnimation(const AnimationCustom &animationToRemove
 }
 
 World::~World() {
+    FileAccessPolicy::removeWorld(name);
     // Stop visibility threads, otherwise race condition.
     visibilityManager->stop();
 

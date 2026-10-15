@@ -29,6 +29,14 @@ class PlayerExtensionInterface:
         """
         raise NotImplementedError("interact() not implemented")
 
+    @classmethod
+    def get_pack_file_access_list(cls) -> List[str]:
+        """
+        Every ./Data/ file this class reads or passes to the API, a trailing / meaning the whole folder.
+        A path no world references and no class lists is refused, and the packer ships only what is listed.
+        """
+        return []
+
     def get_name(self) -> str:
         """
         Get the name of this extension.

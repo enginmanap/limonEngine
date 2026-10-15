@@ -188,7 +188,7 @@ void HumanEnemy::setParameters(std::vector<LimonTypes::GenericParameter> paramet
     }
 }
 
-extern "C" void registerActors(std::map<std::string, ActorInterface*(*)(uint32_t, LimonAPI*)>* actorMap) {
-    (*actorMap)["ENEMY_AI_SWAT"] = &createActorT<HumanEnemy>;
-    (*actorMap)["Cowboy Enemy"] = &createActorT<CowboyEnemyAI>;
+extern "C" void registerActorTypes(std::map<std::string, ActorInterface::Registration>* actorMap) {
+    (*actorMap)["ENEMY_AI_SWAT"] = ActorInterface::registration<HumanEnemy>();
+    (*actorMap)["Cowboy Enemy"] = ActorInterface::registration<CowboyEnemyAI>();
 }

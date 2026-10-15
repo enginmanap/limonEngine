@@ -6,7 +6,7 @@
 #include <glm/gtc/quaternion.hpp>
 #include "ActorInterface.h"
 
-std::map<std::string, ActorInterface*(*)(uint32_t, LimonAPI*)>* ActorInterface::typeMap;
+std::map<std::string, ActorInterface::Registration>* ActorInterface::typeMap;
 
 glm::vec3 ActorInterface::getFrontVector() const {
     // Logic lives once in LimonAPI (mirrored in the Python API as get_object_front_vector).

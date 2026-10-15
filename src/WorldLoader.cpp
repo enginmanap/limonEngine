@@ -6,6 +6,7 @@
 
 #include "WorldLoader.h"
 #include "LimonFileSystem.h"
+#include "Package/FileAccessPolicy.h"
 #include "XMLHelper.h"
 #include "GameObjects/Model.h"
 #include "World.h"
@@ -97,6 +98,8 @@ World * WorldLoader::loadMapFromXML(const std::string &worldFileName, LimonAPI *
         return nullptr;
     }
     std::cout << "read name as " << worldNameStr << std::endl;
+    //before any trigger or onload action is built, they may use the files this world names. Keyed by the name ~World removes
+    FileAccessPolicy::addWorld(worldNameStr, xmlDoc);
 
     tinyxml2::XMLElement* saveVersionElement = worldNode->FirstChildElement("SaveVersion");
     int saveVersion = 1;

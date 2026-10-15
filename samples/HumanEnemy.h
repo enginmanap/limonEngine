@@ -33,6 +33,10 @@ class HumanEnemy: public ActorInterface {
     void updateSimulationActive(bool shouldSimulate);
 
 public:
+    static std::vector<std::string> getPackFileAccessList() {
+        return {"./Data/Sounds/shotgun.wav"};
+    }
+
     HumanEnemy(uint32_t id, LimonAPI *limonAPI) : ActorInterface(id, limonAPI) {
         lastWalkDirection = this->getPosition();
     }
@@ -52,7 +56,7 @@ public:
 };
 
 
-extern "C" void registerActors(std::map<std::string, ActorInterface*(*)(uint32_t, LimonAPI*)>*);
+extern "C" void registerActorTypes(std::map<std::string, ActorInterface::Registration>*);
 
 
 

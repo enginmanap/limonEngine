@@ -298,15 +298,15 @@ std::string ShooterPlayerExtension::getName() const {
 }
 
 
-extern "C" void registerPlayerExtensions(std::map<std::string, PlayerExtensionInterface*(*)(LimonAPI*)>* playerExtensionMap) {
-    (*playerExtensionMap)["ShooterPlayerExtension"] = &createPlayerExtension<ShooterPlayerExtension>;
-    (*playerExtensionMap)["CowboyShooterExtension"] = &createPlayerExtension<CowboyShooterExtension>;
-    (*playerExtensionMap)["WesternMenuExtension"] = &createPlayerExtension<WesternMenuPlayerExtension>;
+extern "C" void registerPlayerExtensionTypes(std::map<std::string, PlayerExtensionInterface::Registration>* playerExtensionMap) {
+    (*playerExtensionMap)["ShooterPlayerExtension"] = PlayerExtensionInterface::registration<ShooterPlayerExtension>();
+    (*playerExtensionMap)["CowboyShooterExtension"] = PlayerExtensionInterface::registration<CowboyShooterExtension>();
+    (*playerExtensionMap)["WesternMenuExtension"] = PlayerExtensionInterface::registration<WesternMenuPlayerExtension>();
 
 }
 
-extern "C" void registerCameraExtensions(std::map<std::string, CameraExtensionInterface*(*)(LimonAPI*)>* cameraExtensionMap) {
-    (*cameraExtensionMap)["ObjectAttachedCameraRig"] = &createCameraExtension<ObjectAttachedCameraRig>;
-    (*cameraExtensionMap)["OrthographicCameraRig"] = &createCameraExtension<OrthographicCameraRig>;
-    (*cameraExtensionMap)["ThirdPersonCameraRig"] = &createCameraExtension<ThirdPersonCameraRig>;
+extern "C" void registerCameraExtensionTypes(std::map<std::string, CameraExtensionInterface::Registration>* cameraExtensionMap) {
+    (*cameraExtensionMap)["ObjectAttachedCameraRig"] = CameraExtensionInterface::registration<ObjectAttachedCameraRig>();
+    (*cameraExtensionMap)["OrthographicCameraRig"] = CameraExtensionInterface::registration<OrthographicCameraRig>();
+    (*cameraExtensionMap)["ThirdPersonCameraRig"] = CameraExtensionInterface::registration<ThirdPersonCameraRig>();
 }

@@ -27,6 +27,7 @@
 #ifdef TRACY_ENABLE
 #include <cstring>
 #include "tracy/TracyC.h"
+#include "Package/FileAccessPolicy.h"
 #endif
 
 WorldAPIAccessor::WorldAPIAccessor(World* world, LimonAPI* limonAPI) : world(world) {
@@ -76,7 +77,7 @@ WorldAPIAccessor::WorldAPIAccessor(World* world, LimonAPI* limonAPI) : world(wor
     limonAPI->worldSetSoundLooped                 = std::bind(&WorldAPIAccessor::setSoundLooped,                     this, std::placeholders::_1, std::placeholders::_2);
     limonAPI->worldIsSoundPlaying                 = std::bind(&WorldAPIAccessor::isSoundPlaying,                     this, std::placeholders::_1);
     limonAPI->worldSetSoundTemporary              = std::bind(&WorldAPIAccessor::setSoundTemporaryAPI,               this, std::placeholders::_1, std::placeholders::_2);
-    limonAPI->worldSetMusic                       = std::bind(&WorldAPIAccessor::setMusic,                           this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+    limonAPI->worldSetMusic                       = std::bind(&WorldAPIAccessor::setMusicAPI,                        this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
     limonAPI->worldStopMusic                      = std::bind(&WorldAPIAccessor::stopMusic,                          this, std::placeholders::_1);
     limonAPI->worldGetMusicName                   = std::bind(&WorldAPIAccessor::getMusicName,                       this);
     limonAPI->worldIsMusicPlaying                 = std::bind(&WorldAPIAccessor::isMusicPlaying,                     this);
@@ -218,6 +219,9 @@ bool WorldAPIAccessor::removeCameraRig(uint32_t rigID) {
 
 uint32_t WorldAPIAccessor::addAnimationToObjectWithSound(uint32_t modelID, uint32_t animationID, bool looped, bool startOnLoad,
                                                          const std::string& soundToPlay) {
+    if (!soundToPlay.empty() && !FileAccessPolicy::isAllowed(soundToPlay)) {
+        return 0;
+    }
     World::AnimationStatus* as = new World::AnimationStatus;
     PhysicalRenderable* physicalPointer = nullptr;
     if(world->objects.find(modelID) != world->objects.end()) {
@@ -304,6 +308,9 @@ std::vector<std::string> WorldAPIAccessor::listLoadedAnimationsAPI() const {
 uint32_t WorldAPIAccessor::addGuiText(const std::string &fontFilePath, uint32_t fontSize, const std::string &name,
                                       const std::string &text, const glm::vec3 &color,
                                       const glm::vec2 &position, float rotation) {
+    if (!FileAccessPolicy::isAllowed(fontFilePath)) {
+        return 0;
+    }
     GUIText* tr = new GUIText(world->graphicsWrapper, world->getNextObjectID(), name, world->fontManager.getFont(fontFilePath, fontSize),
                               text, color);
     glm::vec2 screenPosition;
@@ -318,7 +325,10 @@ uint32_t WorldAPIAccessor::addGuiText(const std::string &fontFilePath, uint32_t 
 
 uint32_t WorldAPIAccessor::addGuiImageAPI(const std::string &imageFilePath, const std::string &name,
                                           const LimonTypes::Vec2 &position, const LimonTypes::Vec2 &scale, float rotation) {
-    GUIImage* guiImage = new GUIImage(world->getNextObjectID(), world->options, world->assetManager, name, imageFilePath);
+    if (!FileAccessPolicy::isAllowed(imageFilePath)) {
+        return 0;
+    }
+    GUIImage* guiImage =new GUIImage(world->getNextObjectID(), world->options, world->assetManager, name, imageFilePath);
 
     glm::vec2 screenPosition;
     screenPosition.x = position.x * world->options->getScreenWidth();
@@ -385,6 +395,9 @@ bool WorldAPIAccessor::setGuiElementVisibleAPI(uint32_t guiElementID, bool visib
 
 uint32_t WorldAPIAccessor::addModelApi(const std::string &modelFilePath, float modelWeight, bool physical,
                                        const glm::vec3 &position, const glm::vec3 &scale, const glm::quat &orientation) {
+    if (!FileAccessPolicy::isAllowed(modelFilePath)) {
+        return 0;
+    }
     uint32_t objectID = world->getNextObjectID();
 
     Model* newModel = new Model(objectID, world->assetManager, modelWeight, modelFilePath, !physical, world->allocateCullingEntry());
@@ -1350,6 +1363,9 @@ bool WorldAPIAccessor::setSoundTemporaryAPI(uint32_t soundID, bool temporary) {
 }
 
 uint32_t WorldAPIAccessor::playSound(const std::string &soundPath, const glm::vec3 &position, bool positionRelative, bool looped, float referenceDistance, float maxDistance, LimonTypes::AudioChannel channel) {
+    if (!FileAccessPolicy::isAllowed(soundPath)) {
+        return 0;
+    }
     if (channel == LimonTypes::AudioChannel::MASTER ||
         channel == LimonTypes::AudioChannel::MUSIC  ||
         channel >= LimonTypes::AudioChannel::COUNT) {
@@ -1419,6 +1435,14 @@ bool WorldAPIAccessor::isSoundPlaying(uint32_t soundID) {
     }
     Sound::State state = it->second->getState();
     return state == Sound::State::PLAYING || state == Sound::State::STOP_AFTER_FINISH;
+}
+
+//the editor picks any music asset, so only what plugins and scripts call goes through the check
+bool WorldAPIAccessor::setMusicAPI(const std::string &musicPath, float fadeSeconds, bool looped) {
+    if (!musicPath.empty() && !FileAccessPolicy::isAllowed(musicPath)) {
+        return false;
+    }
+    return setMusic(musicPath, fadeSeconds, looped);
 }
 
 bool WorldAPIAccessor::setMusic(const std::string &musicPath, float fadeSeconds, bool looped) {
@@ -1674,6 +1698,9 @@ LimonTypes::Vec4 WorldAPIAccessor::getLightAmbientAPI(uint32_t lightID) const {
     return LimonTypes::Vec4(ambient.r, ambient.g, ambient.b, 1.0f);
 }
 bool WorldAPIAccessor::changeRenderPipeline(const std::string &pipelineFileName) {
+    if (!FileAccessPolicy::isAllowed(pipelineFileName)) {
+        return false;
+    }
     std::vector<std::string> loadErrors;//already printed, the API caller only gets false
     std::unique_ptr<GraphicsPipeline> newPipeline = GraphicsPipeline::deserialize(pipelineFileName, world->graphicsWrapper, world->assetManager, world->options, world->buildRenderMethods(), loadErrors);
     if(newPipeline != nullptr) {
@@ -1707,6 +1734,9 @@ uint32_t WorldAPIAccessor::addParticleEmitter(const std::string &name, const std
                                                const LimonTypes::Vec2 &size,
                                                uint32_t count, uint32_t lifeTime,
                                                float particlePerMs, bool continuouslyEmit) {
+    if (!FileAccessPolicy::isAllowed(textureFile)) {
+        return 0;
+    }
     if(count > 10000) {
         std::cerr << "Can't create particle emitter with more than 10000 particles" << std::endl;
         return 0;

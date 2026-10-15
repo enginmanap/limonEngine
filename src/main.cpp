@@ -16,6 +16,7 @@
 #include "Material.h"
 #include "Assets/ModelToWorldConverter.h"
 #include "LimonFileSystem.h"
+#include "Package/FileAccessPolicy.h"
 #include <algorithm>
 #include <cstdlib>
 
@@ -293,16 +294,46 @@ void GameEngine::applyPendingSwitch() {
     }
 }
 
+//plugins and scripts read through these, the engine's own reads go to LimonFileSystem directly
+static bool readFileForAPI(const std::string &path, std::vector<uint8_t> &contents) {
+    return FileAccessPolicy::isAllowed(path) && LimonFileSystem::readFile(path, contents);
+}
+
+static bool readTextFileForAPI(const std::string &path, std::string &contents) {
+    return FileAccessPolicy::isAllowed(path) && LimonFileSystem::readFile(path, contents);
+}
+
+static bool fileExistsForAPI(const std::string &path) {
+    return FileAccessPolicy::isAllowed(path) && LimonFileSystem::fileExists(path);
+}
+
+static bool isDirectoryForAPI(const std::string &path) {
+    return FileAccessPolicy::isAllowed(path) && LimonFileSystem::isDirectory(path);
+}
+
+static bool listDirectoryForAPI(const std::string &path, std::vector<LimonTypes::DirectoryEntry> &entries) {
+    return FileAccessPolicy::isAllowed(path) && LimonFileSystem::listDirectory(path, entries);
+}
+
 LimonAPI *GameEngine::getNewLimonAPI() {
     std::function<bool(const std::string &)> limonLoadWorld = [this](const std::string& worldFile) {
+        if (!FileAccessPolicy::isAllowed(worldFile)) {
+            return false;
+        }
         pendingSwitch = {PendingSwitchType::LOAD_AND_CHANGE, worldFile};
         return true;
     };
     std::function<bool(const std::string &)> limonReturnOrLoadWorld = [this](const std::string& worldFile) {
+        if (!FileAccessPolicy::isAllowed(worldFile)) {
+            return false;
+        }
         pendingSwitch = {PendingSwitchType::RETURN_OR_LOAD, worldFile};
         return true;
     };
     std::function<bool(const std::string &)> limonLoadNewAndRemoveCurrentWorld = [this](const std::string& worldFile) {
+        if (!FileAccessPolicy::isAllowed(worldFile)) {
+            return false;
+        }
         pendingSwitch = {PendingSwitchType::LOAD_NEW_REMOVE_CURRENT, worldFile};
         return true;
     };
@@ -312,14 +343,11 @@ LimonAPI *GameEngine::getNewLimonAPI() {
     };
     std::function<const OptionsUtil::Options*()> limonGetOptions = [this] { return options; };
     std::function<bool()> limonSaveOptions = [this] { return options->saveOptions(USER_OPTIONS_FILE); };
-    //readFile is overloaded, the casts pick the overload each slot takes
-    std::function<bool(const std::string &, std::vector<uint8_t> &)> limonReadFile =
-            static_cast<bool (*)(const std::string &, std::vector<uint8_t> &)>(&LimonFileSystem::readFile);
-    std::function<bool(const std::string &, std::string &)> limonReadTextFile =
-            static_cast<bool (*)(const std::string &, std::string &)>(&LimonFileSystem::readFile);
-    std::function<bool(const std::string &)> limonFileExists = &LimonFileSystem::fileExists;
-    std::function<bool(const std::string &)> limonIsDirectory = &LimonFileSystem::isDirectory;
-    std::function<bool(const std::string &, std::vector<LimonTypes::DirectoryEntry> &)> limonListDirectory = &LimonFileSystem::listDirectory;
+    std::function<bool(const std::string &, std::vector<uint8_t> &)> limonReadFile = &readFileForAPI;
+    std::function<bool(const std::string &, std::string &)> limonReadTextFile = &readTextFileForAPI;
+    std::function<bool(const std::string &)> limonFileExists = &fileExistsForAPI;
+    std::function<bool(const std::string &)> limonIsDirectory = &isDirectoryForAPI;
+    std::function<bool(const std::string &, std::vector<LimonTypes::DirectoryEntry> &)> limonListDirectory = &listDirectoryForAPI;
 
     return new LimonAPI(limonLoadWorld, limonReturnOrLoadWorld, limonLoadNewAndRemoveCurrentWorld, limonExitGame,
                             limonReturnPrevious, limonGetOptions, limonSaveOptions,

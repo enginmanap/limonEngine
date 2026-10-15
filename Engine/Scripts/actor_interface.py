@@ -60,6 +60,14 @@ class ActorInterface:
         front = self.limon_api.get_object_front_vector(self.model_id)  # limon.Vec4
         return Vec3(front.x, front.y, front.z)
 
+    @classmethod
+    def get_pack_file_access_list(cls) -> List[str]:
+        """
+        Every ./Data/ file this class reads or passes to the API, a trailing / meaning the whole folder.
+        A path no world references and no class lists is refused, and the packer ships only what is listed.
+        """
+        return []
+
     def get_name(self) -> str:
         """
         Get the name of this actor class. Actors of same class would differentiate with the parameters set.

@@ -12,6 +12,10 @@
 class OptionsDisplayAction : public TriggerInterface {
     std::vector<uint32_t> guiElementIDs;
 public:
+    static std::vector<std::string> getPackFileAccessList() {
+        return {"./Data/Fonts/Helvetica-Normal.ttf"};
+    }
+
     explicit OptionsDisplayAction(LimonAPI *limonAPI);
 
     bool run(std::vector<LimonTypes::GenericParameter> parameters) override;

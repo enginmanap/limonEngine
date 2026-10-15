@@ -13,6 +13,10 @@ from generic_parameter import RequestParameterType, ValueType, GenericParameter
     CameraAttachment) that the engine exposes.
 """
 class PythonPlayerExtension(PlayerExtensionInterface):
+    @classmethod
+    def get_pack_file_access_list(cls) -> List[str]:
+        return ["./Data/Sounds/EasyFPS/shot.wav", "./Data/Models/Muzzle/Muzzle.obj"]
+
     def __init__(self, limon_api):
         super().__init__(limon_api)
         self._limon_api = limon_api

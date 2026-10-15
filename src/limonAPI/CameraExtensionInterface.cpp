@@ -4,4 +4,4 @@
 
 #include "CameraExtensionInterface.h"
 
-std::map<std::string, CameraExtensionInterface*(*)(LimonAPI*)>* CameraExtensionInterface::extensionTypesMap;
+std::map<std::string, CameraExtensionInterface::Registration>* CameraExtensionInterface::extensionTypesMap;

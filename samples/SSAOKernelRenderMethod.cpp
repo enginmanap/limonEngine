@@ -114,8 +114,8 @@ bool SSAOKernelRenderMethod::cleanupRender(std::shared_ptr<GraphicsProgram> prog
 
 
 
-void registerRenderMethods(std::map<std::string, RenderMethodInterface*(*)(GraphicsInterface*)>* renderMethodMap) {
-    (*renderMethodMap)["SSAOKernelRenderMethod"] = &createT<SSAOKernelRenderMethod>;
-    (*renderMethodMap)["WaterRenderMethod"] = &createT<WaterRenderMethod>;
+void registerRenderMethodTypes(std::map<std::string, RenderMethodInterface::Registration>* renderMethodMap) {
+    (*renderMethodMap)["SSAOKernelRenderMethod"] = RenderMethodInterface::registration<SSAOKernelRenderMethod>();
+    (*renderMethodMap)["WaterRenderMethod"] = RenderMethodInterface::registration<WaterRenderMethod>();
 }
 

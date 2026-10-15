@@ -54,6 +54,10 @@ class PythonCowboyEnemy(ActorInterface):
     MELEE_DISTANCE = 6
     RUN_DISTANCE = 25
 
+    @classmethod
+    def get_pack_file_access_list(cls):
+        return ["./Data/Sounds/guns/"]  # the shot sound name is built from the gun and a random suffix
+
     def __init__(self, actor_id: int, limon_api):
         super().__init__(actor_id, limon_api)
 

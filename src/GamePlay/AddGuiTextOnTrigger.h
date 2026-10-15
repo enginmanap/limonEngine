@@ -12,6 +12,10 @@ class AddGuiTextOnTrigger: public TriggerInterface {
     static TriggerRegister<AddGuiTextOnTrigger> reg;
     std::vector<LimonTypes::GenericParameter> result;
 public:
+    static std::vector<std::string> getPackFileAccessList() {
+        return {"./Data/Fonts/Helvetica-Normal.ttf"};
+    }
+
     AddGuiTextOnTrigger(LimonAPI *limonAPI);
 
     bool run(std::vector<LimonTypes::GenericParameter> parameters) override;

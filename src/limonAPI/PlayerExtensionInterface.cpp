@@ -4,4 +4,4 @@
 
 #include "PlayerExtensionInterface.h"
 
-std::map<std::string, PlayerExtensionInterface*(*)(LimonAPI*)>* PlayerExtensionInterface::extensionTypesMap;
+std::map<std::string, PlayerExtensionInterface::Registration>* PlayerExtensionInterface::extensionTypesMap;

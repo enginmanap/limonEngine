@@ -51,7 +51,7 @@ public:
     void setupQuad();
 };
 
-extern "C" void registerRenderMethods(std::map<std::string, RenderMethodInterface*(*)(GraphicsInterface*)>* renderMethodMap);
+extern "C" void registerRenderMethodTypes(std::map<std::string, RenderMethodInterface::Registration>* renderMethodMap);
 
 
 #endif //LIMONENGINE_SSAOKERNELRENDERMETHOD_H

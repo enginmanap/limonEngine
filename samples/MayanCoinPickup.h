@@ -13,6 +13,12 @@ class MayanCoinPickup : public TriggerInterface {
     uint32_t addedTextId;
 
 public:
+    static std::vector<std::string> getPackFileAccessList() {
+        return {"./Data/Sounds/coinPickup.wav",
+                "./Data/Sounds/rumble.wav",
+                "./Data/Fonts/Helvetica-Normal.ttf"};
+    }
+
     MayanCoinPickup(LimonAPI *limonAPI);
 
     bool run(std::vector<LimonTypes::GenericParameter> parameters) override;

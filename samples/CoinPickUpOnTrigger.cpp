@@ -58,17 +58,17 @@ std::vector<LimonTypes::GenericParameter> CoinPickUpOnTrigger::getResults() {
     return std::vector<LimonTypes::GenericParameter>();//not feeding other triggers the result
 }
 
-void registerAsTrigger(std::map<std::string, TriggerInterface*(*)(LimonAPI*)>* triggerMap) {
-    (*triggerMap)["CoinPickUpOnTrigger"] = &createT<CoinPickUpOnTrigger>;
-    (*triggerMap)["MayanCoinPickup"] = &createT<MayanCoinPickup>;
-    (*triggerMap)["MayanLever"] = &createT<MayanLever>;
-    (*triggerMap)["DoorAnimationAction"] = &createT<DoorAnimationAction>;
-    (*triggerMap)["KillCowboyPlayer"] = &createT<KillCowboyPlayer>;
-    (*triggerMap)["WesternStoryNewGameAction"] = &createT<WesternStoryNewGameAction>;
-    (*triggerMap)["WesternStoryStartup"] = &createT<WesternStoryStartupAction>;
-    (*triggerMap)["WesternStoryAtGrave"] = &createT<WesternStoryAtGraveAction>;
-    (*triggerMap)["WesternStoryAtUndertaker"] = &createT<WesternStoryAtUndertakerAction>;
-    (*triggerMap)["WesternStoryAtSaloon"] = &createT<WesternStoryAtSaloonAction>;
-    (*triggerMap)["WesternStoryAtTrain"] = &createT<WesternStoryAtTrainAction>;
-    (*triggerMap)["OptionsDisplayAction"] = &createT<OptionsDisplayAction>;
+void registerTriggerTypes(std::map<std::string, TriggerInterface::Registration>* triggerMap) {
+    (*triggerMap)["CoinPickUpOnTrigger"] = TriggerInterface::registration<CoinPickUpOnTrigger>();
+    (*triggerMap)["MayanCoinPickup"] = TriggerInterface::registration<MayanCoinPickup>();
+    (*triggerMap)["MayanLever"] = TriggerInterface::registration<MayanLever>();
+    (*triggerMap)["DoorAnimationAction"] = TriggerInterface::registration<DoorAnimationAction>();
+    (*triggerMap)["KillCowboyPlayer"] = TriggerInterface::registration<KillCowboyPlayer>();
+    (*triggerMap)["WesternStoryNewGameAction"] = TriggerInterface::registration<WesternStoryNewGameAction>();
+    (*triggerMap)["WesternStoryStartup"] = TriggerInterface::registration<WesternStoryStartupAction>();
+    (*triggerMap)["WesternStoryAtGrave"] = TriggerInterface::registration<WesternStoryAtGraveAction>();
+    (*triggerMap)["WesternStoryAtUndertaker"] = TriggerInterface::registration<WesternStoryAtUndertakerAction>();
+    (*triggerMap)["WesternStoryAtSaloon"] = TriggerInterface::registration<WesternStoryAtSaloonAction>();
+    (*triggerMap)["WesternStoryAtTrain"] = TriggerInterface::registration<WesternStoryAtTrainAction>();
+    (*triggerMap)["OptionsDisplayAction"] = TriggerInterface::registration<OptionsDisplayAction>();
 }

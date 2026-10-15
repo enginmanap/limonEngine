@@ -95,6 +95,18 @@ class CowboyShooterExtension : public  PlayerExtensionInterface {
     }
 
 public:
+    static std::vector<std::string> getPackFileAccessList() {
+        return {"./Data/Sounds/guns/pistol3.wav",
+                "./Data/Sounds/guns/rifle.wav",
+                "./Data/Models/Muzzle/Muzzle.obj",
+                "./Data/Models/BulletHole/BulletHole.obj",
+                "./Data/Textures/damageIndicator.png",
+                "./Data/Textures/damageIndicatorLeft.png",
+                "./Data/Textures/damageIndicatorRight.png",
+                "./Data/Textures/damageIndicatorDown.png",
+                "./Data/Textures/damageIndicatorUp.png"};
+    }
+
 
     CowboyShooterExtension(LimonAPI* limonAPI) : PlayerExtensionInterface(limonAPI) {
         //seed the editor-configurable default parameters
@@ -142,7 +154,7 @@ public:
 };
 
 
-extern "C" void registerPlayerExtensions(std::map<std::string, PlayerExtensionInterface*(*)(LimonAPI*)>*);
+extern "C" void registerPlayerExtensionTypes(std::map<std::string, PlayerExtensionInterface::Registration>*);
 
 
 

@@ -10,6 +10,10 @@
 
 class WesternStoryNewGameAction : public TriggerInterface {
 public:
+    static std::vector<std::string> getPackFileAccessList() {
+        return {"./Data/Maps/Western006.xml"};
+    }
+
     WesternStoryNewGameAction(LimonAPI* limonAPI) : TriggerInterface(limonAPI) {}
     void animateThoughts(const std::vector<LimonTypes::GenericParameter> &emptyParamList);
     void switchWorld(const std::vector<LimonTypes::GenericParameter> &emptyParamList);

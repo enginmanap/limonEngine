@@ -12,22 +12,28 @@
 #include "InputStates.h"
 
 /**
- * On shared library load, void registerPlayerExtensions(std::map<std::string, PlayerExtensionInterface*(*)(LimonAPI*)>*) function should be callable.
+ * On shared library load, void registerPlayerExtensionTypes(std::map<std::string, PlayerExtensionInterface::Registration>*) function should be callable.
  *
  * This method will be called after object load.
- * For each trigger, the name of trigger and a constructor should be put in the map.
+ * For each extension, put its name and PlayerExtensionInterface::registration<YourExtension>() in the map.
  */
 
 class PlayerExtensionInterface {
-    static std::map<std::string, PlayerExtensionInterface*(*)(LimonAPI*)>* extensionTypesMap;
+public:
+    struct Registration {
+        PlayerExtensionInterface*(*factory)(LimonAPI*) = nullptr;
+        std::vector<std::string> packFileAccessList;
+    };
+private:
+    static std::map<std::string, Registration>* extensionTypesMap;
 protected:
     LimonAPI* limonAPI = nullptr;
     std::vector<LimonTypes::GenericParameter> parameters;
-    static std::map<std::string, PlayerExtensionInterface*(*)(LimonAPI*)> * getMap() {
+    static std::map<std::string, Registration> * getMap() {
         // never deleted. (exist until program termination)
         // because we can't guarantee correct destruction order
         if (!extensionTypesMap) {
-            extensionTypesMap = new std::map<std::string, PlayerExtensionInterface*(*)(LimonAPI*)>();
+            extensionTypesMap = new std::map<std::string, Registration>();
         }
         return extensionTypesMap;
     }
@@ -45,14 +51,30 @@ public:
     // Renamed from getTriggerNames(): this returns registered player-extension names, not trigger names.
     static std::vector<std::string> getExtensionNames() {
         std::vector<std::string> names;
-        for (auto it = extensionTypesMap->begin(); it != extensionTypesMap->end(); it++) {
+        for (auto it = getMap()->begin(); it != getMap()->end(); it++) {
             names.push_back(it->first);
         }
         return names;
     }
 
-    static void registerType(const std::string& typeName, PlayerExtensionInterface*(*constructor)(LimonAPI*)) {
-        (*getMap())[typeName] = constructor;
+    //same contract as TriggerInterface::getPackFileAccessList
+    static std::vector<std::string> getPackFileAccessList() {
+        return {};
+    }
+
+    template<typename T>
+    static Registration registration();
+
+    static void registerType(const std::string& typeName, const Registration& registration) {
+        (*getMap())[typeName] = registration;
+    }
+
+    static std::vector<std::string> getRegisteredPackFileAccessList(const std::string& typeName) {
+        auto it = getMap()->find(typeName);
+        if (it == getMap()->end()) {
+            return {};
+        }
+        return it->second.packFileAccessList;
     }
 
     virtual void processInput(const InputStates &inputHandler, const PlayerExtensionInterface::PlayerInformation &playerInformation,
@@ -84,7 +106,7 @@ public:
         if(it == getMap()->end()) {
             return nullptr;
         }
-        return it->second(apiInstance);
+        return it->second.factory(apiInstance);
     }
 
 };
@@ -94,6 +116,14 @@ public:
 template<typename T>
 PlayerExtensionInterface* createPlayerExtension(LimonAPI *limonAPI) {
     return new T(limonAPI);
+}
+
+template<typename T>
+PlayerExtensionInterface::Registration PlayerExtensionInterface::registration() {
+    Registration result;
+    result.factory = &createPlayerExtension<T>;
+    result.packFileAccessList = T::getPackFileAccessList();
+    return result;
 }
 
 template<typename T>
@@ -108,7 +138,7 @@ class PlayerExtensionRegister : PlayerExtensionInterface {
 
 public:
     explicit PlayerExtensionRegister(std::string const& s) : PlayerExtensionInterface(nullptr) {
-        getMap()->insert(std::make_pair(s, &createPlayerExtension<T>));
+        getMap()->insert(std::make_pair(s, registration<T>()));
     }
 };
 

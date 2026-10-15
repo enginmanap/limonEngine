@@ -16,19 +16,25 @@ class GraphicsInterface;
 
 class RenderMethodInterface {
 /**
- * On dynamic library load, void registerDynamicRenderMethod(std::map<std::string, RenderMethodInterface *(*constructor)(GraphicsInterface *)) function should be callable.
+ * On dynamic library load, void registerRenderMethodTypes(std::map<std::string, RenderMethodInterface::Registration>*) function should be callable.
  *
  * This method will be called after object load.
- * For each render method, the name of trigger and a constructor should be put in the map.
+ * For each render method, put its name and RenderMethodInterface::registration<YourRenderMethod>() in the map.
  */
-    static std::map<std::string, RenderMethodInterface *(*)(GraphicsInterface *)> *RenderMethodsMap;
+public:
+    struct Registration {
+        RenderMethodInterface *(*factory)(GraphicsInterface *) = nullptr;
+        std::vector<std::string> packFileAccessList;
+    };
+private:
+    static std::map<std::string, Registration> *RenderMethodsMap;
 protected:
     GraphicsInterface *graphicsInterface = nullptr;
-    static std::map<std::string, RenderMethodInterface * (*)(GraphicsInterface * )> *getMap() {
+    static std::map<std::string, Registration> *getMap() {
         // never delete'ed. (exist until program termination)
         // because we can't guarantee correct destruction order
         if (!RenderMethodsMap) {
-            RenderMethodsMap = new std::map<std::string, RenderMethodInterface * (*)(GraphicsInterface * )>();
+            RenderMethodsMap = new std::map<std::string, Registration>();
         }
         return RenderMethodsMap;
     }
@@ -79,8 +85,24 @@ public:
         return names;
     }
 
-    static void registerDynamicRenderMethod(const std::string &typeName, RenderMethodInterface *(*constructor)(GraphicsInterface *)) {
-        (*getMap())[typeName] = constructor;
+    //same contract as TriggerInterface::getPackFileAccessList
+    static std::vector<std::string> getPackFileAccessList() {
+        return {};
+    }
+
+    template<typename T>
+    static Registration registration();
+
+    static void registerDynamicRenderMethod(const std::string &typeName, const Registration &registration) {
+        (*getMap())[typeName] = registration;
+    }
+
+    static std::vector<std::string> getRegisteredPackFileAccessList(const std::string &typeName) {
+        auto it = getMap()->find(typeName);
+        if (it == getMap()->end()) {
+            return {};
+        }
+        return it->second.packFileAccessList;
     }
 
     virtual std::vector<LimonTypes::GenericParameter> getParameters() const = 0;
@@ -105,7 +127,7 @@ public:
         if (it == getMap()->end()) {
             return nullptr;
         }
-        return it->second(graphicsInterface);
+        return it->second.factory(graphicsInterface);
     }
 
 };
@@ -113,6 +135,14 @@ public:
 template<typename T>
 RenderMethodInterface *createT(GraphicsInterface *graphicsInterface) {
     return new T(graphicsInterface);
+}
+
+template<typename T>
+RenderMethodInterface::Registration RenderMethodInterface::registration() {
+    Registration result;
+    result.factory = &createT<T>;
+    result.packFileAccessList = T::getPackFileAccessList();
+    return result;
 }
 
 template<typename T>
@@ -134,7 +164,7 @@ class RenderMethodRegister : RenderMethodInterface {
 
 public:
     RenderMethodRegister(std::string const &s) : RenderMethodInterface(nullptr) {
-        getMap()->insert(std::make_pair(s, &createT<T>));
+        getMap()->insert(std::make_pair(s, registration<T>()));
     }
 };
 

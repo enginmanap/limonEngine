@@ -12,6 +12,10 @@ class WesternStoryStartupAction : public TriggerInterface {
     uint32_t textID1,textID2;
     bool hasRun = false;
 public:
+    static std::vector<std::string> getPackFileAccessList() {
+        return {"./Data/Fonts/InsaneRodeo.ttf"};
+    }
+
     WesternStoryStartupAction(LimonAPI* limonAPI) : TriggerInterface(limonAPI) {}
     void showMessages1(const std::vector<LimonTypes::GenericParameter> &emptyParamList);
     void showMessages2(const std::vector<LimonTypes::GenericParameter> &emptyParamList);

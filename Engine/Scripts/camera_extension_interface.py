@@ -20,6 +20,14 @@ class CameraExtensionInterface:
         self.limon_api = limon_api
         self._dirty = True
 
+    @classmethod
+    def get_pack_file_access_list(cls) -> List[str]:
+        """
+        Every ./Data/ file this class reads or passes to the API, a trailing / meaning the whole folder.
+        A path no world references and no class lists is refused, and the packer ships only what is listed.
+        """
+        return []
+
     def get_name(self) -> str:
         """Registered type name of this rig (shown in the editor). Must be unique."""
         raise NotImplementedError("get_name() not implemented")

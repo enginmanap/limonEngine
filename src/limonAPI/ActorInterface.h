@@ -9,15 +9,19 @@
 
 
 /**
- * On shared library load, void registerAsActor(std::map<std::string, ActorInterface*(*)(LimonAPI*)>*) function should be callable.
+ * On shared library load, void registerActorTypes(std::map<std::string, ActorInterface::Registration>*) function should be callable.
  *
  * This method will be called after object load.
- * For each actor, the name of actor and a constructor should be put in the map.
+ * For each actor, put its name and ActorInterface::registration<YourActor>() in the map.
  */
 
 
 class ActorInterface {
 public:
+    struct Registration {
+        ActorInterface*(*factory)(uint32_t, LimonAPI*) = nullptr;
+        std::vector<std::string> packFileAccessList;
+    };
 
     struct InformationRequest {
         bool routeToPlayer = false;
@@ -27,14 +31,14 @@ public:
     };
 
 private:
-    static std::map<std::string, ActorInterface*(*)(uint32_t, LimonAPI*)>* typeMap;
+    static std::map<std::string, Registration>* typeMap;
 
 protected:
-    static std::map<std::string, ActorInterface*(*)(uint32_t, LimonAPI*)> * getMap() {
+    static std::map<std::string, Registration> * getMap() {
         // never delete'ed. (exist until program termination)
         // because we can't guarantee correct destruction order
         if (!typeMap) {
-            typeMap = new std::map<std::string, ActorInterface*(*)(uint32_t, LimonAPI*)>();
+            typeMap = new std::map<std::string, Registration>();
         }
         return typeMap;
     }
@@ -73,8 +77,24 @@ public:
         return names;
     }
 
-    static void registerType(const std::string& typeName, ActorInterface*(*constructor)(uint32_t, LimonAPI*)) {
-        (*getMap())[typeName] = constructor;
+    //same contract as TriggerInterface::getPackFileAccessList
+    static std::vector<std::string> getPackFileAccessList() {
+        return {};
+    }
+
+    template<typename T>
+    static Registration registration();
+
+    static void registerType(const std::string& typeName, const Registration& registration) {
+        (*getMap())[typeName] = registration;
+    }
+
+    static std::vector<std::string> getRegisteredPackFileAccessList(const std::string& typeName) {
+        auto it = getMap()->find(typeName);
+        if (it == getMap()->end()) {
+            return {};
+        }
+        return it->second.packFileAccessList;
     }
 
     virtual std::string getName() const = 0;
@@ -139,7 +159,7 @@ public:
         if(it == getMap()->end()) {
             return nullptr;
         }
-        return it->second(id, apiInstance);
+        return it->second.factory(id, apiInstance);
     }
 };
 
@@ -148,6 +168,14 @@ public:
 template<typename T>
 ActorInterface* createActorT(uint32_t id, LimonAPI* limonAPI) {
     return new T(id, limonAPI);
+}
+
+template<typename T>
+ActorInterface::Registration ActorInterface::registration() {
+    Registration result;
+    result.factory = &createActorT<T>;
+    result.packFileAccessList = T::getPackFileAccessList();
+    return result;
 }
 
 template<typename T>
@@ -163,7 +191,7 @@ class ActorRegister : ActorInterface {
 
 public:
     ActorRegister(std::string const& s) : ActorInterface(0, nullptr) {
-        getMap()->insert(std::make_pair(s, &createActorT<T>));
+        getMap()->insert(std::make_pair(s, registration<T>()));
     }
 
 };

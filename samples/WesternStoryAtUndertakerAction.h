@@ -12,6 +12,10 @@ class WesternStoryAtUndertakerAction : public TriggerInterface {
     uint32_t textID1,textID2,textID3;
     bool hasRun = false;
 public:
+    static std::vector<std::string> getPackFileAccessList() {
+        return {"./Data/Fonts/InsaneRodeo.ttf"};
+    }
+
     WesternStoryAtUndertakerAction(LimonAPI* limonAPI) : TriggerInterface(limonAPI) {
         LimonTypes::GenericParameter param;
         param.requestType = LimonTypes::GenericParameter::RequestParameterTypes::MODEL;

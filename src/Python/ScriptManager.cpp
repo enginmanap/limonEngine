@@ -254,6 +254,22 @@ ScriptManager::~ScriptManager() {
     }
 }
 
+std::vector<std::string> ScriptManager::readPackFileAccessList(const pybind11::object &pythonClass, const std::string &typeName) {
+    std::vector<std::string> packFileAccessList;
+    if (!pybind11::hasattr(pythonClass, "get_pack_file_access_list")) {
+        return packFileAccessList;
+    }
+    try {
+        pybind11::object entries = pythonClass.attr("get_pack_file_access_list")();
+        for (pybind11::handle entry : entries) {
+            packFileAccessList.push_back(entry.cast<std::string>());
+        }
+    } catch (const pybind11::error_already_set &e) {
+        std::cerr << "[ScriptManager] get_pack_file_access_list of " << typeName << " failed, its file access will be refused: " << e.what() << std::endl;
+    }
+    return packFileAccessList;
+}
+
 void ScriptManager::LoadScript(WorldInterpreter * worldInterpreter, const std::string &moduleName) {
     try {
         std::cout << "[ScriptManager] Loading module: " << moduleName << " for world: " << worldInterpreter->getWorldName() << std::endl;
@@ -326,7 +342,10 @@ void ScriptManager::LoadScript(WorldInterpreter * worldInterpreter, const std::s
                     continue;
                 }
 
-                TriggerInterface::registerType(name, factory);
+                TriggerInterface::Registration registration;
+                registration.factory = factory;
+                registration.packFileAccessList = readPackFileAccessList(obj, name);
+                TriggerInterface::registerType(name, registration);
                 std::cout << "[ScriptManager] Registered trigger: " << name << std::endl;
             }
             else if (IsSubclassOf(obj, "player_extension_interface", "PlayerExtensionInterface")) {
@@ -342,7 +361,10 @@ void ScriptManager::LoadScript(WorldInterpreter * worldInterpreter, const std::s
                     continue;
                 }
 
-                PlayerExtensionInterface::registerType(name, factory);
+                PlayerExtensionInterface::Registration registration;
+                registration.factory = factory;
+                registration.packFileAccessList = readPackFileAccessList(obj, name);
+                PlayerExtensionInterface::registerType(name, registration);
                 std::cout << "[ScriptManager] Registered extension: " << name << std::endl;
             }
             else if (IsSubclassOf(obj, "actor_interface", "ActorInterface")) {
@@ -358,7 +380,10 @@ void ScriptManager::LoadScript(WorldInterpreter * worldInterpreter, const std::s
                     continue;
                 }
 
-                ActorInterface::registerType(name, factory);
+                ActorInterface::Registration registration;
+                registration.factory = factory;
+                registration.packFileAccessList = readPackFileAccessList(obj, name);
+                ActorInterface::registerType(name, registration);
                 std::cout << "[ScriptManager] Registered actor: " << name << std::endl;
             }
             else if (IsSubclassOf(obj, "camera_extension_interface", "CameraExtensionInterface")) {
@@ -374,7 +399,10 @@ void ScriptManager::LoadScript(WorldInterpreter * worldInterpreter, const std::s
                     continue;
                 }
 
-                CameraExtensionInterface::registerType(name, factory);
+                CameraExtensionInterface::Registration registration;
+                registration.factory = factory;
+                registration.packFileAccessList = readPackFileAccessList(obj, name);
+                CameraExtensionInterface::registerType(name, registration);
                 std::cout << "[ScriptManager] Registered camera rig: " << name << std::endl;
             }
         }

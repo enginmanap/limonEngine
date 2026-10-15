@@ -4,4 +4,4 @@
 
 #include "RenderMethodInterface.h"
 
-std::map<std::string, RenderMethodInterface*(*)(GraphicsInterface*)>* RenderMethodInterface::RenderMethodsMap;
+std::map<std::string, RenderMethodInterface::Registration>* RenderMethodInterface::RenderMethodsMap;

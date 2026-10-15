@@ -18,6 +18,15 @@ class ShooterPlayerExtension : public  PlayerExtensionInterface {
     float bulletForce = 1000;
     int hitPoints = 100;
 public:
+    static std::vector<std::string> getPackFileAccessList() {
+        return {"./Data/Sounds/EasyFPS/shot.wav",
+                "./Data/Models/Muzzle/Muzzle.obj",
+                "./Data/Models/BulletHole/BulletHole.obj",
+                "./Data/Textures/BloodParticle.png",
+                "./Data/Textures/BaseParticle.png",
+                "./Data/Textures/damageIndicator.png"};
+    }
+
 
     ShooterPlayerExtension(LimonAPI* limonAPI) : PlayerExtensionInterface(limonAPI) {
         LimonTypes::GenericParameter bodyParameter;
@@ -40,7 +49,7 @@ public:
 };
 
 
-extern "C" void registerPlayerExtensions(std::map<std::string, PlayerExtensionInterface*(*)(LimonAPI*)>*);
+extern "C" void registerPlayerExtensionTypes(std::map<std::string, PlayerExtensionInterface::Registration>*);
 
 
 
