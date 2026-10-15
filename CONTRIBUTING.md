@@ -24,8 +24,8 @@ If you want to contribute, you can by doing (from easier to harder):
   * Variable names uses camel case, start with lowercase, like someVariable.
   * Class and struct names uses camel case, start with upper case, like SomeClass.
   * Constants should be upper case with underscores between words, like SOME_CONSTANT.
-  * WPut spaces after list items and method parameters (`[1, 2, 3]`, not `[1,2,3]`), around operators (`x += 1`, not `x+=1`), and around hash arrows.
+  * Put spaces after list items and method parameters (`[1, 2, 3]`, not `[1,2,3]`), around operators (`x += 1`, not `x+=1`), and around hash arrows.
   * Use meaningful variable names, even if they are long. don't use "var" instead of variable.
-  * Avoid multiple inheritence. If you have to, only one of the parents can have variables.
+  * Avoid multiple inheritance. If you have to, only one of the parents can have variables.
   
 Thanks, and happy hacking!
