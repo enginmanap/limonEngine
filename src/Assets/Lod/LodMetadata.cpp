@@ -10,6 +10,7 @@
 #include <tinyxml2.h>
 #include "consthash/include/consthash/cityhash64.hxx"
 #include <SDL3/SDL_filesystem.h>
+#include "../../LimonFileSystem.h"
 
 static const uint32_t LOD_METADATA_SCHEMA_VERSION = 12;
 //two flip variants of one model load in parallel and share this file, and the animation sections live in it too
@@ -26,7 +27,7 @@ std::string LodMetadata::metadataPathOf(const std::string &assetPath) {
 //re-read rather than write from memory, so a variant or an animation section written meanwhile survives
 tinyxml2::XMLElement *LodMetadata::openForMerge(const std::string &path, tinyxml2::XMLDocument &document) {
     tinyxml2::XMLElement *rootNode = nullptr;
-    if (document.LoadFile(path.c_str()) == tinyxml2::XML_SUCCESS) {
+    if (LimonFileSystem::loadXML(path, document) == tinyxml2::XML_SUCCESS) {
         rootNode = document.FirstChildElement("ModelCustomizations");
     }
     if (rootNode == nullptr) {
@@ -91,7 +92,7 @@ bool LodMetadata::saveOverExisting(tinyxml2::XMLDocument &document, const std::s
 //the variant for this flip inside a named section, or nullptr. Both readers walk to the same place
 tinyxml2::XMLElement *LodMetadata::findVariant(tinyxml2::XMLDocument &document, const std::string &assetPath,
                                               const char *sectionName, const std::string &flipAxes) {
-    if (document.LoadFile(metadataPathOf(assetPath).c_str()) != tinyxml2::XML_SUCCESS) {
+    if (LimonFileSystem::loadXML(metadataPathOf(assetPath), document) != tinyxml2::XML_SUCCESS) {
         return nullptr;//no metadata yet, which is the normal first load
     }
     tinyxml2::XMLElement *rootNode = document.FirstChildElement("ModelCustomizations");

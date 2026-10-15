@@ -10,6 +10,7 @@
 #include "pybind11/stl_bind.h"
 #include <filesystem>
 #include <set>
+#include "../LimonFileSystem.h"
 #include <vector>
 
 // Check if we have C++17 support
@@ -106,7 +107,8 @@ private:
         std::set<std::string> seenModuleNames;
         bool isBuiltinDirectory = true;
         for (const std::string& directoryPath : scriptDirectories) {
-            if (!std::filesystem::exists(directoryPath)) {
+            std::vector<LimonFileSystem::DirectoryEntry> entries;
+            if (!LimonFileSystem::listDirectory(directoryPath, entries)) {
                 if (isBuiltinDirectory) {
                     // The built-in directory is required; its absence is an error.
                     std::cerr << "[Scripting] Built-in script directory not found: " << directoryPath << std::endl;
@@ -120,12 +122,15 @@ private:
 
             std::cout << "[Scripting] Scanning: " << directoryPath << "..." << std::endl;
 
-            for (const auto& entry : std::filesystem::directory_iterator(directoryPath)) {
-                if (entry.path().extension() == ".py" &&
-                    entry.path().filename() != "__init__.py") {
-                    std::string moduleName = entry.path().stem().string();
+            for (const LimonFileSystem::DirectoryEntry& entry : entries) {
+                const std::string pythonExtension = ".py";
+                if (!entry.isDirectory &&
+                    entry.name.size() > pythonExtension.size() &&
+                    entry.name.compare(entry.name.size() - pythonExtension.size(), pythonExtension.size(), pythonExtension) == 0 &&
+                    entry.name != "__init__.py") {
+                    std::string moduleName = entry.name.substr(0, entry.name.size() - pythonExtension.size());
                     if (seenModuleNames.count(moduleName) != 0) {
-                        std::cerr << "[Scripting] Skipping '" << entry.path().string()
+                        std::cerr << "[Scripting] Skipping '" << directoryPath + "/" + entry.name
                                   << "': module name '" << moduleName
                                   << "' is already provided by a built-in script. Rename the user script to load it."
                                   << std::endl;

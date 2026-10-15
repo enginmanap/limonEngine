@@ -3,7 +3,8 @@
 //
 
 #include "CubeMapAsset.h"
-#include <SDL3_image/SDL_image.h>
+#include <SDL3/SDL_surface.h>
+#include "TextureAsset.h"
 
 
 CubeMapAsset::CubeMapAsset(AssetManager *assetManager, uint32_t assetID, const std::vector<std::string> &fileList) :
@@ -28,7 +29,7 @@ void CubeMapAsset::loadGPUPart() {
     SDL_Surface *surfaces[6] = {0};
 
     for (int i = 0; i < 6; i++) {
-        surfaces[i] = IMG_Load((path + "/" + names[i]).data());
+        surfaces[i] = TextureAsset::loadSurface(path + "/" + names[i]);
         if (!surfaces[i]) {
             std::cerr << "TextureAsset Load failed for " << path + "/" + names[i] << ". Error:" << std::endl <<
                       SDL_GetError() << std::endl;

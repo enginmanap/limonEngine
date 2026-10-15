@@ -15,6 +15,7 @@
 #include "Utils/FrameTimeTracker.h"
 #include "Material.h"
 #include "Assets/ModelToWorldConverter.h"
+#include "LimonFileSystem.h"
 #include <algorithm>
 #include <cstdlib>
 
@@ -165,16 +166,28 @@ void GameEngine::returnPreviousMap() {
     ticksRun = 0;
 }
 
+static bool loadOptionsFile(OptionsUtil::Options *options, const std::string &fileName) {
+    tinyxml2::XMLDocument xmlDoc;
+    tinyxml2::XMLError eResult = LimonFileSystem::loadXML(fileName, xmlDoc);
+    if (eResult != tinyxml2::XML_SUCCESS) {
+        if (eResult != tinyxml2::XML_ERROR_FILE_NOT_FOUND && eResult != tinyxml2::XML_ERROR_FILE_COULD_NOT_BE_OPENED) {
+            std::cerr << "Error loading XML " << fileName << ": " << tinyxml2::XMLDocument::ErrorIDToName(eResult) << std::endl;
+        }
+        return false;
+    }
+    return options->loadOptionsNew(xmlDoc, fileName);
+}
+
 GameEngine::GameEngine() {
     scriptManager = new ScriptManager("./Engine/Scripts", "./Data/Scripts");
 
     options = new OptionsUtil::Options([](){return static_cast<uint32_t>(SDL3Helper::getTicks());});
 
-    if (!options->loadOptionsNew(ENGINE_OPTIONS_FILE)) {
+    if (!loadOptionsFile(options, ENGINE_OPTIONS_FILE)) {
         std::cerr << "Failed to load engine options from " << ENGINE_OPTIONS_FILE << std::endl;
         exit(-1);
     }
-    if (!options->loadOptionsNew(USER_OPTIONS_FILE)) {
+    if (!loadOptionsFile(options, USER_OPTIONS_FILE)) {
         std::cout << "No user options found, using engine defaults" << std::endl;
     }
     std::cout << "Options loaded successfully" << std::endl;
@@ -413,9 +426,9 @@ GameEngine::~GameEngine() {
 
 bool getWorldNameFromReleaseXML(std::string &worldName) {
     tinyxml2::XMLDocument xmlDoc;
-    tinyxml2::XMLError eResult = xmlDoc.LoadFile(RELEASE_FILE.c_str());
+    tinyxml2::XMLError eResult = LimonFileSystem::loadXML(RELEASE_FILE, xmlDoc);
     if (eResult != tinyxml2::XML_SUCCESS) {
-        std::cerr << "Error loading release settings from "<< RELEASE_FILE << ": " <<  xmlDoc.ErrorName() << std::endl;
+        std::cerr << "Error loading release settings from "<< RELEASE_FILE << ": " <<  tinyxml2::XMLDocument::ErrorIDToName(eResult) << std::endl;
         return false;
     }
 

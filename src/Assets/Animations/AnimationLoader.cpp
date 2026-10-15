@@ -8,6 +8,7 @@
 
 #include "AnimationNode.h"
 #include "AnimationCustom.h"
+#include "../../LimonFileSystem.h"
 
 AnimationCustom *AnimationLoader::loadAnimation(const std::string &fileName) {
     AnimationCustom* newAnimation = new AnimationCustom();
@@ -22,9 +23,9 @@ AnimationCustom *AnimationLoader::loadAnimation(const std::string &fileName) {
 bool AnimationLoader::loadAnimationFromXML(const std::string &fileName, AnimationCustom *loadingAnimation) {
 
     tinyxml2::XMLDocument xmlDoc;
-    tinyxml2::XMLError eResult = xmlDoc.LoadFile(fileName.c_str());
+    tinyxml2::XMLError eResult = LimonFileSystem::loadXML(fileName, xmlDoc);
     if (eResult != tinyxml2::XML_SUCCESS) {
-        std::cerr << "Error loading "<< fileName << " XML: " <<  xmlDoc.ErrorName() << std::endl;
+        std::cerr << "Error loading "<< fileName << " XML: " <<  tinyxml2::XMLDocument::ErrorIDToName(eResult) << std::endl;
         return false;
     }
 

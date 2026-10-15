@@ -3,9 +3,8 @@
 //
 
 #include "GraphicsProgramPreprocessor.h"
-#include <fstream>
-#include <streambuf>
 #include <regex>
+#include "LimonFileSystem.h"
 
 void GraphicsProgramPreprocessor::preprocess(GraphicsProgram *graphicsProgram, const std::string &headerString,
                                              const std::unordered_map<std::string, std::shared_ptr<LimonTypes::GenericParameter>> &variablesMap) {
@@ -34,13 +33,7 @@ void GraphicsProgramPreprocessor::preprocess(GraphicsProgram *graphicsProgram, c
 
 std::string GraphicsProgramPreprocessor::readShaderCode(const std::string& shaderFile){
     std::string shaderCode;
-    std::ifstream shaderStream(shaderFile.c_str(), std::ios::in);
-
-    if (shaderStream.is_open()) {
-        shaderCode.assign((std::istreambuf_iterator<char>(shaderStream)),
-                           std::istreambuf_iterator<char>());
-        shaderStream.close();
-
+    if (LimonFileSystem::readFile(shaderFile, shaderCode)) {
         if(shaderCode.empty()){
             return "";
         }

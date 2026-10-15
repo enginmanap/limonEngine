@@ -321,7 +321,8 @@ namespace OptionsUtil {
 
     public:
 
-        bool loadOptionsNew(const std::string &optionsFileName);
+        //the engine reads the file, this is compiled into LimonAPI and plugins can't reach the engine's file layer
+        bool loadOptionsNew(tinyxml2::XMLDocument &xmlDoc, const std::string &sourceName);
 
         bool saveOptions(const std::string &optionsFileName) const;
 

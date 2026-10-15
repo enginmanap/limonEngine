@@ -48,6 +48,9 @@ public:
 #endif
     ~TextureAsset() override;
 
+    //nullptr with the reason in SDL_GetError, the same contract as IMG_Load
+    static SDL_Surface *loadSurface(const std::string &path);
+
     uint32_t getID() const {
         return texture->getTextureID();
     }

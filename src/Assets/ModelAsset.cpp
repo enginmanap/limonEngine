@@ -16,6 +16,8 @@
 #include <cereal/archives/binary.hpp>
 #endif
 #include "Lod/LodMetadata.h"
+#include "AssimpFileSystemIO.h"
+#include "../LimonFileSystem.h"
 #include "../Utils/GLMUtils.h"
 #include "Animations/AnimationAssimp.h"
 #include "limonAPI/Graphics/GraphicsInterface.h"
@@ -64,6 +66,7 @@ ModelAsset::ModelAsset(AssetManager *assetManager, const std::string &path)
 const aiScene *ModelAsset::importScene(Assimp::Importer &assimpImporter, const std::string &path) {
     assimpImporter.SetPropertyBool("AI_CONFIG_IMPORT_FBX_EMBEDDED_TEXTURES_LEGACY_NAMING", true);
     assimpImporter.SetPropertyInteger(AI_CONFIG_PP_SLM_VERTEX_LIMIT, 65536);//faces are u16vec3, a bigger submesh wraps its indices and scrambles the mesh
+    assimpImporter.SetIOHandler(new AssimpFileSystemIO());//the importer owns and deletes it
     const aiScene *scene = assimpImporter.ReadFile(path, ASSIMP_FLAGS);
 
     if (!scene || scene->mFlags == AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
@@ -176,6 +179,7 @@ void ModelAsset::loadMixamoAnimations() {
     if (!mixamoFilePaths.empty()) {
         int32_t mixamoCount = 0;
         Assimp::Importer importer2;
+        importer2.SetIOHandler(new AssimpFileSystemIO());
         const aiScene *mixamoScene = nullptr;
         for (size_t i = 0; i < mixamoFilePaths.size(); ++i) {
             const std::string &mixamoFilePath = mixamoFilePaths[i];
@@ -1014,7 +1018,7 @@ bool ModelAsset::serializeCustomizations() {
     std::string customizationPath = name + ".limon";
     tinyxml2::XMLDocument customizationDocument;
     tinyxml2::XMLElement * rootNode = nullptr;
-    if (customizationDocument.LoadFile(customizationPath.c_str()) == tinyxml2::XML_SUCCESS) {
+    if (LimonFileSystem::loadXML(customizationPath, customizationDocument) == tinyxml2::XML_SUCCESS) {
         rootNode = customizationDocument.FirstChildElement("ModelCustomizations");
     }
     if (rootNode == nullptr) {
@@ -1061,13 +1065,13 @@ bool ModelAsset::serializeCustomizations() {
 
 void ModelAsset::deserializeCustomizations() {
     tinyxml2::XMLDocument xmlDoc;
-    tinyxml2::XMLError eResult = xmlDoc.LoadFile((name + ".limon").c_str());
+    tinyxml2::XMLError eResult = LimonFileSystem::loadXML(name + ".limon", xmlDoc);
     if (eResult != tinyxml2::XML_SUCCESS) {
         if(eResult == tinyxml2::XML_ERROR_FILE_NOT_FOUND) {
             //if no customization, this happens.
             return;
         } else {
-            std::cerr << "Error loading XML " << (name + ".limon") << ": " << xmlDoc.ErrorName() << ". Customizations not loaded." << std::endl;
+            std::cerr << "Error loading XML " << (name + ".limon") << ": " << tinyxml2::XMLDocument::ErrorIDToName(eResult) << ". Customizations not loaded." << std::endl;
             return;
         }
     }

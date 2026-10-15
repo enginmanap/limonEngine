@@ -113,21 +113,10 @@ bool OptionsUtil::Options::loadBool(tinyxml2::XMLNode *optionsNode, const std::s
     return true;
 }
 
-bool OptionsUtil::Options::loadOptionsNew(const std::string &optionsFileName) {
-
-    tinyxml2::XMLDocument xmlDoc;
-    tinyxml2::XMLError eResult = xmlDoc.LoadFile(optionsFileName.c_str());
-    if (eResult != tinyxml2::XML_SUCCESS) {
-        if (eResult == tinyxml2::XML_ERROR_FILE_NOT_FOUND || eResult == tinyxml2::XML_ERROR_FILE_COULD_NOT_BE_OPENED) {
-            return false;
-        }
-        std::cerr << "Error loading XML " << optionsFileName << ": " << xmlDoc.ErrorName() << std::endl;
-        return false;
-    }
-
+bool OptionsUtil::Options::loadOptionsNew(tinyxml2::XMLDocument &xmlDoc, const std::string &sourceName) {
     tinyxml2::XMLNode *allOptionsNode = xmlDoc.FirstChild();
     if (allOptionsNode == nullptr) {
-        std::cerr << "options xml is not a valid XML." << std::endl;
+        std::cerr << "options xml " << sourceName << " is not a valid XML." << std::endl;
         return false;
     }
     LimonTypes::GenericParameter option;

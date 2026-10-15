@@ -6,6 +6,7 @@
 #include "AIMovementGrid.h"
 
 #include "SDL3Helper.h"
+#include "../LimonFileSystem.h"
 
 constexpr float AIMovementGrid::floatingHeight;
 
@@ -476,9 +477,9 @@ void AIMovementGrid::serializeNode(tinyxml2::XMLDocument &aiGridDocument, tinyxm
 
 AIMovementGrid *AIMovementGrid::deserialize(const std::string &fileName) {
     tinyxml2::XMLDocument xmlDoc;
-    tinyxml2::XMLError eResult = xmlDoc.LoadFile(fileName.c_str());
+    tinyxml2::XMLError eResult = LimonFileSystem::loadXML(fileName, xmlDoc);
     if (eResult != tinyxml2::XML_SUCCESS) {
-        std::cerr << "Error loading XML "<< fileName << ": " <<  xmlDoc.ErrorName() << std::endl;
+        std::cerr << "Error loading XML "<< fileName << ": " <<  tinyxml2::XMLDocument::ErrorIDToName(eResult) << std::endl;
         std::cerr << "Possible results: AI actors not moving and very slow map load" << std::endl;
         return nullptr;
     }

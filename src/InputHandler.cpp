@@ -7,7 +7,7 @@
 #include "ImGuiHelper.h"
 #include <tinyxml2.h>
 #include <cstring>
-#include <filesystem>
+#include "LimonFileSystem.h"
 #include <iostream>
 
 // ── XML parsing helpers ───────────────────────────────────────────────────────
@@ -89,7 +89,7 @@ InputHandler::InputHandler(SDL_Window *window, OptionsUtil::Options *options) :
 
     loadEngineBindings();
     // If a game wants to override bindings, we expect them to put the file under ./Data
-    if (std::filesystem::exists("./Data/inputBindings.xml")) {
+    if (LimonFileSystem::fileExists("./Data/inputBindings.xml")) {
         applyOverrideBindings("./Data/inputBindings.xml");
     }
 
@@ -298,7 +298,7 @@ void InputHandler::loadEngineBindings() {
 
 bool InputHandler::applyOverrideBindings(const std::string &filePath) {
     tinyxml2::XMLDocument document;
-    if (document.LoadFile(filePath.c_str()) != tinyxml2::XML_SUCCESS) {
+    if (LimonFileSystem::loadXML(filePath, document) != tinyxml2::XML_SUCCESS) {
         std::cerr << "InputHandler: could not read " << filePath << ", the engine's bindings stay." << std::endl;
         return false;
     }
@@ -380,7 +380,7 @@ bool InputHandler::applyOverrideBindings(const std::string &filePath) {
 
 bool InputHandler::addBindingsFromXML(const std::string &filePath, std::vector<std::pair<uint64_t, std::string>> *actionNames) {
     tinyxml2::XMLDocument document;
-    tinyxml2::XMLError result = document.LoadFile(filePath.c_str());
+    tinyxml2::XMLError result = LimonFileSystem::loadXML(filePath, document);
     if (result != tinyxml2::XML_SUCCESS) {
         std::cout << "InputHandler: could not load " << filePath << " — using built-in defaults." << std::endl;
         return false;

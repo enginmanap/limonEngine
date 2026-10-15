@@ -11,6 +11,7 @@
 #include "../Profiler/ProfilerMacros.h"
 #include "../GamePlay/APISerializer.h"
 #include "../Material.h"
+#include "../LimonFileSystem.h"
 #include <algorithm>
 
 //Static initialize of the vector
@@ -158,9 +159,9 @@ GraphicsPipeline::deserialize(const std::string &graphicsPipelineFileName, Graph
 */
 
     tinyxml2::XMLDocument xmlDoc;
-    tinyxml2::XMLError eResult = xmlDoc.LoadFile(graphicsPipelineFileName.c_str());
+    tinyxml2::XMLError eResult = LimonFileSystem::loadXML(graphicsPipelineFileName, xmlDoc);
     if (eResult != tinyxml2::XML_SUCCESS) {
-        return rejectPipeline(errors, graphicsPipelineFileName, std::string("Error loading XML: ") + xmlDoc.ErrorName());
+        return rejectPipeline(errors, graphicsPipelineFileName, std::string("Error loading XML: ") + tinyxml2::XMLDocument::ErrorIDToName(eResult));
     }
 
     tinyxml2::XMLElement * renderPipelineElement = xmlDoc.FirstChildElement("RenderPipeline");

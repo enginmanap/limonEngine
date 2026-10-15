@@ -3,6 +3,7 @@
 //
 
 #include "FontManager.h"
+#include "LimonFileSystem.h"
 
 const std::string FontManager::DEFAULT_FONT_PATH = "Data/Fonts/Helvetica-Normal.ttf";
 
@@ -18,16 +19,19 @@ FontManager::FontManager(GraphicsInterface* graphicsWrapper) : graphicsWrapper(g
 Face *FontManager::getFont(const std::string &fontPath, const uint32_t size) {
     std::pair<std::string, uint32_t> fontDescription = std::make_pair(fontPath, size);
     if (fonts.find(fontDescription) == fonts.end()) {
-        FT_Face face;
-        if (FT_New_Face(ft, fontPath.c_str(), 0, &face)) {
+        FT_Face face = nullptr;
+        std::vector<uint8_t> fontData;
+        if (!LimonFileSystem::readFile(fontPath, fontData) ||
+            FT_New_Memory_Face(ft, fontData.data(), static_cast<FT_Long>(fontData.size()), 0, &face)) {
             std::cerr << "Could not create font with path=[" << fontPath << "]" << std::endl
             << "Creating with default path=[" << DEFAULT_FONT_PATH << "]" << std::endl;
 
             //if path is broken, this can be broken too, we need better error handling
-            FT_New_Face(ft, DEFAULT_FONT_PATH.c_str(), 0, &face);
+            LimonFileSystem::readFile(DEFAULT_FONT_PATH, fontData);
+            FT_New_Memory_Face(ft, fontData.data(), static_cast<FT_Long>(fontData.size()), 0, &face);
         }
 
-        fonts[fontDescription] = new Face(graphicsWrapper, fontPath, size, face);
+        fonts[fontDescription] = new Face(graphicsWrapper, fontPath, size, face, std::move(fontData));
         FT_Set_Pixel_Sizes(face, 0, size);
         //now we should calculate what we have
 

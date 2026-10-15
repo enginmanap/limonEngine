@@ -5,6 +5,7 @@
 #include <algorithm>
 
 #include "WorldLoader.h"
+#include "LimonFileSystem.h"
 #include "XMLHelper.h"
 #include "GameObjects/Model.h"
 #include "World.h"
@@ -79,9 +80,9 @@ World * WorldLoader::loadMapFromXML(const std::string &worldFileName, LimonAPI *
     Uint64 currentTime = SDL3Helper::getTicks();
 
     tinyxml2::XMLDocument xmlDoc;
-    tinyxml2::XMLError eResult = xmlDoc.LoadFile(worldFileName.c_str());
+    tinyxml2::XMLError eResult = LimonFileSystem::loadXML(worldFileName, xmlDoc);
     if (eResult != tinyxml2::XML_SUCCESS) {
-        std::cerr << "Error loading XML "<< worldFileName << ": " <<  xmlDoc.ErrorName() << std::endl;
+        std::cerr << "Error loading XML "<< worldFileName << ": " <<  tinyxml2::XMLDocument::ErrorIDToName(eResult) << std::endl;
         exit(-1);
     }
 
@@ -1417,9 +1418,9 @@ bool WorldLoader::loadMaterials(tinyxml2::XMLNode *worldNode, World *world) cons
 std::unique_ptr<std::string> WorldLoader::getLoadingImage(const std::string &worldFile) const {
     std::unique_ptr<std::string> imageFilePath;
     tinyxml2::XMLDocument xmlDoc;
-    tinyxml2::XMLError eResult = xmlDoc.LoadFile(worldFile.c_str());
+    tinyxml2::XMLError eResult = LimonFileSystem::loadXML(worldFile, xmlDoc);
     if (eResult != tinyxml2::XML_SUCCESS) {
-        std::cerr << "Error loading XML "<< worldFile << ": " <<  xmlDoc.ErrorName() << std::endl;
+        std::cerr << "Error loading XML "<< worldFile << ": " <<  tinyxml2::XMLDocument::ErrorIDToName(eResult) << std::endl;
         exit(-1);
     }
 

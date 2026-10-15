@@ -26,6 +26,7 @@
 #endif
 
 #include "AIMovementNode.h"
+#include "../LimonFileSystem.h"
 #include "../Utils/GLMConverter.h"
 #include "../Utils/GLMUtils.h"
 #include "../BulletDebugDrawer.h"
@@ -208,12 +209,14 @@ public:
     }
 
     static AIMovementGrid* deserializeBinary(const std::string& fileName) {
-        std::ifstream is(fileName, std::ios::binary);
-        if( is.fail()) {
+        std::vector<uint8_t> fileContents;
+        if (!LimonFileSystem::readFile(fileName, fileContents)) {
             std::cout << "Binary AI walk grid read failed. Fallback to XML read" << std::endl;
             return nullptr;
         }
-        cereal::BinaryInputArchive archive(is);
+        LimonFileSystem::MemoryStreamBuffer streamBuffer(fileContents);
+        std::istream stream(&streamBuffer);
+        cereal::BinaryInputArchive archive(stream);
         AIMovementGrid* aiMovementGrid = new AIMovementGrid();
         archive(*aiMovementGrid);
         std::cout << "Binary AI walk grid read successful. " << std::endl;

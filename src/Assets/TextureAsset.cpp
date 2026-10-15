@@ -4,8 +4,27 @@
 
 #include "TextureAsset.h"
 
+#include <cstring>
 #include <SDL3_image/SDL_image.h>
 #include <GameObjects/Players/FreeCursorPlayer.h>
+#include "../LimonFileSystem.h"
+
+SDL_Surface *TextureAsset::loadSurface(const std::string &path) {
+    std::vector<uint8_t> contents;
+    if (!LimonFileSystem::readFile(path, contents)) {
+        return nullptr;
+    }
+    SDL_IOStream *stream = SDL_IOFromConstMem(contents.data(), contents.size());
+    if (stream == nullptr) {
+        return nullptr;
+    }
+    //tga has no magic number, without the extension as a hint it is never recognized. IMG_Load passes it the same way
+    const char *extension = std::strrchr(path.c_str(), '.');
+    if (extension != nullptr) {
+        ++extension;
+    }
+    return IMG_LoadTyped_IO(stream, true, extension);
+}
 
 TextureAsset::TextureAsset(AssetManager *assetManager, uint32_t assetID, const std::vector<std::string> &files) :
         Asset(assetManager, assetID, files) {
@@ -50,7 +69,7 @@ void TextureAsset::loadCPUPart() {
             std::cerr << "Embedded texture can't be found with following information: " << name[1] << ":" << textureID << std::endl;
         }
     } else {
-        cpuSurface = IMG_Load(name[0].data());
+        cpuSurface = loadSurface(name[0]);
         if(!cpuSurface) {
             originalErrorMessage = SDL_GetError();
             const std::string textureFullFileName = name[0].substr(name[0].find_last_of("\\/") + 1);
@@ -61,7 +80,7 @@ void TextureAsset::loadCPUPart() {
 
                 if (!possibleAssets.empty()) {
                     for (size_t i = 0; i < possibleAssets.size(); ++i) {
-                        cpuSurface = IMG_Load(possibleAssets[i].c_str());
+                        cpuSurface = loadSurface(possibleAssets[i]);
                         if (cpuSurface) {
                             break;
                         }
@@ -77,7 +96,7 @@ void TextureAsset::loadCPUPart() {
                     getPossibleTexturesList(nameOnlyMatchAssets, possibleAssets);
                     if (!possibleAssets.empty()) {
                         for (size_t i = 0; i < possibleAssets.size(); ++i) {
-                            cpuSurface = IMG_Load(possibleAssets[i].c_str());
+                            cpuSurface = loadSurface(possibleAssets[i]);
                             if (cpuSurface) {
                                 break;
                             }
@@ -91,7 +110,7 @@ void TextureAsset::loadCPUPart() {
     if (!cpuSurface) {
         std::cerr << "TextureAsset Load from disk failed for " << name[0] <<  ". Error:" << std::endl << originalErrorMessage << std::endl;
         std::cerr << "Loading \"not found fallback\" texture" << std::endl;
-        cpuSurface = IMG_Load(FALLBACK_TEXTURE_NAME.c_str());
+        cpuSurface = loadSurface(FALLBACK_TEXTURE_NAME);
         if (!cpuSurface) {
             std::cerr << "Loading  fallback texture failed. Please make sure " << FALLBACK_TEXTURE_NAME << " exists and valid. Exiting." << std::endl;
             exit(1);

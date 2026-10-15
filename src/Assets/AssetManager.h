@@ -18,6 +18,7 @@
 
 #include "Asset.h"
 #include "MaterialRegistry.h"
+#include "../LimonFileSystem.h"
 #include <thread>
 #include <mutex>
 #include <condition_variable>
@@ -174,6 +175,21 @@ private:
         return true;
     }
 
+#ifdef CEREAL_SUPPORT
+    template<class T>
+    std::shared_ptr<T> deserializeLimonModel(const std::vector<std::string> &files, uint32_t assetIndex) {
+        std::vector<uint8_t> fileContents;
+        if (!LimonFileSystem::readFile(files[0], fileContents)) {
+            std::cerr << "Could not read " << files[0] << ". Exiting..." << std::endl;
+            exit(-1);
+        }
+        LimonFileSystem::MemoryStreamBuffer streamBuffer(fileContents);
+        std::istream stream(&streamBuffer);
+        cereal::BinaryInputArchive archive(stream);
+        return std::make_shared<T>(this, assetIndex, files, archive);
+    }
+#endif
+
     AssetLoadQueue assetLoadCpuQueue;
     AssetLoadQueue assetLoadGPUQueue;
 
@@ -280,9 +296,7 @@ public:
                 if(files.size() == 1) {
                     if (isLimonModelFile(files[0])) {
 #ifdef CEREAL_SUPPORT
-                        std::ifstream is(files[0], std::ios::binary);
-                        cereal::BinaryInputArchive archive(is);
-                        assets[files] = std::make_pair(std::make_shared<T>(this, nextAssetIndexLocal, files, archive), 0);
+                        assets[files] = std::make_pair(deserializeLimonModel<T>(files, nextAssetIndexLocal), 0);
                         assets[files].first->setLoadState(Asset::LoadState::CPU_LOAD_DONE);
 
                         startedAssetIds.insert(nextAssetIndexLocal);
@@ -340,9 +354,7 @@ public:
             if(files.size() == 1) {
                 if (isLimonModelFile(files[0])) {
 #ifdef CEREAL_SUPPORT
-                    std::ifstream is(files[0], std::ios::binary);
-                    cereal::BinaryInputArchive archive(is);
-                    assets[files] = std::make_pair(std::make_shared<T>(this, nextAssetIndexLocal, files, archive), 0);
+                    assets[files] = std::make_pair(deserializeLimonModel<T>(files, nextAssetIndexLocal), 0);
                     assets[files].first->setLoadState(Asset::LoadState::CPU_LOAD_DONE);
 
                     assetLoadGPUQueue.pushBack(assets[files].first, true);
@@ -394,9 +406,7 @@ public:
                 if(files.size() == 1) {
                     if (isLimonModelFile(files[0])) {
 #ifdef CEREAL_SUPPORT
-                        std::ifstream is(files[0], std::ios::binary);
-                        cereal::BinaryInputArchive archive(is);
-                        assets[files] = std::make_pair(std::make_shared<T>(this, getNextAssetIndex(), files, archive), 0);
+                        assets[files] = std::make_pair(deserializeLimonModel<T>(files, getNextAssetIndex()), 0);
                         assets[files].first->loadGPUPart();
                         assets[files].first->setLoadState(Asset::LoadState::DONE);
 #else

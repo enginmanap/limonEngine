@@ -11,6 +11,8 @@
 #include <memory>
 #include <freetype2/ft2build.h>
 #include <set>
+#include <vector>
+#include <cstdint>
 
 #include FT_FREETYPE_H
 #include "limonAPI/Graphics/GraphicsInterface.h"
@@ -65,12 +67,13 @@ class Face {
     std::string path;
     unsigned int size;
     FT_Face face;
+    std::vector<uint8_t> fontData;//freetype reads glyphs from this buffer for the face's whole life, it must not be freed or reallocated
     int lineHeight;
     int maxCharWidth;
     std::map<const char, Glyph *> glyphs;
 public:
-    Face(GraphicsInterface* graphicsWrapper, std::string path, int size, FT_Face face) : graphicsWrapper(graphicsWrapper), path(path), size(size),
-                                                                                  face(face) {
+    Face(GraphicsInterface* graphicsWrapper, std::string path, int size, FT_Face face, std::vector<uint8_t> fontData) : graphicsWrapper(graphicsWrapper), path(path), size(size),
+                                                                                  face(face), fontData(std::move(fontData)) {
         lineHeight = face->height;
         maxCharWidth = face->max_advance_width;
     }

@@ -7,6 +7,7 @@
 #include <climits>
 #include <Assets/Animations/AnimationLoader.h>
 #include "Editor.h"
+#include "../LimonFileSystem.h"
 #include "PreviewRenderer.h"
 #include "World.h"
 #include "../WorldAPIAccessor.h"
@@ -3319,8 +3320,9 @@ static NodeGraph* deserializeNodeGraphOfRenderPipeline(const std::string &fileNa
                                                        const std::unordered_map<std::string, std::function<EditorExtension*()>> &possibleEditorExtensions,
                                                        const std::unordered_map<std::string, std::function<NodeExtension*(const NodeType*)>> &possibleNodeExtensions) {
     tinyxml2::XMLDocument document;
-    if (document.LoadFile(fileName.c_str()) != tinyxml2::XML_SUCCESS) {
-        std::cerr << "Error loading render pipeline file " << fileName << ": " << document.ErrorName() << std::endl;
+    tinyxml2::XMLError loadResult = LimonFileSystem::loadXML(fileName, document);
+    if (loadResult != tinyxml2::XML_SUCCESS) {
+        std::cerr << "Error loading render pipeline file " << fileName << ": " << tinyxml2::XMLDocument::ErrorIDToName(loadResult) << std::endl;
         return nullptr;
     }
     tinyxml2::XMLElement* renderPipelineElement = document.FirstChildElement("RenderPipeline");

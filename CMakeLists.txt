@@ -19,6 +19,7 @@ if(TRACY_SERVER_ENABLED)
     add_definitions(-DTRACY_SERVER_ENABLED)
 endif()
 
+
 #set(CMAKE_VERBOSE_MAKEFILE ON)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
@@ -327,16 +328,8 @@ add_dependencies(LimonEngine customTriggers)
 set_target_properties(customTriggers PROPERTIES VERSION ${PROJECT_VERSION})
 set_target_properties(customTriggers PROPERTIES SOVERSION 1)
 
-# SHARED BACKEND FILES
-set(GRAPHICS_BASE_SOURCES
-        src/limonAPI/Graphics/GraphicsProgram.cpp
-        src/limonAPI/Graphics/GraphicsProgramPreprocessor.cpp
-        src/Assets/GraphicsProgramAsset.cpp
-)
-
 # --- 1. OpenGL Backend ---
 add_library(OpenGLGraphicsBackend SHARED
-        ${GRAPHICS_BASE_SOURCES}
         GraphicBackends/OpenGLGraphics.cpp
 )
 disable_postfixes(OpenGLGraphicsBackend)
@@ -352,7 +345,6 @@ add_dependencies(LimonEngine OpenGLGraphicsBackend)
 if(NOT APPLE)
     #Apple don't have opengl es backends
     add_library(OpenGLESGraphicsBackend SHARED
-            ${GRAPHICS_BASE_SOURCES}
             GraphicBackends/OpenGLESGraphics.cpp
     )
     disable_postfixes(OpenGLESGraphicsBackend)

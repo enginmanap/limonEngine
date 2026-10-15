@@ -7,74 +7,61 @@
 
 #include <algorithm>
 #include <string>
-#include <dirent.h>
-#include <sys/stat.h>
+#include "../LimonFileSystem.h"
 
 void AssetManager::addAssetsRecursively(const std::string &directoryPath, const std::string &fileName,
                                         const std::vector<std::pair<std::string, AssetTypes>> &fileExtensions,
                                         AvailableAssetsNode* nodeToProcess) {
-    DIR *directory;
-    struct dirent *entry;
-
     nodeToProcess->name = fileName;
     nodeToProcess->nameLower = nodeToProcess->name;
     std::transform(nodeToProcess->nameLower.begin(), nodeToProcess->nameLower.end(), nodeToProcess->nameLower.begin(), ::tolower);
 
     nodeToProcess->fullPath = directoryPath;
 
-    if (!(directory = opendir(directoryPath.c_str()))) {
+    std::vector<LimonFileSystem::DirectoryEntry> entries;
+    if (!LimonFileSystem::listDirectory(directoryPath, entries)) {
         return;
     }
 
     nodeToProcess->assetType = Asset_type_DIRECTORY;
 
-    while ((entry = readdir(directory)) != NULL) {
-        struct stat fileStat;
-        std::string filePath = directoryPath + "/" + std::string(entry->d_name);
+    for (const LimonFileSystem::DirectoryEntry &entry : entries) {
+        std::string filePath = directoryPath + "/" + entry.name;//this is the asset name the editor writes to maps, keep the "./" form
+        if (entry.isDirectory) {
+            //we found a child, and it is a directory. Create a node and recurse
+            AvailableAssetsNode* newNode = new AvailableAssetsNode();
+            newNode->parent = nodeToProcess;
+            nodeToProcess->children.push_back(newNode);
+            addAssetsRecursively(filePath, entry.name, fileExtensions, newNode);
 
-        if(stat(filePath.c_str(),&fileStat) < 0) {
-            std::cout << "stat failed for entry " << entry->d_name << std::endl;
         } else {
-            if(S_ISDIR(fileStat.st_mode)) {
-                if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) {
-                    continue;
-                }
-                //we found a child, and it is a directory. Create a node and recurse
-                AvailableAssetsNode* newNode = new AvailableAssetsNode();
+            AssetTypes assetType;
+            if(isExtensionInList(entry.name, fileExtensions, assetType)) {
+                //we found a element that is an asset create and add to children
+                AvailableAssetsNode* newNode = new AvailableAssetsNode;
+                newNode->fullPath = filePath;
+                newNode->name = entry.name;
+                newNode->nameLower = newNode->name;
+                std::transform(newNode->nameLower.begin(), newNode->nameLower.end(), newNode->nameLower.begin(), ::tolower);
+                newNode->assetType = assetType;
                 newNode->parent = nodeToProcess;
                 nodeToProcess->children.push_back(newNode);
-                addAssetsRecursively(filePath, std::string(entry->d_name), fileExtensions, newNode);
-
+                //std::cout << entry.name << " added as asset. with type " << assetType << std::endl;
             } else {
-                AssetTypes assetType;
-                if(isExtensionInList(entry->d_name, fileExtensions, assetType)) {
-                    //we found a element that is an asset create and add to children
-                    AvailableAssetsNode* newNode = new AvailableAssetsNode;
-                    newNode->fullPath = filePath;
-                    newNode->name = std::string(entry->d_name);
-                    newNode->nameLower = newNode->name;
-                    std::transform(newNode->nameLower.begin(), newNode->nameLower.end(), newNode->nameLower.begin(), ::tolower);
-                    newNode->assetType = assetType;
-                    newNode->parent = nodeToProcess;
-                    nodeToProcess->children.push_back(newNode);
-                    //std::cout << entry->d_name << " added as asset. with type " << assetType << std::endl;
-                } else {
-                    //file found but not added because extension is not in list
-                }
-
+                //file found but not added because extension is not in list
             }
+
         }
     }
-    closedir(directory);
 }
 
 
 std::vector<std::pair<std::string, AssetManager::AssetTypes>> AssetManager::loadAssetExtensionList() {
     std::vector<std::pair<std::string, AssetTypes>> extensionList;
     tinyxml2::XMLDocument xmlDoc;
-    tinyxml2::XMLError eResult = xmlDoc.LoadFile(ASSET_EXTENSIONS_FILE.c_str());
+    tinyxml2::XMLError eResult = LimonFileSystem::loadXML(ASSET_EXTENSIONS_FILE, xmlDoc);
     if (eResult != tinyxml2::XML_SUCCESS) {
-        std::cerr << "Error loading Asset file list XML: " <<  xmlDoc.ErrorName() << std::endl;
+        std::cerr << "Error loading Asset file list XML: " <<  tinyxml2::XMLDocument::ErrorIDToName(eResult) << std::endl;
         return extensionList;
     }
     tinyxml2::XMLNode * assetsNode = xmlDoc.FirstChild();
