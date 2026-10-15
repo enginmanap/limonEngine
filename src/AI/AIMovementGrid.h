@@ -16,6 +16,7 @@
 #include <queue>
 #include <unordered_set>
 #include <map>
+#include <memory>
 
 #ifdef CEREAL_SUPPORT
 #include <cereal/access.hpp>
@@ -63,9 +64,9 @@ class AIMovementGrid {
     }
 
     std::shared_ptr<AIMovementNode> root = nullptr;
-    btCollisionShape *ghostShape = nullptr;
-    btPairCachingGhostObject *sharedGhostObject = new btPairCachingGhostObject();
-    btCollisionWorld::ClosestRayResultCallback *rayCallback = new btCollisionWorld::ClosestRayResultCallback(
+    std::unique_ptr<btCollisionShape> ghostShape;
+    std::unique_ptr<btPairCachingGhostObject> sharedGhostObject = std::make_unique<btPairCachingGhostObject>();
+    std::unique_ptr<btCollisionWorld::ClosestRayResultCallback> rayCallback = std::make_unique<btCollisionWorld::ClosestRayResultCallback>(
             btVector3(0, 0, 0), btVector3(0, 0, 0));
     btManifoldArray sharedManifoldArray;
     std::map<int, std::shared_ptr<const AIMovementNode>> actorLastNodeMap;
@@ -105,12 +106,7 @@ public:
     AIMovementGrid(glm::vec3 startPoint, btDiscreteDynamicsWorld *staticOnlyPhysicsWorld, glm::vec3 min,
                        glm::vec3 max, uint32_t collisionGroup, uint32_t collisionMask);
 
-    ~AIMovementGrid() {
-        delete rayCallback;
-        delete sharedGhostObject;
-        delete ghostShape;
-
-    }
+    ~AIMovementGrid() = default;
 
     bool coursePath(const glm::vec3 &from, const glm::vec3 &to, uint32_t actorId, uint32_t maximumNumberOfNodes,
                     std::vector<glm::vec3> *route);
