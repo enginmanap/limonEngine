@@ -9,6 +9,7 @@
 #include "PyPlayerExtensionInterface.h"
 #include "PyActorInterface.h"
 #include "PyCameraExtensionInterface.h"
+#include "ScriptImporter.h"
 
 #include <utility>
 
@@ -274,8 +275,7 @@ void ScriptManager::LoadScript(WorldInterpreter * worldInterpreter, const std::s
         }
 
         if (isMainInterpreter) {
-            pybind11::module_ sys = pybind11::module::import("sys");
-            appendScriptDirectoriesToSysPath(sys);
+            installScriptImporter(scriptDirectories);
 
             try {
                 pybind11::module_ limon = pybind11::module_::import("limon");
@@ -537,7 +537,7 @@ WorldInterpreter* ScriptManager::createWorldInterpreter(const std::string& world
             activeSubinterpreter = worldInterpreter->activate();
 
             pybind11::module_ sys = pybind11::module::import("sys");
-            appendScriptDirectoriesToSysPath(sys);
+            installScriptImporter(scriptDirectories);
 
             pybind11::module_ limon = pybind11::module::import("limon");
 

@@ -88,9 +88,16 @@ InputHandler::InputHandler(SDL_Window *window, OptionsUtil::Options *options) :
     gamepadDeadZoneOption = options->getOption<double>(HASH("gamepad_deadZone"));
 
     loadEngineBindings();
-    // If a game wants to override bindings, we expect them to put the file under ./Data
-    if (LimonFileSystem::fileExists("./Data/inputBindings.xml")) {
-        applyOverrideBindings("./Data/inputBindings.xml");
+    // If a game wants to override bindings, we expect them to put the file under ./Data. The package's copy applies first, a loose one over it
+    const std::string overrideBindingsFile = "./Data/inputBindings.xml";
+    std::vector<std::string> overrideLayers = LimonFileSystem::readFileFromAllLayers(overrideBindingsFile);
+    for (const std::string &layerContents : overrideLayers) {
+        tinyxml2::XMLDocument document;
+        if (document.Parse(layerContents.data(), layerContents.size()) != tinyxml2::XML_SUCCESS) {
+            std::cerr << "InputHandler: could not read " << overrideBindingsFile << ", the engine's bindings stay." << std::endl;
+            continue;
+        }
+        applyOverrideBindings(document, overrideBindingsFile);
     }
 
     // ── SDL Gamepad subsystem ─────────────────────────────────────────────────
@@ -296,12 +303,7 @@ void InputHandler::loadEngineBindings() {
     }
 }
 
-bool InputHandler::applyOverrideBindings(const std::string &filePath) {
-    tinyxml2::XMLDocument document;
-    if (LimonFileSystem::loadXML(filePath, document) != tinyxml2::XML_SUCCESS) {
-        std::cerr << "InputHandler: could not read " << filePath << ", the engine's bindings stay." << std::endl;
-        return false;
-    }
+bool InputHandler::applyOverrideBindings(tinyxml2::XMLDocument &document, const std::string &filePath) {
     tinyxml2::XMLElement *root = document.FirstChildElement("InputBindings");
     if (root == nullptr) {
         std::cerr << "InputHandler: " << filePath << " has no <InputBindings> root element, the engine's bindings stay." << std::endl;
@@ -358,7 +360,7 @@ bool InputHandler::applyOverrideBindings(const std::string &filePath) {
             replaced += (replaced.empty() ? "" : ", ") + std::string("gamepad ") + std::to_string(gamepadIndex);
         }
     }
-    if (!addBindingsFromXML(filePath)) {
+    if (!addBindingsFromDocument(document, filePath)) {
         return false;
     }
 
@@ -385,7 +387,10 @@ bool InputHandler::addBindingsFromXML(const std::string &filePath, std::vector<s
         std::cout << "InputHandler: could not load " << filePath << " — using built-in defaults." << std::endl;
         return false;
     }
+    return addBindingsFromDocument(document, filePath, actionNames);
+}
 
+bool InputHandler::addBindingsFromDocument(tinyxml2::XMLDocument &document, const std::string &filePath, std::vector<std::pair<uint64_t, std::string>> *actionNames) {
     tinyxml2::XMLElement *root = document.FirstChildElement("InputBindings");
     if (root == nullptr) {
         std::cerr << "InputHandler: " << filePath << " has no <InputBindings> root element." << std::endl;

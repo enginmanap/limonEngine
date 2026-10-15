@@ -79,25 +79,6 @@ public:
     static ActorInterface* CreateActorWrapper(uint32_t id, LimonAPI* api, size_t index);
     static CameraExtensionInterface* CreateCameraExtensionWrapper(LimonAPI* api, size_t index);
 private:
-    // Appends every configured script directory to sys.path, in order and
-    // without introducing duplicates. Built-in directory is added first so its
-    // modules win on name collisions during import.
-    void appendScriptDirectoriesToSysPath(pybind11::module_& sys) {
-        pybind11::list pathList = sys.attr("path");
-        for (const std::string& directoryPath : scriptDirectories) {
-            bool alreadyPresent = false;
-            for (pybind11::handle entry : pathList) {
-                if (pybind11::isinstance<pybind11::str>(entry) &&
-                    entry.cast<std::string>() == directoryPath) {
-                    alreadyPresent = true;
-                    break;
-                }
-            }
-            if (!alreadyPresent) {
-                (void) sys.attr("path").attr("append")(directoryPath);
-            }
-        }
-    }
 
     // Scans every configured directory and loads every compatible script.
     // Built-in directory is scanned first; a user script whose module name

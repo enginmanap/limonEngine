@@ -1,6 +1,6 @@
 //
 // Defines the embedded 'limon' Python module.
-// All binding logic lives in the four helpers below; this file is intentionally thin.
+// All binding logic lives in the helpers below; this file is intentionally thin.
 //
 // IMPORTANT: This TU has no exported symbols that other TUs reference, so some linkers
 // (MinGW/ld) will discard it via dead-code elimination, silently dropping the
@@ -14,6 +14,7 @@
 #include "PythonGenericParameterBinding.h"
 #include "PythonLimonAPIBinding.h"
 #include "PythonInterfaceBindings.h"
+#include "ScriptImporter.h"
 
 void ensurePythonModuleBindingsLinked() {}
 
@@ -48,6 +49,7 @@ PYBIND11_EMBEDDED_MODULE(limon, m, pybind11::multiple_interpreters::per_interpre
     std::cout << "[limon module] Module initialization started" << std::endl;
 #endif
 
+    bindScriptImporter(m);
     bindEnums(m);
     bindGenericParameter(m);
     bindLimonAPI(m);

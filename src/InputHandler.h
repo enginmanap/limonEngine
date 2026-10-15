@@ -96,9 +96,10 @@ private:
 
     // Adds the bindings of one file to the ones already loaded, actionNames, when given, receives every action the file defines.
     bool addBindingsFromXML(const std::string &filePath, std::vector<std::pair<uint64_t, std::string>> *actionNames = nullptr);
+    bool addBindingsFromDocument(tinyxml2::XMLDocument &document, const std::string &filePath, std::vector<std::pair<uint64_t, std::string>> *actionNames = nullptr);
 
     void loadEngineBindings(); // ./Engine/inputBindings.xml, or the hardcoded defaults when it can't be read
-    bool applyOverrideBindings(const std::string &filePath);// loads ./Data/inputBindings.xml. If a device has any entry, all defaults dropped.
+    bool applyOverrideBindings(tinyxml2::XMLDocument &document, const std::string &filePath);// one layer of ./Data/inputBindings.xml. If a device has any entry, all defaults dropped.
     void loadDefaultBindings();
     void openGamepad(SDL_JoystickID instanceID);
     void closeGamepad(SDL_JoystickID instanceID);

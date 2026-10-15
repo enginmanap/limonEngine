@@ -5,6 +5,10 @@
 #include "LimonFileSystem.h"
 
 #include <cstring>
+#include <iostream>
+#include <set>
+#include <physfs.h>
+#include <SDL3/SDL_error.h>
 #include <SDL3/SDL_iostream.h>
 
 std::string LimonFileSystem::normalizePath(const std::string &path) {
@@ -63,26 +67,144 @@ std::string LimonFileSystem::normalizePath(const std::string &path) {
     return normalizedPath;
 }
 
-bool LimonFileSystem::fileExists(const std::string &path) {
-    SDL_PathInfo pathInfo;
-    if (!SDL_GetPathInfo(normalizePath(path).c_str(), &pathInfo)) {
+//mount points, never visible outside this file. Set once in initialize, before any loading thread exists
+static const std::string ENGINE_LAYER = "engine";
+static const std::string PACKAGE_LAYER = "package";
+static const std::string DATA_LAYER = "data";
+static bool packageMounted = false;
+static bool dataMounted = false;
+
+static PHYSFS_EnumerateCallbackResult collectLayerEntry(void *userData, const char *directoryName [[gnu::unused]], const char *fileName) {
+    static_cast<std::vector<std::string> *>(userData)->push_back(fileName);
+    return PHYSFS_ENUM_OK;
+}
+
+static std::string lastPhysfsError() {
+    return PHYSFS_getErrorByCode(PHYSFS_getLastErrorCode());
+}
+
+bool LimonFileSystem::initialize(const char *argv0) {
+    if (!PHYSFS_init(argv0)) {
+        std::cerr << "File system could not start: " << lastPhysfsError() << std::endl;
         return false;
     }
-    return pathInfo.type == SDL_PATHTYPE_FILE;
+    PHYSFS_permitSymbolicLinks(1);//PhysicsFS refuses symlinked files under a mount by default, loose files never did
+    if (!PHYSFS_mount("./Engine", ENGINE_LAYER.c_str(), 1)) {
+        std::cerr << "Could not mount ./Engine: " << lastPhysfsError() << std::endl;
+        return false;
+    }
+    SDL_PathInfo pathInfo;
+    if (SDL_GetPathInfo("./Data.pak", &pathInfo)) {
+        if (!PHYSFS_mount("./Data.pak", PACKAGE_LAYER.c_str(), 1)) {
+            std::cerr << "Could not mount ./Data.pak: " << lastPhysfsError() << std::endl;
+            return false;
+        }
+        packageMounted = true;
+        std::cout << "Mounted ./Data.pak, loose files in ./Data override it" << std::endl;
+    }
+    if (SDL_GetPathInfo("./Data", &pathInfo) && pathInfo.type == SDL_PATHTYPE_DIRECTORY) {
+        if (!PHYSFS_mount("./Data", DATA_LAYER.c_str(), 1)) {
+            std::cerr << "Could not mount ./Data: " << lastPhysfsError() << std::endl;
+            return false;
+        }
+        dataMounted = true;
+    }
+    return true;
+}
+
+bool LimonFileSystem::resolveLayers(const std::string &normalizedPath, std::vector<std::string> &layerPaths) {
+    layerPaths.clear();
+    size_t slashPosition = normalizedPath.find('/');
+    std::string firstSegment = normalizedPath.substr(0, slashPosition);
+    std::string remainingPath = slashPosition == std::string::npos ? "" : "/" + normalizedPath.substr(slashPosition + 1);
+    if (firstSegment == "Engine") {
+        layerPaths.push_back(ENGINE_LAYER + remainingPath);//nothing overrides the engine's own files
+        return true;
+    }
+    if (firstSegment == "Data") {
+        if (dataMounted) {
+            layerPaths.push_back(DATA_LAYER + remainingPath);
+        }
+        if (packageMounted) {
+            layerPaths.push_back(PACKAGE_LAYER + remainingPath);
+        }
+        return true;
+    }
+    return false;
+}
+
+bool LimonFileSystem::isLayerFile(const std::string &layerPath) {
+    PHYSFS_Stat stat;
+    return PHYSFS_stat(layerPath.c_str(), &stat) && stat.filetype == PHYSFS_FILETYPE_REGULAR;
+}
+
+bool LimonFileSystem::isLayerDirectory(const std::string &layerPath) {
+    PHYSFS_Stat stat;
+    return PHYSFS_stat(layerPath.c_str(), &stat) && stat.filetype == PHYSFS_FILETYPE_DIRECTORY;
+}
+
+bool LimonFileSystem::fileExists(const std::string &path) {
+    std::string normalizedPath = normalizePath(path);
+    std::vector<std::string> layerPaths;
+    if (!resolveLayers(normalizedPath, layerPaths)) {
+        SDL_PathInfo pathInfo;
+        return SDL_GetPathInfo(normalizedPath.c_str(), &pathInfo) && pathInfo.type == SDL_PATHTYPE_FILE;
+    }
+    for (const std::string &layerPath : layerPaths) {
+        if (isLayerFile(layerPath)) {
+            return true;
+        }
+    }
+    return false;
 }
 
 bool LimonFileSystem::isDirectory(const std::string &path) {
-    SDL_PathInfo pathInfo;
-    if (!SDL_GetPathInfo(normalizePath(path).c_str(), &pathInfo)) {
-        return false;
+    std::string normalizedPath = normalizePath(path);
+    std::vector<std::string> layerPaths;
+    if (!resolveLayers(normalizedPath, layerPaths)) {
+        SDL_PathInfo pathInfo;
+        return SDL_GetPathInfo(normalizedPath.c_str(), &pathInfo) && pathInfo.type == SDL_PATHTYPE_DIRECTORY;
     }
-    return pathInfo.type == SDL_PATHTYPE_DIRECTORY;
+    for (const std::string &layerPath : layerPaths) {
+        if (isLayerDirectory(layerPath)) {
+            return true;
+        }
+    }
+    return false;
 }
 
 template<class Container>
-bool LimonFileSystem::readIntoContainer(const std::string &path, Container &contents) {
+bool LimonFileSystem::readFromLayer(const std::string &layerPath, Container &contents) {
     contents.clear();
-    SDL_IOStream *stream = SDL_IOFromFile(normalizePath(path).c_str(), "rb");
+    PHYSFS_File *file = PHYSFS_openRead(layerPath.c_str());
+    if (file == nullptr) {
+        SDL_SetError("Couldn't open %s: %s", layerPath.c_str(), lastPhysfsError().c_str());//callers print SDL_GetError, like they did for IMG_Load
+        return false;
+    }
+    PHYSFS_sint64 fileLength = PHYSFS_fileLength(file);
+    if (fileLength < 0) {
+        SDL_SetError("Couldn't size %s: %s", layerPath.c_str(), lastPhysfsError().c_str());
+        PHYSFS_close(file);
+        return false;
+    }
+    contents.resize(static_cast<size_t>(fileLength));
+    PHYSFS_sint64 readLength = 0;
+    if (!contents.empty()) {
+        readLength = PHYSFS_readBytes(file, &contents[0], static_cast<PHYSFS_uint64>(fileLength));
+    }
+    PHYSFS_close(file);
+    if (readLength != fileLength) {
+        SDL_SetError("Couldn't read %s: %s", layerPath.c_str(), lastPhysfsError().c_str());
+        contents.clear();
+        return false;
+    }
+    return true;
+}
+
+template<class Container>
+bool LimonFileSystem::readFromDisk(const std::string &normalizedPath, Container &contents) {
+    contents.clear();
+    SDL_IOStream *stream = SDL_IOFromFile(normalizedPath.c_str(), "rb");
     if (stream == nullptr) {
         return false;
     }
@@ -104,12 +226,49 @@ bool LimonFileSystem::readIntoContainer(const std::string &path, Container &cont
     return true;
 }
 
+template<class Container>
+bool LimonFileSystem::readIntoContainer(const std::string &path, Container &contents) {
+    contents.clear();
+    std::string normalizedPath = normalizePath(path);
+    std::vector<std::string> layerPaths;
+    if (!resolveLayers(normalizedPath, layerPaths)) {
+        return readFromDisk(normalizedPath, contents);
+    }
+    for (const std::string &layerPath : layerPaths) {
+        if (isLayerFile(layerPath)) {
+            return readFromLayer(layerPath, contents);//a layer that has the file but fails to read it must not let a lower one answer
+        }
+    }
+    SDL_SetError("Couldn't open %s: not found", normalizedPath.c_str());
+    return false;
+}
+
 bool LimonFileSystem::readFile(const std::string &path, std::vector<uint8_t> &contents) {
     return readIntoContainer(path, contents);
 }
 
 bool LimonFileSystem::readFile(const std::string &path, std::string &contents) {
     return readIntoContainer(path, contents);
+}
+
+std::vector<std::string> LimonFileSystem::readFileFromAllLayers(const std::string &path) {
+    std::vector<std::string> layerContents;
+    std::string normalizedPath = normalizePath(path);
+    std::vector<std::string> layerPaths;
+    if (!resolveLayers(normalizedPath, layerPaths)) {
+        std::string contents;
+        if (readFromDisk(normalizedPath, contents)) {
+            layerContents.push_back(contents);
+        }
+        return layerContents;
+    }
+    for (std::vector<std::string>::reverse_iterator layerPath = layerPaths.rbegin(); layerPath != layerPaths.rend(); ++layerPath) {
+        std::string contents;
+        if (isLayerFile(*layerPath) && readFromLayer(*layerPath, contents)) {
+            layerContents.push_back(contents);
+        }
+    }
+    return layerContents;
 }
 
 tinyxml2::XMLError LimonFileSystem::loadXML(const std::string &path, tinyxml2::XMLDocument &document) {
@@ -121,7 +280,7 @@ tinyxml2::XMLError LimonFileSystem::loadXML(const std::string &path, tinyxml2::X
     return document.Parse(contents.data(), contents.size());
 }
 
-SDL_EnumerationResult SDLCALL LimonFileSystem::collectDirectoryEntry(void *userData, const char *directoryName [[gnu::unused]], const char *fileName) {
+SDL_EnumerationResult SDLCALL LimonFileSystem::collectDiskEntry(void *userData, const char *directoryName [[gnu::unused]], const char *fileName) {
     std::vector<DirectoryEntry> *entries = static_cast<std::vector<DirectoryEntry> *>(userData);
     if (std::strcmp(fileName, ".") == 0 || std::strcmp(fileName, "..") == 0) {
         return SDL_ENUM_CONTINUE;
@@ -132,15 +291,43 @@ SDL_EnumerationResult SDLCALL LimonFileSystem::collectDirectoryEntry(void *userD
     return SDL_ENUM_CONTINUE;
 }
 
-bool LimonFileSystem::listDirectory(const std::string &path, std::vector<DirectoryEntry> &entries) {
-    entries.clear();
-    std::string normalizedPath = normalizePath(path);
-    if (!SDL_EnumerateDirectory(normalizedPath.c_str(), collectDirectoryEntry, &entries)) {
+bool LimonFileSystem::listDiskDirectory(const std::string &normalizedPath, std::vector<DirectoryEntry> &entries) {
+    if (!SDL_EnumerateDirectory(normalizedPath.c_str(), collectDiskEntry, &entries)) {
         entries.clear();
         return false;
     }
     for (DirectoryEntry &entry : entries) {
-        entry.isDirectory = isDirectory(normalizedPath + "/" + entry.name);
+        SDL_PathInfo pathInfo;
+        entry.isDirectory = SDL_GetPathInfo((normalizedPath + "/" + entry.name).c_str(), &pathInfo) && pathInfo.type == SDL_PATHTYPE_DIRECTORY;
     }
     return true;
+}
+
+bool LimonFileSystem::listDirectory(const std::string &path, std::vector<DirectoryEntry> &entries) {
+    entries.clear();
+    std::string normalizedPath = normalizePath(path);
+    std::vector<std::string> layerPaths;
+    if (!resolveLayers(normalizedPath, layerPaths)) {
+        return listDiskDirectory(normalizedPath, entries);
+    }
+    bool directoryFound = false;
+    std::set<std::string> listedNames;
+    for (const std::string &layerPath : layerPaths) {
+        if (!isLayerDirectory(layerPath)) {
+            continue;
+        }
+        directoryFound = true;
+        std::vector<std::string> names;
+        PHYSFS_enumerate(layerPath.c_str(), collectLayerEntry, &names);
+        for (const std::string &name : names) {
+            if (!listedNames.insert(name).second) {
+                continue;//a higher layer already listed it, and that one is what a read gets
+            }
+            DirectoryEntry entry;
+            entry.name = name;
+            entry.isDirectory = isLayerDirectory(layerPath + "/" + name);
+            entries.push_back(entry);
+        }
+    }
+    return directoryFound;
 }

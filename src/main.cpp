@@ -167,15 +167,23 @@ void GameEngine::returnPreviousMap() {
 }
 
 static bool loadOptionsFile(OptionsUtil::Options *options, const std::string &fileName) {
-    tinyxml2::XMLDocument xmlDoc;
-    tinyxml2::XMLError eResult = LimonFileSystem::loadXML(fileName, xmlDoc);
-    if (eResult != tinyxml2::XML_SUCCESS) {
-        if (eResult != tinyxml2::XML_ERROR_FILE_NOT_FOUND && eResult != tinyxml2::XML_ERROR_FILE_COULD_NOT_BE_OPENED) {
-            std::cerr << "Error loading XML " << fileName << ": " << tinyxml2::XMLDocument::ErrorIDToName(eResult) << std::endl;
-        }
+    //the package's copy first, so a loose one only changes the options it lists
+    std::vector<std::string> layerContents = LimonFileSystem::readFileFromAllLayers(fileName);
+    if (layerContents.empty()) {
         return false;
     }
-    return options->loadOptionsNew(xmlDoc, fileName);
+    for (const std::string &contents : layerContents) {
+        tinyxml2::XMLDocument xmlDoc;
+        tinyxml2::XMLError eResult = xmlDoc.Parse(contents.data(), contents.size());
+        if (eResult != tinyxml2::XML_SUCCESS) {
+            std::cerr << "Error loading XML " << fileName << ": " << tinyxml2::XMLDocument::ErrorIDToName(eResult) << std::endl;
+            return false;
+        }
+        if (!options->loadOptionsNew(xmlDoc, fileName)) {
+            return false;
+        }
+    }
+    return true;
 }
 
 GameEngine::GameEngine() {
@@ -450,6 +458,11 @@ bool getWorldNameFromReleaseXML(std::string &worldName) {
 }
 
 int main(int argc, char *argv[]) {
+    //never shut down: GameEngine is destroyed after main's last statement, and its asset threads may still read
+    if(!LimonFileSystem::initialize(argv[0])) {
+        std::cerr << "File system could not start, exiting." << std::endl;
+        return -1;
+    }
     if(argc >= 2 && std::string(argv[1]) == "--convert") {
         const std::string usage = "usage: " + PROGRAM_NAME + " --convert <model file> [output directory] [--scale <factor>]";
         if(argc < 3) {
