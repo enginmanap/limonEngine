@@ -44,6 +44,7 @@
 #include "XMLHelper.h"
 #include "GamePlay/APISerializer.h"
 #include "Package/FileAccessPolicy.h"
+#include "Package/EngineDataFiles.h"
 
 const std::map<World::PlayerInfo::Types, std::string> World::PlayerInfo::typeNames =
     {
@@ -138,14 +139,14 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
     apiGUILayer->setDebug(false);
 
     renderCounts = new GUIText(graphicsWrapper, getNextObjectID(), "Render Counts",
-                               fontManager.getFont("./Data/Fonts/Cousine-Regular.ttf", 16), "0", glm::vec3(204, 204, 0));
+                               fontManager.getFont(EngineDataFiles::DEBUG_FONT, 16), "0", glm::vec3(204, 204, 0));
     renderCounts->set2dWorldTransform(glm::vec2(options->getScreenWidth() - 170, options->getScreenHeight() - 36), 0);
 
-    cursor = new GUICursor(graphicsWrapper, assetManager, "./Data/Textures/crosshair.png");
+    cursor = new GUICursor(graphicsWrapper, assetManager, EngineDataFiles::CROSSHAIR);
 
     cursor->set2dWorldTransform(glm::vec2(options->getScreenWidth()/2.0f, options->getScreenHeight()/2.0f), 0);
 
-    debugOutputGUI = new GUITextDynamic(graphicsWrapper, fontManager.getFont("./Data/Fonts/Helvetica-Normal.ttf", 16),
+    debugOutputGUI = new GUITextDynamic(graphicsWrapper, fontManager.getFont(EngineDataFiles::DEFAULT_FONT, 16),
                                         glm::vec3(0, 0, 0), 640, 380, options);
     debugOutputGUI->set2dWorldTransform(glm::vec2(320, options->getScreenHeight()-200), 0.0f);
 

@@ -16,8 +16,8 @@
 #include "InputHandler.h"
 #include "limonAPI/Options.h"
 #include "LimonFileSystem.h"
+#include "Package/EngineDataFiles.h"
 
-static const std::string IMGUI_FONT_PATH = "./Data/Fonts/Helvetica-Normal.ttf";
 
 
 // This is the main rendering function that you have to implement and provide to ImGui (via setting up 'RenderDrawListsFn' in the ImGuiIO structure)
@@ -464,12 +464,12 @@ ImGuiHelper::ImGuiHelper(std::shared_ptr<AssetManager> assetManager, OptionsUtil
     
     io.Fonts->Clear();
     std::vector<uint8_t> fontData;
-    if (LimonFileSystem::readFile(IMGUI_FONT_PATH, fontData)) {
+    if (LimonFileSystem::readFile(EngineDataFiles::DEFAULT_FONT, fontData)) {
         void *atlasFontData = IM_ALLOC(fontData.size());//the atlas owns this and frees it with IM_FREE, so it can't be the vector's buffer
         memcpy(atlasFontData, fontData.data(), fontData.size());
         io.Fonts->AddFontFromMemoryTTF(atlasFontData, static_cast<int>(fontData.size()), 12.f, &config);
     } else {
-        std::cerr << "Could not read " << IMGUI_FONT_PATH << ", editor uses the ImGui default font." << std::endl;
+        std::cerr << "Could not read " << EngineDataFiles::DEFAULT_FONT << ", editor uses the ImGui default font." << std::endl;
     }
 
     //io.RenderDrawListsFn = RenderDrawLists;   // Alternatively you can set this to NULL and call ImGui::GetDrawData() after ImGui::Render() to get the same ImDrawData pointer.

@@ -17,13 +17,12 @@
 #include "Assets/ModelToWorldConverter.h"
 #include "LimonFileSystem.h"
 #include "Package/FileAccessPolicy.h"
+#include "Package/EngineDataFiles.h"
 #include <algorithm>
 #include <cstdlib>
 
 const std::string PROGRAM_NAME = "LimonEngine";
-const std::string RELEASE_FILE = "./Data/Release.xml";
 const std::string ENGINE_OPTIONS_FILE = "./Engine/Options.xml";
-const std::string USER_OPTIONS_FILE = "./Data/Options.xml";
 
 bool GameEngine::loadAndChangeWorld(const std::string &worldFile) {
     graphicsWrapper->clearDepthBuffer();
@@ -196,7 +195,7 @@ GameEngine::GameEngine() {
         std::cerr << "Failed to load engine options from " << ENGINE_OPTIONS_FILE << std::endl;
         exit(-1);
     }
-    if (!loadOptionsFile(options, USER_OPTIONS_FILE)) {
+    if (!loadOptionsFile(options, EngineDataFiles::USER_OPTIONS)) {
         std::cout << "No user options found, using engine defaults" << std::endl;
     }
     std::cout << "Options loaded successfully" << std::endl;
@@ -342,7 +341,7 @@ LimonAPI *GameEngine::getNewLimonAPI() {
         pendingSwitch = {PendingSwitchType::RETURN_PREVIOUS, ""};
     };
     std::function<const OptionsUtil::Options*()> limonGetOptions = [this] { return options; };
-    std::function<bool()> limonSaveOptions = [this] { return options->saveOptions(USER_OPTIONS_FILE); };
+    std::function<bool()> limonSaveOptions = [this] { return options->saveOptions(EngineDataFiles::USER_OPTIONS); };
     std::function<bool(const std::string &, std::vector<uint8_t> &)> limonReadFile = &readFileForAPI;
     std::function<bool(const std::string &, std::string &)> limonReadTextFile = &readTextFileForAPI;
     std::function<bool(const std::string &)> limonFileExists = &fileExistsForAPI;
@@ -471,9 +470,9 @@ GameEngine::~GameEngine() {
 
 bool getWorldNameFromReleaseXML(std::string &worldName) {
     tinyxml2::XMLDocument xmlDoc;
-    tinyxml2::XMLError eResult = LimonFileSystem::loadXML(RELEASE_FILE, xmlDoc);
+    tinyxml2::XMLError eResult = LimonFileSystem::loadXML(EngineDataFiles::RELEASE, xmlDoc);
     if (eResult != tinyxml2::XML_SUCCESS) {
-        std::cerr << "Error loading release settings from "<< RELEASE_FILE << ": " <<  tinyxml2::XMLDocument::ErrorIDToName(eResult) << std::endl;
+        std::cerr << "Error loading release settings from "<< EngineDataFiles::RELEASE << ": " <<  tinyxml2::XMLDocument::ErrorIDToName(eResult) << std::endl;
         return false;
     }
 

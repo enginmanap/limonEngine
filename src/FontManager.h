@@ -113,7 +113,6 @@ public:
 class FontManager {
     GraphicsInterface* graphicsWrapper;
     std::map<std::pair<std::string, uint32_t>, Face *> fonts;
-    static const std::string DEFAULT_FONT_PATH;
     static const int DEFAULT_FONT_SIZE = 32;
     FT_Library ft;
 public:

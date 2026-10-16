@@ -8,6 +8,7 @@
 #include <tinyxml2.h>
 #include <cstring>
 #include "LimonFileSystem.h"
+#include "Package/EngineDataFiles.h"
 #include <iostream>
 
 // ── XML parsing helpers ───────────────────────────────────────────────────────
@@ -89,7 +90,7 @@ InputHandler::InputHandler(SDL_Window *window, OptionsUtil::Options *options) :
 
     loadEngineBindings();
     // If a game wants to override bindings, we expect them to put the file under ./Data. The package's copy applies first, a loose one over it
-    const std::string overrideBindingsFile = "./Data/inputBindings.xml";
+    const std::string &overrideBindingsFile = EngineDataFiles::INPUT_BINDINGS;
     std::vector<std::string> overrideLayers = LimonFileSystem::readFileFromAllLayers(overrideBindingsFile);
     for (const std::string &layerContents : overrideLayers) {
         tinyxml2::XMLDocument document;

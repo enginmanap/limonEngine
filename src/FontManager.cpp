@@ -4,8 +4,8 @@
 
 #include "FontManager.h"
 #include "LimonFileSystem.h"
+#include "Package/EngineDataFiles.h"
 
-const std::string FontManager::DEFAULT_FONT_PATH = "Data/Fonts/Helvetica-Normal.ttf";
 
 FontManager::FontManager(GraphicsInterface* graphicsWrapper) : graphicsWrapper(graphicsWrapper) {
     if (FT_Init_FreeType(&ft)) {
@@ -24,10 +24,10 @@ Face *FontManager::getFont(const std::string &fontPath, const uint32_t size) {
         if (!LimonFileSystem::readFile(fontPath, fontData) ||
             FT_New_Memory_Face(ft, fontData.data(), static_cast<FT_Long>(fontData.size()), 0, &face)) {
             std::cerr << "Could not create font with path=[" << fontPath << "]" << std::endl
-            << "Creating with default path=[" << DEFAULT_FONT_PATH << "]" << std::endl;
+            << "Creating with default path=[" << EngineDataFiles::DEFAULT_FONT << "]" << std::endl;
 
             //if path is broken, this can be broken too, we need better error handling
-            LimonFileSystem::readFile(DEFAULT_FONT_PATH, fontData);
+            LimonFileSystem::readFile(EngineDataFiles::DEFAULT_FONT, fontData);
             FT_New_Memory_Face(ft, fontData.data(), static_cast<FT_Long>(fontData.size()), 0, &face);
         }
 
