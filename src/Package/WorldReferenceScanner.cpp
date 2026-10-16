@@ -15,6 +15,7 @@ void WorldReferenceScanner::scanDocument(const std::string &worldFile, const tin
     }
     collectTextReferences(worldElement, typeNames, references);
     collectBuiltReferences(worldFile, worldElement, references);
+    collectModelKeys(worldElement, references);
 }
 
 void WorldReferenceScanner::scanTypeNames(const tinyxml2::XMLDocument &document, const std::set<std::string> &typeNames, References &references) {
@@ -33,6 +34,24 @@ void WorldReferenceScanner::collectTextReferences(const tinyxml2::XMLElement *el
             }
         }
         collectTextReferences(child, typeNames, references);
+    }
+}
+
+//objects sit at the top level, under parents, in groups and as player attachments, so every <Object> anywhere counts
+void WorldReferenceScanner::collectModelKeys(const tinyxml2::XMLElement *element, References &references) {
+    for (const tinyxml2::XMLElement *child = element->FirstChildElement(); child != nullptr; child = child->NextSiblingElement()) {
+        if (std::string(child->Name()) == "Object") {
+            const tinyxml2::XMLElement *fileElement = child->FirstChildElement("File");
+            const tinyxml2::XMLElement *flipElement = child->FirstChildElement("Flip");
+            if (fileElement != nullptr && fileElement->GetText() != nullptr) {
+                std::string modelKey = LimonFileSystem::normalizePath(fileElement->GetText());
+                if (flipElement != nullptr && flipElement->GetText() != nullptr && flipElement->GetText()[0] != '\0') {
+                    modelKey += std::string("?flip") + flipElement->GetText();//Model's asset key, Model.cpp builds the same
+                }
+                references.modelKeys.insert(modelKey);
+            }
+        }
+        collectModelKeys(child, references);
     }
 }
 
