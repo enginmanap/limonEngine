@@ -6,23 +6,33 @@
 
 #include "../LimonFileSystem.h"
 
-void WorldReferenceScanner::scanDocument(const std::string &worldFile, const tinyxml2::XMLDocument &document, References &references) {
+void WorldReferenceScanner::scanDocument(const std::string &worldFile, const tinyxml2::XMLDocument &document,
+                                         const std::set<std::string> &typeNames, References &references) {
     addIfDataFile(worldFile, references);
     const tinyxml2::XMLElement *worldElement = document.FirstChildElement("World");
     if (worldElement == nullptr) {
         return;
     }
-    collectTextReferences(worldElement, references);
+    collectTextReferences(worldElement, typeNames, references);
     collectBuiltReferences(worldFile, worldElement, references);
 }
 
-void WorldReferenceScanner::collectTextReferences(const tinyxml2::XMLElement *element, References &references) {
+void WorldReferenceScanner::scanTypeNames(const tinyxml2::XMLDocument &document, const std::set<std::string> &typeNames, References &references) {
+    if (document.RootElement() != nullptr) {
+        collectTextReferences(document.RootElement(), typeNames, references);
+    }
+}
+
+void WorldReferenceScanner::collectTextReferences(const tinyxml2::XMLElement *element, const std::set<std::string> &typeNames, References &references) {
     for (const tinyxml2::XMLElement *child = element->FirstChildElement(); child != nullptr; child = child->NextSiblingElement()) {
         const char *text = child->GetText();
         if (text != nullptr) {
             addIfDataFile(text, references);
+            if (typeNames.count(text) != 0) {
+                references.typeNames.insert(text);
+            }
         }
-        collectTextReferences(child, references);
+        collectTextReferences(child, typeNames, references);
     }
 }
 

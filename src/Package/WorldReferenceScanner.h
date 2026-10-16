@@ -15,12 +15,18 @@ public:
     struct References {
         std::set<std::string> files;//normalized, existing files under Data/
         std::set<std::string> worlds;//the ones among files whose root is <World>
+        std::set<std::string> typeNames;//text that equals a registered type name, a coincidental match only ships something extra
     };
 
-    static void scanDocument(const std::string &worldFile, const tinyxml2::XMLDocument &document, References &references);
+    //typeNames is what a match is looked for in, the access policy needs files only and passes none
+    static void scanDocument(const std::string &worldFile, const tinyxml2::XMLDocument &document,
+                             const std::set<std::string> &typeNames, References &references);
+
+    //the same rules over any XML, render pipelines name their render methods this way
+    static void scanTypeNames(const tinyxml2::XMLDocument &document, const std::set<std::string> &typeNames, References &references);
 
 private:
-    static void collectTextReferences(const tinyxml2::XMLElement *element, References &references);
+    static void collectTextReferences(const tinyxml2::XMLElement *element, const std::set<std::string> &typeNames, References &references);
 
     static void collectBuiltReferences(const std::string &worldFile, const tinyxml2::XMLElement *worldElement, References &references);
 

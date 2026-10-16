@@ -21,7 +21,7 @@ static std::map<std::string, std::set<std::string>> worldReferences;//key is the
 
 void FileAccessPolicy::addWorld(const std::string &worldFile, const tinyxml2::XMLDocument &document) {
     WorldReferenceScanner::References references;
-    WorldReferenceScanner::scanDocument(worldFile, document, references);
+    WorldReferenceScanner::scanDocument(worldFile, document, {}, references);
     std::lock_guard<std::mutex> lock(worldReferencesMutex);
     worldReferences[LimonFileSystem::normalizePath(worldFile)] = references.files;
 }
