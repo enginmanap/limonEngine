@@ -110,6 +110,8 @@ private:
 
     std::shared_ptr<Material> loadMaterials(const aiScene *scene, unsigned int materialIndex);
 
+    void loadConvertedCPUPart();
+
     //null includedMeshes takes every mesh under the node, the pairs are a node and one of its mesh indices
     void createMeshes(const aiScene *scene, const aiNode *node, glm::mat4 parentTransform,
                       const std::set<std::pair<const aiNode *, uint32_t>> *includedMeshes = nullptr);//parent transform is not reference on purpose
@@ -211,6 +213,11 @@ public:
     //the same .limonmodel bytes, for a writer that doesn't want a file, like the packer adding it to a zip
     bool writeBinary(std::ostream &stream);
 
+    //written before the archive and checked before it is read, so a file in another layout is refused instead of parsed.
+    //Any change to what the file stores bumps the version, in any class it holds: MeshAsset, LodLadder, LevelPlan...
+    static constexpr uint32_t LIMONMODEL_MAGIC = 0x4C444D4C;//"LMDL" in file order
+    static constexpr uint32_t LIMONMODEL_VERSION = 1;
+
     //true for an asset loaded from a limonmodel, where the file itself is the store rather than a sidecar
     bool isConvertedAsset() const;
     static std::string stripFlipSuffix(const std::string &path, bool &outFlipX, bool &outFlipY, bool &outFlipZ);
@@ -220,18 +227,6 @@ public:
     //nullptr on failure, the scene lives as long as the importer
     static const aiScene *importScene(Assimp::Importer &assimpImporter, const std::string &path);
     static std::vector<std::shared_ptr<const AssetManager::EmbeddedTexture>> readEmbeddedTextures(const aiScene *scene);
-#ifdef CEREAL_SUPPORT
-    ModelAsset(AssetManager *assetManager, uint32_t assetID, const std::vector<std::string> &fileList, cereal::BinaryInputArchive& binaryArchive) :
-            Asset(assetManager, assetID, fileList, binaryArchive) {
-        binaryArchive(*this);
-        this->assetManager = assetManager;
-        name = fileList[0];//the stored name is the source's, keeping it would make this look like a source asset
-        customizationAfterSave = false;//older files stored it set, but the sections came from this file
-        //the same path a source asset takes. The steps arrived with the file, so there is nothing to measure and
-        //every mesh keeps the ranges it was deserialized with
-        buildLodLevels(LodLadder::BuildMode::NORMAL);
-    }
-#endif
     bool addAnimationAsSubSequence(const std::string &baseAnimationName, const std::string newAnimationName,
                                    float startTime, float endTime);
 
@@ -364,14 +359,24 @@ public:
             index++;
             embeddedTexture = assetManager->getEmbeddedTextures(sourcePath, index);
         }
-        ar(sourcePath, boneIDCounter, boneIDCounterPerMesh, textures,                   hasAnimation, rootNode, boundingBoxMax, boundingBoxMin, centerOffset, boneInformationMap, simplifiedMeshes, meshes, animations, animationSections, customizationAfterSave, materialMap, meshMaterialMap, transparentMaterialUsed, lodLadder);
+        //in mesh order, the map is keyed by pointer and would write in allocation order, so the same model never gave the same bytes
+        std::vector<std::shared_ptr<Material>> meshMaterials;
+        for (const std::shared_ptr<MeshAsset> &mesh : meshes) {
+            std::map<const std::shared_ptr<const MeshAsset>, std::shared_ptr<Material>>::const_iterator meshMaterial = meshMaterialMap.find(mesh);
+            meshMaterials.push_back(meshMaterial == meshMaterialMap.end() ? nullptr : meshMaterial->second);
+        }
+        ar(sourcePath, boneIDCounter, boneIDCounterPerMesh, textures,                   hasAnimation, rootNode, boundingBoxMax, boundingBoxMin, centerOffset, boneInformationMap, simplifiedMeshes, meshes, animations, animationSections, customizationAfterSave, materialMap, meshMaterials, transparentMaterialUsed, lodLadder);
     }
 
     template<class Archive>
     void load( Archive & ar ) {
-        std::map<std::shared_ptr<MeshAsset>,std::shared_ptr<Material>> tempMeshMaterialMap;
+        std::vector<std::shared_ptr<Material>> meshMaterials;
         temporaryEmbeddedTextures = std::make_unique<std::vector<std::shared_ptr<const AssetManager::EmbeddedTexture>>>();
-        ar(sourcePath, boneIDCounter, boneIDCounterPerMesh, *temporaryEmbeddedTextures, hasAnimation, rootNode, boundingBoxMax, boundingBoxMin, centerOffset, boneInformationMap, simplifiedMeshes, meshes, animations, animationSections, customizationAfterSave, materialMap, tempMeshMaterialMap, transparentMaterialUsed, lodLadder);
+        ar(sourcePath, boneIDCounter, boneIDCounterPerMesh, *temporaryEmbeddedTextures, hasAnimation, rootNode, boundingBoxMax, boundingBoxMin, centerOffset, boneInformationMap, simplifiedMeshes, meshes, animations, animationSections, customizationAfterSave, materialMap, meshMaterials, transparentMaterialUsed, lodLadder);
+        if (meshMaterials.size() != meshes.size()) {
+            std::cerr << name << " has " << meshes.size() << " meshes but " << meshMaterials.size() << " mesh materials, the file is broken. Re-export it from its source model. Exiting..." << std::endl;
+            exit(-1);
+        }
         //now update embedded textures to assetManager
         for (size_t i = 0; i < meshes.size(); ++i) {
             meshes[i]->buildBulletMesh();
@@ -380,8 +385,8 @@ public:
             simpleMesh.second->buildBulletMesh();
         }
 
-        for (const auto& tempMeshMaterialPair:tempMeshMaterialMap) {
-            meshMaterialMap[tempMeshMaterialPair.first] = tempMeshMaterialPair.second;
+        for (size_t meshIndex = 0; meshIndex < meshes.size(); ++meshIndex) {
+            meshMaterialMap[meshes[meshIndex]] = meshMaterials[meshIndex];
         }
 
         for (auto& materialPair:materialMap) {

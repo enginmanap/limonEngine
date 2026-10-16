@@ -57,14 +57,6 @@ protected:
     Asset(AssetManager *assetManager, uint32_t assetID, const std::vector<std::string> &fileList)
             : assetManager(assetManager), assetID(assetID), fileList(fileList), assetName(StringUtils::join(fileList, ",")) {};
 
-    /**
- * This is a constructor that is used for cereal loading.
- */
-#ifdef CEREAL_SUPPORT
-    Asset(AssetManager *assetManager, uint32_t assetID, const std::vector<std::string> &fileList, cereal::BinaryInputArchive& binaryArchive [[gnu::unused]])
-            : assetManager(assetManager), assetID(assetID), fileList(fileList), assetName(StringUtils::join(fileList, ",")) {};
-#endif
-
 public:
     uint32_t getAssetID() const {
         return assetID;

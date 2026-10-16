@@ -39,12 +39,6 @@ protected:
     std::shared_ptr<Texture> texture;
 public:
     TextureAsset(AssetManager *assetManager, uint32_t assetID, const std::vector<std::string> &files);
-#ifdef CEREAL_SUPPORT
-    TextureAsset(AssetManager *assetManager, uint32_t assetID, const std::vector<std::string> &fileList, cereal::BinaryInputArchive& binaryArchive) :
-    Asset(assetManager, assetID, fileList, binaryArchive) {
-        assert(false && "TextureAsset doesn't support Cereal Loading");
-    }
-#endif
     ~TextureAsset() override;
 
     //nullptr with the reason in SDL_GetError, the same contract as IMG_Load

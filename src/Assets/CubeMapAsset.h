@@ -27,12 +27,6 @@ class CubeMapAsset : public Asset {
 
 public:
     CubeMapAsset(AssetManager *assetManager, uint32_t assetID, const std::vector<std::string> &fileList);
-#ifdef CEREAL_SUPPORT
-    CubeMapAsset(AssetManager *assetManager, uint32_t assetID, const std::vector<std::string> &fileList, cereal::BinaryInputArchive& binaryArchive) :
-    Asset(assetManager, assetID, fileList, binaryArchive) {
-        assert(false && "Cubemap doesn't support Cereal Loading");
-    }
-#endif
 
     ~CubeMapAsset() {}
 

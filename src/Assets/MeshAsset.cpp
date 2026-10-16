@@ -376,15 +376,6 @@ void MeshAsset::bakeAllOccluderLods() {
     }
 }
 
-#ifdef CEREAL_SUPPORT
-void MeshAsset::checkSerializationMagic(uint32_t magic) const {
-    if (magic != SERIALIZATION_MAGIC) {
-        std::cerr << "This limonmodel file is from an older format, re-export it from its source model. Exiting..." << std::endl;
-        exit(1);
-    }
-}
-#endif
-
 void MeshAsset::normalizeTextureCoordinates(glm::vec2 &textureCoordinates) const {
     float fractionPart = textureCoordinates.x;
     if(fabs(textureCoordinates.x) > 1) {

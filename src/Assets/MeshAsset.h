@@ -78,9 +78,6 @@ private:
     //assimp splits on channels we never read, like a second uv set. Those copies leave seam vertices with extra
     //wedges, which meshopt locks, so the same model simplifies differently depending on what its file carried
     void weldIdenticalVertices();
-#ifdef CEREAL_SUPPORT
-    void checkSerializationMagic(uint32_t magic) const;
-#endif
 
     void normalizeTextureCoordinates(glm::vec2 &textureCoordinates) const;
 #ifdef CEREAL_SUPPORT
@@ -210,14 +207,9 @@ public:
         return name;
     }
 #ifdef CEREAL_SUPPORT
-    //bumped whenever the stored LOD data changes, an older file can not produce it, so we stop instead of reading garbage
-    static constexpr uint32_t SERIALIZATION_MAGIC = 0x4C4D4641;
-
+    //a change here changes the .limonmodel layout, bump ModelAsset::LIMONMODEL_VERSION
     template<class Archive>
     void serialize(Archive & archive){
-        uint32_t magic = SERIALIZATION_MAGIC;
-        archive(magic);
-        checkSerializationMagic(magic);
         archive( vertices, normals, textureCoordinates, faces, vertexCount, triangleCount, offsets, builtPlan, bakedOccluders, skeleton, bones, boneIDs, boneWeights, boneAttachedMeshes, boneIdMap, name, isPartOfAnimated, parentTransform, minAABB, maxAABB);
     }
 #endif

@@ -161,35 +161,6 @@ private:
         }
     };
 
-    //a limonmodel has its flip baked into the exported vertices, so a map asking for one again was hand edited
-    static bool isLimonModelFile(const std::string& file) {
-        size_t flipPosition = file.rfind("?flip");
-        std::string path = flipPosition == std::string::npos ? file : file.substr(0, flipPosition);
-        if (path.substr(path.find_last_of(".") + 1) != "limonmodel") {
-            return false;
-        }
-        if (flipPosition != std::string::npos) {
-            std::cerr << "Flip is not supported on " << path << ", re-export the flipped variant instead. Exiting..." << std::endl;
-            exit(-1);
-        }
-        return true;
-    }
-
-#ifdef CEREAL_SUPPORT
-    template<class T>
-    std::shared_ptr<T> deserializeLimonModel(const std::vector<std::string> &files, uint32_t assetIndex) {
-        std::vector<uint8_t> fileContents;
-        if (!LimonFileSystem::readFile(files[0], fileContents)) {
-            std::cerr << "Could not read " << files[0] << ". Exiting..." << std::endl;
-            exit(-1);
-        }
-        LimonFileSystem::MemoryStreamBuffer streamBuffer(fileContents);
-        std::istream stream(&streamBuffer);
-        cereal::BinaryInputArchive archive(stream);
-        return std::make_shared<T>(this, assetIndex, files, archive);
-    }
-#endif
-
     //model key to the .limonmodel a package carries instead of the raw model, both normalized. Filled once before any load
     std::unordered_map<std::string, std::string> packedModelFiles;
 
@@ -313,29 +284,9 @@ public:
             std::lock_guard<std::mutex> lock(assetsMutex);
             if (assets.count(files) == 0) {
                 uint32_t nextAssetIndexLocal = getNextAssetIndex();
-                bool loaded = false;
-                //check if asset is cereal deserialize file.
-                if(files.size() == 1) {
-                    if (isLimonModelFile(files[0])) {
-#ifdef CEREAL_SUPPORT
-                        assets[files] = std::make_pair(deserializeLimonModel<T>(files, nextAssetIndexLocal), 0);
-                        assets[files].first->setLoadState(Asset::LoadState::CPU_LOAD_DONE);
-
-                        startedAssetIds.insert(nextAssetIndexLocal);
-                        assetLoadGPUQueue.pushBack(assets[files].first, true);
-#else
-                        std::cerr << "Limon compiled without limonmodel support. Please acquire a release version. Exiting..." << std::endl;
-                    std::cerr << "Compile should define \"CEREAL_SUPPORT\"." << std::endl;
-                    exit(-1);
-#endif
-                        loaded = true;
-                    }
-                }
-                if(!loaded) {
-                    assets[files] = std::make_pair(std::make_shared<T>(this, nextAssetIndexLocal, files), 0);
-                    startedAssetIds.insert(nextAssetIndexLocal);
-                    assetLoadCpuQueue.pushBack(assets[files].first, true);
-                }
+                assets[files] = std::make_pair(std::make_shared<T>(this, nextAssetIndexLocal, files), 0);
+                startedAssetIds.insert(nextAssetIndexLocal);
+                assetLoadCpuQueue.pushBack(assets[files].first, true);
             }
             assets[files].second++;
             loadedAssets.emplace_back(std::dynamic_pointer_cast<T>(assets[files].first));
@@ -372,28 +323,8 @@ public:
     std::unique_lock<std::mutex> lock(assetsMutex);
         if (assets.count(files) == 0) {
             uint32_t nextAssetIndexLocal = getNextAssetIndex();
-            bool loaded = false;
-            //check if asset is cereal deserialize file.
-            if(files.size() == 1) {
-                if (isLimonModelFile(files[0])) {
-#ifdef CEREAL_SUPPORT
-                    assets[files] = std::make_pair(deserializeLimonModel<T>(files, nextAssetIndexLocal), 0);
-                    assets[files].first->setLoadState(Asset::LoadState::CPU_LOAD_DONE);
-
-                    assetLoadGPUQueue.pushBack(assets[files].first, true);
-
-#else
-                    std::cerr << "Limon compiled without limonmodel support. Please acquire a release version. Exiting..." << std::endl;
-                std::cerr << "Compile should define \"CEREAL_SUPPORT\"." << std::endl;
-                exit(-1);
-#endif
-                    loaded = true;
-                }
-            }
-            if(!loaded) {
-                assets[files] = std::make_pair(std::make_shared<T>(this, nextAssetIndexLocal, files), 0);
-                assetLoadCpuQueue.pushBack(assets[files].first, false);
-            }
+            assets[files] = std::make_pair(std::make_shared<T>(this, nextAssetIndexLocal, files), 0);
+            assetLoadCpuQueue.pushBack(assets[files].first, false);
         }
         assets[files].second++;
         return std::dynamic_pointer_cast<T>(assets[files].first);
@@ -420,42 +351,19 @@ public:
         const std::vector<std::string> files = resolvePackedModel(requestedFiles);
         std::shared_ptr<Asset> assetPtr;
         bool needsSynchronousLoad = false;
-        bool needsGPULoad = false;
         {
             //reservation: the existence check and the placeholder insert must happen in the same
             // critical section, so no two threads can ever both decide to load the same asset.
             std::lock_guard<std::mutex> lock(assetsMutex);
             if (assets.count(files) == 0) {
-                bool loaded = false;
-                //check if asset is cereal deserialize file.
-                if(files.size() == 1) {
-                    if (isLimonModelFile(files[0])) {
-#ifdef CEREAL_SUPPORT
-                        assets[files] = std::make_pair(deserializeLimonModel<T>(files, getNextAssetIndex()), 0);
-                        assets[files].first->setLoadState(Asset::LoadState::CPU_LOAD_DONE);
-                        needsGPULoad = true;//not here, the GPU part attaches material textures, which takes assetsMutex again
-#else
-                        std::cerr << "Limon compiled without limonmodel support. Please acquire a release version. Exiting..." << std::endl;
-                        std::cerr << "Compile should define \"CEREAL_SUPPORT\"." << std::endl;
-                        exit(-1);
-#endif
-                        loaded = true;
-                    }
-                }
-                if(!loaded) {
-                    assets[files] = std::make_pair(std::make_shared<T>(this, getNextAssetIndex(), files), 0);
-                    needsSynchronousLoad = true;
-                }
+                assets[files] = std::make_pair(std::make_shared<T>(this, getNextAssetIndex(), files), 0);
+                needsSynchronousLoad = true;
             }
             assetPtr = assets[files].first;
         }
         //everything below runs without assetsMutex held, so unrelated assets stay fully parallel.
         if(needsSynchronousLoad) {
             assetPtr->load();
-        }
-        if(needsGPULoad) {
-            assetPtr->loadGPUPart();
-            assetPtr->setLoadState(Asset::LoadState::DONE);
         }
         while (assetPtr->getLoadState() != Asset::LoadState::DONE) {
             //some other thread is working on this, we should block.

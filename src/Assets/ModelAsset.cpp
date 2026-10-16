@@ -111,6 +111,10 @@ void ModelAsset::computeBoundsFromVertices() {
 }
 
 void ModelAsset::loadCPUPart() {
+    if (isConvertedAsset()) {
+        loadConvertedCPUPart();
+        return;
+    }
 
     //std::cout << "ASSIMP::Loading::" << name << std::endl;
     Assimp::Importer assimpImporter;
@@ -292,6 +296,47 @@ void ModelAsset::buildLodGeometry(std::vector<LodLadder::MeshGeometry> &outGeome
     }
 }
 
+//the file holds what a source load produced, so this replaces the assimp import and the steps after it
+void ModelAsset::loadConvertedCPUPart() {
+#ifdef CEREAL_SUPPORT
+    if (flipX || flipY || flipZ) {
+        //the mirror is applied only while importing, the stored vertices can't take it any more
+        std::cerr << "Flip is not supported on " << name << ", re-export the flipped variant instead. Exiting..." << std::endl;
+        exit(-1);
+    }
+    std::vector<uint8_t> fileContents;
+    if (!LimonFileSystem::readFile(name, fileContents)) {
+        std::cerr << "Could not read " << name << ". Exiting..." << std::endl;
+        exit(-1);
+    }
+    LimonFileSystem::MemoryStreamBuffer streamBuffer(fileContents);
+    std::istream stream(&streamBuffer);
+    cereal::BinaryInputArchive archive(stream);
+    uint32_t magic = 0;
+    uint32_t version = 0;
+    if (fileContents.size() >= sizeof(magic) + sizeof(version)) {//cereal throws reading past the end, and nothing catches it
+        archive(magic, version);
+    }
+    if (magic != LIMONMODEL_MAGIC) {
+        std::cerr << name << " is not a .limonmodel, or is from before the format had a version. Re-export it from its source model. Exiting..." << std::endl;
+        exit(-1);
+    }
+    if (version != LIMONMODEL_VERSION) {
+        std::cerr << name << " is .limonmodel version " << version << ", this engine reads version " << LIMONMODEL_VERSION
+                  << ". Re-export it from its source model. Exiting..." << std::endl;
+        exit(-1);
+    }
+    archive(*this);
+    customizationAfterSave = false;//older files stored it set, but the sections came from this file
+    //the same path a source asset takes. The steps arrived with the file, so there is nothing to measure and
+    //every mesh keeps the ranges it was deserialized with
+    buildLodLevels(LodLadder::BuildMode::NORMAL);
+#else
+    std::cerr << "Limon compiled without limonmodel support, " << name << " can't be loaded. Compile should define \"CEREAL_SUPPORT\". Exiting..." << std::endl;
+    exit(-1);
+#endif
+}
+
 bool ModelAsset::isConvertedAsset() const {
     return name.substr(name.find_last_of(".") + 1) == "limonmodel";
 }
@@ -328,7 +373,9 @@ bool ModelAsset::writeBinary(std::ostream &stream) {
     bakeAllOccluderLods();//load only baked the level the option asked for, the file should carry all of them
     {
         cereal::BinaryOutputArchive archive(stream);
-        archive(*this);
+        uint32_t magic = LIMONMODEL_MAGIC;
+        uint32_t version = LIMONMODEL_VERSION;
+        archive(magic, version, *this);
     }
     stream.flush();
     return stream.good();
