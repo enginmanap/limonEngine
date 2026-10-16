@@ -112,6 +112,19 @@ bool LimonFileSystem::initialize(const char *argv0) {
     return true;
 }
 
+bool LimonFileSystem::isPackageMounted() {
+    return packageMounted;
+}
+
+bool LimonFileSystem::isLooseDataFile(const std::string &path) {
+    std::vector<std::string> layerPaths;
+    if (!dataMounted || !resolveLayers(normalizePath(path), layerPaths) || layerPaths.empty()) {
+        return false;
+    }
+    //Data/ paths resolve to the loose layer first when it is mounted
+    return layerPaths[0].compare(0, DATA_LAYER.size(), DATA_LAYER) == 0 && isLayerFile(layerPaths[0]);
+}
+
 bool LimonFileSystem::resolveLayers(const std::string &normalizedPath, std::vector<std::string> &layerPaths) {
     layerPaths.clear();
     size_t slashPosition = normalizedPath.find('/');

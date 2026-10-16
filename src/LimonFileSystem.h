@@ -30,6 +30,11 @@ public:
     //mounts ./Engine, ./Data.pak and ./Data. Must run before the first read
     static bool initialize(const char *argv0);
 
+    static bool isPackageMounted();
+
+    //only the loose Data/ layer, a file here wins over anything the package says about the same path
+    static bool isLooseDataFile(const std::string &path);
+
     static std::string normalizePath(const std::string &path);
 
     static bool fileExists(const std::string &path);

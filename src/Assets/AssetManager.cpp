@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <string>
 #include "../LimonFileSystem.h"
+#include "../Package/EngineDataFiles.h"
 
 void AssetManager::addAssetsRecursively(const std::string &directoryPath, const std::string &fileName,
                                         const std::vector<std::pair<std::string, AssetTypes>> &fileExtensions,
@@ -97,6 +98,30 @@ std::vector<std::pair<std::string, AssetManager::AssetTypes>> AssetManager::load
         currentAssetNode = currentAssetNode->NextSiblingElement("Asset");
     }
     return extensionList;
+}
+
+void AssetManager::loadPackageManifest() {
+    if (!LimonFileSystem::isPackageMounted()) {
+        return;
+    }
+    tinyxml2::XMLDocument manifestDocument;
+    if (LimonFileSystem::loadXML(EngineDataFiles::PACKAGE_MANIFEST, manifestDocument) != tinyxml2::XML_SUCCESS ||
+        manifestDocument.FirstChildElement("PackManifest") == nullptr) {
+        //every pack --pack builds has one, without it no packed model can load
+        std::cerr << "Data.pak has no valid " << EngineDataFiles::PACKAGE_MANIFEST << ", it was not built by --pack. Exiting." << std::endl;
+        exit(-1);
+    }
+    for (const tinyxml2::XMLElement *modelElement = manifestDocument.FirstChildElement("PackManifest")->FirstChildElement("Model");
+         modelElement != nullptr; modelElement = modelElement->NextSiblingElement("Model")) {
+        const char *key = modelElement->Attribute("key");
+        const char *file = modelElement->Attribute("file");
+        if (key == nullptr || file == nullptr) {
+            std::cerr << "Model entry without key or file in " << EngineDataFiles::PACKAGE_MANIFEST << ", the package is broken. Exiting." << std::endl;
+            exit(-1);
+        }
+        packedModelFiles[key] = file;
+    }
+    std::cout << "Data.pak converts " << packedModelFiles.size() << " model paths to .limonmodel files" << std::endl;
 }
 
 bool AssetManager::loadAssetList() {

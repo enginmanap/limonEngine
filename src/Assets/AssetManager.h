@@ -190,6 +190,26 @@ private:
     }
 #endif
 
+    //model key to the .limonmodel a package carries instead of the raw model, both normalized. Filled once before any load
+    std::unordered_map<std::string, std::string> packedModelFiles;
+
+    void loadPackageManifest();
+
+    //a package converts every raw model, so a raw key is redirected to its .limonmodel. A loose raw file still wins, it is the higher layer
+    std::vector<std::string> resolvePackedModel(const std::vector<std::string> &files) const {
+        if (files.size() != 1 || packedModelFiles.empty()) {
+            return files;
+        }
+        size_t flipPosition = files[0].rfind("?flip");
+        std::string modelFile = files[0].substr(0, flipPosition);
+        std::string normalizedKey = LimonFileSystem::normalizePath(modelFile) + (flipPosition == std::string::npos ? "" : files[0].substr(flipPosition));
+        std::unordered_map<std::string, std::string>::const_iterator packedModel = packedModelFiles.find(normalizedKey);
+        if (packedModel == packedModelFiles.end() || LimonFileSystem::isLooseDataFile(modelFile)) {
+            return files;
+        }
+        return {"./" + packedModel->second};
+    }
+
     AssetLoadQueue assetLoadCpuQueue;
     AssetLoadQueue assetLoadGPUQueue;
 
@@ -272,6 +292,7 @@ public:
     explicit AssetManager(GraphicsInterface* graphicsWrapper, ALHelper *alHelper) : materialRegistry(graphicsWrapper), graphicsWrapper(graphicsWrapper), alHelper(alHelper) {
         nextAssetIndex.store(0);
         loadAssetList();
+        loadPackageManifest();
         size_t num_threads = std::thread::hardware_concurrency();
         for (size_t i = 0; i < num_threads; ++i) {
             AssetLoadThreadState* state = new AssetLoadThreadState();
@@ -287,7 +308,8 @@ public:
     std::vector<std::shared_ptr<T>>parallelLoadAssetList(const std::vector<std::vector<std::string>> filesList) {
         std::vector<std::shared_ptr<T>> loadedAssets;
         std::unordered_set<uint32_t> startedAssetIds;
-        for(const auto &files : filesList) {
+        for(const std::vector<std::string> &requestedFiles : filesList) {
+            const std::vector<std::string> files = resolvePackedModel(requestedFiles);
             std::lock_guard<std::mutex> lock(assetsMutex);
             if (assets.count(files) == 0) {
                 uint32_t nextAssetIndexLocal = getNextAssetIndex();
@@ -341,7 +363,8 @@ public:
     }
 
     template<class T>
-    std::shared_ptr<T> partialLoadAssetAsync(const std::vector<std::string> files) {
+    std::shared_ptr<T> partialLoadAssetAsync(const std::vector<std::string> requestedFiles) {
+    const std::vector<std::string> files = resolvePackedModel(requestedFiles);
     //this method can be called by another thread, because some assets create other assets
     // ex: Model assets load Texture assets
     // If model asset was loading on a non main loading thread, this will be called by that thread.
@@ -393,7 +416,8 @@ public:
     }
 
     template<class T>
-    std::shared_ptr<T>loadAsset(const std::vector<std::string> files) {
+    std::shared_ptr<T>loadAsset(const std::vector<std::string> requestedFiles) {
+        const std::vector<std::string> files = resolvePackedModel(requestedFiles);
         std::shared_ptr<Asset> assetPtr;
         bool needsSynchronousLoad = false;
         bool needsGPULoad = false;
@@ -444,7 +468,8 @@ public:
         return std::dynamic_pointer_cast<T>(assetPtr);
     }
 
-    void freeAsset(const std::vector<std::string> files) {
+    void freeAsset(const std::vector<std::string> requestedFiles) {
+        const std::vector<std::string> files = resolvePackedModel(requestedFiles);
         if(files.size() == 0) {
             std::cerr << "Free asset call with empty file list, this is invalid!" << std::endl;
             return;
@@ -479,6 +504,7 @@ public:
     }
 
     bool isLoaded(std::vector<std::string> filename) {
+        filename = resolvePackedModel(filename);
         std::lock_guard<std::mutex> lock(assetsMutex);
         return this->assets.find(filename) != this->assets.end();
     }
