@@ -208,6 +208,9 @@ public:
     //bakes every occluder level first, so only between frames
     bool writeBinary(const std::string &path);
 
+    //the same .limonmodel bytes, for a writer that doesn't want a file, like the packer adding it to a zip
+    bool writeBinary(std::ostream &stream);
+
     //true for an asset loaded from a limonmodel, where the file itself is the store rather than a sidecar
     bool isConvertedAsset() const;
     static std::string stripFlipSuffix(const std::string &path, bool &outFlipX, bool &outFlipY, bool &outFlipZ);

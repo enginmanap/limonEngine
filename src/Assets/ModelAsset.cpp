@@ -311,25 +311,29 @@ bool ModelAsset::saveChanges() {
 }
 
 bool ModelAsset::writeBinary(const std::string &path) {
-#ifdef CEREAL_SUPPORT
-    bakeAllOccluderLods();//load only baked the level the option asked for, the file should carry all of them
     std::ofstream os(path, std::ios::binary);
     if (!os.is_open()) {
         std::cerr << "Could not open " << path << " for writing" << std::endl;
         return false;
     }
-    {
-        cereal::BinaryOutputArchive archive(os);
-        archive(*this);
-    }
-    os.flush();
-    if (!os.good()) {
+    if (!writeBinary(os)) {
         std::cerr << "Writing " << path << " failed" << std::endl;
         return false;
     }
     return true;
+}
+
+bool ModelAsset::writeBinary(std::ostream &stream) {
+#ifdef CEREAL_SUPPORT
+    bakeAllOccluderLods();//load only baked the level the option asked for, the file should carry all of them
+    {
+        cereal::BinaryOutputArchive archive(stream);
+        archive(*this);
+    }
+    stream.flush();
+    return stream.good();
 #else
-    std::cerr << "Cereal support disabled, " << path << " not written" << std::endl;
+    std::cerr << "Cereal support disabled, " << name << " not written" << std::endl;
     return false;
 #endif
 }
