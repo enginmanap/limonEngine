@@ -13,7 +13,7 @@
 class WorldReferenceScanner {
 public:
     struct References {
-        std::set<std::string> files;//normalized, existing files under Data/
+        std::set<std::string> files;//normalized paths under Data/ the world names, whether they exist or not
         std::set<std::string> worlds;//the ones among files whose root is <World>
         std::set<std::string> modelKeys;//the asset key a Model builds: the normalized file, then ?flip and the axes if flipped
         std::set<std::string> typeNames;//text that equals a registered type name, a coincidental match only ships something extra
@@ -33,7 +33,7 @@ private:
 
     static void collectBuiltReferences(const std::string &worldFile, const tinyxml2::XMLElement *worldElement, References &references);
 
-    static void addIfDataFile(const std::string &path, References &references);
+    static void addDataPath(const std::string &path, References &references);
 
     static bool isWorldFile(const std::string &normalizedPath);
 };
