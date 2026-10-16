@@ -104,7 +104,7 @@ void bindInterfaces(pybind11::module_& m) {
             .def_readonly_static("LOOK_Y",              &InputActionsExport::LOOK_Y);
 
     // same function inputBindings.xml action names go through, so custom actions match
-    m.def("hash", &::hash, pybind11::arg("text"));
+    m.def("hash", static_cast<uint64_t (*)(const std::string &)>(&::hash), pybind11::arg("text"));
 
     pybind11::enum_<InputStates::ActiveDevice>(m, "ActiveDevice")
             .value("KEYBOARD_MOUSE", InputStates::ActiveDevice::KEYBOARD_MOUSE)

@@ -13,7 +13,6 @@
 #include <iostream>
 
 #include "LodMetadata.h"
-#include "consthash/include/consthash/cityhash64.hxx"
 #include "limonAPI/Options.h"
 #include "limonAPI/util/HashUtil.h"
 
@@ -93,7 +92,7 @@ void LodLadder::computeSettingsHash() {
         size_t packedLength = strlen(packed);
         snprintf(packed + packedLength, sizeof(packed) - packedLength, "|b%.9g", boneWeightDeviation);
     }
-    settingsHash = consthash::city64(packed, strlen(packed));
+    settingsHash = hash(packed, strlen(packed));
 }
 
 //one list per field, one entry per step. An empty distance list is how a project switches levels off
@@ -114,7 +113,7 @@ void LodLadder::readStepsFromOptions(OptionsUtil::Options *options) {
     std::vector<float> lists[6];
     for (uint32_t list = 0; list < 6; ++list) {
         OptionsUtil::Options::Option<std::vector<float>> option =
-                options->getOption<std::vector<float>>(consthash::city64(listNames[list], strlen(listNames[list])));
+                options->getOption<std::vector<float>>(hash(listNames[list], strlen(listNames[list])));
         if (option.isUsable()) {
             lists[list] = option.get();
         }

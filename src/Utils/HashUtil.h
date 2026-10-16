@@ -8,7 +8,6 @@
 #include <string>
 #include <unordered_map>
 #include <iostream>
-#include "consthash/include/consthash/cityhash64.hxx"
 #include "limonAPI/util/HashUtil.h"
 
 class HashUtil {
@@ -19,7 +18,7 @@ public:
     public :
         const uint64_t hash;
         const std::string text;
-        explicit HashedString(const std::string& text): hash(consthash::city64(text.c_str(), text.length())), text(text){
+        explicit HashedString(const std::string& text): hash(::hash(text)), text(text){
             auto textIterator = allHashedStrings.find(hash);
             if(textIterator != allHashedStrings.end() && textIterator->second != text) {
                 std::cerr << "Hash collision found , both [" << text << "] and [" << textIterator->second << "] generated same hash " << hash << std::endl;
@@ -30,7 +29,7 @@ public:
     };
 
     static uint64_t hashString(const std::string& text) {
-        uint64_t hash = consthash::city64(text.c_str(), text.length());
+        uint64_t hash = ::hash(text);
         auto textIterator = allHashedStrings.find(hash);
         if(textIterator != allHashedStrings.end() && textIterator->second != text) {
             std::cerr << "Hash collision found , both [" << text << "] and [" << textIterator->second << "] generated same hash " << hash << std::endl;

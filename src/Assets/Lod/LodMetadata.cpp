@@ -8,7 +8,7 @@
 #include <iostream>
 #include <mutex>
 #include <tinyxml2.h>
-#include "consthash/include/consthash/cityhash64.hxx"
+#include "limonAPI/util/HashUtil.h"
 #include <SDL3/SDL_filesystem.h>
 #include "../../LimonFileSystem.h"
 
@@ -131,7 +131,7 @@ uint64_t LodMetadata::hashGeometry(const std::vector<LodLadder::MeshGeometry> &m
                  mesh.aabbMin.x, mesh.aabbMin.y, mesh.aabbMin.z, mesh.aabbMax.x, mesh.aabbMax.y, mesh.aabbMax.z);
         packed += buffer;
     }
-    return consthash::city64(packed.c_str(), packed.length());
+    return hash(packed);
 }
 
 //%.9g everywhere, because a rounded error would regenerate a different index buffer than the one measured
