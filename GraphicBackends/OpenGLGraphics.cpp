@@ -454,6 +454,7 @@ bool OpenGLGraphics::createGraphicsBackend() {
             break;
         }
     }
+    pushDebugGroup("Start-up");
     if(!isCubeMapArraySupported) {
         std::cerr << "Cubemap array support is mandatory, exiting.. " << std::endl;
         exit(-1);

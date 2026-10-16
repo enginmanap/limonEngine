@@ -439,6 +439,7 @@ bool OpenGLESGraphics::createGraphicsBackend() {
             break;
         }
     }
+    pushDebugGroup("Start-up");
     //program interface query and framebuffer parameters are core in ES 3.1, and verifyContext refuses anything lower.
     //They used to be tested against ARB names, which an ES driver never reports, so both stayed off on every ES device
     isProgramInterfaceQuerySupported = true;
