@@ -34,3 +34,6 @@
 [submodule "libs/physfs"]
 	path = libs/physfs
 	url = https://github.com/icculus/physfs.git
+[submodule "libs/miniz"]
+	path = libs/miniz
+	url = https://github.com/richgel999/miniz.git

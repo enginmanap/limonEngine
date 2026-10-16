@@ -58,6 +58,13 @@ set(CMAKE_POLICY_VERSION_MINIMUM 3.5)#release-3.2.0 asks for cmake 3.0, which cm
 add_subdirectory("libs/physfs/" EXCLUDE_FROM_ALL)
 unset(CMAKE_POLICY_VERSION_MINIMUM)
 
+#writes the package zip, only --pack and the editor export use it
+set(BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+set(BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(BUILD_FUZZERS OFF CACHE BOOL "" FORCE)
+set(INSTALL_PROJECT OFF CACHE BOOL "" FORCE)
+add_subdirectory("libs/miniz/" EXCLUDE_FROM_ALL)
+
 if (NOT LIBS_EXTERNAL_ASSIMP)
     add_subdirectory("libs/assimp/")
 endif()

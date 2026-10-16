@@ -84,6 +84,8 @@ public:
     //empty outputDirectory picks a folder named after the source, next to it
     bool convertModelToWorld(const std::string &sourceFile, const std::string &outputDirectory, float scale);
 
+    bool buildPackage(const std::string &outputFile);
+
     void returnPreviousMap();
 
     bool returnOrLoadMap(const std::string &worldFile);

@@ -79,6 +79,14 @@ public:
 
     void runGC();
 
+    bool hasActiveSubInterpreter() const {
+        return activeSubinterpreter != nullptr;
+    }
+
+    const std::vector<std::string>& getScriptDirectories() const {
+        return scriptDirectories;
+    }
+
     const std::map<std::string, std::string>& getPythonTypeModules() const {
         return pythonTypeModules;
     }

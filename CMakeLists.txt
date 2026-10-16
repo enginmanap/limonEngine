@@ -19,6 +19,7 @@ if(TRACY_SERVER_ENABLED)
     add_definitions(-DTRACY_SERVER_ENABLED)
 endif()
 
+
 #set(CMAKE_VERBOSE_MAKEFILE ON)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
@@ -235,7 +236,7 @@ add_custom_target(copyData
         ${CMAKE_SOURCE_DIR}/Engine ${CMAKE_BINARY_DIR}/Engine)
 add_dependencies(LimonEngine copyData)
 
-TARGET_LINK_LIBRARIES(LimonEngine ProfilerSystemLib physfs-static ImGui ImGuizmo OpenAL meshoptimizer nodeGraph ${LIMON_ASSIMP_LIBRARY} pybind11::embed SDOC.quic TracyClient TracyServer ${WINDOWS_SPECIFIC_LINK_LIBRARIES} ${TinyXML2_LIBRARIES} ${BULLET_LIBRARIES} SDL3::SDL3 ${FREETYPE_LIBRARIES} SDL3_image::SDL3_image)
+TARGET_LINK_LIBRARIES(LimonEngine ProfilerSystemLib physfs-static miniz ImGui ImGuizmo OpenAL meshoptimizer nodeGraph ${LIMON_ASSIMP_LIBRARY} pybind11::embed SDOC.quic TracyClient TracyServer ${WINDOWS_SPECIFIC_LINK_LIBRARIES} ${TinyXML2_LIBRARIES} ${BULLET_LIBRARIES} SDL3::SDL3 ${FREETYPE_LIBRARIES} SDL3_image::SDL3_image)
 
 # Optional: Wayland fullscreen viewport scaling fix (Linux/Pi only)
 if(UNIX AND NOT APPLE)

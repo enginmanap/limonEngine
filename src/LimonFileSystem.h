@@ -27,8 +27,9 @@ public:
         }
     };
 
-    //mounts ./Engine, ./Data.pak and ./Data. Must run before the first read
-    static bool initialize(const char *argv0);
+    //mounts ./Engine, ./Data.pak and dataDirectory as Data/. Must run before the first read.
+    //--pack mounts its source as Data/ without the package, so the output is built from that tree alone
+    static bool initialize(const char *argv0, const std::string &dataDirectory = "./Data", bool mountPackage = true);
 
     static bool isPackageMounted();
 

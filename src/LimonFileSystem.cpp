@@ -83,7 +83,7 @@ static std::string lastPhysfsError() {
     return PHYSFS_getErrorByCode(PHYSFS_getLastErrorCode());
 }
 
-bool LimonFileSystem::initialize(const char *argv0) {
+bool LimonFileSystem::initialize(const char *argv0, const std::string &dataDirectory, bool mountPackage) {
     if (!PHYSFS_init(argv0)) {
         std::cerr << "File system could not start: " << lastPhysfsError() << std::endl;
         return false;
@@ -94,7 +94,7 @@ bool LimonFileSystem::initialize(const char *argv0) {
         return false;
     }
     SDL_PathInfo pathInfo;
-    if (SDL_GetPathInfo("./Data.pak", &pathInfo)) {
+    if (mountPackage && SDL_GetPathInfo("./Data.pak", &pathInfo)) {
         if (!PHYSFS_mount("./Data.pak", PACKAGE_LAYER.c_str(), 1)) {
             std::cerr << "Could not mount ./Data.pak: " << lastPhysfsError() << std::endl;
             return false;
@@ -102,9 +102,9 @@ bool LimonFileSystem::initialize(const char *argv0) {
         packageMounted = true;
         std::cout << "Mounted ./Data.pak, loose files in ./Data override it" << std::endl;
     }
-    if (SDL_GetPathInfo("./Data", &pathInfo) && pathInfo.type == SDL_PATHTYPE_DIRECTORY) {
-        if (!PHYSFS_mount("./Data", DATA_LAYER.c_str(), 1)) {
-            std::cerr << "Could not mount ./Data: " << lastPhysfsError() << std::endl;
+    if (SDL_GetPathInfo(dataDirectory.c_str(), &pathInfo) && pathInfo.type == SDL_PATHTYPE_DIRECTORY) {
+        if (!PHYSFS_mount(dataDirectory.c_str(), DATA_LAYER.c_str(), 1)) {
+            std::cerr << "Could not mount " << dataDirectory << ": " << lastPhysfsError() << std::endl;
             return false;
         }
         dataMounted = true;

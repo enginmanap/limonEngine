@@ -18,6 +18,7 @@
 #include "LimonFileSystem.h"
 #include "Package/FileAccessPolicy.h"
 #include "Package/EngineDataFiles.h"
+#include "Package/PackageBuilder.h"
 #include <algorithm>
 #include <cstdlib>
 
@@ -276,6 +277,12 @@ GameEngine::GameEngine() {
     worldLoader = new WorldLoader(assetManager, inputHandler, options, profilerSystem, frameTimeTracker, &frameResourceHandles);
 }
 
+bool GameEngine::buildPackage(const std::string &outputFile) {
+    scriptManager->createWorldInterpreter("--pack");//the packer reads Python types from the active interpreter, as a world load would leave it
+    PackageBuilder packageBuilder(assetManager, scriptManager, options);
+    return packageBuilder.build(outputFile);
+}
+
 bool GameEngine::convertModelToWorld(const std::string &sourceFile, const std::string &outputDirectory, float scale) {
     ModelToWorldConverter converter(assetManager, sourceFile, outputDirectory, scale);
     return converter.convert();
@@ -494,6 +501,19 @@ bool getWorldNameFromReleaseXML(std::string &worldName) {
 }
 
 int main(int argc, char *argv[]) {
+    if(argc >= 2 && std::string(argv[1]) == "--pack") {
+        if(argc != 4) {
+            std::cerr << "usage: " + PROGRAM_NAME + " --pack <source Data directory> <output package>" << std::endl;
+            return -1;
+        }
+        //the source is mounted as Data/ and no package under it, so the output holds that tree and nothing from an older package
+        if(!LimonFileSystem::initialize(argv[0], argv[2], false)) {
+            std::cerr << "File system could not start, exiting." << std::endl;
+            return -1;
+        }
+        GameEngine packerEngine;
+        return packerEngine.buildPackage(argv[3]) ? 0 : -1;
+    }
     //never shut down: GameEngine is destroyed after main's last statement, and its asset threads may still read
     if(!LimonFileSystem::initialize(argv[0])) {
         std::cerr << "File system could not start, exiting." << std::endl;

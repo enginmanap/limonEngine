@@ -503,6 +503,28 @@ public:
         }
     }
 
+    //a raw model a package carries only as its .limonmodel still loads, so it exists for whoever asks
+    bool isModelAvailable(const std::string &modelKey) const {
+        std::vector<std::string> resolvedFiles = resolvePackedModel({modelKey});
+        return LimonFileSystem::fileExists(resolvedFiles[0].substr(0, resolvedFiles[0].rfind("?flip")));
+    }
+
+    //the raw model keys a mounted package converted into this .limonmodel, empty if it is not one of them
+    std::vector<std::string> getPackedModelKeys(const std::string &packedModelFile) const {
+        std::string normalizedFile = LimonFileSystem::normalizePath(packedModelFile);
+        std::vector<std::string> modelKeys;
+        for (const std::pair<const std::string, std::string> &packedModel : packedModelFiles) {
+            if (packedModel.second == normalizedFile) {
+                modelKeys.push_back(packedModel.first);
+            }
+        }
+        return modelKeys;
+    }
+
+    std::vector<std::pair<std::string, AssetTypes>> getAssetExtensions() {
+        return loadAssetExtensionList();
+    }
+
     bool isLoaded(std::vector<std::string> filename) {
         filename = resolvePackedModel(filename);
         std::lock_guard<std::mutex> lock(assetsMutex);
