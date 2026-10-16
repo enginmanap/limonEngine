@@ -77,8 +77,6 @@ ImGuiResult Material::addImGuiEditorElements(const ImGuiRequest &request) {
     dirty = ImGui::SliderFloat3("Specular Color", &this->specularColor.x, 0, 1) || dirty;
     dirty = ImGui::SliderFloat("Refraction Index", &this->refractionIndex, 0, 99999) || dirty;
     ImGui::Text("%s", (std::string("Maps is ") +  std::to_string(this->maps)).c_str());
-    static const AssetManager::AvailableAssetsNode* selectedAsset = nullptr;
-    static int32_t selectedSlotIndex = -1;
     const std::array<TextureSlot, TEXTURE_SLOT_COUNT> &textureSlots = getTextureSlots();
     for (size_t slotIndex = 0; slotIndex < textureSlots.size(); ++slotIndex) {
         const TextureSlot &slot = textureSlots[slotIndex];
@@ -87,33 +85,16 @@ ImGuiResult Material::addImGuiEditorElements(const ImGuiRequest &request) {
         } else {
             ImGui::Text("%s Texture: %s", slot.displayName, (this->*slot.texture)->getName().at(0).c_str());
         }
-        ImGui::SameLine();
-        if (ImGui::Button((std::string("Change##") + slot.imGuiIDSuffix).c_str())) {
-            selectedSlotIndex = static_cast<int32_t>(slotIndex);
-            ImGui::OpenPopup("Select Texture##TextureSelectorPopup");
+        if (request.imgGuiHelper != nullptr) {
+            ImGui::SameLine();
+            std::string pickedTexture = request.imgGuiHelper->pickTexture(std::string("MaterialTexture") + slot.imGuiIDSuffix);
+            if (!pickedTexture.empty()) {
+                assignTexture(slot, assetManager->loadAsset<TextureAsset>({pickedTexture}));
+                dirty = true;//without it the edit stays on the asset's material, never splits into a world override
+            }
         }
         ImGui::SameLine();
         dirty = putRemoveTextureButton(slot) || dirty;
-    }
-    ImGui::SetNextWindowSize(ImVec2(400.0f, 400.0f));
-    if (ImGui::BeginPopup("Select Texture##TextureSelectorPopup", ImGuiWindowFlags_AlwaysAutoResize)) {
-        const AssetManager::AvailableAssetsNode* filteredAssets = assetManager->getAvailableAssetsTreeFiltered(AssetManager::Asset_type_TEXTURE, "");
-        if(request.imgGuiHelper != nullptr) {
-            request.imgGuiHelper->buildTreeFromAssets(filteredAssets, AssetManager::Asset_type_TEXTURE,
-                                                      "Texture Selector",
-                                                      &selectedAsset,
-                                                      ImGuiHelper::PreviewMode::Preview);
-        }
-        if(selectedAsset != nullptr) {
-            if (selectedSlotIndex >= 0) {
-                assignTexture(textureSlots[selectedSlotIndex], assetManager->loadAsset<TextureAsset>({selectedAsset->fullPath}));
-            }
-            dirty = true;//without it the edit stays on the asset's material, never splits into a world override
-            selectedAsset = nullptr;
-            selectedSlotIndex = -1;
-            ImGui::CloseCurrentPopup();
-        }
-        ImGui::EndPopup();
     }
     if(dirty) {
         assetManager->getGraphicsWrapper()->setMaterial(*this);
