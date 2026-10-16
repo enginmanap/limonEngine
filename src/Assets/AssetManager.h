@@ -396,6 +396,7 @@ public:
     std::shared_ptr<T>loadAsset(const std::vector<std::string> files) {
         std::shared_ptr<Asset> assetPtr;
         bool needsSynchronousLoad = false;
+        bool needsGPULoad = false;
         {
             //reservation: the existence check and the placeholder insert must happen in the same
             // critical section, so no two threads can ever both decide to load the same asset.
@@ -407,8 +408,8 @@ public:
                     if (isLimonModelFile(files[0])) {
 #ifdef CEREAL_SUPPORT
                         assets[files] = std::make_pair(deserializeLimonModel<T>(files, getNextAssetIndex()), 0);
-                        assets[files].first->loadGPUPart();
-                        assets[files].first->setLoadState(Asset::LoadState::DONE);
+                        assets[files].first->setLoadState(Asset::LoadState::CPU_LOAD_DONE);
+                        needsGPULoad = true;//not here, the GPU part attaches material textures, which takes assetsMutex again
 #else
                         std::cerr << "Limon compiled without limonmodel support. Please acquire a release version. Exiting..." << std::endl;
                         std::cerr << "Compile should define \"CEREAL_SUPPORT\"." << std::endl;
@@ -427,6 +428,10 @@ public:
         //everything below runs without assetsMutex held, so unrelated assets stay fully parallel.
         if(needsSynchronousLoad) {
             assetPtr->load();
+        }
+        if(needsGPULoad) {
+            assetPtr->loadGPUPart();
+            assetPtr->setLoadState(Asset::LoadState::DONE);
         }
         while (assetPtr->getLoadState() != Asset::LoadState::DONE) {
             //some other thread is working on this, we should block.
