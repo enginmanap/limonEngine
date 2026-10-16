@@ -8,7 +8,7 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
-#include <miniz.h>
+#include <sstream>
 #include <pybind11/embed.h>
 #include "EngineDataFiles.h"
 #include "WorldReferenceScanner.h"
@@ -193,7 +193,7 @@ void PackageBuilder::scanRenderPipeline() {
     }
 }
 
-bool PackageBuilder::convertModel(const std::string &modelKey, const std::string &reason, const std::string &stagingDirectory) {
+bool PackageBuilder::convertModel(const std::string &modelKey, const std::string &reason, mz_zip_archive &archive) {
     size_t flipPosition = modelKey.rfind("?flip");
     std::string modelFile = modelKey.substr(0, flipPosition);
     std::string loadKey = "./" + modelKey;//the asset tree, and so the Mixamo lookup, knows models by their ./Data/ path
@@ -209,10 +209,10 @@ bool PackageBuilder::convertModel(const std::string &modelKey, const std::string
             packedModel += "_flip" + modelKey.substr(flipPosition + 5);//windows file names can not hold the ? of the key
         }
         packedModel += ".limonmodel";
-        std::filesystem::path stagingFile = std::filesystem::path(stagingDirectory) / packedModel.substr(5);
-        std::error_code directoryError;
-        std::filesystem::create_directories(stagingFile.parent_path(), directoryError);
-        if (modelAsset->writeBinary(stagingFile.string())) {
+        std::ostringstream modelStream;
+        bool serialized = modelAsset->writeBinary(modelStream);
+        std::string modelBytes = modelStream.str();
+        if (serialized && mz_zip_writer_add_mem(&archive, packedModel.substr(5).c_str(), modelBytes.data(), modelBytes.size(), MZ_NO_COMPRESSION)) {
             convertedModels[modelKey] = packedModel;
         } else {
             problems.push_back(modelKey + " could not be converted, " + reason);
@@ -274,8 +274,7 @@ void PackageBuilder::addPythonModules() {
     }
 }
 
-//SaveFile, not an XMLPrinter: the printer's inline destructor frees in this module what the tinyxml2 dll allocated, which crashes
-bool PackageBuilder::writeManifest(const std::string &manifestFile) const {
+bool PackageBuilder::addManifest(mz_zip_archive &archive) const {
     tinyxml2::XMLDocument document;
     tinyxml2::XMLElement *rootElement = document.NewElement("PackManifest");
     document.InsertFirstChild(rootElement);
@@ -285,18 +284,17 @@ bool PackageBuilder::writeManifest(const std::string &manifestFile) const {
         modelElement->SetAttribute("file", convertedModel.second.c_str());
         rootElement->InsertEndChild(modelElement);
     }
-    return document.SaveFile(manifestFile.c_str()) == tinyxml2::XML_SUCCESS;
-}
-
-bool PackageBuilder::writeArchive(const std::string &outputFile, const std::string &stagingDirectory) const {
-    std::error_code removeError;
-    std::filesystem::remove(outputFile, removeError);
-    mz_zip_archive archive;
-    mz_zip_zero_struct(&archive);
-    if (!mz_zip_writer_init_file(&archive, outputFile.c_str(), 0)) {
-        std::cerr << "Could not create " << outputFile << ": " << mz_zip_get_error_string(mz_zip_get_last_error(&archive)) << std::endl;
+    tinyxml2::XMLPrinter printer;
+    document.Print(&printer);
+    std::string manifestEntry = LimonFileSystem::normalizePath(EngineDataFiles::PACKAGE_MANIFEST).substr(5);
+    if (!mz_zip_writer_add_mem(&archive, manifestEntry.c_str(), printer.CStr(), printer.CStrSize() - 1, MZ_NO_COMPRESSION)) {//CStrSize counts the terminator
+        std::cerr << "Could not add the model manifest: " << mz_zip_get_error_string(mz_zip_get_last_error(&archive)) << std::endl;
         return false;
     }
+    return true;
+}
+
+bool PackageBuilder::addPackedFiles(mz_zip_archive &archive) const {
     bool written = true;
     //stored, not deflated: most of a game is already compressed images and sound, deflate waits for load time measurements
     for (const std::pair<const std::string, std::string> &packedFile : packedFiles) {
@@ -307,27 +305,6 @@ bool PackageBuilder::writeArchive(const std::string &outputFile, const std::stri
             written = false;
         }
     }
-    for (const std::pair<const std::string, std::string> &convertedModel : convertedModels) {
-        std::string stagingFile = (std::filesystem::path(stagingDirectory) / convertedModel.second.substr(5)).string();
-        if (!mz_zip_writer_add_file(&archive, convertedModel.second.substr(5).c_str(), stagingFile.c_str(), nullptr, 0, MZ_NO_COMPRESSION)) {
-            std::cerr << "Could not add " << stagingFile << ": " << mz_zip_get_error_string(mz_zip_get_last_error(&archive)) << std::endl;
-            written = false;
-        }
-    }
-    std::string manifestEntry = LimonFileSystem::normalizePath(EngineDataFiles::PACKAGE_MANIFEST).substr(5);
-    std::string manifestFile = (std::filesystem::path(stagingDirectory) / manifestEntry).string();
-    std::error_code directoryError;
-    std::filesystem::create_directories(stagingDirectory, directoryError);
-    if (!writeManifest(manifestFile) ||
-        !mz_zip_writer_add_file(&archive, manifestEntry.c_str(), manifestFile.c_str(), nullptr, 0, MZ_NO_COMPRESSION)) {
-        std::cerr << "Could not add the model manifest " << manifestFile << std::endl;
-        written = false;
-    }
-    if (!mz_zip_writer_finalize_archive(&archive)) {
-        std::cerr << "Could not finish " << outputFile << ": " << mz_zip_get_error_string(mz_zip_get_last_error(&archive)) << std::endl;
-        written = false;
-    }
-    mz_zip_writer_end(&archive);
     return written;
 }
 
@@ -392,23 +369,36 @@ bool PackageBuilder::build(const std::string &outputFile) {
         succeeded = scanWorld(worldFile) && succeeded;
     }
 
-    std::string stagingDirectory = outputFile + ".staging";
-    std::error_code stagingError;
-    std::filesystem::remove_all(stagingDirectory, stagingError);
+    std::error_code removeError;
+    std::filesystem::remove(outputFile, removeError);
+    mz_zip_archive archive;
+    mz_zip_zero_struct(&archive);
+    if (!mz_zip_writer_init_file(&archive, outputFile.c_str(), 0)) {
+        std::cerr << "Could not create " << outputFile << ": " << mz_zip_get_error_string(mz_zip_get_last_error(&archive)) << std::endl;
+        return false;
+    }
+    //each converted model goes into the archive right away, holding them all would keep the whole pack in memory
     std::map<std::string, std::string> modelsToConvert = modelKeys;//texture files found while converting never add models
     for (const std::pair<const std::string, std::string> &modelKey : modelsToConvert) {
         std::cout << "--pack: converting " << modelKey.first << std::endl;
-        succeeded = convertModel(modelKey.first, modelKey.second, stagingDirectory) && succeeded;
+        succeeded = convertModel(modelKey.first, modelKey.second, archive) && succeeded;
     }
     std::cout << "--pack: following the imports of " << reachedTypes.size() << " reached types' scripts" << std::endl;
     addPythonModules();
 
     if (succeeded) {
         std::cout << "--pack: writing " << outputFile << std::endl;
-        succeeded = writeArchive(outputFile, stagingDirectory);
+        succeeded = addPackedFiles(archive) && addManifest(archive);
+    }
+    if (succeeded && !mz_zip_writer_finalize_archive(&archive)) {
+        std::cerr << "Could not finish " << outputFile << ": " << mz_zip_get_error_string(mz_zip_get_last_error(&archive)) << std::endl;
+        succeeded = false;
+    }
+    mz_zip_writer_end(&archive);
+    if (!succeeded) {
+        std::filesystem::remove(outputFile, removeError);//half an archive must not be left where a game would mount it
     }
     writeReport(outputFile);
-    std::filesystem::remove_all(stagingDirectory, stagingError);
     std::cout << "--pack: " << packedFiles.size() << " files and " << convertedModels.size() << " converted models from "
               << reachedWorlds.size() << " worlds, " << problems.size() << " problems, see " << outputFile << ".report.txt" << std::endl;
     return succeeded;

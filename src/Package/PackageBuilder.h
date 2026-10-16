@@ -11,6 +11,7 @@
 #include <set>
 #include <string>
 #include <vector>
+#include <miniz.h>
 #include "../Assets/AssetManager.h"
 
 class ScriptManager;
@@ -60,15 +61,15 @@ private:
 
     void scanRenderPipeline();
 
-    bool convertModel(const std::string &modelKey, const std::string &reason, const std::string &stagingDirectory);
+    bool convertModel(const std::string &modelKey, const std::string &reason, mz_zip_archive &archive);
 
     void addTexture(const std::shared_ptr<TextureAsset> &texture, const std::string &modelKey);
 
     void addPythonModules();
 
-    bool writeManifest(const std::string &manifestFile) const;
+    bool addManifest(mz_zip_archive &archive) const;
 
-    bool writeArchive(const std::string &outputFile, const std::string &stagingDirectory) const;
+    bool addPackedFiles(mz_zip_archive &archive) const;
 
     void writeReport(const std::string &outputFile) const;
 };
