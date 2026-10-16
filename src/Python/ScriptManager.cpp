@@ -346,6 +346,7 @@ void ScriptManager::LoadScript(WorldInterpreter * worldInterpreter, const std::s
                 registration.factory = factory;
                 registration.packFileAccessList = readPackFileAccessList(obj, name);
                 TriggerInterface::registerType(name, registration);
+                pythonTypeModules[name] = moduleName;
                 std::cout << "[ScriptManager] Registered trigger: " << name << std::endl;
             }
             else if (IsSubclassOf(obj, "player_extension_interface", "PlayerExtensionInterface")) {
@@ -365,6 +366,7 @@ void ScriptManager::LoadScript(WorldInterpreter * worldInterpreter, const std::s
                 registration.factory = factory;
                 registration.packFileAccessList = readPackFileAccessList(obj, name);
                 PlayerExtensionInterface::registerType(name, registration);
+                pythonTypeModules[name] = moduleName;
                 std::cout << "[ScriptManager] Registered extension: " << name << std::endl;
             }
             else if (IsSubclassOf(obj, "actor_interface", "ActorInterface")) {
@@ -384,6 +386,7 @@ void ScriptManager::LoadScript(WorldInterpreter * worldInterpreter, const std::s
                 registration.factory = factory;
                 registration.packFileAccessList = readPackFileAccessList(obj, name);
                 ActorInterface::registerType(name, registration);
+                pythonTypeModules[name] = moduleName;
                 std::cout << "[ScriptManager] Registered actor: " << name << std::endl;
             }
             else if (IsSubclassOf(obj, "camera_extension_interface", "CameraExtensionInterface")) {
@@ -403,6 +406,7 @@ void ScriptManager::LoadScript(WorldInterpreter * worldInterpreter, const std::s
                 registration.factory = factory;
                 registration.packFileAccessList = readPackFileAccessList(obj, name);
                 CameraExtensionInterface::registerType(name, registration);
+                pythonTypeModules[name] = moduleName;
                 std::cout << "[ScriptManager] Registered camera rig: " << name << std::endl;
             }
         }

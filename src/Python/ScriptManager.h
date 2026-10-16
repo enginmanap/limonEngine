@@ -9,6 +9,7 @@
 #include <pybind11/subinterpreter.h>
 #include "pybind11/stl_bind.h"
 #include <filesystem>
+#include <map>
 #include <set>
 #include "../LimonFileSystem.h"
 #include <vector>
@@ -58,6 +59,8 @@ class ScriptManager {
 
     std::vector<std::string> readPackFileAccessList(const pybind11::object& pythonClass, const std::string& typeName);
 
+    std::map<std::string, std::string> pythonTypeModules;//We don't wanna package all python scripts, and we don't know what file needs to be packaged, only which type are needed. This map converts the type to file.
+
     void removeWorldInterpreterInternal(WorldInterpreter* world_interpreter);
 public:
     // builtinDirectoryPath is the engine's own scripts (./Engine/Scripts);
@@ -75,6 +78,10 @@ public:
     void setActiveSubInterpreter(const std::string& worldName);
 
     void runGC();
+
+    const std::map<std::string, std::string>& getPythonTypeModules() const {
+        return pythonTypeModules;
+    }
 
     static TriggerInterface* CreateTriggerWrapper(LimonAPI* api, size_t index);
     static PlayerExtensionInterface* CreatePlayerExtensionWrapper(LimonAPI* api, size_t index);
