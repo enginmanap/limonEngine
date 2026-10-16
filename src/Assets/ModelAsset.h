@@ -93,7 +93,7 @@ private:
     std::unordered_map<std::string, BoneInformation> boneInformationMap;
 
     std::vector<btCompoundShape *> shapeCopies;
-    btCompoundShape *compoundShapeForConvex; // used for non zero mass objects or animated objects
+    btCompoundShape *compoundShapeForConvex = nullptr; // used for non zero mass objects or animated objects
     std::map<uint32_t, btTransform> bulletTransformMap;
     std::map<uint32_t, btConvexHullShape *> bulletHullMap;
     btTransform baseTransform;
@@ -374,8 +374,10 @@ public:
         temporaryEmbeddedTextures = std::make_unique<std::vector<std::shared_ptr<const AssetManager::EmbeddedTexture>>>();
         ar(sourcePath, boneIDCounter, boneIDCounterPerMesh, *temporaryEmbeddedTextures, hasAnimation, rootNode, boundingBoxMax, boundingBoxMin, centerOffset, boneInformationMap, simplifiedMeshes, meshes, animations, animationSections, customizationAfterSave, materialMap, meshMaterials, transparentMaterialUsed, lodLadder);
         if (meshMaterials.size() != meshes.size()) {
-            std::cerr << name << " has " << meshes.size() << " meshes but " << meshMaterials.size() << " mesh materials, the file is broken. Re-export it from its source model. Exiting..." << std::endl;
-            exit(-1);
+            AssetManager::failLoad(name + " has " + std::to_string(meshes.size()) + " meshes but " + std::to_string(meshMaterials.size()) +
+                                   " mesh materials, the file is broken. Re-export it from its source model.");
+            materialMap.clear();//not registered yet, the destructor would unregister them
+            return;//everything is read by now, so cereal has nothing left to continue with
         }
         //now update embedded textures to assetManager
         for (size_t i = 0; i < meshes.size(); ++i) {

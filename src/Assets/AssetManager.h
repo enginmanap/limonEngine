@@ -106,51 +106,69 @@ public:
         }
     };
 private:
+    //set by loadAssetForConversion for its own thread, and by a loader thread for the request it is loading.
+    //function locals, a thread_local std::string member gets an init routine in every translation unit and mingw refuses the duplicates
+    static bool &reportLoadFailures() {
+        thread_local bool report = false;
+        return report;
+    }
+
+    static std::string &loadFailureReason() {
+        thread_local std::string reason;
+        return reason;
+    }
+
+    struct QueuedAsset {
+        std::shared_ptr<Asset> asset;
+        bool pushToNextQueue;
+        bool reportFailures;//the requester's mode, the loader thread takes it over
+    };
+
     class AssetLoadQueue {
     private:
-        std::list<std::pair<std::shared_ptr<Asset>, bool>> assets;
+        std::list<QueuedAsset> assets;
         std::mutex queueMutex;
         std::condition_variable queueEmptyCond;
     public:
         void pushBack(const std::shared_ptr<Asset>& asset, bool pushToNextQueue) {
             std::lock_guard<std::mutex> lock(queueMutex);
-            assets.emplace_back(asset, pushToNextQueue);
+            assets.push_back(QueuedAsset{asset, pushToNextQueue, reportLoadFailures()});
             queueEmptyCond.notify_one();
         }
 
-        void pushBack(const std::pair<std::shared_ptr<Asset>, bool>& assetAndPushToNextQueue) {
+        void pushBack(const QueuedAsset &queuedAsset) {
             std::lock_guard<std::mutex> lock(queueMutex);
-            assets.push_back(assetAndPushToNextQueue);
+            assets.push_back(queuedAsset);
             queueEmptyCond.notify_one();
         }
 
-        std::pair<std::shared_ptr<Asset>, bool> popFrontOrBlock() {
+        QueuedAsset popFrontOrBlock() {
             std::unique_lock<std::mutex> lock(queueMutex);
             while (assets.empty()) {
                 queueEmptyCond.wait(lock);
             }
-            std::pair<std::shared_ptr<Asset>, bool> assetPtr =assets.front();
+            QueuedAsset assetPtr = assets.front();
             assets.pop_front();
             return assetPtr;
         }
 
-        std::pair<std::shared_ptr<Asset>, bool> popFrontOrBlockFor(const std::chrono::milliseconds milliseconds) {
+        QueuedAsset popFrontOrBlockFor(const std::chrono::milliseconds milliseconds) {
             std::unique_lock<std::mutex> lock(queueMutex);
             queueEmptyCond.wait_for(lock, milliseconds);
             if (assets.empty()) {
-                return {nullptr, false};
+                return QueuedAsset{nullptr, false, false};
             }
-            std::pair<std::shared_ptr<Asset>, bool> assetPtr =assets.front();
+            QueuedAsset assetPtr = assets.front();
             assets.pop_front();
             return assetPtr;
         }
 
-        std::pair<std::shared_ptr<Asset>, bool> popFrontOrReturn() {
+        QueuedAsset popFrontOrReturn() {
             std::unique_lock<std::mutex> lock(queueMutex);
             if(assets.empty()) {
-                return {nullptr, false};
+                return QueuedAsset{nullptr, false, false};
             }
-            std::pair<std::shared_ptr<Asset>, bool> assetPtr =assets.front();
+            QueuedAsset assetPtr = assets.front();
             assets.pop_front();
             return assetPtr;
         }
@@ -192,16 +210,19 @@ private:
 
     void cpuLoadAsset(bool& running) {
         while(running) {
-            std::pair<std::shared_ptr<Asset>, bool> assetAndLoadNext = assetLoadCpuQueue.popFrontOrBlockFor(std::chrono::milliseconds(5));
-            if (assetAndLoadNext.first != nullptr) {
-                if(assetAndLoadNext.first->getLoadState() != Asset::LoadState::INITIATED) {
-                    std::cerr << " asset " << assetAndLoadNext.first->getAssetName() << " tried to start another load??" << std::endl;
+            QueuedAsset assetAndLoadNext = assetLoadCpuQueue.popFrontOrBlockFor(std::chrono::milliseconds(5));
+            if (assetAndLoadNext.asset != nullptr) {
+                if(assetAndLoadNext.asset->getLoadState() != Asset::LoadState::INITIATED) {
+                    std::cerr << " asset " << assetAndLoadNext.asset->getAssetName() << " tried to start another load??" << std::endl;
                     continue;
                 }
-                assetAndLoadNext.first->setLoadState(Asset::LoadState::CPU_LOAD_STARTED);
-                assetAndLoadNext.first->loadCPUPart();
-                assetAndLoadNext.first->setLoadState(Asset::LoadState::CPU_LOAD_DONE);
-                if(assetAndLoadNext.second){
+                assetAndLoadNext.asset->setLoadState(Asset::LoadState::CPU_LOAD_STARTED);
+                reportLoadFailures() = assetAndLoadNext.reportFailures;
+                loadFailureReason().clear();
+                assetAndLoadNext.asset->loadCPUPart();
+                assetAndLoadNext.asset->setLoadState(hasLoadFailed() ? Asset::LoadState::FAILED : Asset::LoadState::CPU_LOAD_DONE);
+                reportLoadFailures() = false;
+                if(assetAndLoadNext.pushToNextQueue){//a failed one too, whoever waits on the GPU queue must see it end
                     assetLoadGPUQueue.pushBack(assetAndLoadNext);
                 }
                 cpuLoadDoneCondition.notify_all();
@@ -241,6 +262,15 @@ private:
 
     std::vector<std::pair<std::string, AssetTypes>> loadAssetExtensionList();
 
+    //only a request made in report mode can leave an asset FAILED, a game caller that needed it stops the engine
+    static void exitUnlessReporting(const std::shared_ptr<Asset> &failedAsset) {
+        if (!reportLoadFailures()) {
+            std::cerr << failedAsset->getAssetName() << " could not be loaded, the reason is above. Exiting..." << std::endl;
+            exit(-1);
+        }
+    }
+
+
     bool loadAssetList();
 
     bool isExtensionInList(const std::string &name, const std::vector<std::pair<std::string, AssetTypes>> &vector,
@@ -259,6 +289,21 @@ private:
                                                                   const std::string &filterText);
 
 public:
+    //what a load step calls instead of exit, then returns. The engine stops on an asset it can't load, only a conversion gets the reason back
+    static void failLoad(const std::string &message) {
+        if (!reportLoadFailures()) {
+            std::cerr << message << " Exiting..." << std::endl;
+            exit(-1);
+        }
+        std::cerr << message << std::endl;
+        if (loadFailureReason().empty()) {
+            loadFailureReason() = message;
+        }
+    }
+
+    static bool hasLoadFailed() {
+        return !loadFailureReason().empty();
+    }
 
     explicit AssetManager(GraphicsInterface* graphicsWrapper, ALHelper *alHelper) : materialRegistry(graphicsWrapper), graphicsWrapper(graphicsWrapper), alHelper(alHelper) {
         nextAssetIndex.store(0);
@@ -293,17 +338,22 @@ public:
         }
         //now load the assets to GPU on main thread
         while(!startedAssetIds.empty()) {
-            std::pair<std::shared_ptr<Asset>, bool> assetAndPushToNext = assetLoadGPUQueue.popFrontOrReturn();
-            if(assetAndPushToNext.first != nullptr) {
-                if(startedAssetIds.find(assetAndPushToNext.first->getAssetID()) == startedAssetIds.end()) {
+            QueuedAsset assetAndPushToNext = assetLoadGPUQueue.popFrontOrReturn();
+            if(assetAndPushToNext.asset != nullptr) {
+                if(startedAssetIds.find(assetAndPushToNext.asset->getAssetID()) == startedAssetIds.end()) {
                     continue;//we didn't start this, we should not finish it
                 }
-                if(assetAndPushToNext.first->getLoadState() == Asset::LoadState::CPU_LOAD_DONE) {
-                    assetAndPushToNext.first->loadGPUPart();
-                    assetAndPushToNext.first->setLoadState(Asset::LoadState::DONE);
+                if(assetAndPushToNext.asset->getLoadState() == Asset::LoadState::FAILED) {
+                    exitUnlessReporting(assetAndPushToNext.asset);
+                    startedAssetIds.erase(assetAndPushToNext.asset->getAssetID());
+                    continue;
                 }
-                if(assetAndPushToNext.first->getLoadState() == Asset::LoadState::DONE) {
-                    startedAssetIds.erase(assetAndPushToNext.first->getAssetID());
+                if(assetAndPushToNext.asset->getLoadState() == Asset::LoadState::CPU_LOAD_DONE) {
+                    assetAndPushToNext.asset->loadGPUPart();
+                    assetAndPushToNext.asset->setLoadState(Asset::LoadState::DONE);
+                }
+                if(assetAndPushToNext.asset->getLoadState() == Asset::LoadState::DONE) {
+                    startedAssetIds.erase(assetAndPushToNext.asset->getAssetID());
                 }
             } else {
                 std::unique_lock<std::mutex> lock(cpuLoadConditionMutex);
@@ -335,9 +385,14 @@ public:
             //Some code paths will try to load the asset again.
             return;
         }
-        while(asset->getLoadState() != Asset::LoadState::CPU_LOAD_DONE && asset->getLoadState() != Asset::LoadState::DONE) {
+        while(asset->getLoadState() != Asset::LoadState::CPU_LOAD_DONE && asset->getLoadState() != Asset::LoadState::DONE &&
+              asset->getLoadState() != Asset::LoadState::FAILED) {
             std::unique_lock<std::mutex> lock(cpuLoadConditionMutex);
             cpuLoadDoneCondition.wait_for(lock, std::chrono::milliseconds{5});
+        }
+        if(asset->getLoadState() == Asset::LoadState::FAILED) {
+            exitUnlessReporting(asset);
+            return;
         }
         if(asset->getLoadState() == Asset::LoadState::CPU_LOAD_DONE) {
             asset->loadGPUPart();
@@ -363,17 +418,46 @@ public:
         }
         //everything below runs without assetsMutex held, so unrelated assets stay fully parallel.
         if(needsSynchronousLoad) {
-            assetPtr->load();
+            assetPtr->loadCPUPart();
+            if (hasLoadFailed()) {
+                assetPtr->setLoadState(Asset::LoadState::FAILED);
+            } else {
+                assetPtr->loadGPUPart();
+                assetPtr->setLoadState(Asset::LoadState::DONE);
+            }
         }
-        while (assetPtr->getLoadState() != Asset::LoadState::DONE) {
+        while (assetPtr->getLoadState() != Asset::LoadState::DONE && assetPtr->getLoadState() != Asset::LoadState::FAILED) {
             //some other thread is working on this, we should block.
             std::this_thread::sleep_for(std::chrono::milliseconds(15));
+        }
+        if (assetPtr->getLoadState() == Asset::LoadState::FAILED) {
+            exitUnlessReporting(assetPtr);
+            return std::dynamic_pointer_cast<T>(assetPtr);//only loadAssetForConversion gets here
         }
         {
             std::lock_guard<std::mutex> lock(assetsMutex);
             assets[files].second++;
         }
         return std::dynamic_pointer_cast<T>(assetPtr);
+    }
+
+    //for a converter, like the packer: a file that can't be loaded comes back as nullptr and a reason, instead of stopping the engine
+    template<class T>
+    std::shared_ptr<T> loadAssetForConversion(const std::vector<std::string> &files, std::string &failureReason) {
+        reportLoadFailures() = true;
+        loadFailureReason().clear();
+        std::shared_ptr<T> loadedAsset = loadAsset<T>(files);
+        reportLoadFailures() = false;
+        if (loadedAsset->getLoadState() != Asset::LoadState::FAILED) {
+            return loadedAsset;
+        }
+        failureReason = loadFailureReason();
+        std::lock_guard<std::mutex> lock(assetsMutex);
+        std::map<const std::vector<std::string>, std::pair<std::shared_ptr<Asset>, uint32_t>>::iterator failedEntry = assets.find(resolvePackedModel(files));
+        if (failedEntry != assets.end() && failedEntry->second.first == loadedAsset) {
+            assets.erase(failedEntry);//left in, the next request would get the failed asset back instead of trying again
+        }
+        return nullptr;
     }
 
     void freeAsset(const std::vector<std::string> requestedFiles) {

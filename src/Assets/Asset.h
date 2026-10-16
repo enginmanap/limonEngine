@@ -20,7 +20,7 @@ class AssetManager;//avoid cyclic include
 
 class Asset {
 public:
-    enum class LoadState {INITIATED, CPU_LOAD_STARTED, CPU_LOAD_DONE, DONE};
+    enum class LoadState {INITIATED, CPU_LOAD_STARTED, CPU_LOAD_DONE, DONE, FAILED};
 private:
     friend class AssetManager;
     LoadState loadState = LoadState::INITIATED;
@@ -30,17 +30,10 @@ private:
         loadState = state;
     }
 
+    //AssetManager runs these, CPU part then GPU part, and stops after a CPU part that called AssetManager::failLoad
     virtual void loadCPUPart() = 0;
     virtual void loadGPUPart() = 0;
 
-    /**
- * Override loadCPU and loadGPU method, and don't change this.
- */
-    void load() {
-        loadCPUPart();
-        loadGPUPart();
-        this->setLoadState(LoadState::DONE);
-    };
 protected:
     AssetManager* assetManager;
     uint32_t assetID;

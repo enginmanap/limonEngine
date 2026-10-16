@@ -34,6 +34,8 @@ class TextureAsset : public Asset {
 
     void scanForTransparentTexels();
 
+    bool convertToSupportedFormat();
+
 protected:
     std::vector<std::string> name;//texture file, or for embedded "*index" then the model it is embedded in
     std::shared_ptr<Texture> texture;

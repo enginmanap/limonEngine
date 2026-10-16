@@ -120,7 +120,8 @@ void ModelAsset::loadCPUPart() {
     Assimp::Importer assimpImporter;
     const aiScene *scene = importScene(assimpImporter, name);
     if (scene == nullptr) {
-        exit(-1);
+        AssetManager::failLoad("Model " + name + " could not be read, the Assimp error is above.");
+        return;
     }
 
     std::vector<std::shared_ptr<const AssetManager::EmbeddedTexture>> textures = readEmbeddedTextures(scene);
@@ -136,8 +137,8 @@ void ModelAsset::loadCPUPart() {
     //std::cout << "ASSIMP::success::" << name << std::endl;
 
     if (!scene->HasMeshes()) {
-        std::cout << "Model does not contain a mesh. This is not handled." << std::endl;
-        exit(-1);
+        AssetManager::failLoad("Model " + name + " does not contain a mesh. This is not handled.");
+        return;
     } else {
         //std::cout << "Model "<< this->name << " has " << scene->mNumMeshes << " mesh(es)." << std::endl;
     }
@@ -153,6 +154,9 @@ void ModelAsset::loadCPUPart() {
         }
     }
     createMeshes(scene, scene->mRootNode, initialTransform);
+    if (AssetManager::hasLoadFailed()) {
+        return;
+    }
     buildLodLevels(LodLadder::BuildMode::NORMAL);
     if(scene->mNumAnimations != 0) {
         fillAnimationSet(scene->mNumAnimations, scene->mAnimations);
@@ -301,13 +305,13 @@ void ModelAsset::loadConvertedCPUPart() {
 #ifdef CEREAL_SUPPORT
     if (flipX || flipY || flipZ) {
         //the mirror is applied only while importing, the stored vertices can't take it any more
-        std::cerr << "Flip is not supported on " << name << ", re-export the flipped variant instead. Exiting..." << std::endl;
-        exit(-1);
+        AssetManager::failLoad("Flip is not supported on " + name + ", re-export the flipped variant instead.");
+        return;
     }
     std::vector<uint8_t> fileContents;
     if (!LimonFileSystem::readFile(name, fileContents)) {
-        std::cerr << "Could not read " << name << ". Exiting..." << std::endl;
-        exit(-1);
+        AssetManager::failLoad("Could not read " + name + ".");
+        return;
     }
     LimonFileSystem::MemoryStreamBuffer streamBuffer(fileContents);
     std::istream stream(&streamBuffer);
@@ -318,15 +322,18 @@ void ModelAsset::loadConvertedCPUPart() {
         archive(magic, version);
     }
     if (magic != LIMONMODEL_MAGIC) {
-        std::cerr << name << " is not a .limonmodel, or is from before the format had a version. Re-export it from its source model. Exiting..." << std::endl;
-        exit(-1);
+        AssetManager::failLoad(name + " is not a .limonmodel, or is from before the format had a version. Re-export it from its source model.");
+        return;
     }
     if (version != LIMONMODEL_VERSION) {
-        std::cerr << name << " is .limonmodel version " << version << ", this engine reads version " << LIMONMODEL_VERSION
-                  << ". Re-export it from its source model. Exiting..." << std::endl;
-        exit(-1);
+        AssetManager::failLoad(name + " is .limonmodel version " + std::to_string(version) + ", this engine reads version " +
+                               std::to_string(LIMONMODEL_VERSION) + ". Re-export it from its source model.");
+        return;
     }
     archive(*this);
+    if (AssetManager::hasLoadFailed()) {
+        return;
+    }
     customizationAfterSave = false;//older files stored it set, but the sections came from this file
     //the same path a source asset takes. The steps arrived with the file, so there is nothing to measure and
     //every mesh keeps the ranges it was deserialized with
@@ -442,10 +449,8 @@ std::shared_ptr<Material> ModelAsset::loadMaterials(const aiScene *scene, unsign
     aiString materialName;
     aiString texturePath;
     if (AI_SUCCESS != currentMaterial->Get(AI_MATKEY_NAME, materialName)) {
-        std::cerr << "Material without a name is not handled." << std::endl;
-        std::cerr << "Model " << this->name << std::endl;
-        exit(-1);
-        //return nullptr; should work too.
+        AssetManager::failLoad("Model " + this->name + " has a material without a name, this is not handled.");
+        return nullptr;
     }
 
     std::shared_ptr<Material> newMaterial;
@@ -592,6 +597,9 @@ std::shared_ptr<Material> ModelAsset::loadMaterials(const aiScene *scene, unsign
 
 void ModelAsset::createMeshes(const aiScene *scene, const aiNode *node, glm::mat4 parentTransform,
                               const std::set<std::pair<const aiNode *, uint32_t>> *includedMeshes) {
+    if (AssetManager::hasLoadFailed()) {
+        return;//a material failed in another branch, this one would only fail again
+    }
     parentTransform = parentTransform * GLMConverter::AssimpToGLM(node->mTransformation);
 
     for (unsigned int i = 0; i < node->mNumMeshes; ++i) {
@@ -613,6 +621,9 @@ void ModelAsset::createMeshes(const aiScene *scene, const aiNode *node, glm::mat
         }
 
         std::shared_ptr<Material> meshMaterial = loadMaterials(scene, currentMesh->mMaterialIndex);
+        if (meshMaterial == nullptr) {
+            return;
+        }
         std::shared_ptr<MeshAsset> mesh;
         mesh = std::make_shared<MeshAsset>(currentMesh, node->mName.C_Str(), rootNode,
                                            parentTransform, hasAnimation, reverseWinding);

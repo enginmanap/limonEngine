@@ -198,7 +198,12 @@ bool PackageBuilder::convertModel(const std::string &modelKey, const std::string
     std::string modelFile = modelKey.substr(0, flipPosition);
     std::string loadKey = "./" + modelKey;//the asset tree, and so the Mixamo lookup, knows models by their ./Data/ path
 
-    std::shared_ptr<ModelAsset> modelAsset = assetManager->loadAsset<ModelAsset>({loadKey});
+    std::string failureReason;
+    std::shared_ptr<ModelAsset> modelAsset = assetManager->loadAssetForConversion<ModelAsset>({loadKey}, failureReason);
+    if (modelAsset == nullptr) {
+        problems.push_back(modelKey + " could not be loaded, " + reason + ": " + failureReason);
+        return false;
+    }
 
     bool converted = true;
     if (endsWith(modelFile, ".limonmodel")) {

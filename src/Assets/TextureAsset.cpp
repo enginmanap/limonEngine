@@ -88,6 +88,22 @@ void TextureAsset::loadCPUPart() {
     } else {
         //std::cout << "TextureAsset " << name[0] << " loaded from disk successfully." << std::endl;
     }
+    if (!convertToSupportedFormat()) {
+        //the same as a missing file, a model using it still loads and loadFailed tells whoever asked
+        std::cerr << "Texture " << name[0] << " has " << std::to_string(SDL_BYTESPERPIXEL(cpuSurface->format))
+                  << " bytes per pixel, which is not supported. Loading \"not found fallback\" texture" << std::endl;
+        loadFailed = true;
+        SDL_DestroySurface(cpuSurface);
+        cpuSurface = loadSurface(FALLBACK_TEXTURE_NAME);
+        if (!cpuSurface || !convertToSupportedFormat()) {
+            std::cerr << "Loading  fallback texture failed. Please make sure " << FALLBACK_TEXTURE_NAME << " exists and valid. Exiting." << std::endl;
+            exit(1);
+        }
+    }
+}
+
+//false leaves the surface as it was
+bool TextureAsset::convertToSupportedFormat() {
     if (SDL_BYTESPERPIXEL(cpuSurface->format) == 4 || SDL_BYTESPERPIXEL(cpuSurface->format) == 8) {
         if(cpuSurface->format != SDL_PIXELFORMAT_ABGR8888) {
             //if the internal format is not rgba32, convert to it.
@@ -132,9 +148,9 @@ void TextureAsset::loadCPUPart() {
         textureMetaData.width = cpuSurface->w;
         textureMetaData.height = cpuSurface->h;
     } else {
-        std::cerr << "Format has undefined number of pixels:" << std::to_string(SDL_BYTESPERPIXEL(cpuSurface->format)) << std::endl;
-        exit(1);
+        return false;
     }
+    return true;
 }
 
 void TextureAsset::scanForTransparentTexels() {
