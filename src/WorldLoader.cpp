@@ -201,14 +201,14 @@ World * WorldLoader::loadMapFromXML(const std::string &worldFileName, LimonAPI *
         }
     }
 
-    if (!loadMaterials(worldNode, world)) {
+    //load objects
+    if(!loadObjectsFromXML(worldNode, world, limonAPI, saveVersion)) {
         delete world;
         return nullptr;
     }
 
-
-    //load objects
-    if(!loadObjectsFromXML(worldNode, world, limonAPI, saveVersion)) {
+    //after the objects, an override may use a texture embedded in one of their models, which only their load registers
+    if (!loadMaterials(worldNode, world)) {
         delete world;
         return nullptr;
     }
