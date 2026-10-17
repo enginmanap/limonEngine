@@ -94,6 +94,10 @@ private:
     uint32_t getMeshOrdinal(size_t meshIndex) const;
 
 public:
+
+    //the <MeshMaterial> entries of a saved <Object> whose asset was converted: base hashes and embedded owners follow the file
+    static void updateSavedReferences(tinyxml2::XMLElement *objectNode, const ModelAsset::LimonConversion &conversion);
+
     //halves of a split mesh share the node name, and a material name is whichever identical material loaded first,
     //so a mesh is told apart by name, base material content and ordinal
     struct MeshMaterialOverride {

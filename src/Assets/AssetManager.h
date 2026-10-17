@@ -235,6 +235,7 @@ private:
     //second of the pair is how many times load requested. prework for unload
     std::map<const std::vector<std::string>, std::pair<std::shared_ptr<Asset>, uint32_t>> assets;
     std::unordered_map<std::string, std::vector<std::shared_ptr<const EmbeddedTexture>>> embeddedTextures;
+    std::mutex embeddedTexturesMutex;//models add theirs from loadCPUPart, on the loader threads
     std::atomic<std::int32_t> nextAssetIndex;
 
 
@@ -489,8 +490,10 @@ public:
             }
             //std::cerr << "deleting asset as all references are removed" << std::endl;
             assets.erase(files);
-            if(embeddedTextures.find(files[0]) != embeddedTextures.end()) {
-                embeddedTextures.erase(files[0]);
+            if (files.size() == 1) {
+                //flip variants share the images of their file, freeing either one drops them
+                std::lock_guard<std::mutex> embeddedLock(embeddedTexturesMutex);
+                embeddedTextures.erase(files[0].substr(0, files[0].rfind("?flip")));
             }
         }
     }
@@ -616,20 +619,19 @@ public:
     const AvailableAssetsNode* getAvailableAssetsTreeFiltered(AssetTypes type, const std::string &filterText);
 
 
+    //keyed by the file the images came from, a later add for the same file keeps what is there. freeAsset drops the entry
     void addEmbeddedTextures(const std::string& ownerAsset, std::vector<std::shared_ptr<const EmbeddedTexture>> textures) {
-        this->embeddedTextures[ownerAsset] = textures;
+        std::lock_guard<std::mutex> lock(embeddedTexturesMutex);
+        embeddedTextures.emplace(ownerAsset, textures);
     }
 
     std::shared_ptr<const EmbeddedTexture> getEmbeddedTextures(const std::string& ownerAsset, uint32_t textureID) {
-        if(embeddedTextures.find(ownerAsset) == embeddedTextures.end()) {
+        std::lock_guard<std::mutex> lock(embeddedTexturesMutex);
+        std::unordered_map<std::string, std::vector<std::shared_ptr<const EmbeddedTexture>>>::const_iterator textureSet = embeddedTextures.find(ownerAsset);
+        if (textureSet == embeddedTextures.end() || textureSet->second.size() <= textureID) {
             return nullptr;
         }
-        if(embeddedTextures[ownerAsset].size() <= textureID) {
-            return nullptr;
-        }
-
-        return embeddedTextures[ownerAsset][textureID];
-
+        return textureSet->second[textureID];
     }
 
 

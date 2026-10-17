@@ -1113,7 +1113,8 @@ bool ModelToWorldConverter::convert() {
         std::unique_ptr<ModelAsset> groupAsset = ModelAssetBuilder::buildAnimationGroup(assetManager.get(), scene, group.root,
                                                                                         group.treeNodes, group.meshReferences, clips,
                                                                                         sourcePath, group.filePath);
-        if (!groupAsset->writeBinary(group.filePath)) {
+        ModelAsset::LimonConversion groupConversion;//the generated world refers to no material, only the key is used
+        if (!groupAsset->convertToLimon(group.filePath, group.filePath, groupConversion)) {
             anyPieceFailed = true;
         }
         writtenPieces.push_back(std::move(groupAsset));
@@ -1157,7 +1158,8 @@ void ModelToWorldConverter::buildPieces(const aiScene *scene, const std::vector<
                                                                                pieceIterator->second.skeletonRoot,
                                                                                pieceIterator->second.skeletonNodes,
                                                                                pieceIterator->second.skeletonPlacement);
-        if (!pieceAsset->writeBinary(pieceIterator->second.filePath)) {
+        ModelAsset::LimonConversion pieceConversion;//the generated world refers to no material, only the key is used
+        if (!pieceAsset->convertToLimon(pieceIterator->second.filePath, pieceIterator->second.filePath, pieceConversion)) {
             anyPieceFailed = true;
         }
         pieceIterator->second.centerOffset = pieceAsset->getCenterOffset();

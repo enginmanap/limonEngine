@@ -1227,6 +1227,27 @@ uint32_t Model::getMeshOrdinal(size_t meshIndex) const {
     return ordinal;
 }
 
+void Model::updateSavedReferences(tinyxml2::XMLElement *objectNode, const ModelAsset::LimonConversion &conversion) {
+    tinyxml2::XMLElement *meshMaterialList = objectNode->FirstChildElement("MeshMaterialList");
+    if (meshMaterialList == nullptr) {
+        return;
+    }
+    for (tinyxml2::XMLElement *meshMaterial = meshMaterialList->FirstChildElement("MeshMaterial"); meshMaterial != nullptr;
+         meshMaterial = meshMaterial->NextSiblingElement("MeshMaterial")) {
+        uint64_t baseHash = 0;
+        if (meshMaterial->QueryUnsigned64Attribute("BaseHash", &baseHash) == tinyxml2::XML_SUCCESS) {
+            std::unordered_map<size_t, size_t>::const_iterator renamedHash = conversion.materialHashes.find(static_cast<size_t>(baseHash));
+            if (renamedHash != conversion.materialHashes.end()) {
+                meshMaterial->SetAttribute("BaseHash", static_cast<uint64_t>(renamedHash->second));
+            }
+        }
+        tinyxml2::XMLElement *materialNode = meshMaterial->FirstChildElement("Material");
+        if (materialNode != nullptr) {
+            Material::updateSavedReferences(materialNode, conversion.fromOwner, conversion.toOwner, conversion.materialHashes);
+        }
+    }
+}
+
 std::vector<Model::MeshMaterialOverride> Model::getNewMeshMaterials() const{
     std::vector<MeshMaterialOverride> meshMaterialList;
 

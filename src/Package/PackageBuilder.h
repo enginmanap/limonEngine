@@ -13,6 +13,7 @@
 #include <vector>
 #include <miniz.h>
 #include "../Assets/AssetManager.h"
+#include "../Assets/ModelAsset.h"
 
 class ScriptManager;
 class TextureAsset;
@@ -43,6 +44,7 @@ private:
     std::map<std::string, std::string> packedFiles;//normalized Data/ path to why it is packed
     std::map<std::string, std::string> modelKeys;//model asset key to why it is packed
     std::map<std::string, std::string> convertedModels;//model asset key to the .limonmodel it became, both normalized
+    std::map<std::string, ModelAsset::LimonConversion> conversions;//model asset key to what converting it renamed, for the worlds referring to it
     std::vector<std::string> problems;
 
     void collectRegisteredTypes();
@@ -70,6 +72,10 @@ private:
     bool addManifest(mz_zip_archive &archive) const;
 
     bool addPackedFiles(mz_zip_archive &archive) const;
+
+    void rewriteWorldReferences(tinyxml2::XMLDocument &document) const;
+
+    void rewriteObjectReferences(tinyxml2::XMLElement *element) const;
 
     void writeReport(const std::string &outputFile) const;
 };

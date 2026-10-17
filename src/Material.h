@@ -11,6 +11,8 @@
 
 #include <array>
 #include <atomic>
+#include <set>
+#include <unordered_map>
 
 #include "glm/glm.hpp"
 #include "Assets/TextureAsset.h"
@@ -76,7 +78,6 @@ private:
 
     std::shared_ptr<std::vector<std::vector<std::string>>> textureNames = nullptr;
 
-    friend struct std::hash<Material>;
     std::shared_ptr<TextureAsset> ambientTexture = nullptr;
     std::shared_ptr<TextureAsset> diffuseTexture = nullptr;
     std::shared_ptr<TextureAsset> specularTexture = nullptr;
@@ -430,24 +431,53 @@ public:
 
     bool serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *materialsNode) const;
     static std::shared_ptr<Material> deserialize(AssetManager* assetManager, tinyxml2::XMLElement *materialNode);
+
+    //the same rename on a <Material> written by serialize, for references to a converted asset in a saved world
+    static bool updateSavedReferences(tinyxml2::XMLElement *materialNode, const std::string &fromOwner, const std::string &toOwner,
+                                      const std::unordered_map<size_t, size_t> &materialHashes);
+
+    //a .limonmodel owns its embedded textures under its own name, so writing one renames their owner, and every hash
+    //of the materials changes with it. Set only while ModelAsset::convertToLimon hashes and writes, on its own thread
+    struct EmbeddedOwnerRename {
+        std::string from;
+        std::string to;
+        const std::unordered_map<size_t, size_t> *hashes = nullptr;
+    };
+
+    static const EmbeddedOwnerRename *&activeOwnerRename();
+
+    static std::vector<std::string> renamedTextureName(const std::vector<std::string> &textureName);
+
+    //attached, or still waiting for afterLoad, as a deserialized material is until its GPU part
+    std::vector<std::string> getTextureName(size_t slotIndex) const;
+
+    //"*N" of each texture embedded in owner, the images a file written for this material has to carry
+    void addEmbeddedTextureIndices(const std::string &owner, std::set<uint32_t> &indices) const;
 #ifdef CEREAL_SUPPORT
     template<class Archive>
     void save(Archive & archive) const {
         //per slot: texture file, then the model it is embedded in, if it is
         std::string textureNameArray[TEXTURE_SLOT_COUNT * 2];
         for (size_t slotIndex = 0; slotIndex < TEXTURE_SLOT_COUNT; ++slotIndex) {
-            const std::shared_ptr<TextureAsset> &texture = this->*getTextureSlots()[slotIndex].texture;
-            if (texture == nullptr) {
+            std::vector<std::string> textureName = renamedTextureName(getTextureName(slotIndex));
+            if (textureName.empty()) {
                 continue;
             }
-            const std::vector<std::string> &textureName = texture->getName();
             textureNameArray[slotIndex * 2] = textureName[0];
             if (textureName.size() == 2) {
                 textureNameArray[slotIndex * 2 + 1] = textureName[1];
             }
         }
+        size_t originalHashToWrite = originalHash;
+        const EmbeddedOwnerRename *rename = activeOwnerRename();
+        if (rename != nullptr && rename->hashes != nullptr) {
+            std::unordered_map<size_t, size_t>::const_iterator renamedHash = rename->hashes->find(originalHash);
+            if (renamedHash != rename->hashes->end()) {
+                originalHashToWrite = renamedHash->second;
+            }
+        }
 
-        archive(name, specularExponent, maps, ambientColor, diffuseColor, specularColor, isAmbientMap, isDiffuseMap, isSpecularMap, isNormalMap, isOpacityMap, refractionIndex, originalHash,
+        archive(name, specularExponent, maps, ambientColor, diffuseColor, specularColor, isAmbientMap, isDiffuseMap, isSpecularMap, isNormalMap, isOpacityMap, refractionIndex, originalHashToWrite,
             textureNameArray);
     }
 
@@ -498,64 +528,6 @@ public:
 #endif
 };
 
-namespace std {
-
-    inline void hash_combine(std::size_t& seed [[gnu::unused]]) { }
-
-    template <typename T, typename... Rest>
-    inline void hash_combine(std::size_t& seed, const T& v, Rest... rest) {
-        std::hash<T> hasher;
-        seed ^= hasher(v) + 0x9e3779b9 + (seed<<6) + (seed>>2);
-        hash_combine(seed, rest...);
-    }
-
-    template <>
-    struct hash<glm::vec3> {
-        size_t operator()(const glm::vec3& v) const {
-            size_t hash = 0;
-            hash_combine(hash, v.x, v.y, v.z);
-            return hash;
-        }
-    };
-
-    template <>
-    struct hash<std::vector<std::string>> {
-        size_t operator()(const std::vector<std::string>& vs) const {
-            size_t hash = 0;
-            for (size_t i = 0; i < vs.size(); ++i) {
-                hash_combine(hash, vs.at(i));
-            }
-            return hash;
-        }
-    };
-
-    template <>
-    struct hash<Material> {
-        size_t operator()(const Material& m) const {
-            size_t hash = 0;
-            hash_combine(hash,
-                                m.getSpecularExponent(),
-                                m.getMaps(),
-                                m.getAmbientColor(),
-                                m.getDiffuseColor(),
-                                m.getSpecularColor(),
-                                m.getRefractionIndex()
-                                );
-            //std::cout << "for material " << m.getName() << " hash is calculated as " << hash << std::endl;
-            //a deserialized material is registered before afterLoad attaches its textures, so until then the names it
-            //will attach stand in. Without them limonmodel materials differing only in textures merged into one
-            for (size_t slotIndex = 0; slotIndex < Material::TEXTURE_SLOT_COUNT; ++slotIndex) {
-                const std::shared_ptr<TextureAsset> &texture = m.*Material::getTextureSlots()[slotIndex].texture;
-                if (texture != nullptr) {
-                    hash_combine(hash, texture->getName());
-                } else if (m.textureNames != nullptr && !(*m.textureNames)[slotIndex].empty()) {
-                    hash_combine(hash, (*m.textureNames)[slotIndex]);
-                }
-            }
-            return hash;
-        }
-    };
-}
 
 
 #endif //LIMONENGINE_MATERIAL_H

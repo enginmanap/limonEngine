@@ -392,6 +392,40 @@ bool ModelAsset::writeBinary(std::ostream &stream) {
 #endif
 }
 
+bool ModelAsset::convertToLimon(const std::string &targetKey, std::ostream &stream, LimonConversion &conversion) {
+    conversion.assetKey = targetKey;
+    conversion.fromOwner = sourcePath;
+    conversion.toOwner = targetKey;
+    conversion.materialHashes.clear();
+    Material::EmbeddedOwnerRename ownerRename;
+    ownerRename.from = sourcePath;
+    ownerRename.to = targetKey;
+    for (const std::pair<const std::string, std::shared_ptr<Material>> &material : materialMap) {
+        size_t hashBefore = material.second->getHash();
+        Material::activeOwnerRename() = &ownerRename;
+        conversion.materialHashes[hashBefore] = material.second->getHash();
+        Material::activeOwnerRename() = nullptr;
+    }
+    ownerRename.hashes = &conversion.materialHashes;//the file's own OriginalHash values point at these materials too
+    Material::activeOwnerRename() = &ownerRename;
+    bool written = writeBinary(stream);
+    Material::activeOwnerRename() = nullptr;
+    return written;
+}
+
+bool ModelAsset::convertToLimon(const std::string &targetKey, const std::string &path, LimonConversion &conversion) {
+    std::ofstream os(path, std::ios::binary);
+    if (!os.is_open()) {
+        std::cerr << "Could not open " << path << " for writing" << std::endl;
+        return false;
+    }
+    if (!convertToLimon(targetKey, os, conversion)) {
+        std::cerr << "Writing " << path << " failed" << std::endl;
+        return false;
+    }
+    return true;
+}
+
 void ModelAsset::regenerateLods(LodLadder::BuildMode buildMode) {
     buildLodLevels(buildMode);
     for (size_t meshIndex = 0; meshIndex < meshes.size(); ++meshIndex) {

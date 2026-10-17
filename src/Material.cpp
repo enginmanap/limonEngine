@@ -4,6 +4,8 @@
 
 #include <ImGui/imgui.h>
 #include "Material.h"
+#include <sstream>
+#include "Utils/HashUtil.h"
 
 #include <ImGuiHelper.h>
 #include "XMLHelper.h"
@@ -206,6 +208,68 @@ bool Material::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *
     return true;
 }
 
+bool Material::updateSavedReferences(tinyxml2::XMLElement *materialNode, const std::string &fromOwner, const std::string &toOwner,
+                                           const std::unordered_map<size_t, size_t> &materialHashes) {
+    bool changed = false;
+    for (const TextureSlot &slot : getTextureSlots()) {
+        tinyxml2::XMLElement *textureNode = materialNode->FirstChildElement(slot.xmlElementName);
+        if (textureNode == nullptr || textureNode->GetText() == nullptr) {
+            continue;
+        }
+        std::string textureName = textureNode->GetText();//serialize joins an embedded texture as "*N,owner"
+        size_t separator = textureName.find(',');
+        if (separator != std::string::npos && textureName[0] == '*' && textureName.substr(separator + 1) == fromOwner) {
+            textureNode->SetText((textureName.substr(0, separator + 1) + toOwner).c_str());
+            changed = true;
+        }
+    }
+    tinyxml2::XMLElement *originalHashNode = materialNode->FirstChildElement("OriginalHash");
+    if (originalHashNode != nullptr && originalHashNode->GetText() != nullptr) {
+        size_t originalHash = 0;
+        std::stringstream stream(originalHashNode->GetText());
+        stream >> originalHash;
+        std::unordered_map<size_t, size_t>::const_iterator renamedHash = materialHashes.find(originalHash);
+        if (renamedHash != materialHashes.end() && renamedHash->second != originalHash) {
+            originalHashNode->SetText(static_cast<uint64_t>(renamedHash->second));
+            changed = true;
+        }
+    }
+    return changed;
+}
+
+const Material::EmbeddedOwnerRename *&Material::activeOwnerRename() {
+    thread_local const EmbeddedOwnerRename *active = nullptr;
+    return active;
+}
+
+std::vector<std::string> Material::renamedTextureName(const std::vector<std::string> &textureName) {
+    const EmbeddedOwnerRename *rename = activeOwnerRename();
+    if (rename != nullptr && textureName.size() == 2 && textureName[1] == rename->from) {
+        return {textureName[0], rename->to};
+    }
+    return textureName;
+}
+
+std::vector<std::string> Material::getTextureName(size_t slotIndex) const {
+    const std::shared_ptr<TextureAsset> &texture = this->*getTextureSlots()[slotIndex].texture;
+    if (texture != nullptr) {
+        return texture->getName();
+    }
+    if (textureNames != nullptr) {
+        return (*textureNames)[slotIndex];
+    }
+    return {};
+}
+
+void Material::addEmbeddedTextureIndices(const std::string &owner, std::set<uint32_t> &indices) const {
+    for (size_t slotIndex = 0; slotIndex < TEXTURE_SLOT_COUNT; ++slotIndex) {
+        std::vector<std::string> textureName = getTextureName(slotIndex);
+        if (textureName.size() == 2 && textureName[1] == owner && textureName[0].size() > 1 && textureName[0][0] == '*') {
+            indices.insert(static_cast<uint32_t>(std::atoi(textureName[0].c_str() + 1)));
+        }
+    }
+}
+
 std::shared_ptr<Material> Material::deserialize(AssetManager* assetManager, tinyxml2::XMLElement *materialNode) {
 
         std::string name = materialNode->FirstChildElement("Name")->GetText();
@@ -252,8 +316,24 @@ std::shared_ptr<Material> Material::deserialize(AssetManager* assetManager, tiny
 }
 
 size_t Material::getHash() const {
-    std::hash<Material> hashGenerator;
-    return hashGenerator(*this);
+    std::string bytes;
+    HashUtil::appendFloat(bytes, specularExponent);
+    HashUtil::appendUint32(bytes, maps);
+    HashUtil::appendVec3(bytes, ambientColor);
+    HashUtil::appendVec3(bytes, diffuseColor);
+    HashUtil::appendVec3(bytes, specularColor);
+    HashUtil::appendFloat(bytes, refractionIndex);
+    //a deserialized material is registered before afterLoad attaches its textures, so until then the names it
+    //will attach stand in. Without them limonmodel materials differing only in textures merged into one
+    for (size_t slotIndex = 0; slotIndex < TEXTURE_SLOT_COUNT; ++slotIndex) {
+        std::vector<std::string> textureName = renamedTextureName(getTextureName(slotIndex));
+        HashUtil::appendUint32(bytes, static_cast<uint32_t>(textureName.size()));
+        for (const std::string &namePart : textureName) {
+            HashUtil::appendUint32(bytes, static_cast<uint32_t>(namePart.size()));
+            bytes += namePart;
+        }
+    }
+    return hash(bytes);
 }
 
 size_t Material::getOriginalHash() const {

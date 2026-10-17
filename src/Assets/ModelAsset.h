@@ -213,10 +213,24 @@ public:
     //the same .limonmodel bytes, for a writer that doesn't want a file, like the packer adding it to a zip
     bool writeBinary(std::ostream &stream);
 
+    //what writing this asset as a .limonmodel changed, for whoever refers to it: its key, the owner its embedded
+    //textures moved to, and each material's hash before and after
+    struct LimonConversion {
+        std::string assetKey;
+        std::string fromOwner;
+        std::string toOwner;
+        std::unordered_map<size_t, size_t> materialHashes;
+    };
+
+    //targetKey is the key the file will be loaded by, it becomes the owner of its embedded textures. The asset in
+    //memory is not changed. Bakes every occluder level first, so only between frames
+    bool convertToLimon(const std::string &targetKey, std::ostream &stream, LimonConversion &conversion);
+    bool convertToLimon(const std::string &targetKey, const std::string &path, LimonConversion &conversion);
+
     //written before the archive and checked before it is read, so a file in another layout is refused instead of parsed.
     //Any change to what the file stores bumps the version, in any class it holds: MeshAsset, LodLadder, LevelPlan...
     static constexpr uint32_t LIMONMODEL_MAGIC = 0x4C444D4C;//"LMDL" in file order
-    static constexpr uint32_t LIMONMODEL_VERSION = 1;
+    static constexpr uint32_t LIMONMODEL_VERSION = 2;//2: embedded textures belong to the file itself
 
     //true for an asset loaded from a limonmodel, where the file itself is the store rather than a sidecar
     bool isConvertedAsset() const;
@@ -351,21 +365,27 @@ public:
 #ifdef CEREAL_SUPPORT
     template<class Archive>
     void save( Archive & ar ) const {
-        std::vector<std::shared_ptr<const AssetManager::EmbeddedTexture>> textures;
-        size_t index = 0;
-        std::shared_ptr<const AssetManager::EmbeddedTexture> embeddedTexture = assetManager->getEmbeddedTextures(sourcePath, index);
-        while(embeddedTexture != nullptr) {
-            textures.push_back(embeddedTexture);
-            index++;
-            embeddedTexture = assetManager->getEmbeddedTextures(sourcePath, index);
+        //only the images a material uses, the rest stay empty so "*N" still points at the same index
+        std::set<uint32_t> usedTextureIndices;
+        for (const std::pair<const std::string, std::shared_ptr<Material>> &material : materialMap) {
+            material.second->addEmbeddedTextureIndices(sourcePath, usedTextureIndices);
         }
+        std::vector<std::shared_ptr<const AssetManager::EmbeddedTexture>> textures;
+        if (!usedTextureIndices.empty()) {
+            textures.resize(*usedTextureIndices.rbegin() + 1);
+            for (uint32_t textureIndex : usedTextureIndices) {
+                textures[textureIndex] = assetManager->getEmbeddedTextures(sourcePath, textureIndex);
+            }
+        }
+        const Material::EmbeddedOwnerRename *ownerRename = Material::activeOwnerRename();
+        std::string sourcePathToWrite = ownerRename != nullptr ? ownerRename->to : sourcePath;
         //in mesh order, the map is keyed by pointer and would write in allocation order, so the same model never gave the same bytes
         std::vector<std::shared_ptr<Material>> meshMaterials;
         for (const std::shared_ptr<MeshAsset> &mesh : meshes) {
             std::map<const std::shared_ptr<const MeshAsset>, std::shared_ptr<Material>>::const_iterator meshMaterial = meshMaterialMap.find(mesh);
             meshMaterials.push_back(meshMaterial == meshMaterialMap.end() ? nullptr : meshMaterial->second);
         }
-        ar(sourcePath, boneIDCounter, boneIDCounterPerMesh, textures,                   hasAnimation, rootNode, boundingBoxMax, boundingBoxMin, centerOffset, boneInformationMap, simplifiedMeshes, meshes, animations, animationSections, customizationAfterSave, materialMap, meshMaterials, transparentMaterialUsed, lodLadder);
+        ar(sourcePathToWrite, boneIDCounter, boneIDCounterPerMesh, textures,                   hasAnimation, rootNode, boundingBoxMax, boundingBoxMin, centerOffset, boneInformationMap, simplifiedMeshes, meshes, animations, animationSections, customizationAfterSave, materialMap, meshMaterials, transparentMaterialUsed, lodLadder);
     }
 
     template<class Archive>

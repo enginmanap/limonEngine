@@ -16,6 +16,7 @@
 #include "../Assets/ModelAsset.h"
 #include "../Assets/TextureAsset.h"
 #include "../Material.h"
+#include "../GameObjects/Model.h"
 #include "../Python/ScriptManager.h"
 #include "../Python/ScriptDependencyFinder.h"
 #include "limonAPI/Options.h"
@@ -215,10 +216,17 @@ bool PackageBuilder::convertModel(const std::string &modelKey, const std::string
         }
         packedModel += ".limonmodel";
         std::ostringstream modelStream;
-        bool serialized = modelAsset->writeBinary(modelStream);
+        ModelAsset::LimonConversion conversion;
+        bool serialized = modelAsset->convertToLimon("./" + packedModel, modelStream, conversion);//the key AssetManager::resolvePackedModel loads it by
         std::string modelBytes = modelStream.str();
         if (serialized && mz_zip_writer_add_mem(&archive, packedModel.substr(5).c_str(), modelBytes.data(), modelBytes.size(), MZ_NO_COMPRESSION)) {
             convertedModels[modelKey] = packedModel;
+            for (const std::pair<const size_t, size_t> &materialHash : conversion.materialHashes) {
+                if (materialHash.first != materialHash.second) {//only embedded textures change a material, worlds of other models stay byte for byte
+                    conversions[modelKey] = conversion;
+                    break;
+                }
+            }
         } else {
             problems.push_back(modelKey + " could not be converted, " + reason);
             converted = false;
@@ -304,13 +312,88 @@ bool PackageBuilder::addPackedFiles(mz_zip_archive &archive) const {
     //stored, not deflated: most of a game is already compressed images and sound, deflate waits for load time measurements
     for (const std::pair<const std::string, std::string> &packedFile : packedFiles) {
         std::vector<uint8_t> contents;
-        if (!LimonFileSystem::readFile(packedFile.first, contents) ||
-            !mz_zip_writer_add_mem(&archive, packedFile.first.substr(5).c_str(), contents.data(), contents.size(), MZ_NO_COMPRESSION)) {
+        if (!LimonFileSystem::readFile(packedFile.first, contents)) {
+            std::cerr << "Could not read " << packedFile.first << std::endl;
+            written = false;
+            continue;
+        }
+        if (reachedWorlds.count(packedFile.first) != 0 && !conversions.empty()) {
+            //the world names raw models, the package loads their conversions, so what it says about their materials has to follow
+            tinyxml2::XMLDocument document;
+            if (document.Parse(reinterpret_cast<const char *>(contents.data()), contents.size()) != tinyxml2::XML_SUCCESS) {
+                std::cerr << "Could not parse " << packedFile.first << " to update its references to converted models" << std::endl;
+                written = false;
+                continue;
+            }
+            rewriteWorldReferences(document);
+            tinyxml2::XMLPrinter printer;
+            document.Print(&printer);
+            contents.assign(printer.CStr(), printer.CStr() + printer.CStrSize() - 1);//CStrSize counts the terminator
+        }
+        if (!mz_zip_writer_add_mem(&archive, packedFile.first.substr(5).c_str(), contents.data(), contents.size(), MZ_NO_COMPRESSION)) {
             std::cerr << "Could not add " << packedFile.first << ": " << mz_zip_get_error_string(mz_zip_get_last_error(&archive)) << std::endl;
             written = false;
         }
     }
     return written;
+}
+
+void PackageBuilder::rewriteWorldReferences(tinyxml2::XMLDocument &document) const {
+    tinyxml2::XMLElement *worldNode = document.FirstChildElement("World");
+    if (worldNode == nullptr) {
+        return;
+    }
+    rewriteObjectReferences(worldNode);
+    //world wide overrides name the material they replace by OriginalHash, which model it belonged to is not written
+    tinyxml2::XMLElement *materialsNode = worldNode->FirstChildElement("Materials");
+    if (materialsNode == nullptr) {
+        return;
+    }
+    std::vector<tinyxml2::XMLElement *> materialNodes;
+    for (tinyxml2::XMLElement *materialNode = materialsNode->FirstChildElement("Material"); materialNode != nullptr;
+         materialNode = materialNode->NextSiblingElement("Material")) {
+        materialNodes.push_back(materialNode);
+    }
+    //flip variants of one source are one material until converted, then each file has its own, so an entry may become several
+    for (tinyxml2::XMLElement *materialNode : materialNodes) {
+        tinyxml2::XMLElement *insertAfter = materialNode;
+        bool replaced = false;
+        for (const std::pair<const std::string, ModelAsset::LimonConversion> &conversion : conversions) {
+            tinyxml2::XMLElement *convertedNode = materialNode->DeepClone(&document)->ToElement();
+            if (Material::updateSavedReferences(convertedNode, conversion.second.fromOwner, conversion.second.toOwner,
+                                                      conversion.second.materialHashes)) {
+                materialsNode->InsertAfterChild(insertAfter, convertedNode);
+                insertAfter = convertedNode;
+                replaced = true;
+            } else {
+                document.DeleteNode(convertedNode);
+            }
+        }
+        if (replaced) {
+            materialsNode->DeleteChild(materialNode);
+        }
+    }
+}
+
+//objects sit at the top level, under parents, in groups and as player attachments, the same walk the scanner does
+void PackageBuilder::rewriteObjectReferences(tinyxml2::XMLElement *element) const {
+    for (tinyxml2::XMLElement *child = element->FirstChildElement(); child != nullptr; child = child->NextSiblingElement()) {
+        if (std::string(child->Name()) == "Object") {
+            const tinyxml2::XMLElement *fileElement = child->FirstChildElement("File");
+            const tinyxml2::XMLElement *flipElement = child->FirstChildElement("Flip");
+            if (fileElement != nullptr && fileElement->GetText() != nullptr) {
+                std::string modelKey = LimonFileSystem::normalizePath(fileElement->GetText());
+                if (flipElement != nullptr && flipElement->GetText() != nullptr && flipElement->GetText()[0] != '\0') {
+                    modelKey += std::string("?flip") + flipElement->GetText();
+                }
+                std::map<std::string, ModelAsset::LimonConversion>::const_iterator conversion = conversions.find(modelKey);
+                if (conversion != conversions.end()) {
+                    Model::updateSavedReferences(child, conversion->second);
+                }
+            }
+        }
+        rewriteObjectReferences(child);
+    }
 }
 
 void PackageBuilder::writeReport(const std::string &outputFile) const {
