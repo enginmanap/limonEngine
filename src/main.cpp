@@ -187,7 +187,7 @@ static bool loadOptionsFile(OptionsUtil::Options *options, const std::string &fi
     return true;
 }
 
-GameEngine::GameEngine() {
+GameEngine::GameEngine(bool headless) : headless(headless) {
     scriptManager = new ScriptManager("./Engine/Scripts", "./Data/Scripts");
 
     options = new OptionsUtil::Options([](){return static_cast<uint32_t>(SDL3Helper::getTicks());});
@@ -205,7 +205,7 @@ GameEngine::GameEngine() {
 
     sdlHelper = new SDL3Helper(options);
 
-    std::string backendName = options->getOption<std::string>(options->getHash("render_backend")).getOrDefault("libOpenGLGraphicsBackend");
+    std::string backendName = headless ? "libHeadlessGraphicsBackend" : options->getOption<std::string>(options->getHash("render_backend")).getOrDefault("libOpenGLGraphicsBackend");
     std::cout << "Selected Graphics Backend: " << backendName << std::endl;
 
     std::string graphicsBackendFileName = "./";
@@ -222,44 +222,46 @@ GameEngine::GameEngine() {
         std::cerr << "failed to load graphics backend. Please check " << graphicsBackendFileName << std::endl;
         exit(1);
     }
-    sdlHelper->initWindow(PROGRAM_NAME.c_str(), graphicsWrapper->getContextInformation());
-    if(!sdlHelper->createContext()) {
-        std::cout << "Context creation failed, trying fallback..." << std::endl;
-        sdlHelper->destroyWindow();
-        GraphicsInterface::ContextInformation fallbackContext;
-        if(graphicsWrapper->getFallbackContextInformation(fallbackContext)) {
-            sdlHelper->initWindow(PROGRAM_NAME.c_str(), fallbackContext);
-            if(!sdlHelper->createContext()) {
-                std::cerr << "Failed to create fallback context. Exiting." << std::endl;
+    if (!headless) {
+        sdlHelper->initWindow(PROGRAM_NAME.c_str(), graphicsWrapper->getContextInformation());
+        if(!sdlHelper->createContext()) {
+            std::cout << "Context creation failed, trying fallback..." << std::endl;
+            sdlHelper->destroyWindow();
+            GraphicsInterface::ContextInformation fallbackContext;
+            if(graphicsWrapper->getFallbackContextInformation(fallbackContext)) {
+                sdlHelper->initWindow(PROGRAM_NAME.c_str(), fallbackContext);
+                if(!sdlHelper->createContext()) {
+                    std::cerr << "Failed to create fallback context. Exiting." << std::endl;
+                    exit(1);
+                }
+            } else {
+                std::cerr << "Failed to create context and no fallback is available. Exiting." << std::endl;
                 exit(1);
             }
-        } else {
-            std::cerr << "Failed to create context and no fallback is available. Exiting." << std::endl;
+        }
+    
+        if(!graphicsWrapper->verifyContext()) {
+            std::cerr << "Context verification failed." << std::endl;
             exit(1);
         }
-    }
-    
-    if(!graphicsWrapper->verifyContext()) {
-        std::cerr << "Context verification failed." << std::endl;
-        exit(1);
-    }
 
-    if(!graphicsWrapper->createGraphicsBackend()) {
-        std::cerr << "failed to create graphics backend. Please check " << graphicsBackendFileName << std::endl;
-        exit(1);
+        if(!graphicsWrapper->createGraphicsBackend()) {
+            std::cerr << "failed to create graphics backend. Please check " << graphicsBackendFileName << std::endl;
+            exit(1);
+        }
+        graphicsWrapper->initGpuContext();
+        graphicsWrapper->reshape();
+        frameResourceHandles.modelTransformTexture = graphicsWrapper->createFrameBufferedTexture(MODEL_TRANSFORM_TEXTURE_HEIGHT, MODEL_TRANSFORM_TEXTURE_WIDTH, GraphicsInterface::InternalFormatTypes::RGBA32F,
+                                                                                                 GraphicsInterface::FormatTypes::RGBA, GraphicsInterface::DataTypes::FLOAT);
+        frameResourceHandles.boneTransformTexture = graphicsWrapper->createFrameBufferedTexture(NR_MAX_RIGS, 4 * NR_BONE, GraphicsInterface::InternalFormatTypes::RGBA32F,
+                                                                                                GraphicsInterface::FormatTypes::RGBA, GraphicsInterface::DataTypes::FLOAT);
+        frameResourceHandles.lightBlockBuffer = graphicsWrapper->createUniformBuffer();
+        frameResourceHandles.playerBlockBuffer = graphicsWrapper->createUniformBuffer();
+        graphicsWrapper->attachTexture(frameResourceHandles.modelTransformTexture, GraphicsInterface::MODEL_BONE_TRANSFORM_TEXTURE_UNIT_START);
+        graphicsWrapper->attachTexture(frameResourceHandles.boneTransformTexture, GraphicsInterface::MODEL_BONE_TRANSFORM_TEXTURE_UNIT_START + 1);
+        graphicsWrapper->bindUniformBuffer(frameResourceHandles.lightBlockBuffer, GraphicsInterface::LIGHT_BLOCK_BINDING);
+        graphicsWrapper->bindUniformBuffer(frameResourceHandles.playerBlockBuffer, GraphicsInterface::PLAYER_BLOCK_BINDING);
     }
-    graphicsWrapper->initGpuContext();
-    graphicsWrapper->reshape();
-    frameResourceHandles.modelTransformTexture = graphicsWrapper->createFrameBufferedTexture(MODEL_TRANSFORM_TEXTURE_HEIGHT, MODEL_TRANSFORM_TEXTURE_WIDTH, GraphicsInterface::InternalFormatTypes::RGBA32F,
-                                                                                             GraphicsInterface::FormatTypes::RGBA, GraphicsInterface::DataTypes::FLOAT);
-    frameResourceHandles.boneTransformTexture = graphicsWrapper->createFrameBufferedTexture(NR_MAX_RIGS, 4 * NR_BONE, GraphicsInterface::InternalFormatTypes::RGBA32F,
-                                                                                            GraphicsInterface::FormatTypes::RGBA, GraphicsInterface::DataTypes::FLOAT);
-    frameResourceHandles.lightBlockBuffer = graphicsWrapper->createUniformBuffer();
-    frameResourceHandles.playerBlockBuffer = graphicsWrapper->createUniformBuffer();
-    graphicsWrapper->attachTexture(frameResourceHandles.modelTransformTexture, GraphicsInterface::MODEL_BONE_TRANSFORM_TEXTURE_UNIT_START);
-    graphicsWrapper->attachTexture(frameResourceHandles.boneTransformTexture, GraphicsInterface::MODEL_BONE_TRANSFORM_TEXTURE_UNIT_START + 1);
-    graphicsWrapper->bindUniformBuffer(frameResourceHandles.lightBlockBuffer, GraphicsInterface::LIGHT_BLOCK_BINDING);
-    graphicsWrapper->bindUniformBuffer(frameResourceHandles.playerBlockBuffer, GraphicsInterface::PLAYER_BLOCK_BINDING);
 
 #ifdef _WIN32
     sdlHelper->loadCustomTriggers("libcustomTriggers.dll");
@@ -464,10 +466,12 @@ GameEngine::~GameEngine() {
     delete worldLoader;
     delete inputHandler;
     delete alHelper;
-    graphicsWrapper->deleteFrameBufferedTexture(frameResourceHandles.modelTransformTexture);
-    graphicsWrapper->deleteFrameBufferedTexture(frameResourceHandles.boneTransformTexture);
-    graphicsWrapper->deleteUniformBuffer(frameResourceHandles.lightBlockBuffer);
-    graphicsWrapper->deleteUniformBuffer(frameResourceHandles.playerBlockBuffer);
+    if (!headless) {
+        graphicsWrapper->deleteFrameBufferedTexture(frameResourceHandles.modelTransformTexture);
+        graphicsWrapper->deleteFrameBufferedTexture(frameResourceHandles.boneTransformTexture);
+        graphicsWrapper->deleteUniformBuffer(frameResourceHandles.lightBlockBuffer);
+        graphicsWrapper->deleteUniformBuffer(frameResourceHandles.playerBlockBuffer);
+    }
     graphicsWrapper = nullptr;//FIXME this should be part of SdlHelper, because it is created and deleted by it. now it is order dependent because if it.
     delete sdlHelper;
     delete frameTimeTracker;
@@ -511,7 +515,7 @@ int main(int argc, char *argv[]) {
             std::cerr << "File system could not start, exiting." << std::endl;
             return -1;
         }
-        GameEngine packerEngine;
+        GameEngine packerEngine(true);
         return packerEngine.buildPackage(argv[3]) ? 0 : -1;
     }
     //never shut down: GameEngine is destroyed after main's last statement, and its asset threads may still read
@@ -553,7 +557,7 @@ int main(int argc, char *argv[]) {
             std::cerr << "--scale must be greater than 0, a negative one would mirror the whole map." << std::endl;
             return -1;
         }
-        GameEngine converterEngine;
+        GameEngine converterEngine(true);
         return converterEngine.convertModelToWorld(argv[2], outputDirectory, scale) ? 0 : -1;
     }
 

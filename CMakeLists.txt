@@ -363,6 +363,18 @@ if(NOT APPLE)
 endif()
 # --- END OpenGLES Backend ---
 
+# --- 3. Headless Backend, for --pack and --convert ---
+add_library(HeadlessGraphicsBackend SHARED
+        GraphicBackends/HeadlessGraphics.cpp
+)
+disable_postfixes(HeadlessGraphicsBackend)
+target_precompile_headers(HeadlessGraphicsBackend PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src/stdafx.h)
+
+TARGET_LINK_LIBRARIES(HeadlessGraphicsBackend LimonAPI)
+set_target_properties(HeadlessGraphicsBackend PROPERTIES VERSION ${PROJECT_VERSION} SOVERSION 1)
+add_dependencies(LimonEngine HeadlessGraphicsBackend)
+# --- END Headless Backend ---
+
 # Add the definition to all targets
 include(BundlePython)
 find_python_environment()
@@ -385,7 +397,7 @@ IF(APPLE)
     # rewrite the load dir
     find_program(DYLIBBUNDLER_EXECUTABLE dylibbundler)
     IF(DYLIBBUNDLER_EXECUTABLE)
-        set(BUNDLE_TARGETS LimonEngine OpenGLGraphicsBackend customTriggers)
+        set(BUNDLE_TARGETS LimonEngine OpenGLGraphicsBackend HeadlessGraphicsBackend customTriggers)
         set(BUNDLE_FIX_ARGS "")
         foreach(BUNDLE_TARGET ${BUNDLE_TARGETS})
             list(APPEND BUNDLE_FIX_ARGS -x $<TARGET_FILE:${BUNDLE_TARGET}>)

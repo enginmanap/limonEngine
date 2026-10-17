@@ -58,6 +58,7 @@ class GameEngine {
     uint64_t ticksRun = 0;
 
     ScriptManager* scriptManager = nullptr;
+    bool headless = false;
 
     // World switch requested by an API call during play(). Applied after the tick
     // completes so play() always runs to the end of the tick.
@@ -72,7 +73,8 @@ class GameEngine {
     void unloadWorldForReload(const std::string &worldFile);
 
 public:
-    GameEngine();
+    //headless has no window and no context, for --pack and --convert, which only load assets
+    explicit GameEngine(bool headless = false);
     ~GameEngine();
 
     void setWorldQuit() {
