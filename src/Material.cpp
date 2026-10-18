@@ -155,8 +155,16 @@ void Material::activateTextures(GraphicsInterface* graphicsWrapper) const {
     }
 }
 
-bool Material::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *materialsNode) const {
+std::string Material::getSaveKey() const {
+    return std::to_string(getHash());
+}
+
+bool Material::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *materialsNode, const std::string &key, bool worldOverride) const {
     tinyxml2::XMLElement *materialNode = document.NewElement("Material");
+        materialNode->SetAttribute("Key", key.c_str());
+        if (worldOverride) {
+            materialNode->SetAttribute("WorldOverride", 1);
+        }
         materialsNode->InsertEndChild(materialNode);
         tinyxml2::XMLElement *materialNameNode = document.NewElement("Name");
         materialNameNode->SetText(this->getName().c_str());
@@ -170,9 +178,6 @@ bool Material::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *
         tinyxml2::XMLElement *materialSpecularColorNode = document.NewElement("SpecularColor");
         XMLHelper::writeVec3(document, materialSpecularColorNode, this->getSpecularColor());
         materialNode->InsertEndChild(materialSpecularColorNode);
-        tinyxml2::XMLElement *materialIndexNode = document.NewElement("MaterialIndex");
-        materialIndexNode->SetText(this->getMaterialIndex());
-        materialNode->InsertEndChild(materialIndexNode);
         tinyxml2::XMLElement *materialSpecularExponentNode = document.NewElement("SpecularExponent");
         materialSpecularExponentNode->SetText(this->getSpecularExponent());
         materialNode->InsertEndChild(materialSpecularExponentNode);
@@ -276,7 +281,6 @@ std::shared_ptr<Material> Material::deserialize(AssetManager* assetManager, tiny
         XMLHelper::readVec3(materialNode->FirstChildElement("SpecularColor"), specularColor);
 
         size_t originalHash = 0;
-        uint32_t materialIndex = std::stoi(materialNode->FirstChildElement("MaterialIndex")->GetText());
         float specularExponent = std::stof(materialNode->FirstChildElement("SpecularExponent")->GetText());
         float refractionIndex = std::stof(materialNode->FirstChildElement("RefractionIndex")->GetText());
         if (materialNode->FirstChildElement("OriginalHash") != nullptr && materialNode->FirstChildElement("OriginalHash")->GetText() != nullptr) {
@@ -285,7 +289,7 @@ std::shared_ptr<Material> Material::deserialize(AssetManager* assetManager, tiny
             stream >> originalHash;
         }
 
-        std::shared_ptr<Material> material = std::make_shared<Material>(assetManager, name, materialIndex, specularExponent, ambientColor, diffuseColor, specularColor,
+        std::shared_ptr<Material> material = std::make_shared<Material>(assetManager, name, 0, specularExponent, ambientColor, diffuseColor, specularColor,
                                                                         refractionIndex);
 
         uint32_t maps = 0;

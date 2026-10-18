@@ -120,18 +120,22 @@ bool WorldSaver::saveWorld(const std::string& mapName, const World* world) {
     }
     XMLHelper::writeElement(mapDocument, rootNode, "SoundDistanceModel", distanceModelStr);
 
-    currentElement = mapDocument.NewElement("Materials");
-    if(!fillMaterials(mapDocument, currentElement, world)) {
-        return false;
-    };
-    rootNode->InsertEndChild(currentElement);//add objects
+    //objects name their materials by key, so the pool is known only once they are written. The element goes in first to stay ahead of them in the file
+    tinyxml2::XMLElement *materialsElement = mapDocument.NewElement("Materials");
+    rootNode->InsertEndChild(materialsElement);
 
-    //after current element is inserted, we can reuse
+    MaterialPool materialPool;
     currentElement = mapDocument.NewElement("Objects");
-    if(!fillObjects(mapDocument, currentElement, world)) {
+    if(!fillObjects(mapDocument, currentElement, world, materialPool)) {
         return false;
     };
     rootNode->InsertEndChild(currentElement);//add objects
+    if(!verifyMaterialKeys(currentElement, materialPool)) {
+        return false;
+    }
+    if(!fillMaterials(mapDocument, materialsElement, world, materialPool)) {
+        return false;
+    };
 
     currentElement = mapDocument.NewElement("ObjectGroups");
     if(!fillObjectGroups(mapDocument, currentElement, world)) {
@@ -210,9 +214,34 @@ bool WorldSaver::fillObjectGroups(tinyxml2::XMLDocument &document, tinyxml2::XML
     return true;
 }
 
-bool WorldSaver::fillObjects(tinyxml2::XMLDocument& document, tinyxml2::XMLElement * objectsNode, const World* world ) {
+bool WorldSaver::fillObjects(tinyxml2::XMLDocument& document, tinyxml2::XMLElement * objectsNode, const World* world, MaterialPool &pool) {
     for(auto it=world->objects.begin(); it != world->objects.end(); it++) {
+        if (!it->second->isTemporary()) {//fillObjects writes nothing for these, their materials would be orphans
+            const std::vector<Model::MeshMaterialOverride> meshMaterials = it->second->getNewMeshMaterials();
+            for (const Model::MeshMaterialOverride &meshMaterial : meshMaterials) {
+                pool[meshMaterial.materialKey] = std::make_pair(meshMaterial.material, false);
+            }
+        }
         (it->second)->fillObjects(document, objectsNode);
+    }
+    return true;
+}
+
+//the pool is collected by a walk of its own, so check it against what was actually written rather than trust they match
+bool WorldSaver::verifyMaterialKeys(const tinyxml2::XMLElement *objectsNode, const MaterialPool &pool) {
+    for (const tinyxml2::XMLElement *objectNode = objectsNode->FirstChildElement("Object"); objectNode != nullptr; objectNode = objectNode->NextSiblingElement("Object")) {
+        const tinyxml2::XMLElement *meshMaterialListNode = objectNode->FirstChildElement("MeshMaterialList");
+        if (meshMaterialListNode == nullptr) {
+            continue;
+        }
+        for (const tinyxml2::XMLElement *meshMaterialNode = meshMaterialListNode->FirstChildElement("MeshMaterial"); meshMaterialNode != nullptr;
+             meshMaterialNode = meshMaterialNode->NextSiblingElement("MeshMaterial")) {
+            const char *materialKey = meshMaterialNode->Attribute("MaterialKey");
+            if (materialKey == nullptr || pool.count(materialKey) == 0) {
+                std::cerr << "Save aborted: an object names material key " << (materialKey == nullptr ? "(none)" : materialKey) << " that the material pool does not hold." << std::endl;
+                return false;
+            }
+        }
     }
     return true;
 }
@@ -332,12 +361,16 @@ bool WorldSaver::fillGUILayersAndElements(tinyxml2::XMLDocument &document, tinyx
     return true;
 }
 
-bool WorldSaver::fillMaterials(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *materialsNode, const World *world) {
+bool WorldSaver::fillMaterials(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *materialsNode, const World *world, MaterialPool &pool) {
     //this world's overrides, each identified on load by the originalHash of the base it replaces
     const std::unordered_map<uint32_t, std::shared_ptr<Material>>& materialOverrides = world->getMaterialOverrides();
 
     for (std::unordered_map<uint32_t, std::shared_ptr<Material>>::const_iterator it = materialOverrides.begin(); it != materialOverrides.end(); ++it) {
-        it->second->serialize(document, materialsNode);
+        pool[it->second->getSaveKey()] = std::make_pair(std::shared_ptr<const Material>(it->second), true);
+    }
+
+    for (MaterialPool::const_iterator it = pool.begin(); it != pool.end(); ++it) {
+        it->second.first->serialize(document, materialsNode, it->first, it->second.second);
     }
     return true;
 }

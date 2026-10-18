@@ -392,10 +392,10 @@ void PackageBuilder::rewriteWorldReferences(tinyxml2::XMLDocument &document) con
     if (worldNode == nullptr) {
         return;
     }
-    rewriteObjectReferences(worldNode);
     //world wide overrides name the material they replace by OriginalHash, which model it belonged to is not written
     tinyxml2::XMLElement *materialsNode = worldNode->FirstChildElement("Materials");
     if (materialsNode == nullptr) {
+        rewriteObjectReferences(worldNode, std::map<std::string, std::unordered_set<std::string>>());
         return;
     }
     std::vector<tinyxml2::XMLElement *> materialNodes;
@@ -403,7 +403,10 @@ void PackageBuilder::rewriteWorldReferences(tinyxml2::XMLDocument &document) con
          materialNode = materialNode->NextSiblingElement("Material")) {
         materialNodes.push_back(materialNode);
     }
-    //flip variants of one source are one material until converted, then each file has its own, so an entry may become several
+    //flip variants of one source are one material until converted, then each file has its own, so an entry may become several.
+    //The clone is saved under a key of its own, and the objects of that conversion follow it there
+    std::map<std::string, std::unordered_set<std::string>> changedKeys;
+    std::vector<tinyxml2::XMLElement *> replacedNodes;
     for (tinyxml2::XMLElement *materialNode : materialNodes) {
         tinyxml2::XMLElement *insertAfter = materialNode;
         bool replaced = false;
@@ -411,6 +414,11 @@ void PackageBuilder::rewriteWorldReferences(tinyxml2::XMLDocument &document) con
             tinyxml2::XMLElement *convertedNode = materialNode->DeepClone(&document)->ToElement();
             if (Material::updateSavedReferences(convertedNode, conversion.second.fromOwner, conversion.second.toOwner,
                                                       conversion.second.materialHashes)) {
+                const char *oldKey = materialNode->Attribute("Key");
+                if (oldKey != nullptr) {
+                    convertedNode->SetAttribute("Key", Model::convertedMaterialKey(oldKey, conversion.second).c_str());
+                    changedKeys[conversion.first].insert(oldKey);
+                }
                 materialsNode->InsertAfterChild(insertAfter, convertedNode);
                 insertAfter = convertedNode;
                 replaced = true;
@@ -419,13 +427,33 @@ void PackageBuilder::rewriteWorldReferences(tinyxml2::XMLDocument &document) con
             }
         }
         if (replaced) {
-            materialsNode->DeleteChild(materialNode);
+            replacedNodes.push_back(materialNode);
+        }
+    }
+    rewriteObjectReferences(worldNode, changedKeys);
+
+    //an object of a model that was not converted may still name the original, it stays for them
+    std::set<std::string> stillReferencedKeys;
+    collectReferencedMaterialKeys(worldNode, stillReferencedKeys);
+    for (tinyxml2::XMLElement *replacedNode : replacedNodes) {
+        const char *key = replacedNode->Attribute("Key");
+        if (key == nullptr || stillReferencedKeys.count(key) == 0) {
+            materialsNode->DeleteChild(replacedNode);
         }
     }
 }
 
 //objects sit at the top level, under parents, in groups and as player attachments, the same walk the scanner does
-void PackageBuilder::rewriteObjectReferences(tinyxml2::XMLElement *element) const {
+void PackageBuilder::collectReferencedMaterialKeys(const tinyxml2::XMLElement *element, std::set<std::string> &keys) const {
+    for (const tinyxml2::XMLElement *child = element->FirstChildElement(); child != nullptr; child = child->NextSiblingElement()) {
+        if (std::string(child->Name()) == "MeshMaterial" && child->Attribute("MaterialKey") != nullptr) {
+            keys.insert(child->Attribute("MaterialKey"));
+        }
+        collectReferencedMaterialKeys(child, keys);
+    }
+}
+
+void PackageBuilder::rewriteObjectReferences(tinyxml2::XMLElement *element, const std::map<std::string, std::unordered_set<std::string>> &changedKeys) const {
     for (tinyxml2::XMLElement *child = element->FirstChildElement(); child != nullptr; child = child->NextSiblingElement()) {
         if (std::string(child->Name()) == "Object") {
             const tinyxml2::XMLElement *fileElement = child->FirstChildElement("File");
@@ -437,11 +465,13 @@ void PackageBuilder::rewriteObjectReferences(tinyxml2::XMLElement *element) cons
                 }
                 std::map<std::string, ModelAsset::LimonConversion>::const_iterator conversion = conversions.find(modelKey);
                 if (conversion != conversions.end()) {
-                    Model::updateSavedReferences(child, conversion->second);
+                    static const std::unordered_set<std::string> noChangedKeys;
+                    std::map<std::string, std::unordered_set<std::string>>::const_iterator changed = changedKeys.find(modelKey);
+                    Model::updateSavedReferences(child, conversion->second, changed != changedKeys.end() ? changed->second : noChangedKeys);
                 }
             }
         }
-        rewriteObjectReferences(child);
+        rewriteObjectReferences(child, changedKeys);
     }
 }
 

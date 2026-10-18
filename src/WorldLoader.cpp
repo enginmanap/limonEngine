@@ -203,6 +203,9 @@ World * WorldLoader::loadMapFromXML(const std::string &worldFileName, LimonAPI *
         }
     }
 
+    //objects name their override materials by key
+    indexSavedMaterials(worldNode, world);
+
     //load objects
     if(!loadObjectsFromXML(worldNode, world, limonAPI, saveVersion)) {
         delete world;
@@ -214,6 +217,8 @@ World * WorldLoader::loadMapFromXML(const std::string &worldFileName, LimonAPI *
         delete world;
         return nullptr;
     }
+    world->savedMaterialNodes.clear();//they point into the document, which does not outlive the load
+    world->savedMaterials.clear();
     if(saveVersion < 2 && worldStartPlayer != nullptr) {
         //V2 saves attachments as ordinary objects parented to the player
         tinyxml2::XMLElement* playerAttachmentNode = worldStartPlayer->FirstChildElement("Attachment");
@@ -492,7 +497,40 @@ bool WorldLoader::loadObjectsFromXML(tinyxml2::XMLNode *objectsNode, World *worl
     return true;
 }
 
-static std::vector<Model::MeshMaterialOverride> readMeshMaterialOverrides(tinyxml2::XMLElement *objectNode, AssetManager *assetManager) {
+void WorldLoader::indexSavedMaterials(tinyxml2::XMLNode *worldNode, World *world) {
+    tinyxml2::XMLElement *materialsNode = worldNode->FirstChildElement("Materials");
+    if (materialsNode == nullptr) {
+        return;
+    }
+    for (tinyxml2::XMLElement *materialNode = materialsNode->FirstChildElement("Material"); materialNode != nullptr;
+         materialNode = materialNode->NextSiblingElement("Material")) {
+        const char *key = materialNode->Attribute("Key");
+        if (key == nullptr) {
+            std::cerr << "A saved material with no Key found, nothing can name it. Skipping. The world file predates the material pool and needs re-saving." << std::endl;
+            continue;
+        }
+        if (!world->savedMaterialNodes.emplace(key, materialNode).second) {
+            std::cerr << "Saved material key " << key << " appears twice, using the first." << std::endl;
+        }
+    }
+}
+
+//one Material per key however many objects name it, they share it through the registry
+std::shared_ptr<Material> WorldLoader::resolveSavedMaterial(World *world, const std::string &key) {
+    std::unordered_map<std::string, std::shared_ptr<Material>>::const_iterator cachedIt = world->savedMaterials.find(key);
+    if (cachedIt != world->savedMaterials.end()) {
+        return cachedIt->second;
+    }
+    std::unordered_map<std::string, tinyxml2::XMLElement *>::const_iterator nodeIt = world->savedMaterialNodes.find(key);
+    if (nodeIt == world->savedMaterialNodes.end()) {
+        return nullptr;
+    }
+    std::shared_ptr<Material> material = Material::deserialize(world->assetManager.get(), nodeIt->second);
+    world->savedMaterials[key] = material;
+    return material;
+}
+
+std::vector<Model::MeshMaterialOverride> WorldLoader::readMeshMaterialOverrides(World *world, tinyxml2::XMLElement *objectNode) {
     std::vector<Model::MeshMaterialOverride> meshMaterialOverrides;
     tinyxml2::XMLElement* meshMaterialListNode = objectNode->FirstChildElement("MeshMaterialList");
     if (meshMaterialListNode == nullptr) {
@@ -504,12 +542,13 @@ static std::vector<Model::MeshMaterialOverride> readMeshMaterialOverrides(tinyxm
             std::cerr << "A mesh material definition with no MeshName found. Can't be processed. Skipping." << std::endl;
             continue;
         }
-        tinyxml2::XMLElement *materialNode = meshMaterialNode->FirstChildElement("Material");
-        if (materialNode == nullptr) {
-            std::cerr << "A mesh material definition with no Material found. Can't be processed. Skipping." << std::endl;
+        const char *materialKey = meshMaterialNode->Attribute("MaterialKey");
+        if (materialKey == nullptr) {
+            std::cerr << "A mesh material definition with no MaterialKey found. Can't be processed. Skipping. The world file predates the material pool and needs re-saving." << std::endl;
             continue;
         }
         Model::MeshMaterialOverride meshOverride;
+        meshOverride.materialKey = materialKey;
         meshOverride.meshName = meshMaterialNode->Attribute("MeshName");
         //BaseMaterial names are ignored, dedup names a material after whichever asset loaded first
         uint64_t baseMaterialHash = 0;
@@ -517,7 +556,11 @@ static std::vector<Model::MeshMaterialOverride> readMeshMaterialOverrides(tinyxm
             meshOverride.baseMaterialHash = static_cast<size_t>(baseMaterialHash);
             meshMaterialNode->QueryUnsignedAttribute("Ordinal", &meshOverride.ordinal);
         }
-        meshOverride.material = Material::deserialize(assetManager, materialNode);
+        meshOverride.material = resolveSavedMaterial(world, meshOverride.materialKey);
+        if (meshOverride.material == nullptr) {
+            std::cerr << "Mesh material " << meshOverride.meshName << " names material key " << meshOverride.materialKey << " that the world's materials do not hold. Skipping." << std::endl;
+            continue;
+        }
         meshMaterialOverrides.push_back(meshOverride);
     }
     return meshMaterialOverrides;
@@ -683,7 +726,7 @@ WorldLoader::loadObject(World *world, std::shared_ptr<AssetManager> assetManager
         }
     }
     //Now Load material changes
-    std::vector<Model::MeshMaterialOverride> custumizedMeshMaterialList = readMeshMaterialOverrides(objectNode, assetManager.get());
+    std::vector<Model::MeshMaterialOverride> custumizedMeshMaterialList = readMeshMaterialOverrides(world, objectNode);
     if (!custumizedMeshMaterialList.empty()) {
         loadedObjectInformation->model->loadOverriddenMeshMaterial(custumizedMeshMaterialList);
     }
@@ -804,7 +847,7 @@ WorldLoader::loadObjectV2(World *world, std::shared_ptr<AssetManager> assetManag
         loadedObjectInformation->model->setAnimation(objectAttribute->GetText());
     }
 
-    std::vector<Model::MeshMaterialOverride> custumizedMeshMaterialList = readMeshMaterialOverrides(objectNode, assetManager.get());
+    std::vector<Model::MeshMaterialOverride> custumizedMeshMaterialList = readMeshMaterialOverrides(world, objectNode);
     if (!custumizedMeshMaterialList.empty()) {
         loadedObjectInformation->model->loadOverriddenMeshMaterial(custumizedMeshMaterialList);
     }
@@ -1407,12 +1450,20 @@ bool WorldLoader::loadMaterials(tinyxml2::XMLNode *worldNode, World *world) cons
     for (tinyxml2::XMLElement *materialNode = materialsNode->FirstChildElement("Material");
          materialNode != nullptr;
          materialNode = materialNode->NextSiblingElement("Material")) {
+         //the rest of the entries are only for the objects naming them, those already took theirs
+         if (materialNode->IntAttribute("WorldOverride", 0) == 0) {
+             continue;
+         }
+         const char *key = materialNode->Attribute("Key");
+         if (key == nullptr) {
+             continue;//indexSavedMaterials reported it
+         }
          /*
           * These are the materials this world uses instead of the asset's own. originalHash is the base
           * they replace, carried in the save file, and it is matched to a registrationID once that base is
           * actually loaded - see World::resolvePendingMaterialOverrides.
           */
-         std::shared_ptr<Material> material = Material::deserialize(world->assetManager.get(), materialNode);
+         std::shared_ptr<Material> material = resolveSavedMaterial(world, key);
          material = world->assetManager->getMaterialRegistry().registerMaterial(material);
          material->loadGPUSide(world->assetManager.get());
          world->addPendingMaterialOverride(material);

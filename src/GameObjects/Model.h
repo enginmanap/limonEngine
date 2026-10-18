@@ -96,7 +96,12 @@ private:
 public:
 
     //the <MeshMaterial> entries of a saved <Object> whose asset was converted: base hashes and embedded owners follow the file
-    static void updateSavedReferences(tinyxml2::XMLElement *objectNode, const ModelAsset::LimonConversion &conversion);
+    //changedKeys are the pool entries the same conversion renamed, an object naming one follows it to the renamed key
+    static void updateSavedReferences(tinyxml2::XMLElement *objectNode, const ModelAsset::LimonConversion &conversion,
+                                      const std::unordered_set<std::string> &changedKeys);
+
+    //a material pool entry that a conversion changed is saved under this key from then on
+    static std::string convertedMaterialKey(const std::string &key, const ModelAsset::LimonConversion &conversion);
 
     //halves of a split mesh share the node name, and a material name is whichever identical material loaded first,
     //so a mesh is told apart by name, base material content and ordinal
@@ -104,7 +109,8 @@ public:
         std::string meshName;
         size_t baseMaterialHash = 0;//0 for old files, they match by name only
         uint32_t ordinal = 0;
-        std::shared_ptr<const Material> material;
+        std::shared_ptr<const Material> material;//null in a saved file until the loader resolves materialKey
+        std::string materialKey;//names the entry in the world's material pool
     };
 
     /**

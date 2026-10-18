@@ -11,6 +11,7 @@
 #include <mutex>
 #include <set>
 #include <string>
+#include <unordered_set>
 #include <vector>
 #include <miniz.h>
 #include "../Assets/AssetManager.h"
@@ -112,7 +113,10 @@ private:
 
     void rewriteWorldReferences(tinyxml2::XMLDocument &document) const;
 
-    void rewriteObjectReferences(tinyxml2::XMLElement *element) const;
+    void collectReferencedMaterialKeys(const tinyxml2::XMLElement *element, std::set<std::string> &keys) const;
+
+    //changedKeys: model asset key to the material pool keys its conversion renamed
+    void rewriteObjectReferences(tinyxml2::XMLElement *element, const std::map<std::string, std::unordered_set<std::string>> &changedKeys) const;
 
     void writeReport(const std::string &outputFile) const;
 };

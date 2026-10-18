@@ -234,6 +234,11 @@ private:
      * point every path into a world passes through after loading and before anything renders.
      */
     std::vector<std::shared_ptr<Material>> pendingMaterialOverrides;
+
+    //the saved <Materials> entries by key, and the ones objects already asked for. Only WorldLoader fills these, while
+    //objects load, and it empties them once <Materials> is done. Objects load on one thread, so no lock
+    std::unordered_map<std::string, tinyxml2::XMLElement *> savedMaterialNodes;
+    std::unordered_map<std::string, std::shared_ptr<Material>> savedMaterials;
     OptionsUtil::Options* options;
     ProfilerSystem* profilerSystem;
     FrameTimeTracker* frameTimeTracker;//owned by GameEngine, ticked at the frame boundary next to clearFrame

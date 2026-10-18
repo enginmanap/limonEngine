@@ -319,7 +319,7 @@ bool Model::fillObjects(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *o
             childNode->SetAttribute("MeshName", meshMaterial.meshName.c_str());
             childNode->SetAttribute("BaseHash", static_cast<uint64_t>(meshMaterial.baseMaterialHash));
             childNode->SetAttribute("Ordinal", meshMaterial.ordinal);
-            meshMaterial.material->serialize(document, childNode);
+            childNode->SetAttribute("MaterialKey", meshMaterial.materialKey.c_str());//content is in the world's <Materials>
             childrenNode->InsertEndChild(childNode);
         }
     }
@@ -1228,7 +1228,12 @@ uint32_t Model::getMeshOrdinal(size_t meshIndex) const {
     return ordinal;
 }
 
-void Model::updateSavedReferences(tinyxml2::XMLElement *objectNode, const ModelAsset::LimonConversion &conversion) {
+std::string Model::convertedMaterialKey(const std::string &key, const ModelAsset::LimonConversion &conversion) {
+    return key + "@" + conversion.toOwner;
+}
+
+void Model::updateSavedReferences(tinyxml2::XMLElement *objectNode, const ModelAsset::LimonConversion &conversion,
+                                  const std::unordered_set<std::string> &changedKeys) {
     tinyxml2::XMLElement *meshMaterialList = objectNode->FirstChildElement("MeshMaterialList");
     if (meshMaterialList == nullptr) {
         return;
@@ -1242,9 +1247,9 @@ void Model::updateSavedReferences(tinyxml2::XMLElement *objectNode, const ModelA
                 meshMaterial->SetAttribute("BaseHash", static_cast<uint64_t>(renamedHash->second));
             }
         }
-        tinyxml2::XMLElement *materialNode = meshMaterial->FirstChildElement("Material");
-        if (materialNode != nullptr) {
-            Material::updateSavedReferences(materialNode, conversion.fromOwner, conversion.toOwner, conversion.materialHashes);
+        const char *materialKey = meshMaterial->Attribute("MaterialKey");
+        if (materialKey != nullptr && changedKeys.count(materialKey) != 0) {
+            meshMaterial->SetAttribute("MaterialKey", convertedMaterialKey(materialKey, conversion).c_str());
         }
     }
 }
@@ -1259,20 +1264,19 @@ std::vector<Model::MeshMaterialOverride> Model::getNewMeshMaterials() const{
             std::cerr << "Model has a mesh that is not part of asset. This should not happen. " << std::endl;
             continue;
         }
-        if (material != thisMeshMaterial->material) {//difference in materials, we should save this.
-            //global overrides are already saved once as a <Materials> entry and come back through their
-            //forwarding rule, don't repeat them for every mesh showing them
+        //an identical copy is not a difference, opening the material panel leaves one on the mesh until it is edited
+        if (material != thisMeshMaterial->material && material->getHash() != thisMeshMaterial->material->getHash()) {
             /*
-             * A world override ends up written here as well as under <Materials>. That is redundant, not
-             * wrong: on load the per mesh copy and the world one dedup by content into a single material.
-             * Filtering on originalHash instead would give that field a second meaning and collide with the
-             * "is this world owned" test in Editor::ensureWorldOwnedMaterial.
+             * A world override is named here as well as saved under <Materials>. That is only a key per mesh, and
+             * on load both resolve to the same pool entry. Filtering on originalHash instead would give that field
+             * a second meaning and collide with the "is this world owned" test in Editor::ensureWorldOwnedMaterial.
              */
             MeshMaterialOverride meshOverride;
             meshOverride.meshName = thisMeshMaterial->mesh->getName();
             meshOverride.baseMaterialHash = material->getHash();
             meshOverride.ordinal = getMeshOrdinal(meshIndex);
             meshOverride.material = thisMeshMaterial->material;
+            meshOverride.materialKey = thisMeshMaterial->material->getSaveKey();
             meshMaterialList.push_back(meshOverride);
         }
     }

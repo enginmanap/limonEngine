@@ -14,6 +14,7 @@
 #include "InputHandler.h"
 #include "limonAPI/LimonAPI.h"
 #include "GameObjects/Sound.h"
+#include "GameObjects/Model.h"
 #include "limonAPI/ActorInterface.h"
 #include "Profiler/ProfilerSystem.h"
 
@@ -51,6 +52,11 @@ private:
     // identity at load, attachTo's world->local math would be wrong), everything else uses attachTo.
     // no ModelGroup branch here, only loadObjectsFromXMLV2 needs that.
     static void resolvePendingAttachments(World *world, const std::vector<PendingAttachment> &pending);
+
+    //objects name their override materials by key in the world's <Materials>, so it is indexed before they load
+    static void indexSavedMaterials(tinyxml2::XMLNode *worldNode, World *world);
+    static std::shared_ptr<Material> resolveSavedMaterial(World *world, const std::string &key);
+    static std::vector<Model::MeshMaterialOverride> readMeshMaterialOverrides(World *world, tinyxml2::XMLElement *objectNode);
 
     OptionsUtil::Options *options;
     GraphicsInterface* graphicsWrapper;

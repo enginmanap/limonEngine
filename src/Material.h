@@ -446,7 +446,10 @@ public:
 
     ImGuiResult addImGuiEditorElements(const ImGuiRequest &request) override;
 
-    bool serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *materialsNode) const;
+    //key is a label the world file refers to this material by, never recomputed on load. worldOverride marks the entries that
+    //become forwarding rules, the rest are only used by the objects naming them
+    bool serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *materialsNode, const std::string &key, bool worldOverride) const;
+    std::string getSaveKey() const;
     static std::shared_ptr<Material> deserialize(AssetManager* assetManager, tinyxml2::XMLElement *materialNode);
 
     //the same rename on a <Material> written by serialize, for references to a converted asset in a saved world
