@@ -3,6 +3,7 @@
 //
 
 #include <ImGui/imgui.h>
+#include "Assets/AssetTreeManager.h"
 #include "Material.h"
 #include <sstream>
 #include "Utils/HashUtil.h"
@@ -14,22 +15,8 @@
 #include "limonAPI/Graphics/GraphicsInterface.h"
 #include "limonAPI/Graphics/GraphicsProgram.h"
 
-static std::string firstTextureIn(const AssetManager::AvailableAssetsNode *assetsNode) {
-    if (assetsNode->assetType != AssetManager::Asset_type_DIRECTORY) {
-        return assetsNode->fullPath;
-    }
-    for (const AssetManager::AvailableAssetsNode *child : assetsNode->children) {
-        std::string found = firstTextureIn(child);
-        if (!found.empty()) {
-            return found;
-        }
-    }
-    return "";
-}
-
 std::string Material::findTextureByName(const std::string &fileName) const {
-    const AssetManager::AvailableAssetsNode *matches = assetManager->getAvailableAssetsTreeFiltered(AssetManager::Asset_type_TEXTURE, fileName);
-    return matches == nullptr ? "" : firstTextureIn(matches);
+    return assetManager->getTree()->findFirstAssetPathByName(AssetTreeManager::Asset_type_TEXTURE, fileName);
 }
 
 //model files name textures wherever the artist kept them, so a path that isn't a file is looked up by name. The slot keeps
