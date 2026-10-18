@@ -159,6 +159,9 @@ void ProfilerSystem::Update() {
         }
     };
 
+    //the Tracy worker thread fills these while we read, unlocked a plot vector grew under collectAllUserPlots and crashed.
+    //Taken before frameTimeMutex everywhere, the collectors take that one inside
+    tracy::Worker::MainThreadDataLockGuard dataLock = tracyWorker->ObtainLockForMainThread();
     collectZoneTime("Frame", ProfilerState::isTracingEnabled());
     collectZoneTime("World::play", ProfilerState::isTracingSimulation());
     collectZoneTime("VisibilityManager::update", ProfilerState::isTracingVisibility());
@@ -479,11 +482,11 @@ void ProfilerSystem::collectAllUserPlots(bool enabled) {
 std::vector<ProfileEvent> ProfilerSystem::GetLastFrameEvents(FrameFilter filter) const {
     std::vector<ProfileEvent> result;
 #ifdef TRACY_ENABLE
-    std::lock_guard<std::mutex> lock(frameTimeMutex);
-
     if (!tracyWorker || !tracyWorker->IsConnected() || !tracyWorker->HasData()) {
         return result;
     }
+    tracy::Worker::MainThreadDataLockGuard dataLock = tracyWorker->ObtainLockForMainThread();
+    std::lock_guard<std::mutex> lock(frameTimeMutex);
     if (!tracyWorker->AreSourceLocationZonesReady()) {
         return result;
     }
@@ -668,12 +671,12 @@ std::vector<ProfileEvent> ProfilerSystem::GetLastFrameEvents(FrameFilter filter)
 std::vector<std::string> ProfilerSystem::GetGpuDebugInfo(FrameFilter filter) const {
     std::vector<std::string> lines;
 #ifdef TRACY_ENABLE
-    std::lock_guard<std::mutex> lock(frameTimeMutex);
-
     if (!tracyWorker || !tracyWorker->IsConnected() || !tracyWorker->HasData()) {
         lines.push_back("Tracy worker not ready.");
         return lines;
     }
+    tracy::Worker::MainThreadDataLockGuard dataLock = tracyWorker->ObtainLockForMainThread();
+    std::lock_guard<std::mutex> lock(frameTimeMutex);
     if (!tracyWorker->AreSourceLocationZonesReady()) {
         lines.push_back("Source location zones not ready.");
         return lines;
