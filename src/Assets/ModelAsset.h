@@ -106,8 +106,6 @@ private:
 
     bool transparentMaterialUsed = false;
 
-    std::unique_ptr<std::vector<std::shared_ptr<const AssetManager::EmbeddedTexture>>> temporaryEmbeddedTextures = nullptr;//this is set on cerealLoad
-
     std::shared_ptr<Material> loadMaterials(const aiScene *scene, unsigned int materialIndex);
 
     void loadConvertedCPUPart();
@@ -391,8 +389,8 @@ public:
     template<class Archive>
     void load( Archive & ar ) {
         std::vector<std::shared_ptr<Material>> meshMaterials;
-        temporaryEmbeddedTextures = std::make_unique<std::vector<std::shared_ptr<const AssetManager::EmbeddedTexture>>>();
-        ar(sourcePath, boneIDCounter, boneIDCounterPerMesh, *temporaryEmbeddedTextures, hasAnimation, rootNode, boundingBoxMax, boundingBoxMin, centerOffset, boneInformationMap, simplifiedMeshes, meshes, animations, animationSections, customizationAfterSave, materialMap, meshMaterials, transparentMaterialUsed, lodLadder);
+        std::vector<std::shared_ptr<const AssetManager::EmbeddedTexture>> embeddedTextures;
+        ar(sourcePath, boneIDCounter, boneIDCounterPerMesh, embeddedTextures, hasAnimation, rootNode, boundingBoxMax, boundingBoxMin, centerOffset, boneInformationMap, simplifiedMeshes, meshes, animations, animationSections, customizationAfterSave, materialMap, meshMaterials, transparentMaterialUsed, lodLadder);
         if (meshMaterials.size() != meshes.size()) {
             AssetManager::failLoad(name + " has " + std::to_string(meshes.size()) + " meshes but " + std::to_string(meshMaterials.size()) +
                                    " mesh materials, the file is broken. Re-export it from its source model.");
@@ -410,6 +408,10 @@ public:
         for (size_t meshIndex = 0; meshIndex < meshes.size(); ++meshIndex) {
             meshMaterialMap[meshes[meshIndex]] = meshMaterials[meshIndex];
         }
+        //before afterLoad, it requests the embedded textures by these images
+        if (!embeddedTextures.empty()) {
+            assetManager->addEmbeddedTextures(this->sourcePath, embeddedTextures);
+        }
 
         for (auto& materialPair:materialMap) {
 
@@ -419,6 +421,9 @@ public:
                     meshMaterialToUpdateItList.emplace_back(it);
                 }
             }
+            //textures while the material is still only ours, as the assimp path does. Registered first, it could be dedup'ed
+            //into another model loading on another thread, and both would attach at once
+            materialPair.second->afterLoad(assetManager);
             //asset's own materials, not overrides, so register like the fresh assimp path does. As
             //overrides they would each install a forwarding rule and replace their own base everywhere
             materialPair.second = assetManager->getMaterialRegistry().registerMaterial(materialPair.second);

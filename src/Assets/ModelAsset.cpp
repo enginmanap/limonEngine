@@ -461,13 +461,7 @@ void ModelAsset::loadGPUPart() {
     // AssetManager::EmbeddedTexture eTextures should be serializeable
     // Animations should be
 
-    if(temporaryEmbeddedTextures != nullptr && temporaryEmbeddedTextures->size() > 0 ) {
-        assetManager->addEmbeddedTextures(this->sourcePath, *temporaryEmbeddedTextures);
-    }
-    temporaryEmbeddedTextures.reset();
-
     for (auto material = materialMap.begin(); material != materialMap.end(); ++material) {
-        material->second->afterLoad(assetManager);//Since this depends on the embedded textures, needs to be done as part of GPU load
         material->second->loadGPUSide(assetManager);
     }
 
