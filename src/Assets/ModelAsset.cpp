@@ -1360,6 +1360,7 @@ void ModelAsset::buildPhysicsMeshes() {
                 btCollisionShape *meshCollisionShape;
                 if (rawCollisionMesh->getNumTriangles() > 24) {
                     btConvexTriangleMeshShape *convexTriangleMeshShape = new btConvexTriangleMeshShape(rawCollisionMesh);
+                    convexTriangleMeshShape->setMargin(0.0f);//btShapeHull samples with margin included, the hull shape adds its own on top
                     btShapeHull *hull = new btShapeHull(convexTriangleMeshShape);
                     hull->buildHull(convexTriangleMeshShape->getMargin());
                     meshCollisionShape = new btConvexHullShape(reinterpret_cast<const btScalar *>(hull->getVertexPointer()),
@@ -1384,7 +1385,8 @@ void ModelAsset::buildPhysicsMeshes() {
                     meshMin = glm::min(meshMin, collisionPoints[pointIndex]);
                     meshMax = glm::max(meshMax, collisionPoints[pointIndex]);
                 }
-                btVector3 shapeSize = shapeMax - shapeMin;
+                //getAabb counts the margin twice for the broadphase, the shape itself only has it once
+                btVector3 shapeSize = shapeMax - shapeMin - btVector3(2.0f, 2.0f, 2.0f) * meshCollisionShape->getMargin();
                 glm::vec3 meshSize = collisionPoints.empty() ? glm::vec3(0.0f) : meshMax - meshMin;
                 float allowed = 1.2f;//margins and the hull's own padding make an exact match unreasonable
                 if (shapeSize.x() > meshSize.x * allowed + 0.2f || shapeSize.y() > meshSize.y * allowed + 0.2f ||
