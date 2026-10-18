@@ -14,6 +14,7 @@ add_definitions(-DSDOC_STATIC)
 add_definitions(-DGLM_FORCE_ALIGNED_GTC)
 add_definitions(-DTRACY_ENABLE)
 
+
 option(TRACY_SERVER_ENABLED "Enable the embedded Tracy server" ON)
 if(TRACY_SERVER_ENABLED)
     add_definitions(-DTRACY_SERVER_ENABLED)

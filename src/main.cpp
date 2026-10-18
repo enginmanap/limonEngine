@@ -21,6 +21,7 @@
 #include "Package/PackageBuilder.h"
 #include <algorithm>
 #include <cstdlib>
+#include <filesystem>
 
 const std::string PROGRAM_NAME = "LimonEngine";
 const std::string ENGINE_OPTIONS_FILE = "./Engine/Options.xml";
@@ -276,19 +277,51 @@ GameEngine::GameEngine(bool headless) : headless(headless) {
     inputHandler = new InputHandler(sdlHelper->getWindow(), options);
     assetManager = std::make_shared<AssetManager>(graphicsWrapper.get(), alHelper);
 
-    worldLoader = new WorldLoader(assetManager, inputHandler, options, profilerSystem, frameTimeTracker, &frameResourceHandles);
+    packagingCallbacks.start = std::bind(&GameEngine::startPackage, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+    packagingCallbacks.finish = std::bind(&GameEngine::finishPackage, this);
+    worldLoader = new WorldLoader(assetManager, inputHandler, options, profilerSystem, frameTimeTracker, &frameResourceHandles, &packagingCallbacks);
 }
 
 bool GameEngine::buildPackage(const std::string &outputFile) {
     scriptManager->createWorldInterpreter("--pack");//the packer reads Python types from the active interpreter, as a world load would leave it
-    PackageBuilder packageBuilder(assetManager, scriptManager, options);
-    if (!packageBuilder.prepare()) {
+    std::string refusalReason;
+    if (startPackage(outputFile, "", refusalReason) == nullptr) {
+        std::cerr << refusalReason << std::endl;
         return false;
     }
-    //on a worker as the editor runs it, so the command line exercises the same threading
-    std::thread packerThread(&PackageBuilder::run, &packageBuilder, outputFile);
-    packerThread.join();
-    return packageBuilder.getProgress().succeeded;
+    return finishPackage();//the same worker the editor gets, so the command line exercises the same threading
+}
+
+PackageBuilder *GameEngine::startPackage(const std::string &outputFile, const std::string &startingWorld, std::string &refusalReason) {
+    if (activePackage != nullptr) {
+        refusalReason = "A package is being built already.";
+        return nullptr;
+    }
+    std::unique_ptr<PackageBuilder> packageBuilder = std::make_unique<PackageBuilder>(assetManager, scriptManager, options);
+    if (!packageBuilder->prepare(startingWorld, refusalReason)) {
+        return nullptr;
+    }
+    std::filesystem::path outputDirectory = std::filesystem::path(outputFile).parent_path();
+    if (!outputDirectory.empty()) {
+        std::error_code directoryError;
+        std::filesystem::create_directories(outputDirectory, directoryError);
+        if (directoryError) {
+            refusalReason = "Can't create " + outputDirectory.string() + ": " + directoryError.message();
+            return nullptr;
+        }
+    }
+    activePackage = std::move(packageBuilder);
+    packerThread = std::thread(&PackageBuilder::run, activePackage.get(), outputFile);
+    return activePackage.get();
+}
+
+bool GameEngine::finishPackage() {
+    if (packerThread.joinable()) {
+        packerThread.join();
+    }
+    bool succeeded = activePackage != nullptr && activePackage->getProgress().succeeded;
+    activePackage.reset();
+    return succeeded;
 }
 
 bool GameEngine::convertModelToWorld(const std::string &sourceFile, const std::string &outputDirectory, float scale) {
@@ -453,6 +486,9 @@ void GameEngine::run() {
 }
 
 GameEngine::~GameEngine() {
+    if (packerThread.joinable()) {
+        packerThread.join();//the editor doesn't let the engine quit while packing, this is only for a forced close
+    }
     for (auto iterator = loadedWorlds.begin(); iterator != loadedWorlds.end(); ++iterator) {
         scriptManager->setActiveSubInterpreter(iterator->first);
         // Run GC before deleting the world so that cyclic Python references (e.g. actor

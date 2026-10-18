@@ -27,6 +27,7 @@ static const int SKIP_LOD_LEVEL = 9999;
 #include "limonAPI/ActorInterface.h"
 #include "limonAPI/Graphics/UniformBlockData.h"
 #include "Graphics/FrameData.h"
+#include "Package/PackagingCallbacks.h"
 #include "ALHelper.h"
 #include "GameObjects/Players/Player.h"
 #include "SDL3Helper.h"
@@ -237,6 +238,7 @@ private:
     ProfilerSystem* profilerSystem;
     FrameTimeTracker* frameTimeTracker;//owned by GameEngine, ticked at the frame boundary next to clearFrame
     const FrameResourceHandles* frameResourceHandles;//owned by GameEngine and shared by all worlds
+    const PackagingCallbacks *packagingCallbacks;//owned by GameEngine, the editor exports through it
     FrameData frameData;
     uint32_t nextWorldID = 2;
     uint32_t nextRigID = 1;
@@ -455,7 +457,7 @@ private:
 
     World(const std::string &name, PlayerInfo startingPlayerType, InputHandler *inputHandler,
           std::shared_ptr<AssetManager> assetManager, OptionsUtil::Options *options, ProfilerSystem* profilerSystem, FrameTimeTracker* frameTimeTracker,
-          const FrameResourceHandles* frameResourceHandles,
+          const FrameResourceHandles* frameResourceHandles, const PackagingCallbacks *packagingCallbacks,
           LimonAPI *limonAPI);
 
     void afterLoadFinished();

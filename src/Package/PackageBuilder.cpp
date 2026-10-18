@@ -41,14 +41,19 @@ void PackageBuilder::setStep(Step step) {
 }
 
 void PackageBuilder::addProblem(const std::string &problem) {
-    problems.push_back(problem);
     std::lock_guard<std::mutex> lock(progressMutex);
+    problems.push_back(problem);
     progress.problemCount = static_cast<uint32_t>(problems.size());
 }
 
 PackageBuilder::Progress PackageBuilder::getProgress() const {
     std::lock_guard<std::mutex> lock(progressMutex);
     return progress;
+}
+
+std::vector<std::string> PackageBuilder::getProblems() const {
+    std::lock_guard<std::mutex> lock(progressMutex);
+    return problems;
 }
 
 void PackageBuilder::collectRegisteredTypes() {
@@ -336,7 +341,9 @@ bool PackageBuilder::addPackedFiles(mz_zip_archive &archive) const {
     //stored, not deflated: most of a game is already compressed images and sound, deflate waits for load time measurements
     for (const std::pair<const std::string, std::string> &packedFile : packedFiles) {
         std::vector<uint8_t> contents;
-        if (!LimonFileSystem::readFile(packedFile.first, contents)) {
+        if (!startingWorldOverride.empty() && packedFile.first == LimonFileSystem::normalizePath(EngineDataFiles::RELEASE)) {
+            contents = buildOverriddenRelease();
+        } else if (!LimonFileSystem::readFile(packedFile.first, contents)) {
             std::cerr << "Could not read " << packedFile.first << std::endl;
             written = false;
             continue;
@@ -360,6 +367,24 @@ bool PackageBuilder::addPackedFiles(mz_zip_archive &archive) const {
         }
     }
     return written;
+}
+
+std::vector<uint8_t> PackageBuilder::buildOverriddenRelease() const {
+    tinyxml2::XMLDocument releaseDocument;
+    if (LimonFileSystem::loadXML(EngineDataFiles::RELEASE, releaseDocument) != tinyxml2::XML_SUCCESS || releaseDocument.FirstChildElement("Release") == nullptr) {
+        releaseDocument.Clear();
+        releaseDocument.InsertFirstChild(releaseDocument.NewElement("Release"));
+    }
+    tinyxml2::XMLElement *releaseNode = releaseDocument.FirstChildElement("Release");
+    tinyxml2::XMLElement *startingWorldNode = releaseNode->FirstChildElement("StartingWorld");
+    if (startingWorldNode == nullptr) {
+        startingWorldNode = releaseDocument.NewElement("StartingWorld");
+        releaseNode->InsertEndChild(startingWorldNode);
+    }
+    startingWorldNode->SetText(startingWorldOverride.c_str());
+    tinyxml2::XMLPrinter printer;
+    releaseDocument.Print(&printer);
+    return std::vector<uint8_t>(printer.CStr(), printer.CStr() + printer.CStrSize() - 1);//CStrSize counts the terminator
 }
 
 void PackageBuilder::rewriteWorldReferences(tinyxml2::XMLDocument &document) const {
@@ -448,22 +473,23 @@ void PackageBuilder::writeReport(const std::string &outputFile) const {
     }
 }
 
-bool PackageBuilder::prepare() {
+bool PackageBuilder::prepare(const std::string &startingWorld, std::string &refusalReason) {
+    startingWorldOverride = startingWorld;
     if (!scriptManager->hasActiveSubInterpreter()) {
-        std::cerr << "Packing needs an active Python interpreter, its registered types are what worlds are matched against." << std::endl;
+        refusalReason = "Packing needs an active Python interpreter, its registered types are what worlds are matched against.";
         return false;
     }
     if (LimonFileSystem::isPackageMounted()) {
         //repacking a package would hand another game's assets to anyone who has it
-        std::cerr << "Packing refuses while a package is mounted, a package can't be packed again." << std::endl;
+        refusalReason = "Packing refuses while a package is mounted, a package can't be packed again.";
         return false;
     }
     std::vector<std::string> unsavedModels = assetManager->getModelsWithUnsavedChanges();
     if (!unsavedModels.empty()) {
         //worlds are read from disk, these would go in with their edits while the worlds wouldn't
-        std::cerr << "Packing needs every model saved, these have unsaved changes:" << std::endl;
+        refusalReason = "Packing needs every model saved, these have unsaved changes:";
         for (const std::string &unsavedModel : unsavedModels) {
-            std::cerr << "  " << unsavedModel << std::endl;
+            refusalReason += "\n  " + unsavedModel;
         }
         return false;
     }
@@ -482,18 +508,24 @@ bool PackageBuilder::run(const std::string &outputFile) {
             addFile(engineDataFile, "read by the engine");
         }
     }
-    tinyxml2::XMLDocument releaseDocument;
-    const tinyxml2::XMLElement *startingWorldElement = nullptr;
-    if (LimonFileSystem::loadXML(EngineDataFiles::RELEASE, releaseDocument) == tinyxml2::XML_SUCCESS &&
-        releaseDocument.FirstChildElement("Release") != nullptr) {
-        startingWorldElement = releaseDocument.FirstChildElement("Release")->FirstChildElement("StartingWorld");
+    if (!startingWorldOverride.empty()) {
+        //written even when there is no Release.xml on disk, the package has to start from this world
+        packedFiles[LimonFileSystem::normalizePath(EngineDataFiles::RELEASE)] = "points the package at " + startingWorldOverride;
+        addFile(startingWorldOverride, "the world the package starts from, chosen at export");
+    } else {
+        tinyxml2::XMLDocument releaseDocument;
+        const tinyxml2::XMLElement *startingWorldElement = nullptr;
+        if (LimonFileSystem::loadXML(EngineDataFiles::RELEASE, releaseDocument) == tinyxml2::XML_SUCCESS &&
+            releaseDocument.FirstChildElement("Release") != nullptr) {
+            startingWorldElement = releaseDocument.FirstChildElement("Release")->FirstChildElement("StartingWorld");
+        }
+        if (startingWorldElement == nullptr || startingWorldElement->GetText() == nullptr) {
+            std::cerr << "Packing needs " << EngineDataFiles::RELEASE << " with a StartingWorld, the package is what that world reaches." << std::endl;
+            setStep(Step::DONE);
+            return false;
+        }
+        addFile(startingWorldElement->GetText(), "the starting world in Release.xml");
     }
-    if (startingWorldElement == nullptr || startingWorldElement->GetText() == nullptr) {
-        std::cerr << "Packing needs " << EngineDataFiles::RELEASE << " with a StartingWorld, the package is what that world reaches." << std::endl;
-        setStep(Step::DONE);
-        return false;
-    }
-    addFile(startingWorldElement->GetText(), "the starting world in Release.xml");
 
     scanRenderPipeline();
     bool succeeded = true;

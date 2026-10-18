@@ -28,6 +28,8 @@ class Attachable;
 class FrameTimeTracker;
 struct FrameResourceHandles;
 
+struct PackagingCallbacks;
+
 class WorldLoader {
 public:
     struct ObjectInformation {
@@ -58,6 +60,7 @@ private:
     ProfilerSystem* profilerSystem;
     FrameTimeTracker* frameTimeTracker;
     const FrameResourceHandles* frameResourceHandles;
+    const PackagingCallbacks *packagingCallbacks;
 
     World *loadMapFromXML(const std::string &worldFileName, LimonAPI *limonAPI) const;
     bool loadObjectGroupsFromXMLV1(tinyxml2::XMLNode *worldNode, World *world, LimonAPI *limonAPI,
@@ -80,7 +83,8 @@ private:
     bool loadMaterials(tinyxml2::XMLNode *worldNode, World *world) const;
 
 public:
-    WorldLoader(std::shared_ptr<AssetManager> assetManager, InputHandler *inputHandler, OptionsUtil::Options *options, ProfilerSystem* profilerSystem, FrameTimeTracker* frameTimeTracker, const FrameResourceHandles* frameResourceHandles);
+    WorldLoader(std::shared_ptr<AssetManager> assetManager, InputHandler *inputHandler, OptionsUtil::Options *options, ProfilerSystem* profilerSystem, FrameTimeTracker* frameTimeTracker, const FrameResourceHandles* frameResourceHandles,
+                const PackagingCallbacks *packagingCallbacks);
 
     std::unique_ptr<std::string> getLoadingImage(const std::string &worldFile) const;
 

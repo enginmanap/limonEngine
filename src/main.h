@@ -10,8 +10,10 @@
 #include <vector>
 #include <unordered_map>
 #include <memory>
+#include <thread>
 #include "limonAPI/Options.h"
 #include "Graphics/FrameResourceHandles.h"
+#include "Package/PackagingCallbacks.h"
 
 class World;
 class WorldLoader;
@@ -25,6 +27,7 @@ class GUIImage;
 class ScriptManager;
 class ProfilerSystem;
 class FrameTimeTracker;
+class PackageBuilder;
 
 class GameEngine {
     WorldLoader* worldLoader = nullptr;
@@ -59,6 +62,15 @@ class GameEngine {
 
     ScriptManager* scriptManager = nullptr;
     bool headless = false;
+
+    //only while a pack runs
+    std::unique_ptr<PackageBuilder> activePackage;
+    std::thread packerThread;
+    PackagingCallbacks packagingCallbacks;
+
+    PackageBuilder *startPackage(const std::string &outputFile, const std::string &startingWorld, std::string &refusalReason);
+
+    bool finishPackage();
 
     // World switch requested by an API call during play(). Applied after the tick
     // completes so play() always runs to the end of the tick.

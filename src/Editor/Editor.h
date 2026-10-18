@@ -40,6 +40,8 @@ class IterationExtension;
 class ImGuiHelper;
 class PreviewRenderer;
 
+class PackageBuilder;
+
 class Editor {
     World* world;
 
@@ -153,6 +155,16 @@ public:
     std::string pendingWorldSaveName;//copied at the click, the name box can change before the save runs
     bool modelConversionRequested = false;
 
+    //the packer lives in GameEngine, and only while it runs
+    PackageBuilder *activePackage = nullptr;
+    bool exportRequested = false;//starts once the world save it waits for is done
+    bool showExportWindow = false;
+    char exportPathBuffer[256] = "./Export/Data.pak";
+    std::string exportReleaseStartingWorld;//read when the confirmation opens, empty if Release.xml has none
+    bool exportFromCurrentWorld = false;
+    std::string exportMessage;//a refusal, or how the last export ended
+    std::vector<std::string> exportProblems;
+
     GameObject* pickedObject = nullptr;
     GameObject* pendingPickedObject = nullptr;
     bool hasPendingPick = false;
@@ -179,8 +191,17 @@ public:
     void requestLodTriangleTarget(std::shared_ptr<ModelAsset> modelAsset, size_t levelIndex, float targetRatio);
     void requestLodStepSettings(std::shared_ptr<ModelAsset> modelAsset, size_t levelIndex, float distance, const LodPixels &limits);
     void requestAssetSave(std::shared_ptr<ModelAsset> modelAsset);
-    //assets first, so the log only says successful when the world and everything it uses reached disk
-    void saveWorldFile(const std::string &worldName, bool allAssetsSaved);
+    //assets first, so the log only says successful when the world and everything it uses reached disk. False if either failed
+    bool saveWorldFile(const std::string &worldName, bool allAssetsSaved);
+
+    //while it is true the editor is locked: no leaving editor mode, no quitting, no edits
+    bool isPacking() const {
+        return activePackage != nullptr;
+    }
+
+    void startExport();
+
+    void drawExportWindow();
 
     void requestModelConversionToBinary() {
         modelConversionRequested = true;

@@ -41,13 +41,17 @@ public:
 
     PackageBuilder(std::shared_ptr<AssetManager> assetManager, ScriptManager *scriptManager, OptionsUtil::Options *options);
 
-    //main thread. Refuses what can't be packed, and copies everything run reads that the main thread could change under it
-    bool prepare();
+    //main thread. Refuses what can't be packed, with the reason, and copies everything run reads that the main thread could change under it.
+    //An empty startingWorld packs what Release.xml starts from, any other world becomes the packed Release.xml's StartingWorld
+    bool prepare(const std::string &startingWorld, std::string &refusalReason);
 
     //any thread, after prepare. The result is in getProgress().succeeded too
     bool run(const std::string &outputFile);
 
     Progress getProgress() const;
+
+    //once the progress says DONE, the worker adds none after that
+    std::vector<std::string> getProblems() const;
 
 private:
     std::shared_ptr<AssetManager> assetManager;
@@ -68,6 +72,10 @@ private:
     std::map<std::string, std::string> pythonTypeModules;
     std::vector<std::string> scriptDirectories;
     uint32_t maxModelsInFlight = 10;
+    std::string startingWorldOverride;
+
+    //the Release.xml on disk with StartingWorld set to startingWorldOverride, or a new one if there is none
+    std::vector<uint8_t> buildOverriddenRelease() const;
 
     mutable std::mutex progressMutex;
     Progress progress;

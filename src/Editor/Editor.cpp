@@ -28,6 +28,10 @@
 #include "Assets/Animations/AnimationCustom.h"
 #include "AnimationSequencer.h"
 #include "WorldSaver.h"
+#include "Package/PackageBuilder.h"
+#include "Package/EngineDataFiles.h"
+#include <filesystem>
+#include <SDL3/SDL_misc.h>
 #include "AI/AIMovementGrid.h"
 #include "../Utils/ClosestNotMeConvexResultCallback.h"
 #include "Graphics/Particles/Emitter.h"
@@ -732,6 +736,7 @@ void Editor::renderOcclusionDebugOverlay(const std::shared_ptr<GraphicsProgram> 
 void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
 
     imgGuiHelper->NewFrame(graphicsProgram);
+    drawExportWindow();
     if(this->showNodeGraph) {
         this->drawNodeEditor();
         imgGuiHelper->RenderDrawLists(graphicsProgram);
@@ -740,6 +745,7 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
     /* window definitions */
     {
         ImGui::Begin("Editor");
+        ImGui::BeginDisabled(isPacking());//nothing that could load an asset may run while the packer loads
         ImGuiIO& io = ImGui::GetIO();
         if(world->guiPickMode == false) {
             if (ImGui::Button("Switch to GUI selection mode")) {
@@ -1374,6 +1380,56 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
             pendingWorldSaveName = this->worldSaveNameBuffer;
             worldSaveRequested = true;
         }
+        if (ImGui::Button("Export Package")) {
+            exportReleaseStartingWorld.clear();
+            tinyxml2::XMLDocument releaseDocument;
+            if (LimonFileSystem::loadXML(EngineDataFiles::RELEASE, releaseDocument) == tinyxml2::XML_SUCCESS && releaseDocument.FirstChildElement("Release") != nullptr &&
+                releaseDocument.FirstChildElement("Release")->FirstChildElement("StartingWorld") != nullptr &&
+                releaseDocument.FirstChildElement("Release")->FirstChildElement("StartingWorld")->GetText() != nullptr) {
+                exportReleaseStartingWorld = releaseDocument.FirstChildElement("Release")->FirstChildElement("StartingWorld")->GetText();
+            }
+            exportFromCurrentWorld = exportReleaseStartingWorld.empty();//nothing else to start from
+            ImGui::OpenPopup("Export Package##ExportConfirmation");
+        }
+        if (ImGui::BeginPopupModal("Export Package##ExportConfirmation", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+            //worlds are packed from disk, an unsaved edit would be left out
+            ImGui::Text("Exporting saves the world first, as %s", this->worldSaveNameBuffer);
+            std::vector<std::string> unsavedModels = world->assetManager->getModelsWithUnsavedChanges();
+            if (!unsavedModels.empty()) {
+                ImGui::Text("These models are saved too:");
+                for (const std::string &unsavedModel : unsavedModels) {
+                    ImGui::BulletText("%s", unsavedModel.c_str());
+                }
+            }
+            //the package is what its starting world reaches, the world open here is only in it if that one links to it
+            if (exportReleaseStartingWorld.empty()) {
+                ImGui::TextWrapped("%s has no StartingWorld, the package starts from this world.", EngineDataFiles::RELEASE.c_str());
+            } else if (LimonFileSystem::normalizePath(exportReleaseStartingWorld) != LimonFileSystem::normalizePath(world->name)) {
+                ImGui::TextWrapped("%s starts the game at %s, not at this world. This world is only packed if a world that one reaches links to it.",
+                                   EngineDataFiles::RELEASE.c_str(), exportReleaseStartingWorld.c_str());
+                if (ImGui::RadioButton(("Start from " + exportReleaseStartingWorld).c_str(), !exportFromCurrentWorld)) {
+                    exportFromCurrentWorld = false;
+                }
+                if (ImGui::RadioButton(("Start from this world, the package's Release.xml points to " + world->name).c_str(), exportFromCurrentWorld)) {
+                    exportFromCurrentWorld = true;
+                }
+            }
+            ImGui::InputText("Output##ExportPath", exportPathBuffer, sizeof(exportPathBuffer));
+            if (ImGui::Button("Save and Export")) {
+                pendingWorldSaveName = this->worldSaveNameBuffer;
+                worldSaveRequested = true;
+                exportRequested = true;
+                exportMessage = "Saving the world...";
+                exportProblems.clear();
+                showExportWindow = true;
+                ImGui::CloseCurrentPopup();
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Cancel##ExportConfirmation")) {
+                ImGui::CloseCurrentPopup();
+            }
+            ImGui::EndPopup();
+        }
         if(ImGui::Button("Save AI walk Grid")) {
             if(world->grid != nullptr) {
                 std::string AIWalkName = world->name.substr(0, world->name.find_last_of(".")) + ".aiwalk";
@@ -1648,11 +1704,13 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
                 }
             }
         }
+        ImGui::EndDisabled();
         ImGui::End();
 
         //ImGui::SetNextWindowSize(ImVec2(0,0), false);//true means set it only once
 
         ImGui::Begin("Selected Object Properties");
+        ImGui::BeginDisabled(isPacking());
         std::string selectedName;
         if(this->pickedObject == nullptr) {
             selectedName = "No object selected";
@@ -1981,6 +2039,7 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
         //out of picked object switch, so if nothing is selected, we can clear the line buffer
         renderSelectedObjectLineVisualization();
 
+        ImGui::EndDisabled();
         ImGui::End();
     }
 
@@ -2636,7 +2695,7 @@ void Editor::requestAssetSave(std::shared_ptr<ModelAsset> modelAsset) {
     pendingAssetSaves.insert(modelAsset);
 }
 
-void Editor::saveWorldFile(const std::string &worldName, bool allAssetsSaved) {
+bool Editor::saveWorldFile(const std::string &worldName, bool allAssetsSaved) {
     for(auto animIt = world->loadedAnimations.begin(); animIt != world->loadedAnimations.end(); animIt++) {
         if(animIt->serializeAnimation("./Data/Animations/")) {
             world->options->getLogger()->log(Logger::log_Subsystem_LOAD_SAVE, Logger::log_level_INFO, "Animation saved");
@@ -2649,7 +2708,8 @@ void Editor::saveWorldFile(const std::string &worldName, bool allAssetsSaved) {
         world->apiAccessor->disconnectObjectFromPhysics(*objectIt);
     }
 
-    if (!WorldSaver::saveWorld(worldName, world)) {
+    bool worldSaved = WorldSaver::saveWorld(worldName, world);
+    if (!worldSaved) {
         world->options->getLogger()->log(Logger::log_Subsystem_LOAD_SAVE, Logger::log_level_ERROR, "World save Failed");
     } else if (!allAssetsSaved) {
         world->options->getLogger()->log(Logger::log_Subsystem_LOAD_SAVE, Logger::log_level_ERROR, "World saved, but some of its assets failed, see above");
@@ -2660,6 +2720,68 @@ void Editor::saveWorldFile(const std::string &worldName, bool allAssetsSaved) {
     for (auto objectIt = world->disconnectedModels.begin(); objectIt != world->disconnectedModels.end(); ++objectIt) {
         world->apiAccessor->reconnectObjectToPhysics(*objectIt);
     }
+    return worldSaved && allAssetsSaved;
+}
+
+void Editor::startExport() {
+    std::string refusalReason;
+    activePackage = world->packagingCallbacks->start(exportPathBuffer, exportFromCurrentWorld ? world->name : std::string(), refusalReason);
+    exportMessage = activePackage == nullptr ? refusalReason : "";
+    showExportWindow = true;
+}
+
+static const char *exportStepName(PackageBuilder::Step step) {
+    switch (step) {
+        case PackageBuilder::Step::NOT_STARTED: return "Starting";
+        case PackageBuilder::Step::READING_WORLDS: return "Reading worlds";
+        case PackageBuilder::Step::CONVERTING_MODELS: return "Converting models";
+        case PackageBuilder::Step::FOLLOWING_SCRIPTS: return "Following script imports";
+        case PackageBuilder::Step::WRITING: return "Writing the package";
+        case PackageBuilder::Step::DONE: return "Done";
+    }
+    return "";
+}
+
+void Editor::drawExportWindow() {
+    if (!showExportWindow) {
+        return;
+    }
+    ImGui::Begin("Export Package", isPacking() ? nullptr : &showExportWindow, ImGuiWindowFlags_AlwaysAutoResize);
+    if (isPacking()) {
+        PackageBuilder::Progress progress = activePackage->getProgress();
+        if (progress.step == PackageBuilder::Step::DONE) {
+            exportProblems = activePackage->getProblems();
+            bool succeeded = world->packagingCallbacks->finish();
+            activePackage = nullptr;
+            exportMessage = std::string(succeeded ? "Exported " : "Export failed, nothing was written to ") + exportPathBuffer;
+        } else {
+            ImGui::Text("%s", exportStepName(progress.step));
+            if (progress.step == PackageBuilder::Step::CONVERTING_MODELS) {
+                std::string convertedText = std::to_string(progress.convertedModelCount) + " / " + std::to_string(progress.modelCount);
+                float fraction = progress.modelCount == 0 ? 0.0f : static_cast<float>(progress.convertedModelCount) / static_cast<float>(progress.modelCount);
+                ImGui::ProgressBar(fraction, ImVec2(400.0f, 0.0f), convertedText.c_str());
+                ImGui::Text("%s", progress.currentModel.c_str());
+            }
+            ImGui::Text("Problems so far: %u", progress.problemCount);
+            ImGui::Text("The editor is locked until the export finishes.");
+        }
+    }
+    if (!isPacking()) {
+        ImGui::TextWrapped("%s", exportMessage.c_str());
+        if (!exportProblems.empty()) {
+            ImGui::Text("Problems (%u)", static_cast<uint32_t>(exportProblems.size()));
+            ImGui::BeginChild("ExportProblems", ImVec2(600.0f, 200.0f), true, ImGuiWindowFlags_HorizontalScrollbar);
+            for (const std::string &problem : exportProblems) {
+                ImGui::TextUnformatted(problem.c_str());
+            }
+            ImGui::EndChild();
+        }
+        std::string reportFile = std::string(exportPathBuffer) + ".report.txt";
+        if (std::filesystem::exists(reportFile) && ImGui::Button("Open Report")) {
+            SDL_OpenURL(("file:///" + std::filesystem::absolute(reportFile).generic_string()).c_str());
+        }
+    }
+    ImGui::End();
 }
 
 void Editor::applyDeferredAssetChanges() {
@@ -2719,7 +2841,15 @@ void Editor::applyDeferredAssetChanges() {
     }
     pendingAssetSaves.clear();
     if (worldSaveThisFrame) {
-        saveWorldFile(pendingWorldSaveName, allAssetsSaved);
+        bool worldSaved = saveWorldFile(pendingWorldSaveName, allAssetsSaved);
+        if (exportRequested) {
+            exportRequested = false;
+            if (worldSaved) {
+                startExport();
+            } else {
+                exportMessage = "Export stopped, the world or one of its models could not be saved. The log has why.";
+            }
+        }
     }
 
     //last, because a conversion above re-bakes every occluder level and culling reads those too
@@ -3241,6 +3371,7 @@ void Editor::drawNodeEditor() {
         ImGui::End();
         return;
     }
+    ImGui::BeginDisabled(isPacking());
 
     //shown while the fallback is what renders: Keep or the API replacing it hides this, Revert brings it back
     if (!this->fallbackPipeline.expired() && this->fallbackPipeline.lock() == world->renderPipeline) {
@@ -3314,6 +3445,7 @@ void Editor::drawNodeEditor() {
     if(ImGui::Button("Cancel")){
         this->showNodeGraph = false;
     }
+    ImGui::EndDisabled();
     ImGui::End();
 }
 

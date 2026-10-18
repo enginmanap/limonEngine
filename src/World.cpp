@@ -104,10 +104,10 @@ struct HierarchyFilterCallback : public btOverlapFilterCallback {
 
 World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandler *inputHandler,
                 std::shared_ptr<AssetManager> assetManager, OptionsUtil::Options *options, ProfilerSystem* profilerSystem, FrameTimeTracker* frameTimeTracker,
-                const FrameResourceHandles* frameResourceHandles,
+                const FrameResourceHandles* frameResourceHandles, const PackagingCallbacks *packagingCallbacks,
                 LimonAPI *limonAPI)
         : assetManager(assetManager), options(options), profilerSystem(profilerSystem), frameTimeTracker(frameTimeTracker),
-        frameResourceHandles(frameResourceHandles),
+        frameResourceHandles(frameResourceHandles), packagingCallbacks(packagingCallbacks),
         graphicsWrapper(assetManager->getGraphicsWrapper()), alHelper(assetManager->getAlHelper()), name(name),
         fontManager(graphicsWrapper), startingPlayer(startingPlayerType) {
     // apiAccessor is an indirection, in case someone wants to use it while construction, we need it first
@@ -839,7 +839,8 @@ World::fillRouteInformation(std::vector<LimonTypes::GenericParameter> parameters
         }
     }
 
-    if (inputHandler.getInputStates().getInputEvents(InputActions::EDITOR) && inputHandler.getInputStates().getInputStatus(InputActions::EDITOR)) {
+    //an export loads assets on its worker, leaving the editor could start loads it can't take part in
+    if (!editor->isPacking() && inputHandler.getInputStates().getInputEvents(InputActions::EDITOR) && inputHandler.getInputStates().getInputStatus(InputActions::EDITOR)) {
         createEditorPlayerIfMissing(inputHandler);
         if(!currentPlayersSettings->editorShown) {
             switchPlayer(editorPlayer, inputHandler);
@@ -874,7 +875,7 @@ World::fillRouteInformation(std::vector<LimonTypes::GenericParameter> parameters
 
        currentPlayer->processInput(inputHandler.getInputStates(), gameTime);
 
-    if(inputHandler.getInputStates().getInputEvents(InputActions::QUIT) &&  inputHandler.getInputStates().getInputStatus(InputActions::QUIT)) {
+    if(!editor->isPacking() && inputHandler.getInputStates().getInputEvents(InputActions::QUIT) &&  inputHandler.getInputStates().getInputStatus(InputActions::QUIT)) {
         return true;
     } else {
         return false;
