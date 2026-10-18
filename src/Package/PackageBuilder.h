@@ -8,6 +8,7 @@
 #include <deque>
 #include <map>
 #include <memory>
+#include <mutex>
 #include <set>
 #include <string>
 #include <vector>
@@ -27,10 +28,26 @@ namespace OptionsUtil {
 //Everything is read through LimonFileSystem, so a file that is only in a mounted Data.pak is packed again
 class PackageBuilder {
 public:
+    enum class Step { NOT_STARTED, READING_WORLDS, CONVERTING_MODELS, FOLLOWING_SCRIPTS, WRITING, DONE };
+
+    struct Progress {
+        Step step = Step::NOT_STARTED;
+        uint32_t convertedModelCount = 0;
+        uint32_t modelCount = 0;//known once the worlds are read, before any model loads
+        std::string currentModel;
+        uint32_t problemCount = 0;
+        bool succeeded = false;
+    };
 
     PackageBuilder(std::shared_ptr<AssetManager> assetManager, ScriptManager *scriptManager, OptionsUtil::Options *options);
 
-    bool build(const std::string &outputFile);
+    //main thread. Refuses what can't be packed, and copies everything run reads that the main thread could change under it
+    bool prepare();
+
+    //any thread, after prepare. The result is in getProgress().succeeded too
+    bool run(const std::string &outputFile);
+
+    Progress getProgress() const;
 
 private:
     std::shared_ptr<AssetManager> assetManager;
@@ -47,6 +64,17 @@ private:
     std::map<std::string, std::string> convertedModels;//model asset key to the .limonmodel it became, both normalized
     std::map<std::string, ModelAsset::LimonConversion> conversions;//model asset key to what converting it renamed, for the worlds referring to it
     std::vector<std::string> problems;
+    //copied by prepare
+    std::map<std::string, std::string> pythonTypeModules;
+    std::vector<std::string> scriptDirectories;
+    uint32_t maxModelsInFlight = 10;
+
+    mutable std::mutex progressMutex;
+    Progress progress;
+
+    void setStep(Step step);
+
+    void addProblem(const std::string &problem);
 
     void collectRegisteredTypes();
 

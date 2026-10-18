@@ -6,6 +6,8 @@
 
 #include <pybind11/embed.h>
 #include <pybind11/eval.h>
+#include <pybind11/subinterpreter.h>
+#include "ScriptImporter.h"
 
 //script folders are searched through LimonFileSystem like ScriptImporter does, so a script that is only inside Data.pak
 //is followed too. Standard library lookups go first, as in the importer
@@ -44,19 +46,37 @@ finder.import_hook(module_name)
 module_files = [module.__file__ for module in finder.modules.values() if module.__file__]
 )PYTHON";
 
-std::vector<std::string> findScriptModuleFiles(const std::string &moduleName, const std::vector<std::string> &scriptDirectories) {
-    pybind11::dict scope;
-    scope["__builtins__"] = pybind11::module_::import("builtins");
-    scope["module_name"] = moduleName;
-    pybind11::list directories;//no pybind11/stl.h here, a vector cast would throw "Unregistered type"
-    for (const std::string &directory : scriptDirectories) {
-        directories.append(directory);
-    }
-    scope["script_directories"] = directories;
-    pybind11::exec(SCRIPT_DEPENDENCY_FINDER_SOURCE, scope);
-    std::vector<std::string> moduleFiles;
-    for (pybind11::handle moduleFile : pybind11::list(scope["module_files"])) {
-        moduleFiles.push_back(moduleFile.cast<std::string>());
+std::map<std::string, ScriptModuleFiles> findScriptModuleFiles(const std::set<std::string> &moduleNames, const std::vector<std::string> &scriptDirectories) {
+    std::map<std::string, ScriptModuleFiles> moduleFiles;
+    try {
+        //create() fetches the error state before it switches to the main interpreter, a thread that never ran Python has none to fetch
+        pybind11::subinterpreter_scoped_activate mainActivation(pybind11::subinterpreter::main());
+        pybind11::subinterpreter interpreter = pybind11::subinterpreter::create();
+        //every Python object below has to be gone before the interpreter is
+        pybind11::subinterpreter_scoped_activate activation(interpreter);
+        installScriptImporter(scriptDirectories);
+        pybind11::list directories;//no pybind11/stl.h here, a vector cast would throw "Unregistered type"
+        for (const std::string &directory : scriptDirectories) {
+            directories.append(directory);
+        }
+        for (const std::string &moduleName : moduleNames) {
+            try {
+                pybind11::dict scope;
+                scope["__builtins__"] = pybind11::module_::import("builtins");
+                scope["module_name"] = moduleName;
+                scope["script_directories"] = directories;
+                pybind11::exec(SCRIPT_DEPENDENCY_FINDER_SOURCE, scope);
+                for (pybind11::handle moduleFile : pybind11::list(scope["module_files"])) {
+                    moduleFiles[moduleName].files.push_back(moduleFile.cast<std::string>());
+                }
+            } catch (const pybind11::error_already_set &error) {
+                moduleFiles[moduleName].failureReason = error.what();
+            }
+        }
+    } catch (const std::exception &error) {
+        for (const std::string &moduleName : moduleNames) {
+            moduleFiles[moduleName].failureReason = std::string("no interpreter to read imports in: ") + error.what();
+        }
     }
     return moduleFiles;
 }

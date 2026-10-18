@@ -432,6 +432,9 @@ public:
         }
     }
 
+    //the loaded models a save would write, packing refuses while there are any
+    std::vector<std::string> getModelsWithUnsavedChanges();
+
     bool isLoaded(std::vector<std::string> filename) {
         filename = resolvePackedModel(filename);
         std::lock_guard<std::mutex> lock(assetsMutex);

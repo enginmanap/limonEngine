@@ -64,6 +64,18 @@ void AssetManager::loadPackageManifest() {
     std::cout << "Data.pak converts " << packedModelFiles.size() << " model paths to .limonmodel files" << std::endl;
 }
 
+std::vector<std::string> AssetManager::getModelsWithUnsavedChanges() {
+    std::vector<std::string> unsavedModels;
+    std::lock_guard<std::mutex> lock(assetsMutex);
+    for (const std::pair<const std::vector<std::string>, std::pair<std::shared_ptr<Asset>, uint32_t>> &asset : assets) {
+        std::shared_ptr<ModelAsset> modelAsset = std::dynamic_pointer_cast<ModelAsset>(asset.second.first);
+        if (modelAsset != nullptr && modelAsset->hasUnsavedChanges()) {
+            unsavedModels.push_back(modelAsset->getAssetName());
+        }
+    }
+    return unsavedModels;
+}
+
 void LoadRequester::close() {
     assetManager->closeRequester(*this, true);
 }

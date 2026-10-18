@@ -35,6 +35,22 @@ static bool endsWith(const std::string &text, const std::string &ending) {
 PackageBuilder::PackageBuilder(std::shared_ptr<AssetManager> assetManager, ScriptManager *scriptManager, OptionsUtil::Options *options)
         : assetManager(assetManager), scriptManager(scriptManager), options(options) {}
 
+void PackageBuilder::setStep(Step step) {
+    std::lock_guard<std::mutex> lock(progressMutex);
+    progress.step = step;
+}
+
+void PackageBuilder::addProblem(const std::string &problem) {
+    problems.push_back(problem);
+    std::lock_guard<std::mutex> lock(progressMutex);
+    progress.problemCount = static_cast<uint32_t>(problems.size());
+}
+
+PackageBuilder::Progress PackageBuilder::getProgress() const {
+    std::lock_guard<std::mutex> lock(progressMutex);
+    return progress;
+}
+
 void PackageBuilder::collectRegisteredTypes() {
     for (const std::string &typeName : TriggerInterface::getTriggerNames()) {
         registeredTypes[typeName] = TriggerInterface::getRegisteredPackFileAccessList(typeName);
@@ -77,7 +93,7 @@ void PackageBuilder::addFile(const std::string &path, const std::string &reason)
             return;//animations the model next to the Mixamo folder absorbs, loaded alone they have no mesh and stop the engine
         }
         if (!assetManager->isModelAvailable(normalizedPath)) {
-            problems.push_back(reason + " names " + normalizedPath + ", which does not exist");
+            addProblem(reason + " names " + normalizedPath + ", which does not exist");
             return;
         }
         std::vector<std::string> packedModelKeys = assetManager->getPackedModelKeys(normalizedPath);
@@ -92,7 +108,7 @@ void PackageBuilder::addFile(const std::string &path, const std::string &reason)
         return;
     }
     if (!LimonFileSystem::fileExists(normalizedPath)) {
-        problems.push_back(reason + " names " + normalizedPath + ", which does not exist");
+        addProblem(reason + " names " + normalizedPath + ", which does not exist");
         return;
     }
     if (!packedFiles.emplace(normalizedPath, reason).second) {
@@ -127,7 +143,7 @@ void PackageBuilder::addDeclaredEntry(const std::string &entry, const std::strin
 void PackageBuilder::addDeclaredFolder(const std::string &normalizedFolder, const std::string &reason) {
     std::vector<LimonFileSystem::DirectoryEntry> entries;
     if (!LimonFileSystem::listDirectory(normalizedFolder, entries)) {
-        problems.push_back(reason + " names folder " + normalizedFolder + ", which does not exist");
+        addProblem(reason + " names folder " + normalizedFolder + ", which does not exist");
         return;
     }
     for (const LimonFileSystem::DirectoryEntry &entry : entries) {
@@ -145,7 +161,7 @@ bool PackageBuilder::scanWorld(const std::string &worldFile) {
     }
     tinyxml2::XMLDocument document;
     if (LimonFileSystem::loadXML(worldFile, document) != tinyxml2::XML_SUCCESS) {
-        problems.push_back("world " + worldFile + " could not be read");
+        addProblem("world " + worldFile + " could not be read");
         return false;
     }
     std::set<std::string> typeNames;
@@ -159,7 +175,7 @@ bool PackageBuilder::scanWorld(const std::string &worldFile) {
     for (const std::string &modelKey : references.modelKeys) {
         std::string modelFile = modelKey.substr(0, modelKey.rfind("?flip"));
         if (!assetManager->isModelAvailable(modelKey)) {
-            problems.push_back(worldFile + " places " + modelFile + ", which does not exist");
+            addProblem(worldFile + " places " + modelFile + ", which does not exist");
             continue;
         }
         placedModelFiles.insert(modelFile);
@@ -180,7 +196,7 @@ void PackageBuilder::scanRenderPipeline() {
     std::string pipelineFile = options->getOption<std::string>(options->getHash("render_pipeline")).getOrDefault("./Engine/renderPipeline.xml");
     tinyxml2::XMLDocument document;
     if (LimonFileSystem::loadXML(pipelineFile, document) != tinyxml2::XML_SUCCESS) {
-        problems.push_back("render pipeline " + pipelineFile + " could not be read");
+        addProblem("render pipeline " + pipelineFile + " could not be read");
         return;
     }
     addFile(pipelineFile, "the render pipeline");
@@ -200,7 +216,7 @@ bool PackageBuilder::convertModel(const LoadRequester::LoadResult &loaded, const
     std::string modelFile = modelKey.substr(0, flipPosition);
 
     if (!loaded.failureReason.empty()) {
-        problems.push_back(modelKey + " could not be loaded, " + reason + ": " + loaded.failureReason);
+        addProblem(modelKey + " could not be loaded, " + reason + ": " + loaded.failureReason);
         return false;
     }
     std::shared_ptr<ModelAsset> modelAsset = std::dynamic_pointer_cast<ModelAsset>(loaded.asset);
@@ -227,7 +243,7 @@ bool PackageBuilder::convertModel(const LoadRequester::LoadResult &loaded, const
                 }
             }
         } else {
-            problems.push_back(modelKey + " could not be converted, " + reason);
+            addProblem(modelKey + " could not be converted, " + reason);
             converted = false;
         }
     }
@@ -253,26 +269,34 @@ void PackageBuilder::addTexture(const std::shared_ptr<TextureAsset> &texture, co
     }
     assetManager->waitForCPULoad(texture);//a model's CPU part only requests its textures, they may still be loading
     if (texture->hasLoadFailed()) {
-        problems.push_back(modelKey + " asks for texture " + textureName[0] + ", which could not be loaded");
+        addProblem(modelKey + " asks for texture " + textureName[0] + ", which could not be loaded");
     } else {
         addFile(textureName[0], "texture of " + modelKey);
     }
 }
 
 void PackageBuilder::addPythonModules() {
-    for (const std::pair<const std::string, std::string> &typeModule : scriptManager->getPythonTypeModules()) {
+    std::set<std::string> reachedModules;
+    for (const std::pair<const std::string, std::string> &typeModule : pythonTypeModules) {
+        if (reachedTypes.count(typeModule.first) != 0) {
+            reachedModules.insert(typeModule.second);
+        }
+    }
+    if (reachedModules.empty()) {
+        return;
+    }
+    std::map<std::string, ScriptModuleFiles> moduleFilesOfModule = findScriptModuleFiles(reachedModules, scriptDirectories);
+    for (const std::pair<const std::string, std::string> &typeModule : pythonTypeModules) {
         if (reachedTypes.count(typeModule.first) == 0) {
             continue;
         }
-        std::vector<std::string> moduleFiles;
-        try {
-            moduleFiles = findScriptModuleFiles(typeModule.second, scriptManager->getScriptDirectories());
-        } catch (const pybind11::error_already_set &error) {
-            problems.push_back("imports of " + typeModule.second + " could not be followed: " + error.what());
+        const ScriptModuleFiles &moduleFiles = moduleFilesOfModule[typeModule.second];
+        if (!moduleFiles.failureReason.empty()) {
+            addProblem("imports of " + typeModule.second + " could not be followed: " + moduleFiles.failureReason);
             continue;
         }
         bool moduleFound = false;
-        for (const std::string &moduleFile : moduleFiles) {
+        for (const std::string &moduleFile : moduleFiles.files) {
             std::string normalizedModuleFile = LimonFileSystem::normalizePath(moduleFile);
             if (normalizedModuleFile.compare(0, 5, "Data/") == 0) {
                 addFile(normalizedModuleFile, "script of " + typeModule.first);
@@ -282,7 +306,7 @@ void PackageBuilder::addPythonModules() {
             }
         }
         if (!moduleFound) {
-            problems.push_back(typeModule.first + " is used, but its module " + typeModule.second + " was found in neither script folder");
+            addProblem(typeModule.first + " is used, but its module " + typeModule.second + " was found in neither script folder");
         }
     }
 }
@@ -424,14 +448,35 @@ void PackageBuilder::writeReport(const std::string &outputFile) const {
     }
 }
 
-bool PackageBuilder::build(const std::string &outputFile) {
+bool PackageBuilder::prepare() {
     if (!scriptManager->hasActiveSubInterpreter()) {
         std::cerr << "Packing needs an active Python interpreter, its registered types are what worlds are matched against." << std::endl;
         return false;
     }
+    if (LimonFileSystem::isPackageMounted()) {
+        //repacking a package would hand another game's assets to anyone who has it
+        std::cerr << "Packing refuses while a package is mounted, a package can't be packed again." << std::endl;
+        return false;
+    }
+    std::vector<std::string> unsavedModels = assetManager->getModelsWithUnsavedChanges();
+    if (!unsavedModels.empty()) {
+        //worlds are read from disk, these would go in with their edits while the worlds wouldn't
+        std::cerr << "Packing needs every model saved, these have unsaved changes:" << std::endl;
+        for (const std::string &unsavedModel : unsavedModels) {
+            std::cerr << "  " << unsavedModel << std::endl;
+        }
+        return false;
+    }
     assetExtensions = assetManager->getTree()->getAssetExtensions();
     collectRegisteredTypes();
+    pythonTypeModules = scriptManager->getPythonTypeModules();
+    scriptDirectories = scriptManager->getScriptDirectories();
+    maxModelsInFlight = static_cast<uint32_t>(std::max(1L, options->getOption<long>(HASH("pack_maxModelsInFlight")).getOrDefault(10)));
+    return true;
+}
 
+bool PackageBuilder::run(const std::string &outputFile) {
+    setStep(Step::READING_WORLDS);
     for (const std::string &engineDataFile : EngineDataFiles::getAll()) {
         if (LimonFileSystem::fileExists(engineDataFile)) {
             addFile(engineDataFile, "read by the engine");
@@ -445,6 +490,7 @@ bool PackageBuilder::build(const std::string &outputFile) {
     }
     if (startingWorldElement == nullptr || startingWorldElement->GetText() == nullptr) {
         std::cerr << "Packing needs " << EngineDataFiles::RELEASE << " with a StartingWorld, the package is what that world reaches." << std::endl;
+        setStep(Step::DONE);
         return false;
     }
     addFile(startingWorldElement->GetText(), "the starting world in Release.xml");
@@ -463,12 +509,17 @@ bool PackageBuilder::build(const std::string &outputFile) {
     mz_zip_zero_struct(&archive);
     if (!mz_zip_writer_init_file(&archive, outputFile.c_str(), 0)) {
         std::cerr << "Could not create " << outputFile << ": " << mz_zip_get_error_string(mz_zip_get_last_error(&archive)) << std::endl;
+        setStep(Step::DONE);
         return false;
     }
     //each converted model goes into the archive right away, holding them all would keep the whole pack in memory
     std::map<std::string, std::string> modelsToConvert = modelKeys;//texture files found while converting never add models
+    {
+        std::lock_guard<std::mutex> lock(progressMutex);
+        progress.step = Step::CONVERTING_MODELS;
+        progress.modelCount = static_cast<uint32_t>(modelsToConvert.size());
+    }
     //the limit is how many models the pack holds in memory at once. The CPU parts are all a conversion needs
-    uint32_t maxModelsInFlight = static_cast<uint32_t>(std::max(1L, options->getOption<long>(HASH("pack_maxModelsInFlight")).getOrDefault(10)));
     std::unique_ptr<LoadRequester> requester = assetManager->openRequester(true, LoadRequester::GPUMode::SKIP, maxModelsInFlight);
     std::map<std::vector<std::string>, std::string> modelKeyOfLoad;
     for (const std::pair<const std::string, std::string> &modelKey : modelsToConvert) {
@@ -481,13 +532,21 @@ bool PackageBuilder::build(const std::string &outputFile) {
         if (assetManager->popFinishedRequest(*requester, loaded, std::chrono::milliseconds{50})) {
             const std::string &modelKey = modelKeyOfLoad[loaded.files];
             std::cout << "--pack: converting " << modelKey << std::endl;
+            {
+                std::lock_guard<std::mutex> lock(progressMutex);
+                progress.currentModel = modelKey;
+            }
             succeeded = convertModel(loaded, modelKey, modelsToConvert[modelKey], archive) && succeeded;
+            std::lock_guard<std::mutex> lock(progressMutex);
+            progress.convertedModelCount++;
         }
     }
     requester->close();
     std::cout << "--pack: following the imports of " << reachedTypes.size() << " reached types' scripts" << std::endl;
+    setStep(Step::FOLLOWING_SCRIPTS);
     addPythonModules();
 
+    setStep(Step::WRITING);
     if (succeeded) {
         std::cout << "--pack: writing " << outputFile << std::endl;
         succeeded = addPackedFiles(archive) && addManifest(archive);
@@ -503,5 +562,8 @@ bool PackageBuilder::build(const std::string &outputFile) {
     writeReport(outputFile);
     std::cout << "--pack: " << packedFiles.size() << " files and " << convertedModels.size() << " converted models from "
               << reachedWorlds.size() << " worlds, " << problems.size() << " problems, see " << outputFile << ".report.txt" << std::endl;
+    std::lock_guard<std::mutex> lock(progressMutex);
+    progress.succeeded = succeeded;
+    progress.step = Step::DONE;
     return succeeded;
 }

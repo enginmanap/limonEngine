@@ -282,7 +282,13 @@ GameEngine::GameEngine(bool headless) : headless(headless) {
 bool GameEngine::buildPackage(const std::string &outputFile) {
     scriptManager->createWorldInterpreter("--pack");//the packer reads Python types from the active interpreter, as a world load would leave it
     PackageBuilder packageBuilder(assetManager, scriptManager, options);
-    return packageBuilder.build(outputFile);
+    if (!packageBuilder.prepare()) {
+        return false;
+    }
+    //on a worker as the editor runs it, so the command line exercises the same threading
+    std::thread packerThread(&PackageBuilder::run, &packageBuilder, outputFile);
+    packerThread.join();
+    return packageBuilder.getProgress().succeeded;
 }
 
 bool GameEngine::convertModelToWorld(const std::string &sourceFile, const std::string &outputDirectory, float scale) {
