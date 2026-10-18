@@ -251,14 +251,18 @@ public:
     }
     static constexpr int32_t SAMPLER_COUNT = 5;
     static const char* samplerName(Sampler sampler) {
-        switch (sampler) {
-            case Sampler::DIFFUSE:  return "diffuseSampler";
-            case Sampler::AMBIENT:  return "ambientSampler";
-            case Sampler::SPECULAR: return "specularSampler";
-            case Sampler::OPACITY:  return "opacitySampler";
-            case Sampler::NORMAL:   return "normalSampler";
-        }
-        return "";
+        //not a switch: GCC 15.2.0 (MSYS2 Rev9, mingw64 and ucrt64) at -O2 jump threads GraphicsPipeline::isEngineOwnedSampler's loop over it
+        //past OPACITY, so opacitySampler got a pipeline unit and opacity maps did nothing. -O0/-O1/-O3 and clang are fine, no report filed yet
+        //switch (sampler) {
+        //    case Sampler::DIFFUSE:  return "diffuseSampler";
+        //    case Sampler::AMBIENT:  return "ambientSampler";
+        //    case Sampler::SPECULAR: return "specularSampler";
+        //    case Sampler::OPACITY:  return "opacitySampler";
+        //    case Sampler::NORMAL:   return "normalSampler";
+        //}
+        //return "";
+        static const char *const SAMPLER_NAMES[SAMPLER_COUNT] = {"diffuseSampler", "ambientSampler", "specularSampler", "opacitySampler", "normalSampler"};
+        return SAMPLER_NAMES[static_cast<int32_t>(sampler)];
     }
 
     static void configureProgram(const std::shared_ptr<GraphicsProgram>& program);
