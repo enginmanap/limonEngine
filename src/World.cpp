@@ -523,6 +523,7 @@ void World::applyChangedTransforms() {
 
 void World::uploadFrameData() {
     PROFILE_VISIBILITY("World::uploadFrameData");
+    assetManager->uploadOneQueuedAsset();//one per frame, a model's upload is a visible hitch
     frameData.upload(graphicsWrapper, *frameResourceHandles);
     for(const auto& emitter:emitters) {
         emitter.second->uploadFrameData();

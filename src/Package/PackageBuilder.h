@@ -63,7 +63,7 @@ private:
 
     void scanRenderPipeline();
 
-    bool convertModel(const std::string &modelKey, const std::string &reason, mz_zip_archive &archive);
+    bool convertModel(const LoadRequester::LoadResult &loaded, const std::string &modelKey, const std::string &reason, mz_zip_archive &archive);
 
     void addTexture(const std::shared_ptr<TextureAsset> &texture, const std::string &modelKey);
 

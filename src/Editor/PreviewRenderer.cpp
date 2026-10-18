@@ -306,9 +306,10 @@ bool PreviewRenderer::updateAssetPreview(const std::string &assetFullPath, const
         }
         return false;
     } else if(modelAssetsWaitingCPULoad.find(assetFullPath) != modelAssetsWaitingCPULoad.end()) {
-        if(modelAssetsWaitingCPULoad[assetFullPath]->getLoadState() == Asset::LoadState::CPU_LOAD_DONE) {
-            world->assetManager->partialLoadGPUSide(modelAssetsWaitingCPULoad[assetFullPath]);
-            modelAssetsPreloaded[assetFullPath] = modelAssetsWaitingCPULoad[assetFullPath];
+        LoadRequester::LoadResult loaded;
+        if (world->assetManager->popFinishedRequest(*modelAssetsWaitingCPULoad[assetFullPath], loaded, std::chrono::milliseconds{0})) {
+            modelAssetsPreloaded[assetFullPath] = std::dynamic_pointer_cast<ModelAsset>(loaded.asset);
+            modelAssetsWaitingCPULoad[assetFullPath]->close();//in the cache now, it holds a plain reference from here on
             modelAssetsWaitingCPULoad.erase(assetFullPath);
             return false;
         } else {
@@ -316,7 +317,9 @@ bool PreviewRenderer::updateAssetPreview(const std::string &assetFullPath, const
         }
     } else {
         //Requesting Load case
-        modelAssetsWaitingCPULoad[assetFullPath] = world->assetManager->partialLoadAssetAsync<ModelAsset>({assetFullPath});
+        std::unique_ptr<LoadRequester> requester = world->assetManager->openRequester(false, LoadRequester::GPUMode::UPLOADED, 1);
+        world->assetManager->requestAsset<ModelAsset>(*requester, {assetFullPath});
+        modelAssetsWaitingCPULoad[assetFullPath] = std::move(requester);
         return true;
     }
 }

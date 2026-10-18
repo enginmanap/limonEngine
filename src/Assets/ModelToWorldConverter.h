@@ -18,6 +18,7 @@
 #include <assimp/scene.h>
 
 class AssetManager;
+class LoadRequester;
 class ModelAsset;
 
 /**
@@ -155,7 +156,7 @@ class ModelToWorldConverter {
     std::string buildPieceFilePath(const PieceKey &key, const std::string &nodeName) const;
     void buildPieces(const aiScene *scene, const std::vector<std::map<PieceKey, Piece>::iterator> &pieceQueue,
                      std::vector<std::unique_ptr<ModelAsset>> &builtPieces, std::atomic<size_t> &nextPiece,
-                     std::atomic<size_t> &finishedPieceCount, std::atomic<bool> &anyPieceFailed);
+                     std::atomic<size_t> &finishedPieceCount, std::atomic<bool> &anyPieceFailed, LoadRequester &requester);
     bool writeWorld(const std::string &worldPath) const;
 
     static bool hasTriangles(const aiMesh *mesh);

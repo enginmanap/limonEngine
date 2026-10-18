@@ -11,6 +11,7 @@
 
 #include <array>
 #include <atomic>
+#include <mutex>
 #include <set>
 #include <unordered_map>
 
@@ -37,6 +38,7 @@ inline uint32_t nextRegistrationID() {
 class Material : public EditorRenderable {
 private:
     std::string name;
+    mutable std::mutex nameMutex;// When a material tries to do a register, our dedup renames the material, based on what is alphabetically the first. For rename, we need a mutex
 
     glm::vec3 ambientColor;
     glm::vec3 diffuseColor;
@@ -91,6 +93,7 @@ private:
 
     //name is not part of the content hash, so this never invalidates a registry key
     void setName(const std::string &name) {
+        std::lock_guard<std::mutex> lock(nameMutex);
         this->name = name;
     }
     Material() {};
@@ -101,13 +104,22 @@ private:
         this->originalHash = originalHash;
     }
 
+    //inside a model's load, a texture loads for that model's requester. Anywhere else, like an editor edit, it is one
+    //synchronous load. If those hitch, project memory has what an UPLOADED requester per edit would need instead
+    std::shared_ptr<TextureAsset> acquireTexture(const std::vector<std::string> &textureFiles) {
+        if (AssetManager::isInsideLoad()) {
+            return assetManager->partialLoadAssetAsync<TextureAsset>(textureFiles);
+        }
+        return assetManager->loadAsset<TextureAsset>(textureFiles);
+    }
+
     //~Material frees every texture it holds, so a copy has to take its own reference for each one or it
     //releases what it never took. getName() is the full asset key, same one the destructor frees
     std::shared_ptr<TextureAsset> acquireCopiedTexture(const std::shared_ptr<TextureAsset> &sourceTexture) {
         if (sourceTexture == nullptr) {
             return nullptr;
         }
-        return assetManager->partialLoadAssetAsync<TextureAsset>(sourceTexture->getName());
+        return acquireTexture(sourceTexture->getName());
     }
 
     //acquire before free, or swapping between two materials that share a texture drops it to zero in between
@@ -146,9 +158,9 @@ private:
     //for loading by name, doesn't touch maps or free what the slot held, same as the public setters
     void loadTextureIntoSlot(const TextureSlot &slot, const std::vector<std::string> &textureFiles) {
         if (textureFiles.size() == 1) {//two names are an embedded texture and its model, nothing to resolve
-            this->*slot.texture = assetManager->partialLoadAssetAsync<TextureAsset>({resolveTexturePath(textureFiles[0])});
+            this->*slot.texture = acquireTexture({resolveTexturePath(textureFiles[0])});
         } else {
-            this->*slot.texture = assetManager->partialLoadAssetAsync<TextureAsset>(textureFiles);
+            this->*slot.texture = acquireTexture(textureFiles);
         }
         this->*slot.isMap = true;
     }
@@ -181,7 +193,7 @@ public:
               assetManager(assetManager) { }
 
     Material(const Material &other) {
-        this->name = "copy_"+other.name;
+        this->name = "copy_" + other.getName();
 
         this->ambientColor = other.ambientColor;
         this->diffuseColor = other.diffuseColor;
@@ -253,7 +265,8 @@ public:
 
     void activateTextures(GraphicsInterface* graphicsWrapper) const;
 
-    const std::string &getName() const {
+    std::string getName() const {
+        std::lock_guard<std::mutex> lock(nameMutex);
         return name;
     }
 
@@ -315,7 +328,7 @@ public:
         if(sourceAsset != nullptr) {
             textureFiles.push_back(*sourceAsset);
         }
-        this->ambientTexture = assetManager->partialLoadAssetAsync<TextureAsset>(textureFiles);
+        this->ambientTexture = acquireTexture(textureFiles);
         this->isAmbientMap = true;
     }
 
@@ -329,7 +342,7 @@ public:
         if(sourceAsset != nullptr) {
             textureFiles.push_back(*sourceAsset);
         }
-        this->diffuseTexture = assetManager->partialLoadAssetAsync<TextureAsset>(textureFiles);
+        this->diffuseTexture = acquireTexture(textureFiles);
         this->isDiffuseMap = true;
     }
 
@@ -343,7 +356,7 @@ public:
         if(sourceAsset != nullptr) {
             textureFiles.push_back(*sourceAsset);
         }
-        this->specularTexture = assetManager->partialLoadAssetAsync<TextureAsset>(textureFiles);
+        this->specularTexture = acquireTexture(textureFiles);
         this->isSpecularMap = true;
     }
 
@@ -353,7 +366,7 @@ public:
         if(sourceAsset != nullptr) {
             textureFiles.push_back(*sourceAsset);
         }
-        this->normalTexture = assetManager->partialLoadAssetAsync<TextureAsset>(textureFiles);
+        this->normalTexture = acquireTexture(textureFiles);
         this->isNormalMap = true;
 
     }
@@ -368,7 +381,7 @@ public:
         if(sourceAsset != nullptr) {
             textureFiles.push_back(*sourceAsset);
         }
-        this->opacityTexture = assetManager->partialLoadAssetAsync<TextureAsset>(textureFiles);
+        this->opacityTexture = acquireTexture(textureFiles);
         this->isOpacityMap = true;
     }
 
@@ -446,6 +459,11 @@ public:
 
     static const EmbeddedOwnerRename *&activeOwnerRename();
 
+    // This is a method, that wraps all active materials to their names that were in the model that loaded them (if such a thing exists)
+    // It is static, because we don't wanna have each model to have its own copy, and in it, there is a thread local, so it doesn't collide
+    // with multiple savers trying to save at the same time.
+    static const std::map<const Material *, std::string> *&activeSaveNames();
+
     static std::vector<std::string> renamedTextureName(const std::vector<std::string> &textureName);
 
     //attached, or still waiting for afterLoad, as a deserialized material is until its GPU part
@@ -477,7 +495,15 @@ public:
             }
         }
 
-        archive(name, specularExponent, maps, ambientColor, diffuseColor, specularColor, isAmbientMap, isDiffuseMap, isSpecularMap, isNormalMap, isOpacityMap, refractionIndex, originalHashToWrite,
+        std::string nameToWrite = getName();
+        const std::map<const Material *, std::string> *saveNames = activeSaveNames();
+        if (saveNames != nullptr) {
+            std::map<const Material *, std::string>::const_iterator ownName = saveNames->find(this);
+            if (ownName != saveNames->end()) {
+                nameToWrite = ownName->second;
+            }
+        }
+        archive(nameToWrite, specularExponent, maps, ambientColor, diffuseColor, specularColor, isAmbientMap, isDiffuseMap, isSpecularMap, isNormalMap, isOpacityMap, refractionIndex, originalHashToWrite,
             textureNameArray);
     }
 

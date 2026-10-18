@@ -729,4 +729,12 @@
         <IsSet>True</IsSet>
         <Index>53</Index>
     </Parameter>
+    <Parameter>
+        <RequestType>FreeNumber</RequestType>
+        <Description>pack_maxModelsInFlight</Description>
+        <Value>10</Value>
+        <valueType>Long</valueType>
+        <IsSet>True</IsSet>
+        <Index>54</Index>
+    </Parameter>
 </Options>

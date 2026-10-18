@@ -16,6 +16,7 @@
 #include <vector>
 #include <glm/glm.hpp>
 #include "../CullingEntry.h"
+#include "../Assets/LoadRequester.h"
 
 #define MAX_PRELOAD_MODEL_COUNT_EDITOR 10
 
@@ -43,7 +44,7 @@ class PreviewRenderer {
     std::vector<Model*> modelQueue;
     std::unordered_map<const Model*, std::unique_ptr<CullingEntry>> modelQueueCullingEntries;//preview models aren't world models, culling must not see them
     std::set<uint32_t> modelIdSet;
-    std::unordered_map<std::string, std::shared_ptr<ModelAsset>> modelAssetsWaitingCPULoad;
+    std::unordered_map<std::string, std::unique_ptr<LoadRequester>> modelAssetsWaitingCPULoad;//one requester per load, so a pack running holds it back
     std::unordered_map<std::string, std::shared_ptr<ModelAsset>> modelAssetsPreloaded;
     //so we know when the browsed asset changed and can reset its orbit
     std::string lastPreviewedAssetPath;

@@ -8,6 +8,7 @@
 
 #include <string>
 #include <map>
+#include <set>
 #include <utility>
 #include <tinyxml2.h>
 #include <fstream>
@@ -17,6 +18,7 @@
 #endif
 
 #include "Asset.h"
+#include "LoadRequester.h"
 #include "MaterialRegistry.h"
 #include "../LimonFileSystem.h"
 #include <thread>
@@ -31,13 +33,6 @@ class Material;
 class World;//only ever used as an opaque owner token for material override rules
 
 class AssetManager {
-    std::mutex cpuLoadConditionMutex;
-    std::mutex assetsMutex; //guards the `assets` map only; must be held for every insert/find/erase/refcount change on it, but released before any actual loading work
-    std::mutex availableAssetsMutex; //guards `availableAssetsRootNode` and `filteredResults`: getAvailableAssetsTreeFiltered() is called
-                                      // from background texture-loading threads (TextureAsset's not-found fallback search), while
-                                      // applyPendingAssetListReload() swaps/deletes these from the main thread.
-    std::condition_variable cpuLoadDoneCondition;
-
 public:
     enum AssetTypes { Asset_type_DIRECTORY, Asset_type_MODEL, Asset_type_TEXTURE, Asset_type_SKYMAP, Asset_type_SOUND, Asset_type_GRAPHICSPROGRAM, Asset_type_UNKNOWN };
 
@@ -105,8 +100,102 @@ public:
             return nullptr;
         }
     };
+
+    //an owner's own threads loading for its requester, like the converter's piece builders. Their loads then go to that requester
+    class LoadingForScope {
+        LoadRequester *previous;
+    public:
+        explicit LoadingForScope(LoadRequester &requester) : previous(loadingFor) {
+            loadingFor = &requester;
+        }
+        ~LoadingForScope() {
+            loadingFor = previous;
+        }
+        LoadingForScope(const LoadingForScope &) = delete;
+        LoadingForScope &operator=(const LoadingForScope &) = delete;
+    };
+
 private:
-    //set by loadAssetForConversion for its own thread, and by a loader thread for the request it is loading.
+    struct QueuedAsset {
+        std::shared_ptr<Asset> asset;
+        bool reportFailures;//the requester's mode, the loader thread takes it over
+        LoadRequester *requester;//the loads a load starts carry its requester too
+    };
+
+    class AssetLoadQueue {
+    private:
+        std::vector<QueuedAsset> assets;
+        std::mutex queueMutex;
+        std::condition_variable queueEmptyCond;
+    public:
+        void pushBack(const QueuedAsset &queuedAsset) {
+            std::lock_guard<std::mutex> lock(queueMutex);
+            assets.push_back(queuedAsset);
+            queueEmptyCond.notify_one();
+        }
+
+        bool popFrontOrBlockFor(const std::chrono::milliseconds milliseconds, QueuedAsset &queuedAsset) {
+            std::unique_lock<std::mutex> lock(queueMutex);
+            queueEmptyCond.wait_for(lock, milliseconds);
+            if (assets.empty()) {
+                return false;
+            }
+            queuedAsset = assets.front();
+            assets.erase(assets.begin());
+            return true;
+        }
+    };
+
+    struct AssetLoadThreadState {
+        std::shared_ptr<std::thread> thread;
+        bool running = true;
+    };
+
+    //the requester this thread loads for: a loader thread inside a CPU part, or an owner's own worker in a LoadingForScope
+    inline static thread_local LoadRequester *loadingFor = nullptr;//Thread local means it will have copies for caller thread, not the class member, which is super weird c++ thingy.
+
+    std::mutex cpuLoadConditionMutex;
+    std::mutex assetsMutex; //guards the `assets` map only; must be held for every insert/find/erase/refcount change on it, but released before any actual loading work
+    std::mutex availableAssetsMutex; //guards `availableAssetsRootNode` and `filteredResults`: getAvailableAssetsTreeFiltered() is called
+                                      // from background texture-loading threads (TextureAsset's not-found fallback search), while
+                                      // applyPendingAssetListReload() swaps/deletes these from the main thread.
+    std::mutex requestersMutex;//guards the requester lists and the upload queue, taken before assetsMutex when both are held
+    std::mutex embeddedTexturesMutex;//models add theirs from loadCPUPart, on the loader threads
+    std::condition_variable cpuLoadDoneCondition;
+
+    //loading
+    AssetLoadQueue assetLoadCpuQueue;
+    std::vector<AssetLoadThreadState*> assetLoadThreads;
+    //second of the pair is how many times load requested. prework for unload
+    std::map<const std::vector<std::string>, std::pair<std::shared_ptr<Asset>, uint32_t>> assets;
+    std::atomic<std::int32_t> nextAssetIndex;
+    //model key to the .limonmodel a package carries instead of the raw model, both normalized. Filled once before any load
+    std::unordered_map<std::string, std::string> packedModelFiles;
+
+    //one thread's requesters run together, the others wait for all of them to close. Only running ones reach the CPU queue
+    std::vector<LoadRequester *> waitingRequesters;//in the order they were opened
+    std::vector<LoadRequester *> runningRequesters;
+    std::vector<std::shared_ptr<Asset>> assetLoadGPUQueue;//CPU parts done for UPLOADED requesters, the world runs one GPU part per frame
+    std::thread::id mainThread;//owns the graphics context, GPU parts run only there
+
+    std::unordered_map<std::string, std::vector<std::shared_ptr<const EmbeddedTexture>>> embeddedTextures;
+
+    //asset tree
+    const std::string ASSET_EXTENSIONS_FILE = "./Engine/assetExtensions.xml";
+    //std::map<std::string, AssetTypes> availableAssetsList;//this map should be ordered, or editor list order would be unpredictable
+    AvailableAssetsNode* availableAssetsRootNode = nullptr;
+    std::map<std::pair<AssetTypes, std::string>, AvailableAssetsNode*> filteredResults;
+    std::atomic<bool> assetListReloadInProgress{false};
+    AvailableAssetsNode* pendingAssetsRootNode = nullptr;
+    std::thread assetReloadThread;
+    uint32_t assetListVersion = 0;
+
+    //its own object because it shares no state with asset caching, neither touches the other's members
+    MaterialRegistry materialRegistry;
+    GraphicsInterface* graphicsWrapper;
+    ALHelper *alHelper;
+
+    //set by a loader thread for the request it is loading, so the loads that load starts take the same mode.
     //function locals, a thread_local std::string member gets an init routine in every translation unit and mingw refuses the duplicates
     static bool &reportLoadFailures() {
         thread_local bool report = false;
@@ -118,69 +207,43 @@ private:
         return reason;
     }
 
-    struct QueuedAsset {
-        std::shared_ptr<Asset> asset;
-        bool pushToNextQueue;
-        bool reportFailures;//the requester's mode, the loader thread takes it over
-    };
-
-    class AssetLoadQueue {
-    private:
-        std::list<QueuedAsset> assets;
-        std::mutex queueMutex;
-        std::condition_variable queueEmptyCond;
-    public:
-        void pushBack(const std::shared_ptr<Asset>& asset, bool pushToNextQueue) {
-            std::lock_guard<std::mutex> lock(queueMutex);
-            assets.push_back(QueuedAsset{asset, pushToNextQueue, reportLoadFailures()});
-            queueEmptyCond.notify_one();
+    //only a request made in report mode can leave an asset FAILED, a game caller that needed it stops the engine
+    static void exitUnlessReporting(const std::shared_ptr<Asset> &failedAsset) {
+        if (!reportLoadFailures()) {
+            std::cerr << failedAsset->getAssetName() << " could not be loaded, the reason is above. Exiting..." << std::endl;
+            exit(-1);
         }
+    }
 
-        void pushBack(const QueuedAsset &queuedAsset) {
-            std::lock_guard<std::mutex> lock(queueMutex);
-            assets.push_back(queuedAsset);
-            queueEmptyCond.notify_one();
-        }
+    uint32_t getNextAssetIndex() {
+        return ++nextAssetIndex;
+    }
 
-        QueuedAsset popFrontOrBlock() {
-            std::unique_lock<std::mutex> lock(queueMutex);
-            while (assets.empty()) {
-                queueEmptyCond.wait(lock);
+    void cpuLoadAsset(bool& running) {
+        QueuedAsset assetAndLoadNext;
+        while(running) {
+            if (!assetLoadCpuQueue.popFrontOrBlockFor(std::chrono::milliseconds(5), assetAndLoadNext)) {
+                continue;
             }
-            QueuedAsset assetPtr = assets.front();
-            assets.pop_front();
-            return assetPtr;
-        }
-
-        QueuedAsset popFrontOrBlockFor(const std::chrono::milliseconds milliseconds) {
-            std::unique_lock<std::mutex> lock(queueMutex);
-            queueEmptyCond.wait_for(lock, milliseconds);
-            if (assets.empty()) {
-                return QueuedAsset{nullptr, false, false};
+            if(assetAndLoadNext.asset->getLoadState() != Asset::LoadState::INITIATED) {
+                std::cerr << " asset " << assetAndLoadNext.asset->getAssetName() << " tried to start another load??" << std::endl;
+                continue;
             }
-            QueuedAsset assetPtr = assets.front();
-            assets.pop_front();
-            return assetPtr;
-        }
-
-        QueuedAsset popFrontOrReturn() {
-            std::unique_lock<std::mutex> lock(queueMutex);
-            if(assets.empty()) {
-                return QueuedAsset{nullptr, false, false};
+            assetAndLoadNext.asset->setLoadState(Asset::LoadState::CPU_LOAD_STARTED);
+            reportLoadFailures() = assetAndLoadNext.reportFailures;
+            loadFailureReason().clear();
+            loadingFor = assetAndLoadNext.requester;
+            assetAndLoadNext.asset->loadCPUPart();
+            loadingFor = nullptr;
+            if (hasLoadFailed()) {
+                //before the state, whoever sees FAILED must find the reason
+                recordRequesterFailure(*assetAndLoadNext.requester, assetAndLoadNext.asset, loadFailureReason());
             }
-            QueuedAsset assetPtr = assets.front();
-            assets.pop_front();
-            return assetPtr;
+            assetAndLoadNext.asset->setLoadState(hasLoadFailed() ? Asset::LoadState::FAILED : Asset::LoadState::CPU_LOAD_DONE);
+            reportLoadFailures() = false;
+            cpuLoadDoneCondition.notify_all();
         }
-
-        bool isEmpty() {
-            std::unique_lock<std::mutex> lock(queueMutex);
-            return assets.empty();
-        }
-    };
-
-    //model key to the .limonmodel a package carries instead of the raw model, both normalized. Filled once before any load
-    std::unordered_map<std::string, std::string> packedModelFiles;
+    }
 
     void loadPackageManifest();
 
@@ -199,78 +262,26 @@ private:
         return {"./" + packedModel->second};
     }
 
-    AssetLoadQueue assetLoadCpuQueue;
-    AssetLoadQueue assetLoadGPUQueue;
-
-    struct AssetLoadThreadState {
-        std::shared_ptr<std::thread> thread;
-        bool running = true;
-    };
-    std::vector<AssetLoadThreadState*> assetLoadThreads;
-
-    void cpuLoadAsset(bool& running) {
-        while(running) {
-            QueuedAsset assetAndLoadNext = assetLoadCpuQueue.popFrontOrBlockFor(std::chrono::milliseconds(5));
-            if (assetAndLoadNext.asset != nullptr) {
-                if(assetAndLoadNext.asset->getLoadState() != Asset::LoadState::INITIATED) {
-                    std::cerr << " asset " << assetAndLoadNext.asset->getAssetName() << " tried to start another load??" << std::endl;
-                    continue;
-                }
-                assetAndLoadNext.asset->setLoadState(Asset::LoadState::CPU_LOAD_STARTED);
-                reportLoadFailures() = assetAndLoadNext.reportFailures;
-                loadFailureReason().clear();
-                assetAndLoadNext.asset->loadCPUPart();
-                assetAndLoadNext.asset->setLoadState(hasLoadFailed() ? Asset::LoadState::FAILED : Asset::LoadState::CPU_LOAD_DONE);
-                reportLoadFailures() = false;
-                if(assetAndLoadNext.pushToNextQueue){//a failed one too, whoever waits on the GPU queue must see it end
-                    assetLoadGPUQueue.pushBack(assetAndLoadNext);
-                }
-                cpuLoadDoneCondition.notify_all();
-            }
-        }
+    template<class T>
+    static std::shared_ptr<Asset> createAsset(AssetManager *assetManager, uint32_t assetID, const std::vector<std::string> &files) {
+        return std::make_shared<T>(assetManager, assetID, files);
     }
 
-    const std::string ASSET_EXTENSIONS_FILE = "./Engine/assetExtensions.xml";
-
-    //second of the pair is how many times load requested. prework for unload
-    std::map<const std::vector<std::string>, std::pair<std::shared_ptr<Asset>, uint32_t>> assets;
-    std::unordered_map<std::string, std::vector<std::shared_ptr<const EmbeddedTexture>>> embeddedTextures;
-    std::mutex embeddedTexturesMutex;//models add theirs from loadCPUPart, on the loader threads
-    std::atomic<std::int32_t> nextAssetIndex;
-
-
-    //std::map<std::string, AssetTypes> availableAssetsList;//this map should be ordered, or editor list order would be unpredictable
-    AvailableAssetsNode* availableAssetsRootNode = nullptr;
-    std::map<std::pair<AssetTypes, std::string>, AvailableAssetsNode*> filteredResults;
-
-    std::atomic<bool> assetListReloadInProgress{false};
-    AvailableAssetsNode* pendingAssetsRootNode = nullptr;
-    std::thread assetReloadThread;
-    uint32_t assetListVersion = 0;
-    //its own object because it shares no state with asset caching, neither touches the other's members
-    MaterialRegistry materialRegistry;
-
-    GraphicsInterface* graphicsWrapper;
-    ALHelper *alHelper;
-
-    uint32_t getNextAssetIndex() {
-        return ++nextAssetIndex;
-    }
+    friend class LoadRequester;
+    void closeRequester(LoadRequester &requester, bool fromOwner);
+    void recordRequesterFailure(LoadRequester &requester, const std::shared_ptr<Asset> &asset, const std::string &reason);
+    bool isRunning(LoadRequester &requester);
+    void exitUnlessGPUContextThread(const char *operation) const;
+    //callers hold requestersMutex
+    void startPendingRequestsInternal(LoadRequester &requester);
+    bool takeFinishedRequestInternal(LoadRequester &requester, LoadRequester::LoadResult &result);
+    void startNextRequestersInternal();
 
     void addAssetsRecursively(const std::string &directoryPath, const std::string &fileName,
                                   const std::vector<std::pair<std::string, AssetTypes>> &fileExtensions,
                                   AvailableAssetsNode* nodeToProcess);
 
     std::vector<std::pair<std::string, AssetTypes>> loadAssetExtensionList();
-
-    //only a request made in report mode can leave an asset FAILED, a game caller that needed it stops the engine
-    static void exitUnlessReporting(const std::shared_ptr<Asset> &failedAsset) {
-        if (!reportLoadFailures()) {
-            std::cerr << failedAsset->getAssetName() << " could not be loaded, the reason is above. Exiting..." << std::endl;
-            exit(-1);
-        }
-    }
-
 
     bool loadAssetList();
 
@@ -290,6 +301,45 @@ private:
                                                                   const std::string &filterText);
 
 public:
+    explicit AssetManager(GraphicsInterface* graphicsWrapper, ALHelper *alHelper) : materialRegistry(graphicsWrapper), graphicsWrapper(graphicsWrapper), alHelper(alHelper) {
+        nextAssetIndex.store(0);
+        mainThread = std::this_thread::get_id();//constructed after the graphics context, on its thread
+        loadAssetList();
+        loadPackageManifest();
+        size_t num_threads = std::thread::hardware_concurrency();
+        for (size_t i = 0; i < num_threads; ++i) {
+            AssetLoadThreadState* state = new AssetLoadThreadState();
+            state->running = true;
+            state->thread = std::make_shared<std::thread>(&AssetManager::cpuLoadAsset, this, std::ref(state->running));
+            assetLoadThreads.push_back(state);
+        }
+    }
+
+    ~AssetManager() {
+        //Stop the cpu load threads
+        for (auto thread_iterator = assetLoadThreads.begin(); thread_iterator != assetLoadThreads.end(); ++thread_iterator) {
+            (*thread_iterator)->running = false;
+        }
+        for (auto thread_iterator = assetLoadThreads.begin(); thread_iterator != assetLoadThreads.end(); ++thread_iterator) {
+            (*thread_iterator)->thread->join();
+        }
+        //free all the assets
+        for (auto assetLoadIterator = assetLoadThreads.begin(); assetLoadIterator != assetLoadThreads.end(); ++assetLoadIterator) {
+            delete *assetLoadIterator;
+        }
+
+        if (assetReloadThread.joinable()) {
+            assetReloadThread.join();
+        }
+        delete pendingAssetsRootNode;
+        delete availableAssetsRootNode;
+
+        for (auto tree_iterator = filteredResults.begin(); tree_iterator != filteredResults.end(); ++tree_iterator) {
+            delete tree_iterator->second;
+        }
+
+    }
+
     //what a load step calls instead of exit, then returns. The engine stops on an asset it can't load, only a conversion gets the reason back
     static void failLoad(const std::string &message) {
         if (!reportLoadFailures()) {
@@ -306,66 +356,97 @@ public:
         return !loadFailureReason().empty();
     }
 
-    explicit AssetManager(GraphicsInterface* graphicsWrapper, ALHelper *alHelper) : materialRegistry(graphicsWrapper), graphicsWrapper(graphicsWrapper), alHelper(alHelper) {
-        nextAssetIndex.store(0);
-        loadAssetList();
-        loadPackageManifest();
-        size_t num_threads = std::thread::hardware_concurrency();
-        for (size_t i = 0; i < num_threads; ++i) {
-            AssetLoadThreadState* state = new AssetLoadThreadState();
-            state->running = true;
-            state->thread = std::make_shared<std::thread>(&AssetManager::cpuLoadAsset, this, std::ref(state->running));
-            assetLoadThreads.push_back(state);
+    //reportFailures hands a failed load back with its reason, otherwise the engine stops on it. Close it, or let it go out of scope, once its results are processed
+    std::unique_ptr<LoadRequester> openRequester(bool reportFailures, LoadRequester::GPUMode gpuMode, uint32_t maxInFlight);
+
+    static bool isInsideLoad() {
+        return loadingFor != nullptr;
+    }
+
+    template<class T>
+    void requestAsset(LoadRequester &requester, const std::vector<std::string> &requestedFiles) {
+        std::lock_guard<std::mutex> lock(requestersMutex);
+        if (requester.closed) {
+            std::cerr << "Asset " << StringUtils::join(requestedFiles, ",") << " requested from a closed requester, ignored." << std::endl;
+            return;
+        }
+        requester.pending.push_back(LoadRequester::PendingRequest{resolvePackedModel(requestedFiles), &createAsset<T>});
+        if (requester.running) {
+            startPendingRequestsInternal(requester);
         }
     }
 
-    void loadUsingCereal(const std::vector<std::string> files [[gnu::unused]]);
+    //a finished CPU part, with the reference the request took. Waits up to wait for one, false if none came
+    bool popFinishedRequest(LoadRequester &requester, LoadRequester::LoadResult &result, std::chrono::milliseconds wait);
+
+    bool hasOutstandingRequests(LoadRequester &requester) {
+        std::lock_guard<std::mutex> lock(requestersMutex);
+        return !requester.pending.empty() || !requester.tracked.empty();
+    }
+
+    //main thread, once per frame: the GPU part of one asset an UPLOADED requester waits for
+    void uploadOneQueuedAsset();
+
+    template<class T>
+    std::shared_ptr<T>loadAsset(const std::vector<std::string> requestedFiles) {
+        if (isInsideLoad()) {
+            //this thread loads for a requester, waiting on a requester of its own here would wait on that one
+            std::cerr << "Synchronous load of " << StringUtils::join(requestedFiles, ",") << " inside another load, this is a bug. Exiting..." << std::endl;
+            exit(-1);
+        }
+        std::unique_ptr<LoadRequester> requester = openRequester(false, LoadRequester::GPUMode::SELF, 1);
+        requestAsset<T>(*requester, requestedFiles);
+        if (!isRunning(*requester)) {
+            std::cerr << "Loading " << StringUtils::join(requestedFiles, ",") << " while another thread's loads run, it waits for them. Nothing should load now." << std::endl;
+        }
+        LoadRequester::LoadResult result;
+        while (!popFinishedRequest(*requester, result, std::chrono::milliseconds{5})) {
+        }
+        partialLoadGPUSide(result.asset);
+        requester->close();
+        return std::dynamic_pointer_cast<T>(result.asset);
+    }
 
     template<class T>
     std::vector<std::shared_ptr<T>>parallelLoadAssetList(const std::vector<std::vector<std::string>> filesList) {
-        std::vector<std::shared_ptr<T>> loadedAssets;
-        std::unordered_set<uint32_t> startedAssetIds;
-        for(const std::vector<std::string> &requestedFiles : filesList) {
-            const std::vector<std::string> files = resolvePackedModel(requestedFiles);
-            std::lock_guard<std::mutex> lock(assetsMutex);
-            if (assets.count(files) == 0) {
-                uint32_t nextAssetIndexLocal = getNextAssetIndex();
-                assets[files] = std::make_pair(std::make_shared<T>(this, nextAssetIndexLocal, files), 0);
-                startedAssetIds.insert(nextAssetIndexLocal);
-                assetLoadCpuQueue.pushBack(assets[files].first, true);
+        std::unique_ptr<LoadRequester> requester = openRequester(false, LoadRequester::GPUMode::SELF, 0);
+        std::map<std::vector<std::string>, std::shared_ptr<T>> loadedAssets;
+        for (const std::vector<std::string> &requestedFiles : filesList) {
+            std::vector<std::string> files = resolvePackedModel(requestedFiles);
+            if (loadedAssets.count(files) == 0) {
+                loadedAssets[files] = nullptr;
+                requestAsset<T>(*requester, files);
             }
-            assets[files].second++;
-            loadedAssets.emplace_back(std::dynamic_pointer_cast<T>(assets[files].first));
         }
         //now load the assets to GPU on main thread
-        while(!startedAssetIds.empty()) {
-            QueuedAsset assetAndPushToNext = assetLoadGPUQueue.popFrontOrReturn();
-            if(assetAndPushToNext.asset != nullptr) {
-                if(startedAssetIds.find(assetAndPushToNext.asset->getAssetID()) == startedAssetIds.end()) {
-                    continue;//we didn't start this, we should not finish it
-                }
-                if(assetAndPushToNext.asset->getLoadState() == Asset::LoadState::FAILED) {
-                    exitUnlessReporting(assetAndPushToNext.asset);
-                    startedAssetIds.erase(assetAndPushToNext.asset->getAssetID());
-                    continue;
-                }
-                if(assetAndPushToNext.asset->getLoadState() == Asset::LoadState::CPU_LOAD_DONE) {
-                    assetAndPushToNext.asset->loadGPUPart();
-                    assetAndPushToNext.asset->setLoadState(Asset::LoadState::DONE);
-                }
-                if(assetAndPushToNext.asset->getLoadState() == Asset::LoadState::DONE) {
-                    startedAssetIds.erase(assetAndPushToNext.asset->getAssetID());
-                }
-            } else {
-                std::unique_lock<std::mutex> lock(cpuLoadConditionMutex);
-                cpuLoadDoneCondition.wait_for(lock, std::chrono::milliseconds{5});
+        LoadRequester::LoadResult result;
+        while (hasOutstandingRequests(*requester)) {
+            if (popFinishedRequest(*requester, result, std::chrono::milliseconds{5})) {
+                partialLoadGPUSide(result.asset);
+                loadedAssets[result.files] = std::dynamic_pointer_cast<T>(result.asset);
             }
         }
-        return loadedAssets;
+        requester->close();
+        std::vector<std::shared_ptr<T>> loadedAssetList;
+        std::set<std::vector<std::string>> handedOver;
+        for (const std::vector<std::string> &requestedFiles : filesList) {
+            std::vector<std::string> files = resolvePackedModel(requestedFiles);
+            if (!handedOver.insert(files).second) {
+                std::lock_guard<std::mutex> lock(assetsMutex);
+                assets[files].second++;//every entry of the list holds a reference, the request took only the first
+            }
+            loadedAssetList.push_back(loadedAssets[files]);
+        }
+        return loadedAssetList;
     }
 
+    //only inside a load, it joins that load's requester. Anywhere else a load is a synchronous loadAsset
     template<class T>
     std::shared_ptr<T> partialLoadAssetAsync(const std::vector<std::string> requestedFiles) {
+    if (!isInsideLoad()) {
+        std::cerr << "Asynchronous load of " << StringUtils::join(requestedFiles, ",") << " outside an asset's load has no requester, this is a bug. Exiting..." << std::endl;
+        exit(-1);
+    }
     const std::vector<std::string> files = resolvePackedModel(requestedFiles);
     //this method can be called by another thread, because some assets create other assets
     // ex: Model assets load Texture assets
@@ -375,22 +456,27 @@ public:
         if (assets.count(files) == 0) {
             uint32_t nextAssetIndexLocal = getNextAssetIndex();
             assets[files] = std::make_pair(std::make_shared<T>(this, nextAssetIndexLocal, files), 0);
-            assetLoadCpuQueue.pushBack(assets[files].first, false);
+            assetLoadCpuQueue.pushBack(QueuedAsset{assets[files].first, loadingFor->reportFailures, loadingFor});
         }
         assets[files].second++;
         return std::dynamic_pointer_cast<T>(assets[files].first);
     }
 
-    void partialLoadGPUSide(std::shared_ptr<Asset> asset) {
-        if(asset->getLoadState() == Asset::LoadState::DONE) {
-            //Some code paths will try to load the asset again.
-            return;
-        }
+    void waitForCPULoad(const std::shared_ptr<Asset> &asset) {
         while(asset->getLoadState() != Asset::LoadState::CPU_LOAD_DONE && asset->getLoadState() != Asset::LoadState::DONE &&
               asset->getLoadState() != Asset::LoadState::FAILED) {
             std::unique_lock<std::mutex> lock(cpuLoadConditionMutex);
             cpuLoadDoneCondition.wait_for(lock, std::chrono::milliseconds{5});
         }
+    }
+
+    void partialLoadGPUSide(std::shared_ptr<Asset> asset) {
+        exitUnlessGPUContextThread("GPU part");
+        if(asset->getLoadState() == Asset::LoadState::DONE) {
+            //Some code paths will try to load the asset again.
+            return;
+        }
+        waitForCPULoad(asset);
         if(asset->getLoadState() == Asset::LoadState::FAILED) {
             exitUnlessReporting(asset);
             return;
@@ -400,65 +486,6 @@ public:
             asset->setLoadState(Asset::LoadState::DONE);
         }
         return;
-    }
-
-    template<class T>
-    std::shared_ptr<T>loadAsset(const std::vector<std::string> requestedFiles) {
-        const std::vector<std::string> files = resolvePackedModel(requestedFiles);
-        std::shared_ptr<Asset> assetPtr;
-        bool needsSynchronousLoad = false;
-        {
-            //reservation: the existence check and the placeholder insert must happen in the same
-            // critical section, so no two threads can ever both decide to load the same asset.
-            std::lock_guard<std::mutex> lock(assetsMutex);
-            if (assets.count(files) == 0) {
-                assets[files] = std::make_pair(std::make_shared<T>(this, getNextAssetIndex(), files), 0);
-                needsSynchronousLoad = true;
-            }
-            assetPtr = assets[files].first;
-        }
-        //everything below runs without assetsMutex held, so unrelated assets stay fully parallel.
-        if(needsSynchronousLoad) {
-            assetPtr->loadCPUPart();
-            if (hasLoadFailed()) {
-                assetPtr->setLoadState(Asset::LoadState::FAILED);
-            } else {
-                assetPtr->loadGPUPart();
-                assetPtr->setLoadState(Asset::LoadState::DONE);
-            }
-        }
-        while (assetPtr->getLoadState() != Asset::LoadState::DONE && assetPtr->getLoadState() != Asset::LoadState::FAILED) {
-            //some other thread is working on this, we should block.
-            std::this_thread::sleep_for(std::chrono::milliseconds(15));
-        }
-        if (assetPtr->getLoadState() == Asset::LoadState::FAILED) {
-            exitUnlessReporting(assetPtr);
-            return std::dynamic_pointer_cast<T>(assetPtr);//only loadAssetForConversion gets here
-        }
-        {
-            std::lock_guard<std::mutex> lock(assetsMutex);
-            assets[files].second++;
-        }
-        return std::dynamic_pointer_cast<T>(assetPtr);
-    }
-
-    //for a converter, like the packer: a file that can't be loaded comes back as nullptr and a reason, instead of stopping the engine
-    template<class T>
-    std::shared_ptr<T> loadAssetForConversion(const std::vector<std::string> &files, std::string &failureReason) {
-        reportLoadFailures() = true;
-        loadFailureReason().clear();
-        std::shared_ptr<T> loadedAsset = loadAsset<T>(files);
-        reportLoadFailures() = false;
-        if (loadedAsset->getLoadState() != Asset::LoadState::FAILED) {
-            return loadedAsset;
-        }
-        failureReason = loadFailureReason();
-        std::lock_guard<std::mutex> lock(assetsMutex);
-        std::map<const std::vector<std::string>, std::pair<std::shared_ptr<Asset>, uint32_t>>::iterator failedEntry = assets.find(resolvePackedModel(files));
-        if (failedEntry != assets.end() && failedEntry->second.first == loadedAsset) {
-            assets.erase(failedEntry);//left in, the next request would get the failed asset back instead of trying again
-        }
-        return nullptr;
     }
 
     void freeAsset(const std::vector<std::string> requestedFiles) {
@@ -484,8 +511,8 @@ public:
                 //possible issue
                 std::cerr << "Reference counter for asset " << files[0] << " is more than 2, there is a leak" << std::endl;
             }
-            //before here, do we know it was actually loaded?
-            if(assets[files].first->getLoadState() != Asset::LoadState::DONE) {
+            //CPU_LOAD_DONE is a finished load for a requester that skips GPU parts
+            if(assets[files].first->getLoadState() == Asset::LoadState::INITIATED || assets[files].first->getLoadState() == Asset::LoadState::CPU_LOAD_STARTED) {
                 std::cerr << "trying to delete a partially loaded object" + files[0] + ", probably a bug" << std::endl;
             }
             //std::cerr << "deleting asset as all references are removed" << std::endl;
@@ -497,6 +524,14 @@ public:
             }
         }
     }
+
+    bool isLoaded(std::vector<std::string> filename) {
+        filename = resolvePackedModel(filename);
+        std::lock_guard<std::mutex> lock(assetsMutex);
+        return this->assets.find(filename) != this->assets.end();
+    }
+
+    void loadUsingCereal(const std::vector<std::string> files [[gnu::unused]]);
 
     //a raw model a package carries only as its .limonmodel still loads, so it exists for whoever asks
     bool isModelAvailable(const std::string &modelKey) const {
@@ -516,20 +551,31 @@ public:
         return modelKeys;
     }
 
-    std::vector<std::pair<std::string, AssetTypes>> getAssetExtensions() {
-        return loadAssetExtensionList();
+    //keyed by the file the images came from, a later add for the same file keeps what is there. freeAsset drops the entry
+    void addEmbeddedTextures(const std::string& ownerAsset, std::vector<std::shared_ptr<const EmbeddedTexture>> textures) {
+        std::lock_guard<std::mutex> lock(embeddedTexturesMutex);
+        embeddedTextures.emplace(ownerAsset, textures);
     }
 
-    bool isLoaded(std::vector<std::string> filename) {
-        filename = resolvePackedModel(filename);
-        std::lock_guard<std::mutex> lock(assetsMutex);
-        return this->assets.find(filename) != this->assets.end();
+    std::shared_ptr<const EmbeddedTexture> getEmbeddedTextures(const std::string& ownerAsset, uint32_t textureID) {
+        std::lock_guard<std::mutex> lock(embeddedTexturesMutex);
+        std::unordered_map<std::string, std::vector<std::shared_ptr<const EmbeddedTexture>>>::const_iterator textureSet = embeddedTextures.find(ownerAsset);
+        if (textureSet == embeddedTextures.end() || textureSet->second.size() <= textureID) {
+            return nullptr;
+        }
+        return textureSet->second[textureID];
+    }
+
+    std::vector<std::pair<std::string, AssetTypes>> getAssetExtensions() {
+        return loadAssetExtensionList();
     }
 
     const AvailableAssetsNode* getAvailableAssetsTree() {
         std::lock_guard<std::mutex> lock(availableAssetsMutex);
         return availableAssetsRootNode;
     };
+
+    const AvailableAssetsNode* getAvailableAssetsTreeFiltered(AssetTypes type, const std::string &filterText);
 
     // Since we are locking the asset tree, we should return from getting the nodes as fast as possible
     // To do that, we can't just parse all mixamo assets inline.
@@ -616,25 +662,6 @@ public:
         return assetListVersion;
     }
 
-    const AvailableAssetsNode* getAvailableAssetsTreeFiltered(AssetTypes type, const std::string &filterText);
-
-
-    //keyed by the file the images came from, a later add for the same file keeps what is there. freeAsset drops the entry
-    void addEmbeddedTextures(const std::string& ownerAsset, std::vector<std::shared_ptr<const EmbeddedTexture>> textures) {
-        std::lock_guard<std::mutex> lock(embeddedTexturesMutex);
-        embeddedTextures.emplace(ownerAsset, textures);
-    }
-
-    std::shared_ptr<const EmbeddedTexture> getEmbeddedTextures(const std::string& ownerAsset, uint32_t textureID) {
-        std::lock_guard<std::mutex> lock(embeddedTexturesMutex);
-        std::unordered_map<std::string, std::vector<std::shared_ptr<const EmbeddedTexture>>>::const_iterator textureSet = embeddedTextures.find(ownerAsset);
-        if (textureSet == embeddedTextures.end() || textureSet->second.size() <= textureID) {
-            return nullptr;
-        }
-        return textureSet->second[textureID];
-    }
-
-
     MaterialRegistry& getMaterialRegistry() {
         return materialRegistry;
     }
@@ -649,31 +676,6 @@ public:
 
     ALHelper *getAlHelper() const {
         return alHelper;
-    }
-
-    ~AssetManager() {
-        //Stop the cpu load threads
-        for (auto thread_iterator = assetLoadThreads.begin(); thread_iterator != assetLoadThreads.end(); ++thread_iterator) {
-            (*thread_iterator)->running = false;
-        }
-        for (auto thread_iterator = assetLoadThreads.begin(); thread_iterator != assetLoadThreads.end(); ++thread_iterator) {
-            (*thread_iterator)->thread->join();
-        }
-        //free all the assets
-        for (auto assetLoadIterator = assetLoadThreads.begin(); assetLoadIterator != assetLoadThreads.end(); ++assetLoadIterator) {
-            delete *assetLoadIterator;
-        }
-
-        if (assetReloadThread.joinable()) {
-            assetReloadThread.join();
-        }
-        delete pendingAssetsRootNode;
-        delete availableAssetsRootNode;
-
-        for (auto tree_iterator = filteredResults.begin(); tree_iterator != filteredResults.end(); ++tree_iterator) {
-            delete tree_iterator->second;
-        }
-
     }
 };
 

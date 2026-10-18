@@ -31,6 +31,11 @@ std::shared_ptr<Material> MaterialRegistry::registerMaterial(std::shared_ptr<Mat
         //we register a new material instead, which is a defined outcome rather than a recovery
         if (foundIt != materials.end() && foundIt->second.first->getHash() == materialHash) {
             foundIt->second.second++;
+            //the alphabetically first of the identical ones, so the name doesn't depend on which model loaded first
+            std::string candidateName = material->getName();
+            if (candidateName < foundIt->second.first->getName()) {
+                foundIt->second.first->setName(candidateName);
+            }
             return foundIt->second.first;
         }
         contentIndex.erase(indexIt);

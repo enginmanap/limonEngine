@@ -1019,6 +1019,9 @@ bool ModelToWorldConverter::convert() {
         std::cerr << "Scale " << scale << " is not greater than 0, a negative one would mirror the whole map." << std::endl;
         return false;
     }
+    //the textures the pieces' materials name load for this, on the loader threads. Writing a piece needs only their names
+    std::unique_ptr<LoadRequester> requester = assetManager->openRequester(false, LoadRequester::GPUMode::SKIP, 0);
+    AssetManager::LoadingForScope loadingForConverter(*requester);
     Assimp::Importer importer;
     const aiScene *scene = ModelAsset::importScene(importer, sourcePath);
     if (scene == nullptr) {
@@ -1092,7 +1095,7 @@ bool ModelToWorldConverter::convert() {
     std::vector<std::thread> workers;
     for (uint32_t workerIndex = 0; workerIndex < workerCount; ++workerIndex) {
         workers.emplace_back(&ModelToWorldConverter::buildPieces, this, scene, std::cref(pieceQueue), std::ref(writtenPieces),
-                             std::ref(nextPiece), std::ref(finishedPieceCount), std::ref(anyPieceFailed));
+                             std::ref(nextPiece), std::ref(finishedPieceCount), std::ref(anyPieceFailed), std::ref(*requester));
     }
     for (std::thread &worker : workers) {
         worker.join();
@@ -1144,7 +1147,8 @@ bool ModelToWorldConverter::convert() {
 //each worker writes only its own slot of builtPieces and its own map entry, so nothing here needs a lock
 void ModelToWorldConverter::buildPieces(const aiScene *scene, const std::vector<std::map<PieceKey, Piece>::iterator> &pieceQueue,
                                         std::vector<std::unique_ptr<ModelAsset>> &builtPieces, std::atomic<size_t> &nextPiece,
-                                        std::atomic<size_t> &finishedPieceCount, std::atomic<bool> &anyPieceFailed) {
+                                        std::atomic<size_t> &finishedPieceCount, std::atomic<bool> &anyPieceFailed, LoadRequester &requester) {
+    AssetManager::LoadingForScope loadingForConverter(requester);
     while (!anyPieceFailed) {
         size_t pieceIndex = nextPiece++;
         if (pieceIndex >= pieceQueue.size()) {

@@ -194,17 +194,15 @@ void PackageBuilder::scanRenderPipeline() {
     }
 }
 
-bool PackageBuilder::convertModel(const std::string &modelKey, const std::string &reason, mz_zip_archive &archive) {
+bool PackageBuilder::convertModel(const LoadRequester::LoadResult &loaded, const std::string &modelKey, const std::string &reason, mz_zip_archive &archive) {
     size_t flipPosition = modelKey.rfind("?flip");
     std::string modelFile = modelKey.substr(0, flipPosition);
-    std::string loadKey = "./" + modelKey;//the asset tree, and so the Mixamo lookup, knows models by their ./Data/ path
 
-    std::string failureReason;
-    std::shared_ptr<ModelAsset> modelAsset = assetManager->loadAssetForConversion<ModelAsset>({loadKey}, failureReason);
-    if (modelAsset == nullptr) {
-        problems.push_back(modelKey + " could not be loaded, " + reason + ": " + failureReason);
+    if (!loaded.failureReason.empty()) {
+        problems.push_back(modelKey + " could not be loaded, " + reason + ": " + loaded.failureReason);
         return false;
     }
+    std::shared_ptr<ModelAsset> modelAsset = std::dynamic_pointer_cast<ModelAsset>(loaded.asset);
 
     bool converted = true;
     if (endsWith(modelFile, ".limonmodel")) {
@@ -240,7 +238,7 @@ bool PackageBuilder::convertModel(const std::string &modelKey, const std::string
         addTexture(material.second->getNormalTexture(), modelKey);
         addTexture(material.second->getOpacityTexture(), modelKey);
     }
-    assetManager->freeAsset({loadKey});
+    assetManager->freeAsset(loaded.files);
     return converted;
 }
 
@@ -252,6 +250,7 @@ void PackageBuilder::addTexture(const std::shared_ptr<TextureAsset> &texture, co
     if (textureName.size() != 1) {
         return;//embedded textures are keyed with their model and live inside the .limonmodel
     }
+    assetManager->waitForCPULoad(texture);//a model's CPU part only requests its textures, they may still be loading
     if (texture->hasLoadFailed()) {
         problems.push_back(modelKey + " asks for texture " + textureName[0] + ", which could not be loaded");
     } else {
@@ -467,10 +466,24 @@ bool PackageBuilder::build(const std::string &outputFile) {
     }
     //each converted model goes into the archive right away, holding them all would keep the whole pack in memory
     std::map<std::string, std::string> modelsToConvert = modelKeys;//texture files found while converting never add models
+    //the limit is how many models the pack holds in memory at once. The CPU parts are all a conversion needs
+    uint32_t maxModelsInFlight = static_cast<uint32_t>(std::max(1L, options->getOption<long>(HASH("pack_maxModelsInFlight")).getOrDefault(10)));
+    std::unique_ptr<LoadRequester> requester = assetManager->openRequester(true, LoadRequester::GPUMode::SKIP, maxModelsInFlight);
+    std::map<std::vector<std::string>, std::string> modelKeyOfLoad;
     for (const std::pair<const std::string, std::string> &modelKey : modelsToConvert) {
-        std::cout << "--pack: converting " << modelKey.first << std::endl;
-        succeeded = convertModel(modelKey.first, modelKey.second, archive) && succeeded;
+        std::vector<std::string> loadKey = {"./" + modelKey.first};//the asset tree, and so the Mixamo lookup, knows models by their ./Data/ path
+        modelKeyOfLoad[loadKey] = modelKey.first;
+        assetManager->requestAsset<ModelAsset>(*requester, loadKey);
     }
+    LoadRequester::LoadResult loaded;
+    while (assetManager->hasOutstandingRequests(*requester)) {
+        if (assetManager->popFinishedRequest(*requester, loaded, std::chrono::milliseconds{50})) {
+            const std::string &modelKey = modelKeyOfLoad[loaded.files];
+            std::cout << "--pack: converting " << modelKey << std::endl;
+            succeeded = convertModel(loaded, modelKey, modelsToConvert[modelKey], archive) && succeeded;
+        }
+    }
+    requester->close();
     std::cout << "--pack: following the imports of " << reachedTypes.size() << " reached types' scripts" << std::endl;
     addPythonModules();
 

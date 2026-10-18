@@ -46,14 +46,14 @@ std::string Material::resolveTexturePath(const std::string &requestedPath) const
     if (foundPath.empty()) {
         return requestedPath;//TextureAsset reports it and loads the not found texture
     }
-    std::cerr << "Material " << name << " names texture " << requestedPath << ", using " << foundPath << " found by file name." << std::endl;
+    std::cerr << "Material " << getName() << " names texture " << requestedPath << ", using " << foundPath << " found by file name." << std::endl;
     return foundPath;
 }
 
 void Material::loadGPUSide(AssetManager *assetManager) {
     if (!assetManager->getMaterialRegistry().isRegistered(*this)) {
         // If someone tries to upload without registering, we won't allow it.
-        std::cerr << "Material " << name << " got loadGPUSide before registerMaterial, nothing loaded." << std::endl;
+        std::cerr << "Material " << getName() << " got loadGPUSide before registerMaterial, nothing loaded." << std::endl;
         return;
     }
     this->assetManager = assetManager;
@@ -239,6 +239,11 @@ bool Material::updateSavedReferences(tinyxml2::XMLElement *materialNode, const s
 
 const Material::EmbeddedOwnerRename *&Material::activeOwnerRename() {
     thread_local const EmbeddedOwnerRename *active = nullptr;
+    return active;
+}
+
+const std::map<const Material *, std::string> *&Material::activeSaveNames() {
+    thread_local const std::map<const Material *, std::string> *active = nullptr;
     return active;
 }
 

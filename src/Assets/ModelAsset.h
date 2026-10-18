@@ -383,7 +383,15 @@ public:
             std::map<const std::shared_ptr<const MeshAsset>, std::shared_ptr<Material>>::const_iterator meshMaterial = meshMaterialMap.find(mesh);
             meshMaterials.push_back(meshMaterial == meshMaterialMap.end() ? nullptr : meshMaterial->second);
         }
+        //the map is sorted, so a material this model knows by several names goes under the first of them
+        std::map<const Material *, std::string> ownNames;
+        for (const std::pair<const std::string, std::shared_ptr<Material>> &material : materialMap) {
+            ownNames.emplace(material.second.get(), material.first);
+        }
+        const std::map<const Material *, std::string> *previousSaveNames = Material::activeSaveNames();
+        Material::activeSaveNames() = &ownNames;
         ar(sourcePathToWrite, boneIDCounter, boneIDCounterPerMesh, textures,                   hasAnimation, rootNode, boundingBoxMax, boundingBoxMin, centerOffset, boneInformationMap, simplifiedMeshes, meshes, animations, animationSections, customizationAfterSave, materialMap, meshMaterials, transparentMaterialUsed, lodLadder);
+        Material::activeSaveNames() = previousSaveNames;
     }
 
     template<class Archive>
