@@ -6,7 +6,6 @@
 #define LIMONENGINE_LOADREQUESTER_H
 
 #include <cstdint>
-#include <map>
 #include <memory>
 #include <string>
 #include <thread>
@@ -47,7 +46,7 @@ private:
     struct TrackedRequest {
         std::vector<std::string> files;
         std::shared_ptr<Asset> asset;
-        bool uploadQueued = false;
+        std::string failureReason;
     };
 
     AssetManager *assetManager;
@@ -58,8 +57,8 @@ private:
 
     //below are guarded by AssetManager::requestersMutex
     std::vector<PendingRequest> pending;//not started yet, the requester isn't running or has no free slot
-    std::vector<TrackedRequest> tracked;//started, holds a reference until it is handed over
-    std::map<const Asset *, std::string> failureReasons;
+    std::vector<TrackedRequest> inFlight;//started, holds a reference until it is handed over
+    std::vector<TrackedRequest> finished;//handed over by whoever finished it, waiting for the owner to take it
     bool running = false;
     bool closed = false;
 

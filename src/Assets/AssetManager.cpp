@@ -244,105 +244,114 @@ void AssetManager::exitUnlessGPUContextThread(const char *operation) const {
 }
 
 void AssetManager::startPendingRequestsInternal(LoadRequester &requester) {
-    while (!requester.pending.empty() && (requester.maxInFlight == 0 || requester.tracked.size() < requester.maxInFlight)) {
+    while (!requester.pending.empty() && (requester.maxInFlight == 0 || requester.inFlight.size() + requester.finished.size() < requester.maxInFlight)) {
         LoadRequester::PendingRequest request = requester.pending.front();
         requester.pending.erase(requester.pending.begin());
         std::shared_ptr<Asset> asset;
-        std::lock_guard<std::mutex> lock(assetsMutex);
-        std::map<const std::vector<std::string>, std::pair<std::shared_ptr<Asset>, uint32_t>>::iterator existing = assets.find(request.files);
-        if (existing == assets.end()) {
-            asset = request.createAsset(this, getNextAssetIndex(), request.files);
-            assets[request.files] = std::make_pair(asset, 1);
-            assetLoadCpuQueue.pushBack(QueuedAsset{asset, requester.reportFailures, &requester});
-        } else {
-            //loaded, or loading for another requester of this thread, it is handed over once it is far enough
-            existing->second.second++;
-            asset = existing->second.first;
+        Asset::LoadState state;
+        {
+            std::lock_guard<std::mutex> lock(assetsMutex);
+            std::map<const std::vector<std::string>, std::pair<std::shared_ptr<Asset>, uint32_t>>::iterator existing = assets.find(request.files);
+            if (existing == assets.end()) {
+                asset = request.createAsset(this, getNextAssetIndex(), request.files);
+                assets[request.files] = std::make_pair(asset, 1);
+                assetLoadCpuQueue.pushBack(QueuedAsset{asset, requester.reportFailures, &requester});
+            } else {
+                existing->second.second++;
+                asset = existing->second.first;
+            }
+            state = asset->getLoadState();
         }
-        requester.tracked.push_back(LoadRequester::TrackedRequest{request.files, asset});
+        requester.inFlight.push_back(LoadRequester::TrackedRequest{request.files, asset, ""});
+        if (state == Asset::LoadState::INITIATED || state == Asset::LoadState::CPU_LOAD_STARTED) {
+            //the loader thread that finishes it hands it to every waiter. It sets the state under requestersMutex, so it can't finish unseen
+            cpuLoadWaiters[asset.get()].push_back(&requester);
+        } else {
+            handOverInternal(requester, asset, "");
+        }
     }
 }
 
-bool AssetManager::takeFinishedRequestInternal(LoadRequester &requester, LoadRequester::LoadResult &result) {
-    if (!requester.running) {
-        return false;
+void AssetManager::handOverInternal(LoadRequester &requester, const std::shared_ptr<Asset> &asset, const std::string &failureReason) {
+    std::vector<LoadRequester::TrackedRequest>::iterator trackedIt = requester.inFlight.begin();
+    while (trackedIt != requester.inFlight.end() && trackedIt->asset != asset) {
+        ++trackedIt;
     }
-    for (std::vector<LoadRequester::TrackedRequest>::iterator trackedIt = requester.tracked.begin(); trackedIt != requester.tracked.end(); ++trackedIt) {
-        Asset::LoadState state = trackedIt->asset->getLoadState();
-        if (state == Asset::LoadState::INITIATED || state == Asset::LoadState::CPU_LOAD_STARTED) {
-            continue;
-        }
-        if (requester.gpuMode == LoadRequester::GPUMode::UPLOADED && state == Asset::LoadState::CPU_LOAD_DONE) {
-            if (!trackedIt->uploadQueued) {
-                assetLoadGPUQueue.push_back(trackedIt->asset);
-                trackedIt->uploadQueued = true;
-            }
-            continue;
-        }
-        result.files = trackedIt->files;
-        result.asset = trackedIt->asset;
-        result.failureReason.clear();
-        if (state == Asset::LoadState::FAILED) {
-            std::map<const Asset *, std::string>::iterator reason = requester.failureReasons.find(trackedIt->asset.get());
-            if (reason != requester.failureReasons.end()) {
-                result.failureReason = reason->second;
-                requester.failureReasons.erase(reason);
-            } else {
-                result.failureReason = "it failed while loading for another requester";
-            }
-        }
-        requester.tracked.erase(trackedIt);
-        startPendingRequestsInternal(requester);
-        return true;
+    if (trackedIt == requester.inFlight.end()) {
+        return;
     }
-    return false;
+    if (requester.gpuMode == LoadRequester::GPUMode::UPLOADED && asset->getLoadState() == Asset::LoadState::CPU_LOAD_DONE) {
+        assetLoadGPUQueue.push_back(GPULoadRequest{asset, &requester});//stays in flight until the world uploads it
+        return;
+    }
+    trackedIt->failureReason = failureReason;
+    requester.finished.push_back(*trackedIt);
+    requester.inFlight.erase(trackedIt);
+}
+
+void AssetManager::finishCPULoad(const QueuedAsset &loaded, const std::string &failureReason) {
+    std::lock_guard<std::mutex> lock(requestersMutex);
+    if (!failureReason.empty()) {
+        std::lock_guard<std::mutex> assetsLock(assetsMutex);
+        std::map<const std::vector<std::string>, std::pair<std::shared_ptr<Asset>, uint32_t>>::iterator failedEntry = assets.find(loaded.asset->fileList);
+        if (failedEntry != assets.end() && failedEntry->second.first == loaded.asset) {
+            assets.erase(failedEntry);//left in, the next request would get the failed asset back instead of trying again
+        }
+    }
+    loaded.asset->setLoadState(failureReason.empty() ? Asset::LoadState::CPU_LOAD_DONE : Asset::LoadState::FAILED);
+    std::map<const Asset *, std::vector<LoadRequester *>>::iterator waiters = cpuLoadWaiters.find(loaded.asset.get());
+    if (waiters == cpuLoadWaiters.end()) {
+        return;//a load another load started, its owner finds out through the asset
+    }
+    for (LoadRequester *waiter : waiters->second) {
+        handOverInternal(*waiter, loaded.asset, failureReason);
+    }
+    cpuLoadWaiters.erase(waiters);
 }
 
 bool AssetManager::popFinishedRequest(LoadRequester &requester, LoadRequester::LoadResult &result, std::chrono::milliseconds wait) {
     if (std::this_thread::get_id() != requester.ownerThread) {
         std::cerr << "A requester's results are taken on a thread that didn't open it, a waiting load there could wait on itself." << std::endl;
     }
-    {
-        std::lock_guard<std::mutex> lock(requestersMutex);
-        if (takeFinishedRequestInternal(requester, result)) {
-            return true;
+    std::unique_lock<std::mutex> lock(requestersMutex);
+    if (requester.finished.empty()) {
+        lock.unlock();
+        {
+            std::unique_lock<std::mutex> conditionLock(cpuLoadConditionMutex);
+            cpuLoadDoneCondition.wait_for(conditionLock, wait);
+        }
+        lock.lock();
+        if (requester.finished.empty()) {
+            return false;
         }
     }
-    {
-        std::unique_lock<std::mutex> conditionLock(cpuLoadConditionMutex);
-        cpuLoadDoneCondition.wait_for(conditionLock, wait);
-    }
-    std::lock_guard<std::mutex> lock(requestersMutex);
-    return takeFinishedRequestInternal(requester, result);
+    result.files = requester.finished.front().files;
+    result.asset = requester.finished.front().asset;
+    result.failureReason = requester.finished.front().failureReason;
+    requester.finished.erase(requester.finished.begin());
+    startPendingRequestsInternal(requester);
+    return true;
 }
 
 void AssetManager::uploadOneQueuedAsset() {
-    std::shared_ptr<Asset> asset;
+    GPULoadRequest upload;
     {
         std::lock_guard<std::mutex> lock(requestersMutex);
         if (assetLoadGPUQueue.empty()) {
             return;
         }
-        asset = assetLoadGPUQueue.front();
+        upload = assetLoadGPUQueue.front();
         assetLoadGPUQueue.erase(assetLoadGPUQueue.begin());
     }
-    partialLoadGPUSide(asset);
-}
-
-void AssetManager::recordRequesterFailure(LoadRequester &requester, const std::shared_ptr<Asset> &asset, const std::string &reason) {
-    std::lock_guard<std::mutex> lock(requestersMutex);
-    for (const LoadRequester::TrackedRequest &trackedRequest : requester.tracked) {
-        if (trackedRequest.asset != asset) {
-            continue;//a load this one started, its owner finds out through the asset
+    partialLoadGPUSide(upload.asset);
+    {
+        std::lock_guard<std::mutex> lock(requestersMutex);
+        //it may have closed while the lock was released for the upload
+        if (std::find(runningRequesters.begin(), runningRequesters.end(), upload.requester) != runningRequesters.end()) {
+            handOverInternal(*upload.requester, upload.asset, "");
         }
-        requester.failureReasons[asset.get()] = reason;
-        std::lock_guard<std::mutex> assetsLock(assetsMutex);
-        std::map<const std::vector<std::string>, std::pair<std::shared_ptr<Asset>, uint32_t>>::iterator failedEntry = assets.find(trackedRequest.files);
-        if (failedEntry != assets.end() && failedEntry->second.first == asset) {
-            assets.erase(failedEntry);//left in, the next request would get the failed asset back instead of trying again
-        }
-        return;
     }
+    cpuLoadDoneCondition.notify_all();
 }
 
 void AssetManager::startNextRequestersInternal() {
@@ -372,6 +381,38 @@ void AssetManager::startNextRequestersInternal() {
     }
 }
 
+// It is possible that the thread that requested loads give up and closed the request. In that case, we still need to clean up:
+// the loads it started are in the CPU queue or on a loader thread, and they come back to it when they finish
+void AssetManager::waitForStartedLoadsInternal(LoadRequester &requester, std::unique_lock<std::mutex> &requestersLock) {
+    bool loading = true;
+    while (loading) {
+        loading = false;
+        for (const LoadRequester::TrackedRequest &trackedRequest : requester.inFlight) {
+            Asset::LoadState state = trackedRequest.asset->getLoadState();
+            if (state == Asset::LoadState::INITIATED || state == Asset::LoadState::CPU_LOAD_STARTED) {
+                loading = true;
+                break;
+            }
+        }
+        if (loading) {
+            requestersLock.unlock();
+            {
+                std::unique_lock<std::mutex> conditionLock(cpuLoadConditionMutex);
+                cpuLoadDoneCondition.wait_for(conditionLock, std::chrono::milliseconds{5});
+            }
+            requestersLock.lock();
+        }
+    }
+}
+
+void AssetManager::releaseReferencesInternal(const std::vector<LoadRequester::TrackedRequest> &requests) {
+    for (const LoadRequester::TrackedRequest &trackedRequest : requests) {
+        if (trackedRequest.asset->getLoadState() != Asset::LoadState::FAILED) {//a failed one is out of the map, with its reference
+            freeAsset(trackedRequest.files);
+        }
+    }
+}
+
 void AssetManager::closeRequester(LoadRequester &requester, bool fromOwner) {
     if (fromOwner && std::this_thread::get_id() != requester.ownerThread) {
         std::cerr << "A requester is closed on a thread that didn't open it." << std::endl;
@@ -382,39 +423,18 @@ void AssetManager::closeRequester(LoadRequester &requester, bool fromOwner) {
     }
     requester.closed = true;
     requester.pending.clear();
-    // It is possible that the thread that requested loads give up and closed the request. In that case, we still need to clean up
-    bool loading = true;
-    while (loading) {
-        loading = false;
-        for (const LoadRequester::TrackedRequest &trackedRequest : requester.tracked) {
-            Asset::LoadState state = trackedRequest.asset->getLoadState();
-            if (state == Asset::LoadState::INITIATED || state == Asset::LoadState::CPU_LOAD_STARTED) {
-                loading = true;
-                break;
-            }
-        }
-        if (loading) {
-            lock.unlock();
-            {
-                std::unique_lock<std::mutex> conditionLock(cpuLoadConditionMutex);
-                cpuLoadDoneCondition.wait_for(conditionLock, std::chrono::milliseconds{5});
-            }
-            lock.lock();
+    waitForStartedLoadsInternal(requester, lock);
+    for (std::vector<GPULoadRequest>::iterator uploadIt = assetLoadGPUQueue.begin(); uploadIt != assetLoadGPUQueue.end(); ) {
+        if (uploadIt->requester == &requester) {
+            uploadIt = assetLoadGPUQueue.erase(uploadIt);
+        } else {
+            ++uploadIt;
         }
     }
-    for (const LoadRequester::TrackedRequest &trackedRequest : requester.tracked) {
-        if (trackedRequest.uploadQueued) {
-            std::vector<std::shared_ptr<Asset>>::iterator queuedUpload = std::find(assetLoadGPUQueue.begin(), assetLoadGPUQueue.end(), trackedRequest.asset);
-            if (queuedUpload != assetLoadGPUQueue.end()) {
-                assetLoadGPUQueue.erase(queuedUpload);
-            }
-        }
-        if (trackedRequest.asset->getLoadState() != Asset::LoadState::FAILED) {//a failed one is out of the map, with its reference
-            freeAsset(trackedRequest.files);
-        }
-    }
-    requester.tracked.clear();
-    requester.failureReasons.clear();
+    releaseReferencesInternal(requester.inFlight);
+    releaseReferencesInternal(requester.finished);
+    requester.inFlight.clear();
+    requester.finished.clear();
     if (requester.running) {
         requester.running = false;
         runningRequesters.erase(std::find(runningRequesters.begin(), runningRequesters.end(), &requester));

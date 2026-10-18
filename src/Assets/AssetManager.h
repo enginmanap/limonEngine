@@ -146,6 +146,11 @@ private:
         }
     };
 
+    struct GPULoadRequest {
+        std::shared_ptr<Asset> asset;
+        LoadRequester *requester;//who gets it once it is uploaded
+    };
+
     struct AssetLoadThreadState {
         std::shared_ptr<std::thread> thread;
         bool running = true;
@@ -175,7 +180,8 @@ private:
     //one thread's requesters run together, the others wait for all of them to close. Only running ones reach the CPU queue
     std::vector<LoadRequester *> waitingRequesters;//in the order they were opened
     std::vector<LoadRequester *> runningRequesters;
-    std::vector<std::shared_ptr<Asset>> assetLoadGPUQueue;//CPU parts done for UPLOADED requesters, the world runs one GPU part per frame
+    std::map<const Asset *, std::vector<LoadRequester *>> cpuLoadWaiters;//loads in the CPU queue or on a loader thread, and who gets them when done
+    std::vector<GPULoadRequest> assetLoadGPUQueue;//CPU parts done for UPLOADED requesters, the world runs one GPU part per frame
     std::thread::id mainThread;//owns the graphics context, GPU parts run only there
 
     std::unordered_map<std::string, std::vector<std::shared_ptr<const EmbeddedTexture>>> embeddedTextures;
@@ -220,8 +226,9 @@ private:
     }
 
     void cpuLoadAsset(bool& running) {
-        QueuedAsset assetAndLoadNext;
         while(running) {
+            //inside the loop: a copy kept to the next load could be an asset's last owner, and it would be destroyed here, without the graphics context
+            QueuedAsset assetAndLoadNext;
             if (!assetLoadCpuQueue.popFrontOrBlockFor(std::chrono::milliseconds(5), assetAndLoadNext)) {
                 continue;
             }
@@ -235,11 +242,7 @@ private:
             loadingFor = assetAndLoadNext.requester;
             assetAndLoadNext.asset->loadCPUPart();
             loadingFor = nullptr;
-            if (hasLoadFailed()) {
-                //before the state, whoever sees FAILED must find the reason
-                recordRequesterFailure(*assetAndLoadNext.requester, assetAndLoadNext.asset, loadFailureReason());
-            }
-            assetAndLoadNext.asset->setLoadState(hasLoadFailed() ? Asset::LoadState::FAILED : Asset::LoadState::CPU_LOAD_DONE);
+            finishCPULoad(assetAndLoadNext, loadFailureReason());
             reportLoadFailures() = false;
             cpuLoadDoneCondition.notify_all();
         }
@@ -269,13 +272,16 @@ private:
 
     friend class LoadRequester;
     void closeRequester(LoadRequester &requester, bool fromOwner);
-    void recordRequesterFailure(LoadRequester &requester, const std::shared_ptr<Asset> &asset, const std::string &reason);
+    //sets the state and hands the asset to everyone waiting on it, an empty reason is success
+    void finishCPULoad(const QueuedAsset &loaded, const std::string &failureReason);
     bool isRunning(LoadRequester &requester);
     void exitUnlessGPUContextThread(const char *operation) const;
     //callers hold requestersMutex
     void startPendingRequestsInternal(LoadRequester &requester);
-    bool takeFinishedRequestInternal(LoadRequester &requester, LoadRequester::LoadResult &result);
+    void handOverInternal(LoadRequester &requester, const std::shared_ptr<Asset> &asset, const std::string &failureReason);
     void startNextRequestersInternal();
+    void waitForStartedLoadsInternal(LoadRequester &requester, std::unique_lock<std::mutex> &requestersLock);
+    void releaseReferencesInternal(const std::vector<LoadRequester::TrackedRequest> &requests);
 
     void addAssetsRecursively(const std::string &directoryPath, const std::string &fileName,
                                   const std::vector<std::pair<std::string, AssetTypes>> &fileExtensions,
@@ -376,12 +382,12 @@ public:
         }
     }
 
-    //a finished CPU part, with the reference the request took. Waits up to wait for one, false if none came
+    //a finished load, with the reference the request took: after its CPU part, or DONE for UPLOADED. Waits up to wait for one, false if none came
     bool popFinishedRequest(LoadRequester &requester, LoadRequester::LoadResult &result, std::chrono::milliseconds wait);
 
     bool hasOutstandingRequests(LoadRequester &requester) {
         std::lock_guard<std::mutex> lock(requestersMutex);
-        return !requester.pending.empty() || !requester.tracked.empty();
+        return !requester.pending.empty() || !requester.inFlight.empty() || !requester.finished.empty();
     }
 
     //main thread, once per frame: the GPU part of one asset an UPLOADED requester waits for
