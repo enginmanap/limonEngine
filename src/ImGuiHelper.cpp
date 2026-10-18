@@ -9,6 +9,7 @@
 // https://github.com/ocornut/imgui
 
 #include "../libs/ImGui/imgui.h"
+#include "Assets/AssetTreeManager.h"
 #include "ImGuiHelper.h"
 
 #include "limonAPI/Graphics/GraphicsProgram.h"
@@ -416,7 +417,7 @@ void    ImGuiHelper::InvalidateDeviceObjects() {
     }
 }
 
-void ImGuiHelper::showTexturePreviewTooltip(const AssetManager::AvailableAssetsNode* node) {
+void ImGuiHelper::showTexturePreviewTooltip(const AssetTreeManager::AvailableAssetsNode* node) {
     ImGuiImageWrapper* wrapper = previewCache.get(node->fullPath);
     if (wrapper == nullptr || wrapper->texture == nullptr) return;
 
@@ -440,8 +441,8 @@ std::string ImGuiHelper::pickTexture(const std::string &idSuffix) {
     std::string pickedPath;
     ImGui::SetNextWindowSize(ImVec2(400.0f, 400.0f));
     if (ImGui::BeginPopup(popupName.c_str(), ImGuiWindowFlags_AlwaysAutoResize)) {
-        buildTreeFromAssets(assetManager->getAvailableAssetsTreeFiltered(AssetManager::Asset_type_TEXTURE, ""),
-                            AssetManager::Asset_type_TEXTURE, "TexturePicker" + idSuffix, &pickedTextureAsset, PreviewMode::Preview);
+        buildTreeFromAssets(assetManager->getTree()->getAvailableAssetsTreeFiltered(AssetTreeManager::Asset_type_TEXTURE, ""),
+                            AssetTreeManager::Asset_type_TEXTURE, "TexturePicker" + idSuffix, &pickedTextureAsset, PreviewMode::Preview);
         if (pickedTextureAsset != nullptr) {
             pickedPath = pickedTextureAsset->fullPath;
             pickedTextureAsset = nullptr;

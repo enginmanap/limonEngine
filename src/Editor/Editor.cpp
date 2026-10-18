@@ -3,6 +3,7 @@
 //
 
 #include <algorithm>
+#include "../Assets/AssetTreeManager.h"
 #include <cmath>
 #include <climits>
 #include <Assets/Animations/AnimationLoader.h>
@@ -751,24 +752,24 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
         }
         ImGui::Checkbox("Show Profiler Window", &world->showProfilerOverlay);
 
-        if (world->assetManager->isReloadingAssetList()) {
+        if (world->assetManager->getTree()->isReloadingAssetList()) {
             ImGui::Text("Refreshing assets...");
         } else {
             if (ImGui::Button("Refresh Asset View")) {
-                world->assetManager->beginReloadAssetList();
+                world->assetManager->getTree()->beginReloadAssetList();
             }
         }
 
-        world->assetManager->applyPendingAssetListReload();
+        world->assetManager->getTree()->applyPendingAssetListReload();
 
         //list available elements
         static uint32_t lastAssetListVersion = 0;
-        static const AssetManager::AvailableAssetsNode* selectedAsset = nullptr;
+        static const AssetTreeManager::AvailableAssetsNode* selectedAsset = nullptr;
         static std::string selectedAssetPath;
-        uint32_t currentAssetListVersion = world->assetManager->getAssetListVersion();
+        uint32_t currentAssetListVersion = world->assetManager->getTree()->getAssetListVersion();
         if (lastAssetListVersion != currentAssetListVersion) {
             if (selectedAsset != nullptr) {
-                const AssetManager::AvailableAssetsNode* foundNode = world->assetManager->getAvailableAssetsTree()->findNode(selectedAssetPath);
+                const AssetTreeManager::AvailableAssetsNode* foundNode = world->assetManager->getTree()->getAvailableAssetsTree()->findNode(selectedAssetPath);
                 selectedAsset = foundNode; // null if no longer present, new pointer if still present
             }
             lastAssetListVersion = currentAssetListVersion;
@@ -785,8 +786,8 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
             ImGui::InputText("Filter Assets ##ModelsAssetTreeFilter", modelAssetFilter, sizeof(modelAssetFilter), ImGuiInputTextFlags_CharsNoBlank);
             std::string modelAssetFilterStr = modelAssetFilter;
             std::transform(modelAssetFilterStr.begin(), modelAssetFilterStr.end(), modelAssetFilterStr.begin(), ::tolower);
-            const AssetManager::AvailableAssetsNode* filteredAssets = world->assetManager->getAvailableAssetsTreeFiltered(AssetManager::Asset_type_MODEL, modelAssetFilterStr);
-            imgGuiHelper->buildTreeFromAssets(filteredAssets, AssetManager::Asset_type_MODEL,
+            const AssetTreeManager::AvailableAssetsNode* filteredAssets = world->assetManager->getTree()->getAvailableAssetsTreeFiltered(AssetTreeManager::Asset_type_MODEL, modelAssetFilterStr);
+            imgGuiHelper->buildTreeFromAssets(filteredAssets, AssetTreeManager::Asset_type_MODEL,
                                               "Model",
                                               &selectedAsset);
             io.ConfigFlags |= !ImGuiConfigFlags_NavEnableKeyboard;
@@ -1001,14 +1002,14 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
 
         if (ImGui::CollapsingHeader("Add Sound##The header")) {
             ImGui::Indent(16.0f);
-            static const AssetManager::AvailableAssetsNode* selectedAddSoundAsset = nullptr;
+            static const AssetTreeManager::AvailableAssetsNode* selectedAddSoundAsset = nullptr;
             static char addSoundFilter[32] = {0};
             ImGui::InputText("Filter##AddSoundAssetFilter", addSoundFilter, sizeof(addSoundFilter), ImGuiInputTextFlags_CharsNoBlank);
             std::string addSoundFilterStr = addSoundFilter;
             std::transform(addSoundFilterStr.begin(), addSoundFilterStr.end(), addSoundFilterStr.begin(), ::tolower);
-            const AssetManager::AvailableAssetsNode* filteredSoundAssets = world->assetManager->getAvailableAssetsTreeFiltered(
-                    AssetManager::Asset_type_SOUND, addSoundFilterStr);
-            imgGuiHelper->buildTreeFromAssets(filteredSoundAssets, AssetManager::Asset_type_SOUND, "SoundAsset", &selectedAddSoundAsset);
+            const AssetTreeManager::AvailableAssetsNode* filteredSoundAssets = world->assetManager->getTree()->getAvailableAssetsTreeFiltered(
+                    AssetTreeManager::Asset_type_SOUND, addSoundFilterStr);
+            imgGuiHelper->buildTreeFromAssets(filteredSoundAssets, AssetTreeManager::Asset_type_SOUND, "SoundAsset", &selectedAddSoundAsset);
 
             if(selectedAddSoundAsset != nullptr) {
                 if(ImGui::Button("Place Sound at cursor position")) {
@@ -1241,16 +1242,16 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
 
             if(ImGui::CollapsingHeader("Music")) {
                 ImGui::Indent(16.0f);
-                static const AssetManager::AvailableAssetsNode *selectedSoundAsset = nullptr;
+                static const AssetTreeManager::AvailableAssetsNode *selectedSoundAsset = nullptr;
                 static char musicAssetFilter[32] = {0};
                 ImGui::InputText("Filter Assets ##MusicAssetTreeFilter", musicAssetFilter, sizeof(musicAssetFilter),
                                  ImGuiInputTextFlags_CharsNoBlank);
                 std::string musicAssetFilterStr = musicAssetFilter;
                 std::transform(musicAssetFilterStr.begin(), musicAssetFilterStr.end(), musicAssetFilterStr.begin(),
                                ::tolower);
-                const AssetManager::AvailableAssetsNode *filteredAssets = world->assetManager->getAvailableAssetsTreeFiltered(
-                        AssetManager::Asset_type_SOUND, musicAssetFilterStr);
-                imgGuiHelper->buildTreeFromAssets(filteredAssets, AssetManager::Asset_type_SOUND,
+                const AssetTreeManager::AvailableAssetsNode *filteredAssets = world->assetManager->getTree()->getAvailableAssetsTreeFiltered(
+                        AssetTreeManager::Asset_type_SOUND, musicAssetFilterStr);
+                imgGuiHelper->buildTreeFromAssets(filteredAssets, AssetTreeManager::Asset_type_SOUND,
                                                   "Music",
                                                   &selectedSoundAsset);
 
@@ -1311,14 +1312,14 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
             }
             if(ImGui::CollapsingHeader("LoadingImage")) {
                 ImGui::Indent(16.0f);
-                static const AssetManager::AvailableAssetsNode* selectedLoadingImageAsset = nullptr;
+                static const AssetTreeManager::AvailableAssetsNode* selectedLoadingImageAsset = nullptr;
 
                 static char loadingImageAssetFilter[32] = {0};
                 ImGui::InputText("Filter Assets ##TextureAssetTreeFilter", loadingImageAssetFilter, sizeof(loadingImageAssetFilter), ImGuiInputTextFlags_CharsNoBlank);
                 std::string loadingImageAssetFilterStr = loadingImageAssetFilter;
                 std::transform(loadingImageAssetFilterStr.begin(), loadingImageAssetFilterStr.end(), loadingImageAssetFilterStr.begin(), ::tolower);
-                const AssetManager::AvailableAssetsNode* filteredAssets = world->assetManager->getAvailableAssetsTreeFiltered(AssetManager::Asset_type_TEXTURE, loadingImageAssetFilterStr);
-                imgGuiHelper->buildTreeFromAssets(filteredAssets, AssetManager::Asset_type_TEXTURE, "LoadingImage", &selectedLoadingImageAsset, ImGuiHelper::PreviewMode::Preview);
+                const AssetTreeManager::AvailableAssetsNode* filteredAssets = world->assetManager->getTree()->getAvailableAssetsTreeFiltered(AssetTreeManager::Asset_type_TEXTURE, loadingImageAssetFilterStr);
+                imgGuiHelper->buildTreeFromAssets(filteredAssets, AssetTreeManager::Asset_type_TEXTURE, "LoadingImage", &selectedLoadingImageAsset, ImGuiHelper::PreviewMode::Preview);
 
                 if(selectedLoadingImageAsset == nullptr) {
                     ImGui::Button("Set Loading Image");
@@ -2808,14 +2809,14 @@ void Editor::addGUIImageControls() {
     /**
      * For a new GUI Image we need only name and filename
      */
-    static const AssetManager::AvailableAssetsNode* selectedAsset = nullptr;
+    static const AssetTreeManager::AvailableAssetsNode* selectedAsset = nullptr;
 
     static char textureAssetFilter[32] = {0};
     ImGui::InputText("Filter Assets ##TextureAssetTreeFilter", textureAssetFilter, sizeof(textureAssetFilter), ImGuiInputTextFlags_CharsNoBlank);
     std::string textureAssetFilterStr = textureAssetFilter;
     std::transform(textureAssetFilterStr.begin(), textureAssetFilterStr.end(), textureAssetFilterStr.begin(), ::tolower);
-    const AssetManager::AvailableAssetsNode* filteredAssets = world->assetManager->getAvailableAssetsTreeFiltered(AssetManager::Asset_type_TEXTURE, textureAssetFilterStr);
-    imgGuiHelper->buildTreeFromAssets(filteredAssets, AssetManager::Asset_type_TEXTURE,
+    const AssetTreeManager::AvailableAssetsNode* filteredAssets = world->assetManager->getTree()->getAvailableAssetsTreeFiltered(AssetTreeManager::Asset_type_TEXTURE, textureAssetFilterStr);
+    imgGuiHelper->buildTreeFromAssets(filteredAssets, AssetTreeManager::Asset_type_TEXTURE,
                                       "GUIImage",
                                       &selectedAsset, ImGuiHelper::PreviewMode::Preview);
 
@@ -2862,14 +2863,14 @@ void Editor::addGUIButtonControls() {
     static char GUIButtonName[32];
     ImGui::InputText("GUI Button Name", GUIButtonName, sizeof(GUIButtonName), ImGuiInputTextFlags_CharsNoBlank);
 
-    static const AssetManager::AvailableAssetsNode* selectedAssetForGUIButton = nullptr;
+    static const AssetTreeManager::AvailableAssetsNode* selectedAssetForGUIButton = nullptr;
 
     static char textureAssetFilter[32] = {0};
     ImGui::InputText("Filter Assets ##TextureButtonAssetTreeFilter", textureAssetFilter, sizeof(textureAssetFilter), ImGuiInputTextFlags_CharsNoBlank);
     std::string textureAssetFilterStr = textureAssetFilter;
     std::transform(textureAssetFilterStr.begin(), textureAssetFilterStr.end(), textureAssetFilterStr.begin(), ::tolower);
-    const AssetManager::AvailableAssetsNode* filteredAssets = world->assetManager->getAvailableAssetsTreeFiltered(AssetManager::Asset_type_TEXTURE, textureAssetFilterStr);
-    imgGuiHelper->buildTreeFromAssets(filteredAssets, AssetManager::Asset_type_TEXTURE,
+    const AssetTreeManager::AvailableAssetsNode* filteredAssets = world->assetManager->getTree()->getAvailableAssetsTreeFiltered(AssetTreeManager::Asset_type_TEXTURE, textureAssetFilterStr);
+    imgGuiHelper->buildTreeFromAssets(filteredAssets, AssetTreeManager::Asset_type_TEXTURE,
                                       "GUIButton",
                                       &selectedAssetForGUIButton, ImGuiHelper::PreviewMode::Preview);
 
@@ -2998,16 +2999,16 @@ void Editor::addGUIAnimationControls() {
     static bool isLooped = false;
     ImGui::Checkbox("Is Animation Looped", &isLooped);
 
-    static const AssetManager::AvailableAssetsNode* selectedAsset = nullptr;
+    static const AssetTreeManager::AvailableAssetsNode* selectedAsset = nullptr;
 
     static char textureAnimationAssetFilter[32] = {0};
     ImGui::InputText("Filter Assets ##TextureAnimationAssetTreeFilter", textureAnimationAssetFilter, sizeof(textureAnimationAssetFilter), ImGuiInputTextFlags_CharsNoBlank);
     std::string textureAssetFilterStr = textureAnimationAssetFilter;
     std::transform(textureAssetFilterStr.begin(), textureAssetFilterStr.end(), textureAssetFilterStr.begin(), ::tolower);
-    const AssetManager::AvailableAssetsNode* filteredAssets = world->assetManager->getAvailableAssetsTreeFiltered(AssetManager::Asset_type_TEXTURE, textureAssetFilterStr);
+    const AssetTreeManager::AvailableAssetsNode* filteredAssets = world->assetManager->getTree()->getAvailableAssetsTreeFiltered(AssetTreeManager::Asset_type_TEXTURE, textureAssetFilterStr);
 
     imgGuiHelper->buildTreeFromAssets(filteredAssets,
-                                      AssetManager::AssetTypes::Asset_type_TEXTURE, "GUIAnimation",
+                                      AssetTreeManager::AssetTypes::Asset_type_TEXTURE, "GUIAnimation",
                                       &selectedAsset, ImGuiHelper::PreviewMode::Preview);
 
     static size_t selectedLayerIndex = 0;
@@ -3064,14 +3065,14 @@ void Editor::addParticleEmitterEditor(const glm::vec3 &newObjectPosition) {
     /**
      * For a new GUI Image we need only name and filename
      */
-    static const AssetManager::AvailableAssetsNode* selectedAsset = nullptr;
+    static const AssetTreeManager::AvailableAssetsNode* selectedAsset = nullptr;
 
     static char textureAssetFilter[32] = {0};
     ImGui::InputText("Filter Assets ##TextureAssetTreeEmitterFilter", textureAssetFilter, sizeof(textureAssetFilter), ImGuiInputTextFlags_CharsNoBlank);
     std::string textureAssetFilterStr = textureAssetFilter;
     std::transform(textureAssetFilterStr.begin(), textureAssetFilterStr.end(), textureAssetFilterStr.begin(), ::tolower);
-    const AssetManager::AvailableAssetsNode* filteredAssets = world->assetManager->getAvailableAssetsTreeFiltered(AssetManager::Asset_type_TEXTURE, textureAssetFilterStr);
-    imgGuiHelper->buildTreeFromAssets(filteredAssets, AssetManager::Asset_type_TEXTURE,
+    const AssetTreeManager::AvailableAssetsNode* filteredAssets = world->assetManager->getTree()->getAvailableAssetsTreeFiltered(AssetTreeManager::Asset_type_TEXTURE, textureAssetFilterStr);
+    imgGuiHelper->buildTreeFromAssets(filteredAssets, AssetTreeManager::Asset_type_TEXTURE,
                                       "ParticleEmitter",
                                       &selectedAsset, ImGuiHelper::PreviewMode::Preview);
     static char particleEmitterName[32] = {0};
@@ -3106,23 +3107,23 @@ void Editor::addParticleEmitterEditor(const glm::vec3 &newObjectPosition) {
 
 void Editor::addSkyBoxControls() {
     //first, build a tree for showing directories with textures in them.
-    static const AssetManager::AvailableAssetsNode* selectedSkyBoxAsset = nullptr;
-    static const AssetManager::AvailableAssetsNode* selectedAssetDirectory = nullptr;
+    static const AssetTreeManager::AvailableAssetsNode* selectedSkyBoxAsset = nullptr;
+    static const AssetTreeManager::AvailableAssetsNode* selectedAssetDirectory = nullptr;
 
     if(selectedAssetDirectory == nullptr) {
         static char skyBoxAssetFilter[32] = {0};
         ImGui::InputText("Filter Assets ##SkyBoxAssetTreeFilter", skyBoxAssetFilter, sizeof(skyBoxAssetFilter), ImGuiInputTextFlags_CharsNoBlank);
         std::string skyBoxAssetFilterStr = skyBoxAssetFilter;
         std::transform(skyBoxAssetFilterStr.begin(), skyBoxAssetFilterStr.end(), skyBoxAssetFilterStr.begin(),::tolower);
-        const AssetManager::AvailableAssetsNode *filteredAssets = world->assetManager->getAvailableAssetsTreeFiltered(AssetManager::Asset_type_TEXTURE, skyBoxAssetFilterStr);
+        const AssetTreeManager::AvailableAssetsNode *filteredAssets = world->assetManager->getTree()->getAvailableAssetsTreeFiltered(AssetTreeManager::Asset_type_TEXTURE, skyBoxAssetFilterStr);
 
-        imgGuiHelper->buildTreeFromAssets(filteredAssets, AssetManager::Asset_type_DIRECTORY, "SkyBox", &selectedSkyBoxAsset);
+        imgGuiHelper->buildTreeFromAssets(filteredAssets, AssetTreeManager::Asset_type_DIRECTORY, "SkyBox", &selectedSkyBoxAsset);
 
         if(ImGui::Button("Set Directory##SkyBox")) {
             selectedAssetDirectory = selectedSkyBoxAsset;
         }
     } else {
-        imgGuiHelper->buildTreeFromAssets(selectedAssetDirectory, AssetManager::Asset_type_TEXTURE, "SkyBox", &selectedSkyBoxAsset, ImGuiHelper::PreviewMode::Preview);
+        imgGuiHelper->buildTreeFromAssets(selectedAssetDirectory, AssetTreeManager::Asset_type_TEXTURE, "SkyBox", &selectedSkyBoxAsset, ImGuiHelper::PreviewMode::Preview);
         if(ImGui::Button("Reset Directory##SkyBox")) {
             selectedAssetDirectory = nullptr;
             selectedSkyBoxAsset = nullptr;

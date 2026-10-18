@@ -5,6 +5,7 @@
 #ifndef LIMONENGINE_WORLD_H
 #define LIMONENGINE_WORLD_H
 #include "Utils/AABBConverter.hpp"
+#include "Assets/AssetTreeManager.h"
 
 static const int SKIP_LOD_LEVEL = 9999;
 
@@ -505,7 +506,7 @@ private:
 
 
     std::vector<std::shared_ptr<GraphicsProgram>> getAllAvailablePrograms();
-    void getAllAvailableProgramsRecursive(const AssetManager::AvailableAssetsNode * currentNode, std::vector<std::shared_ptr<GraphicsProgram>> &programs);
+    void getAllAvailableProgramsRecursive(const AssetTreeManager::AvailableAssetsNode * currentNode, std::vector<std::shared_ptr<GraphicsProgram>> &programs);
 
     void renderCameraByTag(const std::shared_ptr<GraphicsProgram>& renderProgram, const std::string &cameraName, const std::vector<HashUtil::HashedString> &tags [[gnu::unused]]) const;
 

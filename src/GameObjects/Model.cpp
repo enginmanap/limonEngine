@@ -3,6 +3,7 @@
 //
 
 #include "Model.h"
+#include "../Assets/AssetTreeManager.h"
 
 #include <array>
 
@@ -908,17 +909,17 @@ ImGuiResult Model::addImGuiEditorElements(const ImGuiRequest &request) {
     }
     if (ImGui::CollapsingHeader("Sound properties")) {
         ImGui::Indent(16.0f);
-        static const AssetManager::AvailableAssetsNode *selectedSoundAsset = nullptr;
+        static const AssetTreeManager::AvailableAssetsNode *selectedSoundAsset = nullptr;
         static char stepOnSoundFilter[32] = {0};
         ImGui::InputText("Filter Assets ##StepOnSoundAssetTreeFilter", stepOnSoundFilter, sizeof(stepOnSoundFilter),
                          ImGuiInputTextFlags_CharsNoBlank);
         std::string stepOnSoundFilterStr = stepOnSoundFilter;
         std::transform(stepOnSoundFilterStr.begin(), stepOnSoundFilterStr.end(), stepOnSoundFilterStr.begin(),
                        ::tolower);
-        const AssetManager::AvailableAssetsNode *filteredAssets = assetManager->getAvailableAssetsTreeFiltered(
-                AssetManager::Asset_type_SOUND, stepOnSoundFilterStr);
+        const AssetTreeManager::AvailableAssetsNode *filteredAssets = assetManager->getTree()->getAvailableAssetsTreeFiltered(
+                AssetTreeManager::Asset_type_SOUND, stepOnSoundFilterStr);
         if(request.imgGuiHelper != nullptr) {
-            request.imgGuiHelper->buildTreeFromAssets(filteredAssets, AssetManager::Asset_type_SOUND,
+            request.imgGuiHelper->buildTreeFromAssets(filteredAssets, AssetTreeManager::Asset_type_SOUND,
                                                       "StepOnSound",
                                                       &selectedSoundAsset);
         }

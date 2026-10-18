@@ -3,6 +3,7 @@
 //
 
 #include "PackageBuilder.h"
+#include "../Assets/AssetTreeManager.h"
 
 #include <algorithm>
 #include <filesystem>
@@ -55,8 +56,8 @@ void PackageBuilder::collectRegisteredTypes() {
 bool PackageBuilder::isModelFile(const std::string &normalizedPath) const {
     std::string lowerPath = normalizedPath;
     std::transform(lowerPath.begin(), lowerPath.end(), lowerPath.begin(), ::tolower);
-    for (const std::pair<std::string, AssetManager::AssetTypes> &extension : assetExtensions) {
-        if (extension.second == AssetManager::Asset_type_MODEL && endsWith(lowerPath, extension.first)) {
+    for (const std::pair<std::string, AssetTreeManager::AssetTypes> &extension : assetExtensions) {
+        if (extension.second == AssetTreeManager::Asset_type_MODEL && endsWith(lowerPath, extension.first)) {
             return true;
         }
     }
@@ -428,7 +429,7 @@ bool PackageBuilder::build(const std::string &outputFile) {
         std::cerr << "Packing needs an active Python interpreter, its registered types are what worlds are matched against." << std::endl;
         return false;
     }
-    assetExtensions = assetManager->getAssetExtensions();
+    assetExtensions = assetManager->getTree()->getAssetExtensions();
     collectRegisteredTypes();
 
     for (const std::string &engineDataFile : EngineDataFiles::getAll()) {

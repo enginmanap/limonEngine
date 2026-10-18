@@ -3,6 +3,7 @@
 //
 
 #include <set>
+#include "AssetTreeManager.h"
 #include <unordered_set>
 #include <limits>
 
@@ -182,7 +183,7 @@ void ModelAsset::loadCPUPart() {
 void ModelAsset::loadMixamoAnimations() {
     //it is possible that there are mixamo animation files, check if they do, add them too if needed.
     // we get a list of file paths, so we don't hold the lock in asset tree for longer than needed
-    std::vector<std::string> mixamoFilePaths = assetManager->getMixamoAnimationFilePaths(this->name);
+    std::vector<std::string> mixamoFilePaths = assetManager->getTree()->getMixamoAnimationFilePaths(this->name);
 
     if (!mixamoFilePaths.empty()) {
         int32_t mixamoCount = 0;

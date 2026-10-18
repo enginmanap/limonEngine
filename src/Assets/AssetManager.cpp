@@ -3,6 +3,7 @@
 //
 
 #include "AssetManager.h"
+#include "AssetTreeManager.h"
 #include "ModelAsset.h"
 
 #include <algorithm>
@@ -10,94 +11,33 @@
 #include "../LimonFileSystem.h"
 #include "../Package/EngineDataFiles.h"
 
-void AssetManager::addAssetsRecursively(const std::string &directoryPath, const std::string &fileName,
-                                        const std::vector<std::pair<std::string, AssetTypes>> &fileExtensions,
-                                        AvailableAssetsNode* nodeToProcess) {
-    nodeToProcess->name = fileName;
-    nodeToProcess->nameLower = nodeToProcess->name;
-    std::transform(nodeToProcess->nameLower.begin(), nodeToProcess->nameLower.end(), nodeToProcess->nameLower.begin(), ::tolower);
-
-    nodeToProcess->fullPath = directoryPath;
-
-    std::vector<LimonFileSystem::DirectoryEntry> entries;
-    if (!LimonFileSystem::listDirectory(directoryPath, entries)) {
-        return;
-    }
-
-    nodeToProcess->assetType = Asset_type_DIRECTORY;
-
-    for (const LimonFileSystem::DirectoryEntry &entry : entries) {
-        std::string filePath = directoryPath + "/" + entry.name;//this is the asset name the editor writes to maps, keep the "./" form
-        if (entry.isDirectory) {
-            //we found a child, and it is a directory. Create a node and recurse
-            AvailableAssetsNode* newNode = new AvailableAssetsNode();
-            newNode->parent = nodeToProcess;
-            nodeToProcess->children.push_back(newNode);
-            addAssetsRecursively(filePath, entry.name, fileExtensions, newNode);
-
-        } else {
-            AssetTypes assetType;
-            if(isExtensionInList(entry.name, fileExtensions, assetType)) {
-                //we found a element that is an asset create and add to children
-                AvailableAssetsNode* newNode = new AvailableAssetsNode;
-                newNode->fullPath = filePath;
-                newNode->name = entry.name;
-                newNode->nameLower = newNode->name;
-                std::transform(newNode->nameLower.begin(), newNode->nameLower.end(), newNode->nameLower.begin(), ::tolower);
-                newNode->assetType = assetType;
-                newNode->parent = nodeToProcess;
-                nodeToProcess->children.push_back(newNode);
-                //std::cout << entry.name << " added as asset. with type " << assetType << std::endl;
-            } else {
-                //file found but not added because extension is not in list
-            }
-
-        }
+AssetManager::AssetManager(GraphicsInterface* graphicsWrapper, ALHelper *alHelper) : materialRegistry(graphicsWrapper), graphicsWrapper(graphicsWrapper), alHelper(alHelper),
+    assetTree(new AssetTreeManager()) {
+    nextAssetIndex.store(0);
+    mainThread = std::this_thread::get_id();//constructed after the graphics context, on its thread
+    loadPackageManifest();
+    size_t num_threads = std::thread::hardware_concurrency();
+    for (size_t i = 0; i < num_threads; ++i) {
+        AssetLoadThreadState* state = new AssetLoadThreadState();
+        state->running = true;
+        state->thread = std::make_shared<std::thread>(&AssetManager::cpuLoadAsset, this, std::ref(state->running));
+        assetLoadThreads.push_back(state);
     }
 }
 
+AssetManager::~AssetManager() {
+    //Stop the cpu load threads
+    for (auto thread_iterator = assetLoadThreads.begin(); thread_iterator != assetLoadThreads.end(); ++thread_iterator) {
+        (*thread_iterator)->running = false;
+    }
+    for (auto thread_iterator = assetLoadThreads.begin(); thread_iterator != assetLoadThreads.end(); ++thread_iterator) {
+        (*thread_iterator)->thread->join();
+    }
+    //free all the assets
+    for (auto assetLoadIterator = assetLoadThreads.begin(); assetLoadIterator != assetLoadThreads.end(); ++assetLoadIterator) {
+        delete *assetLoadIterator;
+    }
 
-std::vector<std::pair<std::string, AssetManager::AssetTypes>> AssetManager::loadAssetExtensionList() {
-    std::vector<std::pair<std::string, AssetTypes>> extensionList;
-    tinyxml2::XMLDocument xmlDoc;
-    tinyxml2::XMLError eResult = LimonFileSystem::loadXML(ASSET_EXTENSIONS_FILE, xmlDoc);
-    if (eResult != tinyxml2::XML_SUCCESS) {
-        std::cerr << "Error loading Asset file list XML: " <<  tinyxml2::XMLDocument::ErrorIDToName(eResult) << std::endl;
-        return extensionList;
-    }
-    tinyxml2::XMLNode * assetsNode = xmlDoc.FirstChild();
-    if (assetsNode == nullptr) {
-        std::cerr << "Asset list xml is not a valid XML." << std::endl;
-        return extensionList;
-    }
-    const char* typeNameRaw;
-    tinyxml2::XMLElement* currentAssetNode =  assetsNode->FirstChildElement("Asset");
-    while(currentAssetNode != nullptr) {
-        typeNameRaw = currentAssetNode->Attribute("type");
-
-        if (typeNameRaw != nullptr) {
-            std::string typeName = typeNameRaw;
-            AssetManager::AssetTypes currentAssetType;
-            if (typeName == "Model") {
-                currentAssetType = Asset_type_MODEL;
-            } else if (typeName == "Texture") {
-                currentAssetType = Asset_type_TEXTURE;
-            } else if(typeName == "Sound") {
-                currentAssetType = Asset_type_SOUND;
-            } else if(typeName == "Graphics Program") {
-                currentAssetType = Asset_type_GRAPHICSPROGRAM;
-            } else {
-                std::cerr << "Requested asset type is not implemented yet. exiting.." << std::endl;
-                exit(1);
-            }
-            extensionList.push_back(std::pair<std::string, AssetTypes>(currentAssetNode->GetText(), currentAssetType));
-            //std::cout << "adding available asset extension " << currentAssetNode->GetText() << std::endl;
-        } else {
-            std::cerr << "Asset extension without a type is invalid, skipping" << std::endl;
-        }
-        currentAssetNode = currentAssetNode->NextSiblingElement("Asset");
-    }
-    return extensionList;
 }
 
 void AssetManager::loadPackageManifest() {
@@ -122,91 +62,6 @@ void AssetManager::loadPackageManifest() {
         packedModelFiles[key] = file;
     }
     std::cout << "Data.pak converts " << packedModelFiles.size() << " model paths to .limonmodel files" << std::endl;
-}
-
-bool AssetManager::loadAssetList() {
-    std::vector<std::pair<std::string, AssetTypes>> fileExtensions = loadAssetExtensionList();
-    availableAssetsRootNode = new AvailableAssetsNode();
-    availableAssetsRootNode->assetType = Asset_type_DIRECTORY;
-    availableAssetsRootNode->fullPath = ".";
-    availableAssetsRootNode->nameLower = "";
-    availableAssetsRootNode->name = "Assets";
-    AvailableAssetsNode* data = new AvailableAssetsNode;
-    addAssetsRecursively("./Data", "Data", fileExtensions, data);
-    availableAssetsRootNode->children.push_back(data);
-    AvailableAssetsNode* engine = new AvailableAssetsNode;
-    addAssetsRecursively("./Engine", "Engine", fileExtensions, engine);
-    availableAssetsRootNode->children.push_back(engine);
-    return true;
-}
-
-bool AssetManager::isExtensionInList(const std::string &name, const std::vector<std::pair<std::string, AssetTypes>> &vector,
-                                     AssetTypes &elementAssetType) {
-    //lowercase the string:
-    std::string lowerCaseName = name;
-    std::transform(lowerCaseName.begin(), lowerCaseName.end(), lowerCaseName.begin(), ::tolower);
-
-    for (uint32_t i = 0; i < vector.size(); ++i) {
-        if(isEnding(lowerCaseName, vector[i].first)) {
-            elementAssetType = vector[i].second;
-            return true;
-        }
-    }
-    return false;
-}
-
-const AssetManager::AvailableAssetsNode *
-AssetManager::getAvailableAssetsTreeFiltered(AssetManager::AssetTypes type, const std::string &filterText) {
-    std::string filterTextLower = filterText;
-    std::transform(filterTextLower.begin(), filterTextLower.end(), filterTextLower.begin(), ::tolower);
-    std::pair<AssetTypes , std::string> key = std::make_pair(type,filterTextLower);
-    std::lock_guard<std::mutex> lock(availableAssetsMutex);
-    if(filteredResults.find(key) != filteredResults.end()) {
-        return filteredResults[key];
-    }
-    //now we should build another tree with given filters
-    AssetManager::AvailableAssetsNode *root = getAvailableAssetsTreeFilteredRecursive(availableAssetsRootNode, type, filterTextLower);
-    filteredResults[key] = root;
-    return root;
-}
-
-AssetManager::AvailableAssetsNode *
-AssetManager::getAvailableAssetsTreeFilteredRecursive(const AvailableAssetsNode * const assetsNode,
-                                                      AssetManager::AssetTypes type,
-                                                      const std::string &filterText) {
-    AssetManager::AvailableAssetsNode *newAssetsNode = nullptr;
-    if(assetsNode->assetType == type) {
-        if(assetsNode->nameLower.find(filterText) != std::string::npos) {
-            AvailableAssetsNode* newAssetNode = new AvailableAssetsNode();
-            newAssetNode->name = assetsNode->name;
-            newAssetNode->fullPath = assetsNode->fullPath;
-            newAssetNode->nameLower = assetsNode->nameLower;
-            newAssetNode->assetType = assetsNode->assetType;
-            //not setting parent, because if this was called recursively, caller sets it, if root it should be null
-            return newAssetNode;
-        } else {
-            return nullptr;
-        }
-    } else if(assetsNode->assetType != Asset_type_DIRECTORY) {
-        return nullptr;
-    }
-    //at this point, we made sure the asset node type is directory, and any child that doesn't match filters will return null.
-    for (size_t i = 0; i < assetsNode->children.size(); ++i) {
-        AssetManager::AvailableAssetsNode *childAssetNode = getAvailableAssetsTreeFilteredRecursive(assetsNode->children[i], type, filterText);
-        if(childAssetNode != nullptr) {
-            if(newAssetsNode == nullptr) {
-                newAssetsNode = new AvailableAssetsNode();
-                newAssetsNode->name = assetsNode->name;
-                newAssetsNode->nameLower = assetsNode->nameLower;
-                newAssetsNode->fullPath = assetsNode->fullPath;
-                newAssetsNode->assetType = assetsNode->assetType;//directory known
-                //parent = nullptr;
-            }
-            childAssetNode->parent = newAssetsNode;
-            newAssetsNode->children.push_back(childAssetNode);
-        }
-    }
-    return newAssetsNode;
 }
 
 void LoadRequester::close() {

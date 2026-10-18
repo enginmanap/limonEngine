@@ -29,13 +29,12 @@
 
 class GraphicsInterface;
 class ALHelper;
+class AssetTreeManager;
 class Material;
 class World;//only ever used as an opaque owner token for material override rules
 
 class AssetManager {
 public:
-    enum AssetTypes { Asset_type_DIRECTORY, Asset_type_MODEL, Asset_type_TEXTURE, Asset_type_SKYMAP, Asset_type_SOUND, Asset_type_GRAPHICSPROGRAM, Asset_type_UNKNOWN };
-
     struct EmbeddedTexture {
         char format[9] = "\0";
         uint32_t height = 0;
@@ -71,34 +70,6 @@ public:
             ar(format, height, width, texelData );
         }
 
-    };
-
-    struct AvailableAssetsNode {
-        std::string name;
-        std::string nameLower;
-        std::string fullPath;
-        AssetTypes assetType = Asset_type_UNKNOWN;
-        AvailableAssetsNode* parent = nullptr;
-        std::vector<AvailableAssetsNode*> children;
-
-        ~AvailableAssetsNode() {
-            for (size_t i = 0; i < children.size(); ++i) {
-                delete children[i];
-            }
-        }
-
-        const AvailableAssetsNode* findNode(const std::string& requestedPath) const {
-            if(this->fullPath == requestedPath) {
-                return this;
-            }
-            for (auto child = children.begin(); child != children.end(); ++child) {
-                const AvailableAssetsNode* result = (*child)->findNode(requestedPath);
-                if(result != nullptr) {
-                    return result;
-                }
-            }
-            return nullptr;
-        }
     };
 
     //an owner's own threads loading for its requester, like the converter's piece builders. Their loads then go to that requester
@@ -161,9 +132,6 @@ private:
 
     std::mutex cpuLoadConditionMutex;
     std::mutex assetsMutex; //guards the `assets` map only; must be held for every insert/find/erase/refcount change on it, but released before any actual loading work
-    std::mutex availableAssetsMutex; //guards `availableAssetsRootNode` and `filteredResults`: getAvailableAssetsTreeFiltered() is called
-                                      // from background texture-loading threads (TextureAsset's not-found fallback search), while
-                                      // applyPendingAssetListReload() swaps/deletes these from the main thread.
     std::mutex requestersMutex;//guards the requester lists and the upload queue, taken before assetsMutex when both are held
     std::mutex embeddedTexturesMutex;//models add theirs from loadCPUPart, on the loader threads
     std::condition_variable cpuLoadDoneCondition;
@@ -186,20 +154,11 @@ private:
 
     std::unordered_map<std::string, std::vector<std::shared_ptr<const EmbeddedTexture>>> embeddedTextures;
 
-    //asset tree
-    const std::string ASSET_EXTENSIONS_FILE = "./Engine/assetExtensions.xml";
-    //std::map<std::string, AssetTypes> availableAssetsList;//this map should be ordered, or editor list order would be unpredictable
-    AvailableAssetsNode* availableAssetsRootNode = nullptr;
-    std::map<std::pair<AssetTypes, std::string>, AvailableAssetsNode*> filteredResults;
-    std::atomic<bool> assetListReloadInProgress{false};
-    AvailableAssetsNode* pendingAssetsRootNode = nullptr;
-    std::thread assetReloadThread;
-    uint32_t assetListVersion = 0;
-
     //its own object because it shares no state with asset caching, neither touches the other's members
     MaterialRegistry materialRegistry;
     GraphicsInterface* graphicsWrapper;
     ALHelper *alHelper;
+    std::unique_ptr<AssetTreeManager> assetTree;
 
     //set by a loader thread for the request it is loading, so the loads that load starts take the same mode.
     //function locals, a thread_local std::string member gets an init routine in every translation unit and mingw refuses the duplicates
@@ -283,68 +242,10 @@ private:
     void waitForStartedLoadsInternal(LoadRequester &requester, std::unique_lock<std::mutex> &requestersLock);
     void releaseReferencesInternal(const std::vector<LoadRequester::TrackedRequest> &requests);
 
-    void addAssetsRecursively(const std::string &directoryPath, const std::string &fileName,
-                                  const std::vector<std::pair<std::string, AssetTypes>> &fileExtensions,
-                                  AvailableAssetsNode* nodeToProcess);
-
-    std::vector<std::pair<std::string, AssetTypes>> loadAssetExtensionList();
-
-    bool loadAssetList();
-
-    bool isExtensionInList(const std::string &name, const std::vector<std::pair<std::string, AssetTypes>> &vector,
-                               AssetTypes &elementAssetType);
-
-    static bool isEnding(std::string const &fullString, std::string const &ending) {
-        if (fullString.length() >= ending.length()) {
-            return (0 == fullString.compare (fullString.length() - ending.length(), ending.length(), ending));
-        } else {
-            return false;
-        }
-    }
-
-    AvailableAssetsNode * getAvailableAssetsTreeFilteredRecursive(const AvailableAssetsNode * const assetsNode ,
-                                                                  AssetTypes type,
-                                                                  const std::string &filterText);
-
 public:
-    explicit AssetManager(GraphicsInterface* graphicsWrapper, ALHelper *alHelper) : materialRegistry(graphicsWrapper), graphicsWrapper(graphicsWrapper), alHelper(alHelper) {
-        nextAssetIndex.store(0);
-        mainThread = std::this_thread::get_id();//constructed after the graphics context, on its thread
-        loadAssetList();
-        loadPackageManifest();
-        size_t num_threads = std::thread::hardware_concurrency();
-        for (size_t i = 0; i < num_threads; ++i) {
-            AssetLoadThreadState* state = new AssetLoadThreadState();
-            state->running = true;
-            state->thread = std::make_shared<std::thread>(&AssetManager::cpuLoadAsset, this, std::ref(state->running));
-            assetLoadThreads.push_back(state);
-        }
-    }
+    explicit AssetManager(GraphicsInterface* graphicsWrapper, ALHelper *alHelper);
 
-    ~AssetManager() {
-        //Stop the cpu load threads
-        for (auto thread_iterator = assetLoadThreads.begin(); thread_iterator != assetLoadThreads.end(); ++thread_iterator) {
-            (*thread_iterator)->running = false;
-        }
-        for (auto thread_iterator = assetLoadThreads.begin(); thread_iterator != assetLoadThreads.end(); ++thread_iterator) {
-            (*thread_iterator)->thread->join();
-        }
-        //free all the assets
-        for (auto assetLoadIterator = assetLoadThreads.begin(); assetLoadIterator != assetLoadThreads.end(); ++assetLoadIterator) {
-            delete *assetLoadIterator;
-        }
-
-        if (assetReloadThread.joinable()) {
-            assetReloadThread.join();
-        }
-        delete pendingAssetsRootNode;
-        delete availableAssetsRootNode;
-
-        for (auto tree_iterator = filteredResults.begin(); tree_iterator != filteredResults.end(); ++tree_iterator) {
-            delete tree_iterator->second;
-        }
-
-    }
+    ~AssetManager();
 
     //what a load step calls instead of exit, then returns. The engine stops on an asset it can't load, only a conversion gets the reason back
     static void failLoad(const std::string &message) {
@@ -572,100 +473,9 @@ public:
         return textureSet->second[textureID];
     }
 
-    std::vector<std::pair<std::string, AssetTypes>> getAssetExtensions() {
-        return loadAssetExtensionList();
-    }
-
-    const AvailableAssetsNode* getAvailableAssetsTree() {
-        std::lock_guard<std::mutex> lock(availableAssetsMutex);
-        return availableAssetsRootNode;
-    };
-
-    const AvailableAssetsNode* getAvailableAssetsTreeFiltered(AssetTypes type, const std::string &filterText);
-
-    // Since we are locking the asset tree, we should return from getting the nodes as fast as possible
-    // To do that, we can't just parse all mixamo assets inline.
-    // This helper allows getting the list so we don't need to hold the lock while looking for the files themselves
-    std::vector<std::string> getMixamoAnimationFilePaths(const std::string &modelAssetPath) {
-        std::vector<std::string> mixamoFilePaths;
-        std::lock_guard<std::mutex> lock(availableAssetsMutex);
-        const AvailableAssetsNode* thisAssetsNode = availableAssetsRootNode->findNode(modelAssetPath);
-        if (thisAssetsNode == nullptr) {
-            std::cerr << "The asset " << modelAssetPath << " is not in asset tree, skipping Mixamo search" << std::endl;
-            return mixamoFilePaths;
-        }
-        if (thisAssetsNode->parent == nullptr) {
-            return mixamoFilePaths;
-        }
-        const AvailableAssetsNode* parentNode = thisAssetsNode->parent;
-        for (size_t i = 0; i < parentNode->children.size(); ++i) {
-            const AvailableAssetsNode* sibling = parentNode->children[i];
-            if (sibling->name == "Mixamo") {
-                for (size_t j = 0; j < sibling->children.size(); ++j) {
-                    const AvailableAssetsNode* mixamoFile = sibling->children[j];
-                    if (mixamoFile->assetType == AssetTypes::Asset_type_MODEL) {
-                        mixamoFilePaths.push_back(mixamoFile->fullPath);
-                    }
-                }
-            }
-        }
-        return mixamoFilePaths;
-    }
-
-    void beginReloadAssetList() {
-        if (assetListReloadInProgress.load()) {
-            return;
-        }
-        assetListReloadInProgress.store(true);
-        if (assetReloadThread.joinable()) {
-            assetReloadThread.join();
-        }
-        assetReloadThread = std::thread([this]() {
-            std::vector<std::pair<std::string, AssetTypes>> fileExtensions = loadAssetExtensionList();
-            AvailableAssetsNode* newRoot = new AvailableAssetsNode();
-            newRoot->assetType = Asset_type_DIRECTORY;
-            newRoot->fullPath = ".";
-            newRoot->nameLower = "";
-            newRoot->name = "Assets";
-            AvailableAssetsNode* data = new AvailableAssetsNode();
-            addAssetsRecursively("./Data", "Data", fileExtensions, data);
-            newRoot->children.push_back(data);
-            AvailableAssetsNode* engine = new AvailableAssetsNode();
-            addAssetsRecursively("./Engine", "Engine", fileExtensions, engine);
-            newRoot->children.push_back(engine);
-            pendingAssetsRootNode = newRoot;
-            assetListReloadInProgress.store(false);
-        });
-    }
-
-    // Call once per frame from the main thread. Returns true when the new tree is swapped in.
-    bool applyPendingAssetListReload() {
-        if (assetListReloadInProgress.load()) {
-            return false;
-        }
-        if (pendingAssetsRootNode == nullptr) {
-            return false;
-        }
-        {
-            std::lock_guard<std::mutex> lock(availableAssetsMutex);
-            for (auto treeIterator = filteredResults.begin(); treeIterator != filteredResults.end(); ++treeIterator) {
-                delete treeIterator->second;
-            }
-            filteredResults.clear();
-            delete availableAssetsRootNode;
-            availableAssetsRootNode = pendingAssetsRootNode;
-        }
-        pendingAssetsRootNode = nullptr;
-        assetListVersion++;
-        return true;
-    }
-
-    bool isReloadingAssetList() const {
-        return assetListReloadInProgress.load();
-    }
-
-    uint32_t getAssetListVersion() const {
-        return assetListVersion;
+    //the asset files on disk, for pickers and lookups by name
+    AssetTreeManager *getTree() const {
+        return assetTree.get();
     }
 
     MaterialRegistry& getMaterialRegistry() {

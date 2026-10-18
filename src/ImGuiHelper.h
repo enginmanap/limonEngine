@@ -14,6 +14,7 @@
 #include <unordered_map>
 #include "../libs/ImGui/imgui.h"
 #include "Assets/AssetManager.h"
+#include "Assets/AssetTreeManager.h"
 #include "Assets/TextureAsset.h"
 #include "limonAPI/Graphics/GraphicsInterface.h"
 
@@ -93,7 +94,7 @@ private:
 
     std::shared_ptr<AssetManager> assetManager;
     TexturePreviewCache previewCache;
-    const AssetManager::AvailableAssetsNode* pickedTextureAsset = nullptr;//only one texture picker popup is open at a time
+    const AssetTreeManager::AvailableAssetsNode* pickedTextureAsset = nullptr;//only one texture picker popup is open at a time
     GraphicsInterface* graphicsWrapper = nullptr;
     OptionsUtil::Options* options;
     OptionsUtil::Options::Option<long> displayHeight;
@@ -102,18 +103,18 @@ private:
     void CreateFontsTexture();
     static const char* GetClipboardText(void*);
     static void SetClipboardText(void*, const char* text);
-    void showTexturePreviewTooltip(const AssetManager::AvailableAssetsNode* node);
+    void showTexturePreviewTooltip(const AssetTreeManager::AvailableAssetsNode* node);
 
-    void buildTreeFromAssetsRecursive(const AssetManager::AvailableAssetsNode* assetsNode, AssetManager::AssetTypes typeToShow,
-                                             const std::string &customPrefix, const AssetManager::AvailableAssetsNode **selectedNode,
+    void buildTreeFromAssetsRecursive(const AssetTreeManager::AvailableAssetsNode* assetsNode, AssetTreeManager::AssetTypes typeToShow,
+                                             const std::string &customPrefix, const AssetTreeManager::AvailableAssetsNode **selectedNode,
                                              PreviewMode showPreview = PreviewMode::NoPreview) {
-        if(assetsNode->assetType == AssetManager::Asset_type_UNKNOWN) {
+        if(assetsNode->assetType == AssetTreeManager::Asset_type_UNKNOWN) {
             return;
         }
         bool isSelected = *selectedNode != nullptr && assetsNode->fullPath == (*selectedNode)->fullPath;
         ImGuiTreeNodeFlags node_flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | (isSelected ? ImGuiTreeNodeFlags_Selected : 0);
-        if(assetsNode->assetType == AssetManager::AssetTypes::Asset_type_DIRECTORY) {
-            if(typeToShow == AssetManager::AssetTypes::Asset_type_DIRECTORY) {
+        if(assetsNode->assetType == AssetTreeManager::AssetTypes::Asset_type_DIRECTORY) {
+            if(typeToShow == AssetTreeManager::AssetTypes::Asset_type_DIRECTORY) {
                 if (ImGui::TreeNodeEx((assetsNode->name + "##"+ customPrefix + assetsNode->fullPath).c_str(),node_flags)) {
                     if(ImGui::IsItemClicked()) {
                         if(*selectedNode == nullptr || (*selectedNode)->fullPath != assetsNode->fullPath) {
@@ -141,7 +142,7 @@ private:
                     *selectedNode = assetsNode;
                 }
             }
-            if(showPreview == PreviewMode::Preview && typeToShow == AssetManager::Asset_type_TEXTURE && ImGui::IsItemHovered()) {
+            if(showPreview == PreviewMode::Preview && typeToShow == AssetTreeManager::Asset_type_TEXTURE && ImGui::IsItemHovered()) {
                 showTexturePreviewTooltip(assetsNode);
             }
         }
@@ -166,8 +167,8 @@ public:
      * @param customPrefix Imgui mandates each item should have unique labels. If multiple trees are going to be created, different prefixes must be passed.
      * @param selectedNode The node that was selected. Null if nothing selected, or invalid node
      */
-    void buildTreeFromAssets(const AssetManager::AvailableAssetsNode* assetsNode, AssetManager::AssetTypes typeToShow,
-                                             const std::string &customPrefix, const AssetManager::AvailableAssetsNode **selectedNode,
+    void buildTreeFromAssets(const AssetTreeManager::AvailableAssetsNode* assetsNode, AssetTreeManager::AssetTypes typeToShow,
+                                             const std::string &customPrefix, const AssetTreeManager::AvailableAssetsNode **selectedNode,
                                              PreviewMode showPreview = PreviewMode::NoPreview) {
         ImGui::Separator();
         ImGui::BeginChild(("Asset Selector##" + customPrefix).c_str(), ImVec2(0, 300), true, ImGuiWindowFlags_HorizontalScrollbar);

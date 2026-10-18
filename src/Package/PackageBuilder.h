@@ -13,6 +13,7 @@
 #include <vector>
 #include <miniz.h>
 #include "../Assets/AssetManager.h"
+#include "../Assets/AssetTreeManager.h"
 #include "../Assets/ModelAsset.h"
 
 class ScriptManager;
@@ -35,7 +36,7 @@ private:
     std::shared_ptr<AssetManager> assetManager;
     ScriptManager *scriptManager;
     OptionsUtil::Options *options;
-    std::vector<std::pair<std::string, AssetManager::AssetTypes>> assetExtensions;
+    std::vector<std::pair<std::string, AssetTreeManager::AssetTypes>> assetExtensions;
 
     std::map<std::string, std::vector<std::string>> registeredTypes;//name to its pack file access list
     std::deque<std::string> worldQueue;

@@ -4,6 +4,7 @@
 
 
 #include "World.h"
+#include "Assets/AssetTreeManager.h"
 #include "WorldAPIAccessor.h"
 #include <Graphics/GraphicsPipeline.h>
 #include "NodeEditorExtensions/PipelineStageExtension.h"
@@ -2228,21 +2229,21 @@ bool World::verifyIDs() {
 }
 
    std::vector<std::shared_ptr<GraphicsProgram>> World::getAllAvailablePrograms() {
-       const AssetManager::AvailableAssetsNode* availableAssetsTree = assetManager->getAvailableAssetsTree();
+       const AssetTreeManager::AvailableAssetsNode* availableAssetsTree = assetManager->getTree()->getAvailableAssetsTree();
        std::vector<std::shared_ptr<GraphicsProgram>> programs;
        getAllAvailableProgramsRecursive(availableAssetsTree, programs);
        return programs;
    }
 
-   void World::getAllAvailableProgramsRecursive(const AssetManager::AvailableAssetsNode *currentNode, std::vector<std::shared_ptr<GraphicsProgram>> &programs) {
-       if (currentNode->assetType == AssetManager::Asset_type_DIRECTORY) {
-           const AssetManager::AvailableAssetsNode *vertexShaderNode = nullptr;
-           const AssetManager::AvailableAssetsNode *geometryShaderNode = nullptr;
-           const AssetManager::AvailableAssetsNode *fragmentShaderNode = nullptr;
+   void World::getAllAvailableProgramsRecursive(const AssetTreeManager::AvailableAssetsNode *currentNode, std::vector<std::shared_ptr<GraphicsProgram>> &programs) {
+       if (currentNode->assetType == AssetTreeManager::Asset_type_DIRECTORY) {
+           const AssetTreeManager::AvailableAssetsNode *vertexShaderNode = nullptr;
+           const AssetTreeManager::AvailableAssetsNode *geometryShaderNode = nullptr;
+           const AssetTreeManager::AvailableAssetsNode *fragmentShaderNode = nullptr;
            for (auto childNode:currentNode->children) {
-               if (childNode->assetType == AssetManager::Asset_type_DIRECTORY) {
+               if (childNode->assetType == AssetTreeManager::Asset_type_DIRECTORY) {
                    getAllAvailableProgramsRecursive(childNode, programs);
-               } else if (childNode->assetType == AssetManager::Asset_type_GRAPHICSPROGRAM) {
+               } else if (childNode->assetType == AssetTreeManager::Asset_type_GRAPHICSPROGRAM) {
                    if ("vertex.glsl" == childNode->name) { vertexShaderNode = childNode; }
                    else if ("geometry.glsl" == childNode->name) { geometryShaderNode = childNode; }
                    else if ("fragment.glsl" == childNode->name) { fragmentShaderNode = childNode; }
