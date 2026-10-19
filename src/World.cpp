@@ -2297,6 +2297,19 @@ void World::onModelMaterialChanged(uint32_t modelID) {
     for (auto &perCameraVisibility: visibilityManager->getCullingResults()) {
         for (auto perTagVisibilityIt = perCameraVisibility.second->begin(); perTagVisibilityIt != perCameraVisibility.second->end(); ++perTagVisibilityIt) {
             perTagVisibilityIt->second.removeModelFromAll(modelID);
+            perTagVisibilityIt->second.cleanUpEmptyRenderLists();
+        }
+    }
+}
+
+void World::onModelMaterialChanged(const std::vector<uint32_t> &modelIDs) {
+    for (auto &perCameraVisibility: visibilityManager->getCullingResults()) {
+        for (auto perTagVisibilityIt = perCameraVisibility.second->begin(); perTagVisibilityIt != perCameraVisibility.second->end(); ++perTagVisibilityIt) {
+            for (uint32_t modelID : modelIDs) {
+                perTagVisibilityIt->second.removeModelFromAll(modelID);
+            }
+            //frames between ticks render without prepareFrame, the emptied entries would be drawn until the next one
+            perTagVisibilityIt->second.cleanUpEmptyRenderLists();
         }
     }
 }

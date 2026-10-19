@@ -484,6 +484,7 @@ private:
      */
     void clearWorldRefsBeforeAttachment(PhysicalRenderable *attachment, bool removeChildren, bool forRemoval);
     void onModelMaterialChanged(uint32_t modelID);
+    void onModelMaterialChanged(const std::vector<uint32_t> &modelIDs);//batch version
 
     std::vector<size_t> getLightIndexes(Light::LightTypes lightType) const {
         std::vector<size_t> lights;

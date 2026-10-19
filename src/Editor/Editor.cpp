@@ -610,9 +610,11 @@ bool Editor::isMaterialListedBefore(const std::pair<uint32_t, std::shared_ptr<Ma
 
 //points every mesh in this world that uses baseMaterial at overrideMaterial
 void Editor::reseatWorldMeshes(const std::shared_ptr<const Material> &baseMaterial, const std::shared_ptr<Material> &overrideMaterial) {
-    auto reseatModel = [&](Model *model) {
-        bool anyMeshChanged = false;
+    std::vector<uint32_t> changedModelIDs;
+    for (std::unordered_map<uint32_t, Model *>::iterator objectIt = world->objects.begin(); objectIt != world->objects.end(); ++objectIt) {
+        Model *model = objectIt->second;
         const std::vector<Model::MeshMeta *> &meshMetas = model->getMeshMetaData();
+        bool anyMeshChanged = false;
         for (size_t meshIndex = 0; meshIndex < meshMetas.size(); ++meshIndex) {
             if (meshMetas[meshIndex]->material == baseMaterial) {
                 model->setMeshMaterial(meshIndex, overrideMaterial);
@@ -620,14 +622,11 @@ void Editor::reseatWorldMeshes(const std::shared_ptr<const Material> &baseMateri
             }
         }
         if (anyMeshChanged) {
-            //culling entries are keyed by the material pointer, the ones under the base can't be removed
-            //anymore. Strip per model, not per mesh, same as the flip change path below
-            world->onModelMaterialChanged(model->getWorldObjectID());
+            changedModelIDs.push_back(model->getWorldObjectID());
         }
-    };
-    for (auto objectIt = world->objects.begin(); objectIt != world->objects.end(); ++objectIt) {
-        reseatModel(objectIt->second);
     }
+    //culling entries are keyed by the material pointer, the ones under the base can't be removed anymore. Strip per model, not per mesh
+    world->onModelMaterialChanged(changedModelIDs);
 }
 
 //a texture edit can make the material start or stop being transparent, every model on it has to follow
