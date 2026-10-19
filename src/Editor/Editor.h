@@ -83,6 +83,9 @@ class Editor {
     //taken when the selection changes, so an asset owned material can be put back exactly when it splits
     std::shared_ptr<Material> selectedMaterialSnapshot = nullptr;
     std::shared_ptr<const Material> snapshotSourceMaterial = nullptr;
+    //held while selected, a material no mesh shows has no slot to edit
+    std::shared_ptr<Material> heldSelectedMaterial = nullptr;
+    void holdSelectedMaterial(const std::shared_ptr<Material> &material);
 
     //the material list's own copy of the registry, rebuilt only when the registry's version moves
     std::vector<std::pair<uint32_t, std::shared_ptr<Material>>> materialsSnapshot;

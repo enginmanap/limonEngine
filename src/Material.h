@@ -52,10 +52,10 @@ private:
      * registry has decided this material is new.
      */
     uint32_t registrationID = nextRegistrationID();
-    uint32_t materialIndex;
+    uint32_t materialIndex = 0;//cereal builds through Material(), isLoaded reads garbage otherwise
     uint32_t maps = 0;
     AssetManager *assetManager;
-    size_t originalHash = 0;//With this, we can still match assets loaded after the material is changed
+    uint64_t originalHash = 0;//With this, we can still match assets loaded after the material is changed
     float specularExponent = 0;
     float refractionIndex = 0;
     bool deserialized = false;
@@ -75,16 +75,22 @@ private:
      * 4 -> opacity
      *
      * vector has vector<string>, because embedded textures are saved with pairs, first element is the index, second element is the model file itself.
+     *
+     * Never cleared, the packer thread reads these while the main thread sets and clears the texture pointers below.
      */
 
 
     std::shared_ptr<std::vector<std::vector<std::string>>> textureNames = nullptr;
 
+    //null unless loaded
     std::shared_ptr<TextureAsset> ambientTexture = nullptr;
     std::shared_ptr<TextureAsset> diffuseTexture = nullptr;
     std::shared_ptr<TextureAsset> specularTexture = nullptr;
     std::shared_ptr<TextureAsset> normalTexture = nullptr;
     std::shared_ptr<TextureAsset> opacityTexture = nullptr;
+
+    //only the slots load repaired, printed when the texture is used
+    std::unique_ptr<std::array<std::string, 5>> requestedTextureNames;
 #ifdef CEREAL_SUPPORT
     friend class cereal::access;
 #endif
@@ -100,38 +106,8 @@ private:
 
     friend class WorldLoader;
 
-    void setOriginalHash(size_t originalHash) {
+    void setOriginalHash(uint64_t originalHash) {
         this->originalHash = originalHash;
-    }
-
-    //inside a model's load, a texture loads for that model's requester. Anywhere else, like an editor edit, it is one
-    //synchronous load. If those hitch, project memory has what an UPLOADED requester per edit would need instead
-    std::shared_ptr<TextureAsset> acquireTexture(const std::vector<std::string> &textureFiles) {
-        if (AssetManager::isInsideLoad()) {
-            return assetManager->partialLoadAssetAsync<TextureAsset>(textureFiles);
-        }
-        return assetManager->loadAsset<TextureAsset>(textureFiles);
-    }
-
-    //~Material frees every texture it holds, so a copy has to take its own reference for each one or it
-    //releases what it never took. getName() is the full asset key, same one the destructor frees
-    std::shared_ptr<TextureAsset> acquireCopiedTexture(const std::shared_ptr<TextureAsset> &sourceTexture) {
-        if (sourceTexture == nullptr) {
-            return nullptr;
-        }
-        return acquireTexture(sourceTexture->getName());
-    }
-
-    //acquire before free, or swapping between two materials that share a texture drops it to zero in between
-    void replaceTexture(std::shared_ptr<TextureAsset> &currentTexture, const std::shared_ptr<TextureAsset> &newTexture) {
-        if (currentTexture == newTexture) {
-            return;
-        }
-        std::shared_ptr<TextureAsset> previousTexture = currentTexture;
-        currentTexture = acquireCopiedTexture(newTexture);
-        if (previousTexture != nullptr) {
-            assetManager->freeAsset(previousTexture->getName());
-        }
     }
 
     struct TextureSlot {
@@ -155,22 +131,22 @@ private:
         }};
         return textureSlots;
     }
-    //for loading by name, doesn't touch maps or free what the slot held, same as the public setters
-    void loadTextureIntoSlot(const TextureSlot &slot, const std::vector<std::string> &textureFiles) {
-        if (textureFiles.size() == 1) {//two names are an embedded texture and its model, nothing to resolve
-            this->*slot.texture = acquireTexture({resolveTexturePath(textureFiles[0])});
-        } else {
-            this->*slot.texture = acquireTexture(textureFiles);
-        }
-        this->*slot.isMap = true;
-    }
+    //records the file only, doesn't touch maps, same as the public setters
+    void setTextureName(const TextureSlot &slot, const std::vector<std::string> &textureFiles);
 
-    std::string resolveTexturePath(const std::string &requestedPath) const;
+    //prints nothing, attachTexture says it if the texture is ever used
+    std::string resolveTexturePath(const std::string &requestedPath, bool &repaired) const;
 
     std::string findTextureByName(const std::string &fileName) const;
     //acquiredTexture already holds its reference, nullptr empties the slot
     void assignTexture(const TextureSlot &slot, const std::shared_ptr<TextureAsset> &acquiredTexture);
     bool putRemoveTextureButton(const TextureSlot &slot);
+
+    //only MaterialRegistry calls these, they make GL calls
+    void collectTextureFiles(std::vector<size_t> &slotIndices, std::vector<std::vector<std::string>> &textureFiles) const;
+    void attachTexture(size_t slotIndex, const std::shared_ptr<TextureAsset> &acquiredTexture);
+    void detachTextures();
+    void loadGPUSide();
 public:
     Material(AssetManager *assetManager, const std::string &name, uint32_t materialIndex, float specularExponent, const glm::vec3 &ambientColor,
              const glm::vec3 &diffuseColor, const glm::vec3 &specularColor, float refractionIndex)//FIXME: this should not use raw pointer
@@ -206,10 +182,12 @@ public:
 
         this->maps = other.maps;
 
-        //assetManager is assigned above, acquireCopiedTexture needs it
+        //names only, the copy has no slot. Its own vector, assignTexture edits it in place
         for (const TextureSlot &slot : getTextureSlots()) {
             this->*slot.isMap = other.*slot.isMap;
-            this->*slot.texture = acquireCopiedTexture(other.*slot.texture);
+        }
+        if (other.textureNames != nullptr) {
+            this->textureNames = std::make_shared<std::vector<std::vector<std::string>>>(*other.textureNames);
         }
 
         this->materialIndex = 0;
@@ -225,22 +203,7 @@ public:
     Material& operator=(const Material &other) = delete;
 
     //appearance only, name/materialIndex/originalHash stay put so we keep our registration and UBO slot
-    void restoreValuesFrom(const Material &other) {
-        this->ambientColor = other.ambientColor;
-        this->diffuseColor = other.diffuseColor;
-        this->specularColor = other.specularColor;
-        this->specularExponent = other.specularExponent;
-        this->refractionIndex = other.refractionIndex;
-
-        this->maps = other.maps;
-
-        for (const TextureSlot &slot : getTextureSlots()) {
-            this->*slot.isMap = other.*slot.isMap;
-            replaceTexture(this->*slot.texture, other.*slot.texture);
-        }
-    }
-
-    void loadGPUSide(AssetManager *assetManager);
+    void restoreValuesFrom(const Material &other);
 
     // 5,6,7,8,9 are used by material, 3 and 4 stay assignable in material stages too
     static constexpr int32_t MATERIAL_SAMPLER_TEXTURE_UNIT_START = GraphicsInterface::FIRST_PIPELINE_TEXTURE_UNIT + 2;
@@ -326,67 +289,37 @@ public:
         return ambientTexture;
     }
 
-    void setAmbientTexture(const std::string &ambientTexture, std::string* sourceAsset = nullptr) {
-        std::vector<std::string> textureFiles;
-        textureFiles.push_back(sourceAsset == nullptr ? resolveTexturePath(ambientTexture) : ambientTexture);
-        if(sourceAsset != nullptr) {
-            textureFiles.push_back(*sourceAsset);
-        }
-        this->ambientTexture = acquireTexture(textureFiles);
-        this->isAmbientMap = true;
+    //names only, the textures load when a mesh shows the material
+    void setAmbientTextureName(const std::string &ambientTexture, std::string* sourceAsset = nullptr) {
+        setTextureName(getTextureSlots()[0], sourceAsset == nullptr ? std::vector<std::string>{ambientTexture} : std::vector<std::string>{ambientTexture, *sourceAsset});
     }
 
     std::shared_ptr<TextureAsset> getDiffuseTexture() const {
         return diffuseTexture;
     }
 
-    void setDiffuseTexture(const std::string &diffuseTexture, std::string* sourceAsset = nullptr) {
-        std::vector<std::string> textureFiles;
-        textureFiles.push_back(sourceAsset == nullptr ? resolveTexturePath(diffuseTexture) : diffuseTexture);
-        if(sourceAsset != nullptr) {
-            textureFiles.push_back(*sourceAsset);
-        }
-        this->diffuseTexture = acquireTexture(textureFiles);
-        this->isDiffuseMap = true;
+    void setDiffuseTextureName(const std::string &diffuseTexture, std::string* sourceAsset = nullptr) {
+        setTextureName(getTextureSlots()[1], sourceAsset == nullptr ? std::vector<std::string>{diffuseTexture} : std::vector<std::string>{diffuseTexture, *sourceAsset});
     }
 
     std::shared_ptr<TextureAsset>getSpecularTexture() const {
         return specularTexture;
     }
 
-    void setSpecularTexture(const std::string &specularTexture, std::string* sourceAsset = nullptr) {
-        std::vector<std::string> textureFiles;
-        textureFiles.push_back(sourceAsset == nullptr ? resolveTexturePath(specularTexture) : specularTexture);
-        if(sourceAsset != nullptr) {
-            textureFiles.push_back(*sourceAsset);
-        }
-        this->specularTexture = acquireTexture(textureFiles);
-        this->isSpecularMap = true;
+    void setSpecularTextureName(const std::string &specularTexture, std::string* sourceAsset = nullptr) {
+        setTextureName(getTextureSlots()[2], sourceAsset == nullptr ? std::vector<std::string>{specularTexture} : std::vector<std::string>{specularTexture, *sourceAsset});
     }
 
-    void setNormalTexture(const std::string &normalTexture, std::string* sourceAsset = nullptr) {
-        std::vector<std::string> textureFiles;
-        textureFiles.push_back(sourceAsset == nullptr ? resolveTexturePath(normalTexture) : normalTexture);
-        if(sourceAsset != nullptr) {
-            textureFiles.push_back(*sourceAsset);
-        }
-        this->normalTexture = acquireTexture(textureFiles);
-        this->isNormalMap = true;
-
+    void setNormalTextureName(const std::string &normalTexture, std::string* sourceAsset = nullptr) {
+        setTextureName(getTextureSlots()[3], sourceAsset == nullptr ? std::vector<std::string>{normalTexture} : std::vector<std::string>{normalTexture, *sourceAsset});
     }
 
     std::shared_ptr<TextureAsset> getNormalTexture() const {
         return normalTexture;
     }
 
-    void setOpacityTexture(const std::string &opacityTexture, std::string* sourceAsset = nullptr) {
-        std::vector<std::string> textureFiles;
-        textureFiles.push_back(sourceAsset == nullptr ? resolveTexturePath(opacityTexture) : opacityTexture);
-        if(sourceAsset != nullptr) {
-            textureFiles.push_back(*sourceAsset);
-        }
-        this->opacityTexture = acquireTexture(textureFiles);
-        this->isOpacityMap = true;
+    void setOpacityTextureName(const std::string &opacityTexture, std::string* sourceAsset = nullptr) {
+        setTextureName(getTextureSlots()[4], sourceAsset == nullptr ? std::vector<std::string>{opacityTexture} : std::vector<std::string>{opacityTexture, *sourceAsset});
     }
 
     std::shared_ptr<TextureAsset> getOpacityTexture() const {
@@ -396,17 +329,7 @@ public:
     ~Material() {
         //std::cerr << "Destructor for " << name << std::endl;
 
-        /**
-         * Why are we setting the textures to nullptr here?
-         * Because otherwise Asset manager detects the texture has a
-         * shared_ptr to it and logs an error.
-         */
-        for (const TextureSlot &slot : getTextureSlots()) {
-            if (this->*slot.texture != nullptr) {
-                assetManager->freeAsset({(this->*slot.texture)->getName()});
-                this->*slot.texture = nullptr;
-            }
-        }
+        detachTextures();
     }
 
     bool hasAmbientMap() const {
@@ -437,11 +360,11 @@ public:
         return maps;
     }
 
-    size_t getHash() const;
+    uint64_t getHash() const;
 
     //the base we globally override, 0 if none. Set once when a world overrides that base, or read
     //from XML, never recomputed from current content
-    size_t getOriginalHash() const;
+    uint64_t getOriginalHash() const;
 
 
     ImGuiResult addImGuiEditorElements(const ImGuiRequest &request) override;
@@ -454,14 +377,14 @@ public:
 
     //the same rename on a <Material> written by serialize, for references to a converted asset in a saved world
     static bool updateSavedReferences(tinyxml2::XMLElement *materialNode, const std::string &fromOwner, const std::string &toOwner,
-                                      const std::unordered_map<size_t, size_t> &materialHashes);
+                                      const std::unordered_map<uint64_t, uint64_t> &materialHashes);
 
     //a .limonmodel owns its embedded textures under its own name, so writing one renames their owner, and every hash
     //of the materials changes with it. Set only while ModelAsset::convertToLimon hashes and writes, on its own thread
     struct EmbeddedOwnerRename {
         std::string from;
         std::string to;
-        const std::unordered_map<size_t, size_t> *hashes = nullptr;
+        const std::unordered_map<uint64_t, uint64_t> *hashes = nullptr;
     };
 
     static const EmbeddedOwnerRename *&activeOwnerRename();
@@ -473,8 +396,33 @@ public:
 
     static std::vector<std::string> renamedTextureName(const std::vector<std::string> &textureName);
 
-    //attached, or still waiting for afterLoad, as a deserialized material is until its GPU part
+    //never the texture pointer, the packer thread calls this
     std::vector<std::string> getTextureName(size_t slotIndex) const;
+
+    bool isLoaded() const {
+        return materialIndex != 0;
+    }
+
+    std::vector<std::pair<std::string, std::string>> getTextureRepairs() const {
+        std::vector<std::pair<std::string, std::string>> repairs;
+        for (size_t slotIndex = 0; requestedTextureNames != nullptr && slotIndex < TEXTURE_SLOT_COUNT; ++slotIndex) {
+            if (!(*requestedTextureNames)[slotIndex].empty()) {
+                repairs.emplace_back((*requestedTextureNames)[slotIndex], (*textureNames)[slotIndex][0]);
+            }
+        }
+        return repairs;
+    }
+
+    std::vector<std::vector<std::string>> getTextureFiles() const {
+        std::vector<std::vector<std::string>> textureFiles;
+        for (size_t slotIndex = 0; slotIndex < TEXTURE_SLOT_COUNT; ++slotIndex) {
+            std::vector<std::string> textureName = getTextureName(slotIndex);
+            if (!textureName.empty()) {
+                textureFiles.push_back(textureName);
+            }
+        }
+        return textureFiles;
+    }
 
     //"*N" of each texture embedded in owner, the images a file written for this material has to carry
     void addEmbeddedTextureIndices(const std::string &owner, std::set<uint32_t> &indices) const;
@@ -493,10 +441,10 @@ public:
                 textureNameArray[slotIndex * 2 + 1] = textureName[1];
             }
         }
-        size_t originalHashToWrite = originalHash;
+        uint64_t originalHashToWrite = originalHash;
         const EmbeddedOwnerRename *rename = activeOwnerRename();
         if (rename != nullptr && rename->hashes != nullptr) {
-            std::unordered_map<size_t, size_t>::const_iterator renamedHash = rename->hashes->find(originalHash);
+            std::unordered_map<uint64_t, uint64_t>::const_iterator renamedHash = rename->hashes->find(originalHash);
             if (renamedHash != rename->hashes->end()) {
                 originalHashToWrite = renamedHash->second;
             }
@@ -547,16 +495,18 @@ public:
         }
     }
 
+    //before registering, the hash needs the repaired names
     void afterLoad(AssetManager* assetManager) {
         this->assetManager = assetManager;
-        if (textureNames != nullptr) {
-            for (size_t slotIndex = 0; slotIndex < TEXTURE_SLOT_COUNT; ++slotIndex) {
-                if (!(*textureNames)[slotIndex].empty()) {
-                    loadTextureIntoSlot(getTextureSlots()[slotIndex], (*textureNames)[slotIndex]);
-                }
+        if (textureNames == nullptr) {
+            return;
+        }
+        std::vector<std::vector<std::string>> storedNames = *textureNames;
+        for (size_t slotIndex = 0; slotIndex < TEXTURE_SLOT_COUNT; ++slotIndex) {
+            if (!storedNames[slotIndex].empty()) {
+                setTextureName(getTextureSlots()[slotIndex], storedNames[slotIndex]);
             }
         }
-        this->textureNames = nullptr;
     }
 #endif
 };

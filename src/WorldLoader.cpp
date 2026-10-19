@@ -553,7 +553,7 @@ std::vector<Model::MeshMaterialOverride> WorldLoader::readMeshMaterialOverrides(
         //BaseMaterial names are ignored, dedup names a material after whichever asset loaded first
         uint64_t baseMaterialHash = 0;
         if (meshMaterialNode->QueryUnsigned64Attribute("BaseHash", &baseMaterialHash) == tinyxml2::XML_SUCCESS) {
-            meshOverride.baseMaterialHash = static_cast<size_t>(baseMaterialHash);
+            meshOverride.baseMaterialHash = baseMaterialHash;
             meshMaterialNode->QueryUnsignedAttribute("Ordinal", &meshOverride.ordinal);
         }
         meshOverride.material = resolveSavedMaterial(world, meshOverride.materialKey);
@@ -1459,14 +1459,13 @@ bool WorldLoader::loadMaterials(tinyxml2::XMLNode *worldNode, World *world) cons
              continue;//indexSavedMaterials reported it
          }
          /*
-          * These are the materials this world uses instead of the asset's own. originalHash is the base
-          * they replace, carried in the save file, and it is matched to a registrationID once that base is
-          * actually loaded - see World::resolvePendingMaterialOverrides.
+          * These are the materials this world uses instead of the asset's own. originalHash is the content
+          * hash of the base they replace, carried in the save file, the world keys them by it.
           */
          std::shared_ptr<Material> material = resolveSavedMaterial(world, key);
+         uint64_t baseMaterialHash = material->getOriginalHash();//what the file says, a dedup winner may carry another
          material = world->assetManager->getMaterialRegistry().registerMaterial(material);
-         material->loadGPUSide(world->assetManager.get());
-         world->addPendingMaterialOverride(material);
+         world->addMaterialOverride(baseMaterialHash, material);
     }
     return true;
 }

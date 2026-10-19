@@ -1062,6 +1062,7 @@ void World::ImGuiFrameSetup(std::shared_ptr<GraphicsProgram> graphicsProgram, co
            physicalPlayer->getRenderProperties(assetFile, scale);
            playerPlaceHolder = new Model(getNextObjectID(), assetManager, 0, assetFile, true, &playerPlaceHolderCullingEntry);
            playerPlaceHolder->getTransformation()->setScale(scale);
+           loadModelMaterials(playerPlaceHolder);//never joins the world, but it is drawn
        }
 
        playerPlaceHolder->getTransformation()->setTransformations(physicalPlayer->getPosition()
@@ -1127,7 +1128,7 @@ World::~World() {
     }
 
     //the overrides belong to this world, so they go with it. No owner filtering needed, the map is ours
-    for (std::unordered_map<uint32_t, std::shared_ptr<Material>>::iterator overrideIt = materialOverrides.begin(); overrideIt != materialOverrides.end(); ++overrideIt) {
+    for (std::unordered_map<uint64_t, std::shared_ptr<Material>>::iterator overrideIt = materialOverrides.begin(); overrideIt != materialOverrides.end(); ++overrideIt) {
         assetManager->getMaterialRegistry().unregisterMaterial(overrideIt->second);
     }
     materialOverrides.clear();
@@ -1183,41 +1184,17 @@ World::~World() {
 
 }
 
-void World::addPendingMaterialOverride(const std::shared_ptr<Material> &material) {
-    pendingMaterialOverrides.emplace_back(material);
-}
-
-/*
- * Loaded overrides name the base they replace by content hash, because registrationID is a runtime counter
- * and can not be saved. Matching them needs every base registered, which is only guaranteed once loading is
- * done, so this runs from setupForPlay - the one point every path into a world passes through before
- * anything renders. Idempotent, re-entering a world finds the list already empty.
- */
-void World::resolveMaterialOverrides() {
-    for (std::vector<std::shared_ptr<Material>>::iterator pendingIt = pendingMaterialOverrides.begin(); pendingIt != pendingMaterialOverrides.end(); ++pendingIt) {
-        std::shared_ptr<Material> baseMaterial = assetManager->getMaterialRegistry().findByContentHash((*pendingIt)->getOriginalHash());
-        if (baseMaterial == nullptr) {
-            //the material this was authored against is not in this world, or its content changed on disk
-            std::cerr << "Material override " << (*pendingIt)->getName() << " has no base loaded, dropping it." << std::endl;
-            assetManager->getMaterialRegistry().unregisterMaterial(*pendingIt);
-            continue;
-        }
-        addMaterialOverride(baseMaterial->getRegistrationID(), *pendingIt);
-    }
-    pendingMaterialOverrides.clear();
-
-    for (auto objectIt = objects.begin(); objectIt != objects.end(); ++objectIt) {
-        applyMaterialOverrides(objectIt->second);
-    }
-}
-
 bool World::isMaterialOverride(const std::shared_ptr<const Material> &material) const {
-    for (std::unordered_map<uint32_t, std::shared_ptr<Material>>::const_iterator overrideIt = materialOverrides.begin(); overrideIt != materialOverrides.end(); ++overrideIt) {
+    for (std::unordered_map<uint64_t, std::shared_ptr<Material>>::const_iterator overrideIt = materialOverrides.begin(); overrideIt != materialOverrides.end(); ++overrideIt) {
         if (overrideIt->second == material) {
             return true;
         }
     }
     return false;
+}
+
+bool World::isOverriddenBase(const Material &material) const {
+    return !materialOverrides.empty() && materialOverrides.count(material.getHash()) > 0;
 }
 
 void World::applyMaterialOverrides(Model *model) {
@@ -1229,23 +1206,45 @@ void World::applyMaterialOverrides(Model *model) {
         if (meshMetas[meshIndex]->material == nullptr) {
             continue;
         }
-        std::unordered_map<uint32_t, std::shared_ptr<Material>>::const_iterator overrideIt =
-                materialOverrides.find(meshMetas[meshIndex]->material->getRegistrationID());
+        std::unordered_map<uint64_t, std::shared_ptr<Material>>::const_iterator overrideIt =
+                materialOverrides.find(meshMetas[meshIndex]->material->getHash());
         if (overrideIt != materialOverrides.end()) {
             model->setMeshMaterial(meshIndex, overrideIt->second);
         }
     }
 }
 
-void World::addMaterialOverride(uint32_t baseRegistrationID, const std::shared_ptr<Material> &material) {
-    std::unordered_map<uint32_t, std::shared_ptr<Material>>::iterator existingIt = materialOverrides.find(baseRegistrationID);
+void World::addMaterialOverride(uint64_t baseMaterialHash, const std::shared_ptr<Material> &material) {
+    std::unordered_map<uint64_t, std::shared_ptr<Material>>::iterator existingIt = materialOverrides.find(baseMaterialHash);
     if (existingIt != materialOverrides.end()) {
         if (existingIt->second == material) {
             return;//already the override for this base, do not take a second reference
         }
         assetManager->getMaterialRegistry().unregisterMaterial(existingIt->second);
     }
-    materialOverrides[baseRegistrationID] = material;
+    materialOverrides[baseMaterialHash] = material;
+}
+
+void World::loadModelMaterials(Model *model) {
+    std::vector<std::shared_ptr<const Material>> meshMaterials = model->loadMaterials();
+    assetManager->getMaterialRegistry().loadMaterial(meshMaterials);
+    model->finishLoadingMaterials();
+}
+
+void World::resetModelMaterials(Model *model) {
+    for (size_t meshIndex = 0; meshIndex < model->getMeshMetaData().size(); ++meshIndex) {
+        std::shared_ptr<const Material> meshMaterial = model->getAssetMeshMaterial(meshIndex);
+        if (meshMaterial == nullptr) {
+            std::cerr << "Mesh " << model->getMeshMetaData()[meshIndex]->mesh->getName() << " of " << model->getName() << " is not part of its asset. This should not happen." << std::endl;
+            continue;
+        }
+        std::unordered_map<uint64_t, std::shared_ptr<Material>>::const_iterator overrideIt = materialOverrides.find(meshMaterial->getHash());
+        if (overrideIt != materialOverrides.end()) {
+            meshMaterial = overrideIt->second;
+        }
+        model->setMeshMaterial(meshIndex, meshMaterial);
+    }
+    model->setDirtyForFrustum();
 }
 
 void World::untrackRigidBody(const btRigidBody *body) {
@@ -1295,8 +1294,12 @@ bool World::addModelToWorld(Model *xmlModel) {
     if (xmlModel->isAnimated() && xmlModel->getRigId() == 0) {
         xmlModel->setRigId(getNextRigId());
     }
-    //before it joins, so it never renders a frame with the asset's material when this world overrides it
+    //before it joins, so it never renders a frame with the asset's material when this world overrides it.
+    //while loading the map is still empty, afterLoadFinished does the objects
     applyMaterialOverrides(xmlModel);
+    if (materialsReady) {
+        loadModelMaterials(xmlModel);
+    }
     xmlModel->getTransformation()->getWorldTransform();
     rigidBodies.push_back(xmlModel->getRigidBody());
     xmlModel->updateAABB();
@@ -1404,6 +1407,10 @@ bool World::addLight(Light *light) {
 }
 
 void World::afterLoadFinished() {
+    //the loader fills the overrides after the objects
+    for (std::unordered_map<uint32_t, Model *>::iterator objectIt = objects.begin(); objectIt != objects.end(); ++objectIt) {
+        applyMaterialOverrides(objectIt->second);
+    }
     alHelper->setDistanceModel(soundDistanceModel);
     visibilityManager->onPipelineChange();
     for (size_t i = 0; i < onLoadActions.size(); ++i) {
@@ -1453,6 +1460,23 @@ void World::afterLoadFinished() {
         if(kv.second->isAnimated()) {
             kv.second->setupForTime(gameTime);
         }
+    }
+
+    //one parallel load for the whole world, after on load actions and the player extension added their models.
+    //before the first culling pass, it puts these materials in the render lists
+    {
+        std::vector<std::shared_ptr<const Material>> meshMaterials;
+        std::vector<Model *> loadedModels;
+        for (std::unordered_map<uint32_t, Model *>::iterator objectIt = objects.begin(); objectIt != objects.end(); ++objectIt) {
+            std::vector<std::shared_ptr<const Material>> modelMaterials = objectIt->second->loadMaterials();
+            meshMaterials.insert(meshMaterials.end(), modelMaterials.begin(), modelMaterials.end());
+            loadedModels.push_back(objectIt->second);
+        }
+        assetManager->getMaterialRegistry().loadMaterial(meshMaterials);
+        for (Model *loadedModel : loadedModels) {
+            loadedModel->finishLoadingMaterials();
+        }
+        materialsReady = true;
     }
 
     this->visibilityManager->start();
@@ -1600,9 +1624,6 @@ void World::switchPlayer(Player *targetPlayer, InputHandler &inputHandler) {
 }
 
 void World::setupForPlay(InputHandler &inputHandler) {
-    //everything is loaded by now, so a saved override can finally be matched to the base it replaces
-    resolveMaterialOverrides();
-
 
     if(currentPlayersSettings->debugMode == Player::DEBUG_ENABLED) {
         dynamicsWorld->getDebugDrawer()->setDebugMode(

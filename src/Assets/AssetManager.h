@@ -369,6 +369,19 @@ public:
         return std::dynamic_pointer_cast<T>(assets[files].first);
     }
 
+    //no requester, so it never waits behind another thread's loads. null if it isn't fully loaded
+    template<class T>
+    std::shared_ptr<T> acquireLoadedAsset(const std::vector<std::string> &requestedFiles) {
+        const std::vector<std::string> files = resolvePackedModel(requestedFiles);
+        std::lock_guard<std::mutex> lock(assetsMutex);
+        std::map<const std::vector<std::string>, std::pair<std::shared_ptr<Asset>, uint32_t>>::iterator assetIt = assets.find(files);
+        if (assetIt == assets.end() || assetIt->second.first->getLoadState() != Asset::LoadState::DONE) {
+            return nullptr;
+        }
+        assetIt->second.second++;
+        return std::dynamic_pointer_cast<T>(assetIt->second.first);
+    }
+
     void waitForCPULoad(const std::shared_ptr<Asset> &asset) {
         while(asset->getLoadState() != Asset::LoadState::CPU_LOAD_DONE && asset->getLoadState() != Asset::LoadState::DONE &&
               asset->getLoadState() != Asset::LoadState::FAILED) {

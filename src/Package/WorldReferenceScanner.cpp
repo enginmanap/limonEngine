@@ -4,6 +4,8 @@
 
 #include "WorldReferenceScanner.h"
 
+#include <sstream>
+
 #include "../LimonFileSystem.h"
 
 void WorldReferenceScanner::scanDocument(const std::string &worldFile, const tinyxml2::XMLDocument &document,
@@ -15,7 +17,32 @@ void WorldReferenceScanner::scanDocument(const std::string &worldFile, const tin
     }
     collectTextReferences(worldElement, typeNames, references);
     collectBuiltReferences(worldFile, worldElement, references);
-    collectModelKeys(worldElement, references);
+    std::set<std::string> materialKeys;
+    collectWorldOverrides(worldElement, materialKeys, references);
+    collectModelKeys(worldElement, materialKeys, references);
+}
+
+//the pool's keys, and the bases its WorldOverride entries replace, the same entries WorldLoader::loadMaterials reads
+void WorldReferenceScanner::collectWorldOverrides(const tinyxml2::XMLElement *worldElement, std::set<std::string> &materialKeys, References &references) {
+    const tinyxml2::XMLElement *materialsElement = worldElement->FirstChildElement("Materials");
+    if (materialsElement == nullptr) {
+        return;
+    }
+    for (const tinyxml2::XMLElement *materialElement = materialsElement->FirstChildElement("Material"); materialElement != nullptr;
+         materialElement = materialElement->NextSiblingElement("Material")) {
+        if (materialElement->Attribute("Key") == nullptr) {
+            continue;
+        }
+        materialKeys.insert(materialElement->Attribute("Key"));
+        const tinyxml2::XMLElement *originalHashElement = materialElement->FirstChildElement("OriginalHash");
+        if (materialElement->IntAttribute("WorldOverride", 0) == 0 || originalHashElement == nullptr || originalHashElement->GetText() == nullptr) {
+            continue;
+        }
+        uint64_t originalHash = 0;
+        std::stringstream stream(originalHashElement->GetText());//Material::deserialize reads it the same way
+        stream >> originalHash;
+        references.overriddenBaseHashes.insert(originalHash);
+    }
 }
 
 void WorldReferenceScanner::scanTypeNames(const tinyxml2::XMLDocument &document, const std::set<std::string> &typeNames, References &references) {
@@ -38,7 +65,7 @@ void WorldReferenceScanner::collectTextReferences(const tinyxml2::XMLElement *el
 }
 
 //objects sit at the top level, under parents, in groups and as player attachments, so every <Object> anywhere counts
-void WorldReferenceScanner::collectModelKeys(const tinyxml2::XMLElement *element, References &references) {
+void WorldReferenceScanner::collectModelKeys(const tinyxml2::XMLElement *element, const std::set<std::string> &materialKeys, References &references) {
     for (const tinyxml2::XMLElement *child = element->FirstChildElement(); child != nullptr; child = child->NextSiblingElement()) {
         if (std::string(child->Name()) == "Object") {
             const tinyxml2::XMLElement *fileElement = child->FirstChildElement("File");
@@ -49,9 +76,29 @@ void WorldReferenceScanner::collectModelKeys(const tinyxml2::XMLElement *element
                     modelKey += std::string("?flip") + flipElement->GetText();//Model's asset key, Model.cpp builds the same
                 }
                 references.modelKeys.insert(modelKey);
+                References::PlacedObject placedObject;
+                placedObject.modelKey = modelKey;
+                const tinyxml2::XMLElement *meshMaterialList = child->FirstChildElement("MeshMaterialList");
+                for (const tinyxml2::XMLElement *meshMaterial = meshMaterialList == nullptr ? nullptr : meshMaterialList->FirstChildElement("MeshMaterial");
+                     meshMaterial != nullptr; meshMaterial = meshMaterial->NextSiblingElement("MeshMaterial")) {
+                    //an entry the loader skips leaves the mesh on its base
+                    const char *materialKey = meshMaterial->Attribute("MaterialKey");
+                    if (meshMaterial->Attribute("MeshName") == nullptr || materialKey == nullptr || materialKeys.count(materialKey) == 0) {
+                        continue;
+                    }
+                    References::MeshMaterialEntry entry;
+                    entry.meshName = meshMaterial->Attribute("MeshName");
+                    uint64_t baseMaterialHash = 0;
+                    if (meshMaterial->QueryUnsigned64Attribute("BaseHash", &baseMaterialHash) == tinyxml2::XML_SUCCESS) {
+                        entry.baseMaterialHash = baseMaterialHash;
+                        meshMaterial->QueryUnsignedAttribute("Ordinal", &entry.ordinal);
+                    }
+                    placedObject.meshMaterials.push_back(entry);
+                }
+                references.placedObjects.push_back(placedObject);
             }
         }
-        collectModelKeys(child, references);
+        collectModelKeys(child, materialKeys, references);
     }
 }
 

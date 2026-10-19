@@ -23,18 +23,27 @@ class Material;
  * Storage is keyed by Material::getRegistrationID(), which never changes. Content is only an index used to
  * answer "does an identical material already exist". Editing a material can therefore never invalidate
  * where it lives, which is what removes the need for edit windows, re-keying and collision nudging.
+ *
+ * A registered material is known but not loaded. Since it is known,  it is shared.  A loaded one has its textures and a UBO slot, which means it can be used for drawing needs
  */
 class MaterialRegistry {
 public:
     explicit MaterialRegistry(GraphicsInterface* graphicsWrapper) : graphicsWrapper(graphicsWrapper) { }
 
     //returns the material to use, which is the already registered one if an identical material exists
-    //This method intentionally doesn't touch GPU side, so it can run in any thread. Call loadGPUSide on main thread before using Material
+    //no slot and no textures, so any thread can call it, but it is not ready for use. Someone needs to load it first
     std::shared_ptr<Material> registerMaterial(std::shared_ptr<Material> material);
 
     bool isRegistered(const Material &material) const;
 
     void unregisterMaterial(std::shared_ptr<const Material> material);
+
+    //GL context thread, the first one uploads the textures and writes the material UBO. Exits if the material isn't registered
+    void loadMaterial(const std::shared_ptr<const Material> &material);
+    //all their textures in one parallel list
+    void loadMaterial(const std::vector<std::shared_ptr<const Material>> &materialList);
+    //GL context thread, the last one can free a texture's last reference, and ~Texture deletes it on the GPU
+    void unloadMaterial(const std::shared_ptr<const Material> &material);
 
     /**
      * A copy, taken under the lock, because registerMaterial runs on the background asset threads while the
@@ -61,7 +70,7 @@ public:
     void refreshContentIndex(const std::shared_ptr<Material> &material);
 
     //a saved override names the base it replaces by content, since registrationID is runtime only
-    std::shared_ptr<Material> findByContentHash(size_t contentHash);
+    std::shared_ptr<Material> findByContentHash(uint64_t contentHash);
 
     //a registered copy that deliberately skips content dedup, so the caller gets its own instance
     std::shared_ptr<Material> createScratchCopy(const std::shared_ptr<const Material> &source);
@@ -87,17 +96,18 @@ private:
     uint32_t nextMaterialIndex = 1;
 
     /*
-     * Keyed by registrationID. The pair is {the material, how many holders asked for it} - so `second.first`
-     * is the material and `second.second` is the reference count, which reads badly at every use site but is
-     * the same shape AssetManager::assets uses for assets.
-     *
-     * A holder is anything that called registerMaterial: a ModelAsset's materialMap, a Model's mesh, a
-     * world's override table. At zero the entry is erased and its GPU slot goes back to the free list.
+     * Keyed by registrationID. A holder is anything that called registerMaterial: a ModelAsset's materialMap, a
+     * Model's mesh, a world's override table. At zero holders the entry is erased and its GPU slot goes back to the free list.
      */
-    std::map<uint32_t, std::pair<std::shared_ptr<Material>, uint32_t>> materials;
+    struct MaterialRegistryEntry {
+        std::shared_ptr<Material> material;
+        uint32_t holders; // how many materials tried to register, and turned in to this material entry.
+        uint32_t loads;// meshes and the editor drawing it, each one is a holder too or unregister exits
+    };
+    std::map<uint32_t, MaterialRegistryEntry> materials;
 
     //content hash -> registrationID. An index, not storage. A stale entry costs a missed dedup, nothing more
-    std::unordered_map<size_t, uint32_t> contentIndex;
+    std::unordered_map<uint64_t, uint32_t> contentIndex;
 
     //materialIndex is a slot in a fixed size GPU buffer, so freed slots have to come back or a long editing
     //session walks past NR_MAX_MATERIALS and never recovers
@@ -109,6 +119,9 @@ private:
     uint32_t acquireMaterialIndexInternal();
     void releaseMaterialIndexInternal(uint32_t materialIndex);
     void dropContentIndexEntriesForInternal(uint32_t registrationID);
+
+    //GL context thread, not under the lock
+    void loadTexturesAndSlot(const std::vector<std::shared_ptr<Material>> &newlyLoaded);
 };
 
 #endif //LIMONENGINE_MATERIALREGISTRY_H

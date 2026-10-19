@@ -1124,15 +1124,6 @@ bool ModelToWorldConverter::convert() {
         writtenPieces.push_back(std::move(groupAsset));
     }
 
-    //textures need the GL context, and freeing a half loaded one is reported as a bug. Only the first call per texture uploads
-    for (const std::unique_ptr<ModelAsset> &writtenPiece : writtenPieces) {
-        if (writtenPiece == nullptr) {
-            continue;
-        }
-        for (const std::pair<const std::string, std::shared_ptr<Material>> &material : writtenPiece->getMaterialMap()) {
-            material.second->loadGPUSide(assetManager.get());
-        }
-    }
     if (anyPieceFailed) {
         return false;
     }

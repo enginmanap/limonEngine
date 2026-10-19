@@ -17,6 +17,7 @@
 #include "../Assets/AssetManager.h"
 #include "../Assets/AssetTreeManager.h"
 #include "../Assets/ModelAsset.h"
+#include "WorldReferenceScanner.h"
 
 class ScriptManager;
 class TextureAsset;
@@ -68,7 +69,12 @@ private:
     std::map<std::string, std::string> modelKeys;//model asset key to why it is packed
     std::map<std::string, std::string> convertedModels;//model asset key to the .limonmodel it became, both normalized
     std::map<std::string, ModelAsset::LimonConversion> conversions;//model asset key to what converting it renamed, for the worlds referring to it
+    //model asset key to every object placing it, and the world it is in
+    std::map<std::string, std::vector<std::pair<std::string, WorldReferenceScanner::References::PlacedObject>>> placedObjects;
+    std::map<std::string, std::set<uint64_t>> worldOverriddenBases;//world file to the base hashes its world overrides replace
+    std::set<std::string> modelsReachedUnplaced;//a script can spawn these anywhere, so every base of theirs is packed
     std::vector<std::string> problems;
+    std::vector<std::string> notes;//report only
     //copied by prepare
     std::map<std::string, std::string> pythonTypeModules;
     std::vector<std::string> scriptDirectories;
@@ -103,7 +109,11 @@ private:
 
     bool convertModel(const LoadRequester::LoadResult &loaded, const std::string &modelKey, const std::string &reason, mz_zip_archive &archive);
 
-    void addTexture(const std::shared_ptr<TextureAsset> &texture, const std::string &modelKey);
+    //the rest still go into the .limonmodel, only their textures stay out
+    std::vector<std::shared_ptr<Material>> getDrawnBaseMaterials(const std::shared_ptr<ModelAsset> &modelAsset, const std::string &modelKey) const;
+
+    //packer thread, no GL context
+    void addTextures(const std::vector<std::shared_ptr<Material>> &materials, const std::string &modelKey);
 
     void addPythonModules();
 

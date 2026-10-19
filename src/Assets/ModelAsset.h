@@ -217,7 +217,7 @@ public:
         std::string assetKey;
         std::string fromOwner;
         std::string toOwner;
-        std::unordered_map<size_t, size_t> materialHashes;
+        std::unordered_map<uint64_t, uint64_t> materialHashes;
     };
 
     //targetKey is the key the file will be loaded by, it becomes the owner of its embedded textures. The asset in
@@ -305,6 +305,12 @@ public:
     std::vector<std::shared_ptr<MeshAsset>> getMeshes() const {
         return meshes;
     }
+
+    //among meshes with the same name and base material content
+    uint32_t getMeshOrdinal(size_t meshIndex) const;
+
+    //the packer matches with this too, so it packs what the loader applies. A 0 hash is an old file, matched by name only
+    std::vector<size_t> findMeshesOfOverride(const std::string &meshName, uint64_t baseMaterialHash, uint32_t ordinal) const;
 
     /**
      * This method checks if there is a simplified mesh with same name, and there is, adds simplified one instead of original.

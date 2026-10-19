@@ -59,6 +59,7 @@ private:
     std::string flipAxes;
     bool isAIParametersDirty = true;
     bool temporary = false;
+    bool materialsLoaded = false;
     std::vector<LimonTypes::GenericParameter> aiParameters;
     std::string lastSelectedAIName;
     std::vector<glm::mat4> boneTransforms;
@@ -90,9 +91,6 @@ private:
     //the context the engine would use for this object, so the panel and selection cannot drift apart
     float getLodObjectScale() const;
 
-    //among meshes with the same name and base material content
-    uint32_t getMeshOrdinal(size_t meshIndex) const;
-
 public:
 
     //the <MeshMaterial> entries of a saved <Object> whose asset was converted: base hashes and embedded owners follow the file
@@ -107,7 +105,7 @@ public:
     //so a mesh is told apart by name, base material content and ordinal
     struct MeshMaterialOverride {
         std::string meshName;
-        size_t baseMaterialHash = 0;//0 for old files, they match by name only
+        uint64_t baseMaterialHash = 0;//0 for old files, they match by name only
         uint32_t ordinal = 0;
         std::shared_ptr<const Material> material;//null in a saved file until the loader resolves materialKey
         std::string materialKey;//names the entry in the world's material pool
@@ -128,12 +126,16 @@ public:
 
     void loadOverriddenMeshMaterial(const std::vector<MeshMaterialOverride> &customisedMeshMaterialList);
 
-    //the caller applies the world's overrides afterwards
-    void resetMeshMaterials();
+    std::shared_ptr<Material> getAssetMeshMaterial(size_t meshIndex) const;
 
     //every path that changes a mesh material has to come through here, releaseOwnedMeshMaterial relies on
-    //it. Returns what was installed, dedup can give back a different instance than the one passed in
+    //it. Returns what was installed, dedup can give back a different instance than the one passed in.
+    //once the materials are loaded the old one's textures can go here, strip the model from the render lists or the next frame binds freed ones
     std::shared_ptr<const Material> setMeshMaterial(size_t meshIndex, std::shared_ptr<const Material> material);
+
+    //nothing renders the model before this. The preview and the player placeholder aren't World's objects, they call it themselves
+    std::vector<std::shared_ptr<const Material>> loadMaterials();
+    void finishLoadingMaterials();
 
     void setRigId(uint32_t rigId) {
         this->rigID = rigId;

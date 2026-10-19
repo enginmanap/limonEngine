@@ -64,6 +64,7 @@ Editor::Editor(World *world) : world(world){
 Editor::~Editor() {
     //~World resets us while its objects are still alive, so the mesh keeping the alteration is still valid
     releaseAlteredMaterialEdit();
+    holdSelectedMaterial(nullptr);
     delete nodeGraph;
     delete pipelineExtension;
     delete iterationExtension;
@@ -574,13 +575,29 @@ void Editor::resetModelMaterials(Model* model) {
         alteredMeshIndex = alteredMaterialEdit.meshIndex;
         releaseAlteredMaterialEdit();//before the reset, or the copy stays registered
     }
-    model->resetMeshMaterials();
-    world->applyMaterialOverrides(model);
+    world->resetModelMaterials(model);
     world->onModelMaterialChanged(model->getWorldObjectID());
     if (alteredMeshIndex >= 0) {
         //the list is on the copy that just went away
         selectedRegistrationID = model->getMeshMetaData()[alteredMeshIndex]->material->getRegistrationID();
     }
+}
+
+void Editor::holdSelectedMaterial(const std::shared_ptr<Material> &material) {
+    if (material == heldSelectedMaterial) {
+        return;
+    }
+    MaterialRegistry &materialRegistry = world->assetManager->getMaterialRegistry();
+    //new one first, they may share textures
+    if (material != nullptr) {
+        materialRegistry.registerMaterial(material);//the list only has registered ones, this is just another holder
+        materialRegistry.loadMaterial(material);
+    }
+    if (heldSelectedMaterial != nullptr) {
+        materialRegistry.unloadMaterial(heldSelectedMaterial);
+        materialRegistry.unregisterMaterial(heldSelectedMaterial);
+    }
+    heldSelectedMaterial = material;
 }
 
 bool Editor::isMaterialListedBefore(const std::pair<uint32_t, std::shared_ptr<Material>> &left,
@@ -648,7 +665,8 @@ std::shared_ptr<Material> Editor::ensureWorldOwnedMaterial(const std::shared_ptr
         return material;
     }
     std::shared_ptr<Material> overrideMaterial = world->assetManager->getMaterialRegistry().splitOffOverride(material, selectedMaterialSnapshot);
-    world->addMaterialOverride(material->getRegistrationID(), overrideMaterial);
+    //not the override's originalHash, if it deduped into another base's override that one names the other base
+    world->addMaterialOverride(selectedMaterialSnapshot->getHash(), overrideMaterial);
     reseatWorldMeshes(material, overrideMaterial);
     return overrideMaterial;
 }
@@ -1663,7 +1681,7 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
                     }
                     //derived, not stored: the base is usually ModelAsset's own material, shared by every
                     //world and cached to disk, so it must not be renamed just because this world overrode it
-                    std::string rowLabel = world->isOverriddenBase(it->first)
+                    std::string rowLabel = world->isOverriddenBase(*it->second)
                                            ? "base_" + it->second->getName()
                                            : it->second->getName();
                     if (ImGui::Selectable((rowLabel + " -> " + std::to_string(it->first)).c_str(), isSelected)) {
@@ -1685,6 +1703,8 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
                 snapshotSourceMaterial = selectedMaterial;
                 selectedMaterialSnapshot = (selectedMaterial != nullptr) ? std::make_shared<Material>(*selectedMaterial) : nullptr;
             }
+            //editing writes its slot, one no mesh shows has none until we hold it
+            holdSelectedMaterial(selectedMaterial);
             if(selectedMaterial != nullptr) {
                 materialSelectedInList = selectedMaterial;//"Switch material" picks this up, no edit involved
                 ImGuiResult materialEditorResult = selectedMaterial->addImGuiEditorElements(*this->request);
@@ -1695,6 +1715,7 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
                      * what every earlier attempt kept getting wrong.
                      */
                     selectedMaterial = ensureWorldOwnedMaterial(selectedMaterial);
+                    holdSelectedMaterial(selectedMaterial);
                     selectedRegistrationID = selectedMaterial->getRegistrationID();
                     snapshotSourceMaterial = selectedMaterial;
                     //only the frames that changed something can have moved the content, and the last of them

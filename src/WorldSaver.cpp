@@ -363,9 +363,9 @@ bool WorldSaver::fillGUILayersAndElements(tinyxml2::XMLDocument &document, tinyx
 
 bool WorldSaver::fillMaterials(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *materialsNode, const World *world, MaterialPool &pool) {
     //this world's overrides, each identified on load by the originalHash of the base it replaces
-    const std::unordered_map<uint32_t, std::shared_ptr<Material>>& materialOverrides = world->getMaterialOverrides();
+    const std::unordered_map<uint64_t, std::shared_ptr<Material>>& materialOverrides = world->getMaterialOverrides();
 
-    for (std::unordered_map<uint32_t, std::shared_ptr<Material>>::const_iterator it = materialOverrides.begin(); it != materialOverrides.end(); ++it) {
+    for (std::unordered_map<uint64_t, std::shared_ptr<Material>>::const_iterator it = materialOverrides.begin(); it != materialOverrides.end(); ++it) {
         pool[it->second->getSaveKey()] = std::make_pair(std::shared_ptr<const Material>(it->second), true);
     }
 

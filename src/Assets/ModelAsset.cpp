@@ -402,7 +402,7 @@ bool ModelAsset::convertToLimon(const std::string &targetKey, std::ostream &stre
     ownerRename.from = sourcePath;
     ownerRename.to = targetKey;
     for (const std::pair<const std::string, std::shared_ptr<Material>> &material : materialMap) {
-        size_t hashBefore = material.second->getHash();
+        uint64_t hashBefore = material.second->getHash();
         Material::activeOwnerRename() = &ownerRename;
         conversion.materialHashes[hashBefore] = material.second->getHash();
         Material::activeOwnerRename() = nullptr;
@@ -462,10 +462,7 @@ void ModelAsset::loadGPUPart() {
     // AssetManager::EmbeddedTexture eTextures should be serializeable
     // Animations should be
 
-    for (auto material = materialMap.begin(); material != materialMap.end(); ++material) {
-        material->second->loadGPUSide(assetManager);
-    }
-
+    //materials upload when they actually win the override, so we don't upload ourselves. check MaterialRegistry::loadMaterial
     for (auto mesh = meshes.begin(); mesh != meshes.end(); ++mesh) {
         (*mesh)->loadGPUPart(assetManager);
     }
@@ -516,11 +513,11 @@ std::shared_ptr<Material> ModelAsset::loadMaterials(const aiScene *scene, unsign
         if ((currentMaterial->GetTextureCount(aiTextureType_AMBIENT) > 0)) {
             if (AI_SUCCESS == currentMaterial->GetTexture(aiTextureType_AMBIENT, 0, &texturePath)) {
                 if(texturePath.data[0] != '*') {
-                    newMaterial->setAmbientTexture(texturePath.C_Str());
+                    newMaterial->setAmbientTextureName(texturePath.C_Str());
                     std::cout << "set ambient texture " << texturePath.C_Str() << std::endl;
                 } else {
                     //embeddedTexture handling
-                    newMaterial->setAmbientTexture(texturePath.C_Str(), &this->sourcePath);
+                    newMaterial->setAmbientTextureName(texturePath.C_Str(), &this->sourcePath);
                     std::cout << "set (embedded) ambient texture " << texturePath.C_Str() << "|" << this->name<< std::endl;
                 }
 
@@ -532,10 +529,10 @@ std::shared_ptr<Material> ModelAsset::loadMaterials(const aiScene *scene, unsign
         if ((currentMaterial->GetTextureCount(aiTextureType_DIFFUSE) > 0)) {
             if (AI_SUCCESS == currentMaterial->GetTexture(aiTextureType_DIFFUSE, 0, &texturePath)) {
                 if(texturePath.data[0] != '*') {
-                    newMaterial->setDiffuseTexture(texturePath.C_Str());
+                    newMaterial->setDiffuseTextureName(texturePath.C_Str());
                 } else {
                     //embeddedTexture handling
-                    newMaterial->setDiffuseTexture(texturePath.C_Str(), &this->sourcePath);
+                    newMaterial->setDiffuseTextureName(texturePath.C_Str(), &this->sourcePath);
                 }
             } else {
                 std::cerr << "The model contained diffuse texture information, but texture loading failed. \n" <<
@@ -546,11 +543,11 @@ std::shared_ptr<Material> ModelAsset::loadMaterials(const aiScene *scene, unsign
         if ((currentMaterial->GetTextureCount(aiTextureType_SPECULAR) > 0)) {
             if (AI_SUCCESS == currentMaterial->GetTexture(aiTextureType_SPECULAR, 0, &texturePath)) {
                 if(texturePath.data[0] != '*') {
-                    newMaterial->setSpecularTexture(texturePath.C_Str());
+                    newMaterial->setSpecularTextureName(texturePath.C_Str());
                     std::cout << "set specular texture " << texturePath.C_Str() << std::endl;
                 } else {
                     //embeddedTexture handling
-                    newMaterial->setSpecularTexture(texturePath.C_Str(), &this->sourcePath);
+                    newMaterial->setSpecularTextureName(texturePath.C_Str(), &this->sourcePath);
                     std::cout << "set (embedded) setSpecularTexture texture " << texturePath.C_Str() << "|" << this->name<< std::endl;
                 }
             } else {
@@ -562,11 +559,11 @@ std::shared_ptr<Material> ModelAsset::loadMaterials(const aiScene *scene, unsign
         if ((currentMaterial->GetTextureCount(aiTextureType_NORMALS) > 0)) {
             if (AI_SUCCESS == currentMaterial->GetTexture(aiTextureType_NORMALS, 0, &texturePath)) {
                 if(texturePath.data[0] != '*') {
-                    newMaterial->setNormalTexture(texturePath.C_Str());
+                    newMaterial->setNormalTextureName(texturePath.C_Str());
                     std::cout << "set normal texture " << texturePath.C_Str() << std::endl;
                 } else {
                     //embeddedTexture handling
-                    newMaterial->setNormalTexture(texturePath.C_Str(), &this->sourcePath);
+                    newMaterial->setNormalTextureName(texturePath.C_Str(), &this->sourcePath);
                     std::cout << "set (embedded) setNormalTexture texture " << texturePath.C_Str() << "|" << this->name<< std::endl;
                 }
             } else {
@@ -579,10 +576,10 @@ std::shared_ptr<Material> ModelAsset::loadMaterials(const aiScene *scene, unsign
         if ((currentMaterial->GetTextureCount(aiTextureType_OPACITY) > 0)) {
             if (AI_SUCCESS == currentMaterial->GetTexture(aiTextureType_OPACITY, 0, &texturePath)) {
                 if(texturePath.data[0] != '*') {
-                    newMaterial->setOpacityTexture(texturePath.C_Str());
+                    newMaterial->setOpacityTextureName(texturePath.C_Str());
                 } else {
                     //embeddedTexture handling
-                    newMaterial->setOpacityTexture(texturePath.C_Str(), &this->sourcePath);
+                    newMaterial->setOpacityTextureName(texturePath.C_Str(), &this->sourcePath);
                     std::cout << "set (embedded) setOpacityTexture texture " << texturePath.C_Str() << "|" << this->name<< std::endl;
                 }
             } else {
@@ -1446,6 +1443,44 @@ btCompoundShape * ModelAsset::getCompoundShapeForMass(uint32_t mass, std::map<ui
     }
 
     return copyMesh;
+}
+
+uint32_t ModelAsset::getMeshOrdinal(size_t meshIndex) const {
+    const std::string &meshName = meshes[meshIndex]->getName();
+    std::shared_ptr<Material> baseMaterial = getMeshMaterial(meshes[meshIndex]);
+    if (baseMaterial == nullptr) {
+        std::cerr << "Mesh " << meshName << " of " << name << " has no material. This should not happen." << std::endl;
+        return 0;
+    }
+    uint32_t ordinal = 0;
+    for (size_t earlierIndex = 0; earlierIndex < meshIndex; ++earlierIndex) {
+        std::shared_ptr<Material> earlierBaseMaterial = getMeshMaterial(meshes[earlierIndex]);
+        if (earlierBaseMaterial == nullptr) {
+            std::cerr << "Mesh " << meshes[earlierIndex]->getName() << " of " << name << " has no material. This should not happen." << std::endl;
+            continue;
+        }
+        if (meshes[earlierIndex]->getName() == meshName && earlierBaseMaterial->getHash() == baseMaterial->getHash()) {
+            ++ordinal;
+        }
+    }
+    return ordinal;
+}
+
+std::vector<size_t> ModelAsset::findMeshesOfOverride(const std::string &meshName, uint64_t baseMaterialHash, uint32_t ordinal) const {
+    std::vector<size_t> meshIndices;
+    for (size_t meshIndex = 0; meshIndex < meshes.size(); ++meshIndex) {
+        if (meshes[meshIndex]->getName() != meshName) {
+            continue;
+        }
+        if (baseMaterialHash != 0) {
+            std::shared_ptr<Material> baseMaterial = getMeshMaterial(meshes[meshIndex]);
+            if (baseMaterial == nullptr || baseMaterial->getHash() != baseMaterialHash || getMeshOrdinal(meshIndex) != ordinal) {
+                continue;
+            }
+        }
+        meshIndices.push_back(meshIndex);
+    }
+    return meshIndices;
 }
 
 ModelAsset::~ModelAsset() {

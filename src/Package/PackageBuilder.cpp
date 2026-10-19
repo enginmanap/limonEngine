@@ -106,10 +106,12 @@ void PackageBuilder::addFile(const std::string &path, const std::string &reason)
             //listing a folder of a mounted package finds the conversions, the keys they came from are what is asked for
             for (const std::string &packedModelKey : packedModelKeys) {
                 modelKeys.emplace(packedModelKey, reason);
+                modelsReachedUnplaced.insert(packedModelKey);
             }
             return;
         }
         modelKeys.emplace(normalizedPath, reason);
+        modelsReachedUnplaced.insert(normalizedPath);
         return;
     }
     if (!LimonFileSystem::fileExists(normalizedPath)) {
@@ -186,6 +188,10 @@ bool PackageBuilder::scanWorld(const std::string &worldFile) {
         placedModelFiles.insert(modelFile);
         modelKeys.emplace(modelKey, "placed in " + worldFile);
     }
+    for (const WorldReferenceScanner::References::PlacedObject &placedObject : references.placedObjects) {
+        placedObjects[placedObject.modelKey].emplace_back(worldFile, placedObject);
+    }
+    worldOverriddenBases[worldFile] = references.overriddenBaseHashes;
     for (const std::string &file : references.files) {
         if (placedModelFiles.count(file) == 0) {//a model is packed for the flips it is placed with, not unflipped as well
             addFile(file, "referenced by " + worldFile);
@@ -241,7 +247,7 @@ bool PackageBuilder::convertModel(const LoadRequester::LoadResult &loaded, const
         std::string modelBytes = modelStream.str();
         if (serialized && mz_zip_writer_add_mem(&archive, packedModel.substr(5).c_str(), modelBytes.data(), modelBytes.size(), MZ_NO_COMPRESSION)) {
             convertedModels[modelKey] = packedModel;
-            for (const std::pair<const size_t, size_t> &materialHash : conversion.materialHashes) {
+            for (const std::pair<const uint64_t, uint64_t> &materialHash : conversion.materialHashes) {
                 if (materialHash.first != materialHash.second) {//only embedded textures change a material, worlds of other models stay byte for byte
                     conversions[modelKey] = conversion;
                     break;
@@ -253,31 +259,85 @@ bool PackageBuilder::convertModel(const LoadRequester::LoadResult &loaded, const
         }
     }
 
-    for (const std::pair<const std::string, std::shared_ptr<Material>> &material : modelAsset->getMaterialMap()) {
-        addTexture(material.second->getAmbientTexture(), modelKey);
-        addTexture(material.second->getDiffuseTexture(), modelKey);
-        addTexture(material.second->getSpecularTexture(), modelKey);
-        addTexture(material.second->getNormalTexture(), modelKey);
-        addTexture(material.second->getOpacityTexture(), modelKey);
-    }
+    addTextures(getDrawnBaseMaterials(modelAsset, modelKey), modelKey);
     assetManager->freeAsset(loaded.files);
     return converted;
 }
 
-void PackageBuilder::addTexture(const std::shared_ptr<TextureAsset> &texture, const std::string &modelKey) {
-    if (texture == nullptr) {
+std::vector<std::shared_ptr<Material>> PackageBuilder::getDrawnBaseMaterials(const std::shared_ptr<ModelAsset> &modelAsset, const std::string &modelKey) const {
+    std::vector<std::shared_ptr<MeshAsset>> meshes = modelAsset->getMeshes();
+    std::map<std::string, std::vector<std::pair<std::string, WorldReferenceScanner::References::PlacedObject>>>::const_iterator placedIt = placedObjects.find(modelKey);
+    const bool allDrawn = modelsReachedUnplaced.count(modelKey) != 0 || placedIt == placedObjects.end();
+    std::vector<uint64_t> baseHashes;
+    if (!allDrawn) {
+        for (const std::shared_ptr<MeshAsset> &mesh : meshes) {
+            std::shared_ptr<Material> baseMaterial = modelAsset->getMeshMaterial(mesh);
+            baseHashes.push_back(baseMaterial == nullptr ? 0 : baseMaterial->getHash());
+        }
+    }
+    //the order World applies them in: the object's own entry, then its world's override for the base
+    std::vector<bool> isDrawn(meshes.size(), allDrawn);
+    if (!allDrawn) {
+        for (const std::pair<std::string, WorldReferenceScanner::References::PlacedObject> &placed : placedIt->second) {
+            std::vector<bool> isCovered(meshes.size(), false);
+            for (const WorldReferenceScanner::References::MeshMaterialEntry &entry : placed.second.meshMaterials) {
+                for (size_t meshIndex : modelAsset->findMeshesOfOverride(entry.meshName, entry.baseMaterialHash, entry.ordinal)) {
+                    isCovered[meshIndex] = true;
+                }
+            }
+            const std::set<uint64_t> &overriddenBases = worldOverriddenBases.at(placed.first);
+            for (size_t meshIndex = 0; meshIndex < meshes.size(); ++meshIndex) {
+                if (!isCovered[meshIndex] && overriddenBases.count(baseHashes[meshIndex]) == 0) {
+                    isDrawn[meshIndex] = true;
+                }
+            }
+        }
+    }
+    std::vector<std::shared_ptr<Material>> drawnMaterials;
+    for (size_t meshIndex = 0; meshIndex < meshes.size(); ++meshIndex) {
+        std::shared_ptr<Material> baseMaterial = modelAsset->getMeshMaterial(meshes[meshIndex]);
+        if (isDrawn[meshIndex] && baseMaterial != nullptr &&
+            std::find(drawnMaterials.begin(), drawnMaterials.end(), baseMaterial) == drawnMaterials.end()) {
+            drawnMaterials.push_back(baseMaterial);
+        }
+    }
+    return drawnMaterials;
+}
+
+void PackageBuilder::addTextures(const std::vector<std::shared_ptr<Material>> &materials, const std::string &modelKey) {
+    std::set<std::vector<std::string>> textureFiles;
+    for (const std::shared_ptr<Material> &material : materials) {
+        for (const std::vector<std::string> &textureFile : material->getTextureFiles()) {
+            if (textureFile.size() == 1) {//embedded textures are keyed with their model and live inside the .limonmodel
+                textureFiles.insert(textureFile);
+            }
+        }
+        for (const std::pair<std::string, std::string> &repair : material->getTextureRepairs()) {
+            notes.push_back(modelKey + " material " + material->getName() + " names texture " + repair.first + ", packed " + repair.second + " found by file name");
+        }
+    }
+    if (textureFiles.empty()) {
         return;
     }
-    std::vector<std::string> textureName = texture->getName();
-    if (textureName.size() != 1) {
-        return;//embedded textures are keyed with their model and live inside the .limonmodel
+    //only to see they load, nothing keeps them
+    std::unique_ptr<LoadRequester> requester = assetManager->openRequester(true, LoadRequester::GPUMode::SKIP, 0);
+    for (const std::vector<std::string> &textureFile : textureFiles) {
+        assetManager->requestAsset<TextureAsset>(*requester, textureFile);
     }
-    assetManager->waitForCPULoad(texture);//a model's CPU part only requests its textures, they may still be loading
-    if (texture->hasLoadFailed()) {
-        addProblem(modelKey + " asks for texture " + textureName[0] + ", which could not be loaded");
-    } else {
-        addFile(textureName[0], "texture of " + modelKey);
+    LoadRequester::LoadResult loaded;
+    while (assetManager->hasOutstandingRequests(*requester)) {
+        if (!assetManager->popFinishedRequest(*requester, loaded, std::chrono::milliseconds{50})) {
+            continue;
+        }
+        std::shared_ptr<TextureAsset> texture = std::dynamic_pointer_cast<TextureAsset>(loaded.asset);
+        if (!loaded.failureReason.empty() || texture == nullptr || texture->hasLoadFailed()) {
+            addProblem(modelKey + " asks for texture " + loaded.files[0] + ", which could not be loaded");
+        } else {
+            addFile(loaded.files[0], "texture of " + modelKey);
+        }
+        assetManager->freeAsset(loaded.files);
     }
+    requester->close();
 }
 
 void PackageBuilder::addPythonModules() {
@@ -500,6 +560,10 @@ void PackageBuilder::writeReport(const std::string &outputFile) const {
     report << std::endl << "Problems (" << problems.size() << ")" << std::endl;
     for (const std::string &problem : problems) {
         report << "  " << problem << std::endl;
+    }
+    report << std::endl << "Repaired texture paths (" << notes.size() << ")" << std::endl;
+    for (const std::string &note : notes) {
+        report << "  " << note << std::endl;
     }
 }
 

@@ -1207,27 +1207,6 @@ ImGuiResult Model::putAIonGUI(ActorInterface *actorInterface,
     return result;
 }
 
-uint32_t Model::getMeshOrdinal(size_t meshIndex) const {
-    const std::string &meshName = meshMetaData[meshIndex]->mesh->getName();
-    std::shared_ptr<Material> baseMaterial = modelAsset->getMeshMaterial(meshMetaData[meshIndex]->mesh);
-    if (baseMaterial == nullptr) {
-        std::cerr << "Mesh " << meshName << " of " << name << " is not part of its asset. This should not happen." << std::endl;
-        return 0;
-    }
-    uint32_t ordinal = 0;
-    for (size_t earlierIndex = 0; earlierIndex < meshIndex; ++earlierIndex) {
-        std::shared_ptr<Material> earlierBaseMaterial = modelAsset->getMeshMaterial(meshMetaData[earlierIndex]->mesh);
-        if (earlierBaseMaterial == nullptr) {
-            std::cerr << "Mesh " << meshMetaData[earlierIndex]->mesh->getName() << " of " << name << " is not part of its asset. This should not happen." << std::endl;
-            continue;
-        }
-        if (meshMetaData[earlierIndex]->mesh->getName() == meshName && earlierBaseMaterial->getHash() == baseMaterial->getHash()) {
-            ++ordinal;
-        }
-    }
-    return ordinal;
-}
-
 std::string Model::convertedMaterialKey(const std::string &key, const ModelAsset::LimonConversion &conversion) {
     return key + "@" + conversion.toOwner;
 }
@@ -1242,7 +1221,7 @@ void Model::updateSavedReferences(tinyxml2::XMLElement *objectNode, const ModelA
          meshMaterial = meshMaterial->NextSiblingElement("MeshMaterial")) {
         uint64_t baseHash = 0;
         if (meshMaterial->QueryUnsigned64Attribute("BaseHash", &baseHash) == tinyxml2::XML_SUCCESS) {
-            std::unordered_map<size_t, size_t>::const_iterator renamedHash = conversion.materialHashes.find(static_cast<size_t>(baseHash));
+            std::unordered_map<uint64_t, uint64_t>::const_iterator renamedHash = conversion.materialHashes.find(baseHash);
             if (renamedHash != conversion.materialHashes.end()) {
                 meshMaterial->SetAttribute("BaseHash", static_cast<uint64_t>(renamedHash->second));
             }
@@ -1274,7 +1253,7 @@ std::vector<Model::MeshMaterialOverride> Model::getNewMeshMaterials() const{
             MeshMaterialOverride meshOverride;
             meshOverride.meshName = thisMeshMaterial->mesh->getName();
             meshOverride.baseMaterialHash = material->getHash();
-            meshOverride.ordinal = getMeshOrdinal(meshIndex);
+            meshOverride.ordinal = modelAsset->getMeshOrdinal(meshIndex);//meshMetaData follows the asset's mesh order
             meshOverride.material = thisMeshMaterial->material;
             meshOverride.materialKey = thisMeshMaterial->material->getSaveKey();
             meshMaterialList.push_back(meshOverride);
@@ -1288,10 +1267,13 @@ void Model::releaseOwnedMeshMaterial(size_t meshIndex) {
     if (meshMeta->material == nullptr) {
         return;
     }
-    if (meshMeta->material == modelAsset->getMeshMaterial(meshMeta->mesh)) {
-        return;//borrowed from the asset, which releases it itself in ~ModelAsset
+    if (materialsLoaded) {
+        assetManager->getMaterialRegistry().unloadMaterial(meshMeta->material);
     }
-    assetManager->getMaterialRegistry().unregisterMaterial(meshMeta->material);
+    //the asset's own is borrowed, ~ModelAsset releases it
+    if (meshMeta->material != modelAsset->getMeshMaterial(meshMeta->mesh)) {
+        assetManager->getMaterialRegistry().unregisterMaterial(meshMeta->material);
+    }
     meshMeta->material = nullptr;
 }
 
@@ -1304,57 +1286,52 @@ std::shared_ptr<const Material> Model::setMeshMaterial(size_t meshIndex, std::sh
     if (meshMeta->material == material) {
         return material;
     }
-    releaseOwnedMeshMaterial(meshIndex);
 
     std::shared_ptr<const Material> materialToUse = material;
     if (material != nullptr && material != modelAsset->getMeshMaterial(meshMeta->mesh)) {
-        //const_pointer_cast because registering assigns materialIndex. Install what comes back, not what
+        //const_pointer_cast because registering may rename. Install what comes back, not what
         //we asked for, dedup can hand us a different instance
         materialToUse = assetManager->getMaterialRegistry().registerMaterial(std::const_pointer_cast<Material>(material));
     }
+    //new before old, two materials sharing a texture would free it and load it again
+    if (materialsLoaded && materialToUse != nullptr) {
+        assetManager->getMaterialRegistry().loadMaterial(materialToUse);
+    }
+    releaseOwnedMeshMaterial(meshIndex);
     meshMeta->material = materialToUse;
     refreshTransparencyTags();
     return materialToUse;
 }
 
-void Model::resetMeshMaterials() {
-    for (size_t meshIndex = 0; meshIndex < meshMetaData.size(); ++meshIndex) {
-        std::shared_ptr<Material> assetMaterial = modelAsset->getMeshMaterial(meshMetaData[meshIndex]->mesh);
-        if (assetMaterial == nullptr) {
-            std::cerr << "Mesh " << meshMetaData[meshIndex]->mesh->getName() << " of " << name << " is not part of its asset. This should not happen." << std::endl;
-            continue;
-        }
-        setMeshMaterial(meshIndex, assetMaterial);
+std::vector<std::shared_ptr<const Material>> Model::loadMaterials() {
+    std::vector<std::shared_ptr<const Material>> meshMaterials;
+    if (materialsLoaded) {
+        return meshMaterials;
     }
-    setDirtyForFrustum();
+    materialsLoaded = true;
+    for (const MeshMeta *meshMeta : meshMetaData) {
+        if (meshMeta->material != nullptr) {
+            meshMaterials.push_back(meshMeta->material);//one per mesh, releaseOwnedMeshMaterial gives back one per mesh
+        }
+    }
+    return meshMaterials;
+}
+
+void Model::finishLoadingMaterials() {
+    refreshTransparencyTags();//the texels are loaded now
+}
+
+std::shared_ptr<Material> Model::getAssetMeshMaterial(size_t meshIndex) const {
+    return modelAsset->getMeshMaterial(meshMetaData[meshIndex]->mesh);
 }
 
 void Model::loadOverriddenMeshMaterial(const std::vector<MeshMaterialOverride> &customisedMeshMaterialList) {
     for (const MeshMaterialOverride& thisMeshMaterial:customisedMeshMaterialList) {
-        bool found = false;
-        for (size_t meshIndex = 0; meshIndex < this->meshMetaData.size(); ++meshIndex) {
-            if (this->meshMetaData[meshIndex]->mesh->getName() != thisMeshMaterial.meshName) {
-                continue;
-            }
-            //old files have no hash, those match by name only
-            bool isThisMesh = thisMeshMaterial.baseMaterialHash == 0;
-            if (!isThisMesh) {
-                std::shared_ptr<Material> baseMaterial = modelAsset->getMeshMaterial(this->meshMetaData[meshIndex]->mesh);
-                if (baseMaterial == nullptr) {
-                    std::cerr << "Mesh " << thisMeshMaterial.meshName << " of " << name << " is not part of its asset. This should not happen." << std::endl;
-                    continue;
-                }
-                isThisMesh = baseMaterial->getHash() == thisMeshMaterial.baseMaterialHash && getMeshOrdinal(meshIndex) == thisMeshMaterial.ordinal;
-            }
-            if (isThisMesh) {
-                //setMeshMaterial tries registering material, and might get existing material if deduplicates. If that is the case, upload GPU side will shortcircut and return safely.
-                std::shared_ptr<const Material> installedMaterial = setMeshMaterial(meshIndex, thisMeshMaterial.material);
-                if (installedMaterial != nullptr) {
-                    std::const_pointer_cast<Material>(installedMaterial)->loadGPUSide(assetManager.get());
-                }
-                found = true;
-            }
+        std::vector<size_t> meshIndices = modelAsset->findMeshesOfOverride(thisMeshMaterial.meshName, thisMeshMaterial.baseMaterialHash, thisMeshMaterial.ordinal);
+        for (size_t meshIndex : meshIndices) {
+            setMeshMaterial(meshIndex, thisMeshMaterial.material);
         }
+        bool found = !meshIndices.empty();
         if (!found) {
             std::cerr << "Model " << this->name << " has no mesh " << thisMeshMaterial.meshName << " with base material hash "
                       << thisMeshMaterial.baseMaterialHash << " number " << thisMeshMaterial.ordinal << ", its material is not applied. The source model changed since this was saved." << std::endl;
@@ -1374,33 +1351,39 @@ void Model::reloadWithFlip(const std::string &newFlipAxes) {
         return;
     }
 
-    //release before modelAsset is swapped below, after that we can't tell which of these we registered
-    for (size_t i = 0; i < meshMetaData.size(); ++i) {
-        releaseOwnedMeshMaterial(i);
-    }
-
     std::string oldKey = modelAsset->getAssetName();
     std::string newKey = newFlipAxes.empty() ? name : name + "?flip" + newFlipAxes;
     flipAxes = newFlipAxes;
 
     std::shared_ptr<ModelAsset> newModelAsset = assetManager->loadAsset<ModelAsset>({newKey});
-    assetManager->freeAsset({oldKey});
+
+    //new before old, a flip variant has the same material objects so nothing reloads
+    std::vector<MeshMeta *> newMeshMetaData;
+    std::vector<std::shared_ptr<const Material>> newMeshMaterials;
+    for (const std::shared_ptr<MeshAsset> &mesh : newModelAsset->getMeshes()) {
+        MeshMeta *meshMeta = new MeshMeta();
+        meshMeta->mesh = mesh;
+        meshMeta->material = newModelAsset->getMeshMaterial(mesh);
+        newMeshMetaData.push_back(meshMeta);
+        newMeshMaterials.push_back(meshMeta->material);
+    }
+    if (materialsLoaded) {
+        assetManager->getMaterialRegistry().loadMaterial(newMeshMaterials);
+    }
+    //release before modelAsset is swapped below, after that we can't tell which of these we registered
+    for (size_t i = 0; i < meshMetaData.size(); ++i) {
+        releaseOwnedMeshMaterial(i);
+        delete meshMetaData[i];
+    }
+    meshMetaData = newMeshMetaData;
     modelAsset = newModelAsset;
+    assetManager->freeAsset({oldKey});
 
     this->centerOffset = modelAsset->getCenterOffset();
     this->centerOffsetMatrix = glm::translate(glm::mat4(1.0f), centerOffset);
     this->transformation.markDirty();
 
     reloadPhysicsShape();
-
-    for (size_t i = 0; i < meshMetaData.size(); ++i) { delete meshMetaData[i]; }
-    meshMetaData.clear();
-    for (auto &mesh : modelAsset->getMeshes()) {
-        MeshMeta *meshMeta = new MeshMeta();
-        meshMeta->mesh = mesh;
-        meshMeta->material = modelAsset->getMeshMaterial(mesh);
-        meshMetaData.push_back(meshMeta);
-    }
 
     setDirtyForFrustum();
     markTransformChanged();
@@ -1455,7 +1438,8 @@ bool Model::isTransparent() const {
         if (material->hasOpacityMap()) {
             return true;
         }
-        if (material->hasDiffuseMap() && material->getDiffuseTexture()->hasTransparentTexels()) {
+        //no texels before admission, finishLoadingMaterials refreshes again
+        if (material->hasDiffuseMap() && material->isLoaded() && material->getDiffuseTexture()->hasTransparentTexels()) {
             return true;
         }
     }

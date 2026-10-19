@@ -46,6 +46,15 @@ class PreviewRenderer {
     std::set<uint32_t> modelIdSet;
     std::unordered_map<std::string, std::unique_ptr<LoadRequester>> modelAssetsWaitingCPULoad;//one requester per load, so a pack running holds it back
     std::unordered_map<std::string, std::shared_ptr<ModelAsset>> modelAssetsPreloaded;
+    //a synchronous texture load waits behind the other previews' requesters, so the model is made once these are in
+    struct TexturePrefetch {
+        std::unique_ptr<LoadRequester> requester;
+        std::vector<std::vector<std::string>> heldFiles;//the references the requests took
+    };
+    std::unordered_map<std::string, TexturePrefetch> texturePrefetches;
+    //starts the load on the first call
+    bool isTexturePrefetchDone(const std::string &assetFullPath);
+    void releaseTexturePrefetch(const std::string &assetFullPath);
     //so we know when the browsed asset changed and can reset its orbit
     std::string lastPreviewedAssetPath;
 

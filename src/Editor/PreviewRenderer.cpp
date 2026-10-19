@@ -9,6 +9,7 @@
 #include "PreviewRenderer.h"
 #include "World.h"
 #include "GameObjects/Model.h"
+#include "Material.h"
 #include "ImGuiHelper.h"
 #include "Assets/AssetManager.h"
 #include "limonAPI/Graphics/GraphicsInterface.h"
@@ -71,6 +72,76 @@ PreviewRenderer::~PreviewRenderer() {
         delete queuedModel;
     }
     modelQueueCullingEntries.clear();
+    while (!texturePrefetches.empty()) {
+        releaseTexturePrefetch(texturePrefetches.begin()->first);
+    }
+}
+
+bool PreviewRenderer::isTexturePrefetchDone(const std::string &assetFullPath) {
+    std::unordered_map<std::string, TexturePrefetch>::iterator prefetchIt = texturePrefetches.find(assetFullPath);
+    if (prefetchIt == texturePrefetches.end()) {
+        std::shared_ptr<ModelAsset> modelAsset;
+        std::unordered_map<std::string, std::shared_ptr<ModelAsset>>::const_iterator preloadedIt = modelAssetsPreloaded.find(assetFullPath);
+        bool tookReference = false;
+        if (preloadedIt != modelAssetsPreloaded.end()) {
+            modelAsset = preloadedIt->second;
+        } else {
+            modelAsset = world->assetManager->acquireLoadedAsset<ModelAsset>({assetFullPath});//the world's, held only while we read its names
+            if (modelAsset == nullptr) {
+                return false;//someone else is still loading it, next frame looks again
+            }
+            tookReference = true;
+        }
+        std::set<std::vector<std::string>> textureFiles;
+        for (const std::shared_ptr<MeshAsset> &mesh : modelAsset->getMeshes()) {
+            std::shared_ptr<Material> meshMaterial = modelAsset->getMeshMaterial(mesh);
+            if (meshMaterial == nullptr || meshMaterial->isLoaded()) {
+                continue;//whoever draws it holds its textures already
+            }
+            for (const std::vector<std::string> &textureFile : meshMaterial->getTextureFiles()) {
+                textureFiles.insert(textureFile);
+            }
+        }
+        if (tookReference) {
+            world->assetManager->freeAsset({assetFullPath});
+        }
+        TexturePrefetch prefetch;
+        if (!textureFiles.empty()) {
+            prefetch.requester = world->assetManager->openRequester(false, LoadRequester::GPUMode::UPLOADED, 0);
+            for (const std::vector<std::string> &textureFile : textureFiles) {
+                world->assetManager->requestAsset<TextureAsset>(*prefetch.requester, textureFile);
+            }
+        }
+        prefetchIt = texturePrefetches.emplace(assetFullPath, std::move(prefetch)).first;
+    }
+    TexturePrefetch &prefetch = prefetchIt->second;
+    if (prefetch.requester == nullptr) {
+        return true;
+    }
+    LoadRequester::LoadResult loaded;
+    while (world->assetManager->popFinishedRequest(*prefetch.requester, loaded, std::chrono::milliseconds{0})) {
+        prefetch.heldFiles.push_back(loaded.files);
+    }
+    if (world->assetManager->hasOutstandingRequests(*prefetch.requester)) {
+        return false;
+    }
+    prefetch.requester->close();
+    prefetch.requester = nullptr;
+    return true;
+}
+
+void PreviewRenderer::releaseTexturePrefetch(const std::string &assetFullPath) {
+    std::unordered_map<std::string, TexturePrefetch>::iterator prefetchIt = texturePrefetches.find(assetFullPath);
+    if (prefetchIt == texturePrefetches.end()) {
+        return;
+    }
+    if (prefetchIt->second.requester != nullptr) {
+        prefetchIt->second.requester->close();
+    }
+    for (const std::vector<std::string> &heldFile : prefetchIt->second.heldFiles) {
+        world->assetManager->freeAsset(heldFile);
+    }
+    texturePrefetches.erase(prefetchIt);
 }
 
 Model* PreviewRenderer::getModelAndMoveToEnd(const std::string& modelFilePath) {
@@ -100,6 +171,7 @@ Model* PreviewRenderer::createRenderAndAddModelToLRU(const std::string &modelFil
 
     std::unique_ptr<CullingEntry> cullingEntry = std::make_unique<CullingEntry>();
     Model* model = new Model(newWorldObjectId, world->assetManager, modelFileName, cullingEntry.get());// FIXME this will cause gaps, we should reserve and reuse
+    world->loadModelMaterials(model);//not in the world, nobody else will
     modelQueueCullingEntries[model] = std::move(cullingEntry);
     modelQueue.push_back(model);
     setTransformToModel(model, newObjectPosition);
@@ -293,7 +365,11 @@ bool PreviewRenderer::updateAssetPreview(const std::string &assetFullPath, const
         // Preloaded case
         Model* model = getModelAndMoveToEnd(assetFullPath);
         if(model == nullptr) {
+            if (!isTexturePrefetchDone(assetFullPath)) {
+                return true;
+            }
             createRenderAndAddModelToLRU(assetFullPath, previewPosition, graphicsProgram);
+            releaseTexturePrefetch(assetFullPath);//the model holds its own now
             if(modelAssetsPreloaded.count(assetFullPath)) {
                 // Only release the editor-side preload reference; if the asset was
                 // already in the world we have no extra counter to balance.

@@ -221,19 +221,15 @@ private:
     std::unique_ptr<Editor> editor;
 
     /*
-     * Materials this world uses instead of the asset's own, keyed by the base material's registrationID.
-     * Per world by construction, so nothing has to tag them with an owner or clean them up on a switch.
-     * Applied when a model joins the world, which is the point where the world is known.
+     * Materials this world uses instead of the asset's own, keyed by the base material's content hash, the save
+     * file's OriginalHash. Per world by construction, so nothing has to tag them with an owner or clean them up on a
+     * switch. Applied when a model joins the world, which is the point where the world is known.
+     * One no loaded model uses is kept, a model added later may need it.
      */
-    std::unordered_map<uint32_t, std::shared_ptr<Material>> materialOverrides;
+    std::unordered_map<uint64_t, std::shared_ptr<Material>> materialOverrides;
 
-    /*
-     * Loaded overrides that have not been matched to a base yet. The save file identifies the base by its
-     * content hash (originalHash), but the map above is keyed by registrationID, which only exists once the
-     * base is actually loaded. Resolved in resolveMaterialOverrides, called from setupForPlay - the one
-     * point every path into a world passes through after loading and before anything renders.
-     */
-    std::vector<std::shared_ptr<Material>> pendingMaterialOverrides;
+    //false while loading, afterLoadFinished loads those models' materials in one batch
+    bool materialsReady = false;
 
     //the saved <Materials> entries by key, and the ones objects already asked for. Only WorldLoader fills these, while
     //objects load, and it empties them once <Materials> is done. Objects load on one thread, so no lock
@@ -421,24 +417,23 @@ private:
     void applyMaterialOverrides(Model *model);
 
     //the registry holds a reference for each of these, released in ~World
-    void addMaterialOverride(uint32_t baseRegistrationID, const std::shared_ptr<Material> &material);
+    void addMaterialOverride(uint64_t baseMaterialHash, const std::shared_ptr<Material> &material);
 
     //true when this world replaces the given material, so the editor can show it as the base it is
-    bool isOverriddenBase(uint32_t baseRegistrationID) const {
-        return materialOverrides.count(baseRegistrationID) > 0;
-    }
+    bool isOverriddenBase(const Material &material) const;
 
-    //from the save file, still identified by the base's content hash rather than a registrationID
-    void addPendingMaterialOverride(const std::shared_ptr<Material> &material);
 
-    //matches loaded overrides to their base and applies them. Called from setupForPlay
-    void resolveMaterialOverrides();
+    void loadModelMaterials(Model *model);
+
+    //set once per mesh, resetting to the base first would load the textures of a base an override replaces
+    void resetModelMaterials(Model *model);
 
     bool isMaterialOverride(const std::shared_ptr<const Material> &material) const;
 
-    const std::unordered_map<uint32_t, std::shared_ptr<Material>>& getMaterialOverrides() const {
+    const std::unordered_map<uint64_t, std::shared_ptr<Material>>& getMaterialOverrides() const {
         return materialOverrides;
     }
+
     bool addGUIElementToWorld(GUIRenderable *guiRenderable, GUILayer *guiLayer);
 
     btVector3 extendRayToWorldAABB(glm::vec3 from, glm::vec3 direction) const;
