@@ -48,7 +48,7 @@ void AssetManager::loadPackageManifest() {
     if (LimonFileSystem::loadXML(EngineDataFiles::PACKAGE_MANIFEST, manifestDocument) != tinyxml2::XML_SUCCESS ||
         manifestDocument.FirstChildElement("PackManifest") == nullptr) {
         //every pack --pack builds has one, without it no packed model can load
-        std::cerr << "Data.pak has no valid " << EngineDataFiles::PACKAGE_MANIFEST << ", it was not built by --pack. Exiting." << std::endl;
+        std::cerr << LimonFileSystem::getPackagePath() << " has no valid " << EngineDataFiles::PACKAGE_MANIFEST << ", it was not built by --pack. Exiting." << std::endl;
         exit(-1);
     }
     for (const tinyxml2::XMLElement *modelElement = manifestDocument.FirstChildElement("PackManifest")->FirstChildElement("Model");
@@ -61,7 +61,7 @@ void AssetManager::loadPackageManifest() {
         }
         packedModelFiles[key] = file;
     }
-    std::cout << "Data.pak converts " << packedModelFiles.size() << " model paths to .limonmodel files" << std::endl;
+    std::cout << LimonFileSystem::getPackagePath() << " converts " << packedModelFiles.size() << " model paths to .limonmodel files" << std::endl;
 }
 
 std::vector<std::string> AssetManager::getModelsWithUnsavedChanges() {

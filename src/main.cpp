@@ -325,6 +325,11 @@ bool GameEngine::finishPackage() {
 }
 
 bool GameEngine::convertModelToWorld(const std::string &sourceFile, const std::string &outputDirectory, float scale) {
+    if (LimonFileSystem::isPackageMounted()) {
+        //it could read a packed model and write it out loose, handing another game's assets to anyone who has the pack
+        std::cerr << "Converting refuses while " << LimonFileSystem::getPackagePath() << " is mounted, move it away to convert." << std::endl;
+        return false;
+    }
     ModelToWorldConverter converter(assetManager, sourceFile, outputDirectory, scale);
     return converter.convert();
 }
@@ -547,13 +552,34 @@ bool getWorldNameFromReleaseXML(std::string &worldName) {
 }
 
 int main(int argc, char *argv[]) {
+    //--loadpak <file> may sit anywhere, the rest keep their order
+    std::string packagePath = LimonFileSystem::DEFAULT_PACKAGE_PATH;
+    bool packageNamed = false;
+    std::vector<std::string> arguments;
+    for(int argumentIndex = 1; argumentIndex < argc; ++argumentIndex) {
+        if(std::string(argv[argumentIndex]) == "--loadpak") {
+            if(argumentIndex + 1 >= argc) {
+                std::cerr << "--loadpak needs a package file." << std::endl;
+                return -1;
+            }
+            packagePath = argv[++argumentIndex];
+            packageNamed = true;
+        } else {
+            arguments.push_back(argv[argumentIndex]);
+        }
+    }
+    if(packageNamed && !arguments.empty() && (arguments[0] == "--pack" || arguments[0] == "--convert")) {
+        std::cerr << "--loadpak can't be used with " << arguments[0] << "." << std::endl;
+        return -1;
+    }
+
     if(argc >= 2 && std::string(argv[1]) == "--pack") {
         if(argc != 4) {
             std::cerr << "usage: " + PROGRAM_NAME + " --pack <source Data directory> <output package>" << std::endl;
             return -1;
         }
         //the source is mounted as Data/ and no package under it, so the output holds that tree and nothing from an older package
-        if(!LimonFileSystem::initialize(argv[0], argv[2], false)) {
+        if(!LimonFileSystem::initialize(argv[0], argv[2], "")) {
             std::cerr << "File system could not start, exiting." << std::endl;
             return -1;
         }
@@ -561,7 +587,7 @@ int main(int argc, char *argv[]) {
         return packerEngine.buildPackage(argv[3]) ? 0 : -1;
     }
     //never shut down: GameEngine is destroyed after main's last statement, and its asset threads may still read
-    if(!LimonFileSystem::initialize(argv[0])) {
+    if(!LimonFileSystem::initialize(argv[0], "./Data", packagePath, packageNamed)) {
         std::cerr << "File system could not start, exiting." << std::endl;
         return -1;
     }
@@ -604,19 +630,19 @@ int main(int argc, char *argv[]) {
     }
 
     std::string worldName;
-    if(argc == 1) {
+    if(arguments.empty()) {
         std::cout << "No world file specified, world select from release settings" << std::endl;
         if(!getWorldNameFromReleaseXML(worldName)) {
             std::cout << "release settings read failed, defaulting to ./Data/Maps/World001.xml" << std::endl;
             worldName = "./Data/Maps/World001.xml";
         }
-    } else if(argc == 2) {
-        worldName = argv[1];
+    } else if(arguments.size() == 1) {
+        worldName = arguments[0];
         std::cout << "Trying to load " <<  worldName << std::endl;
     } else {
-        worldName = argv[1];
+        worldName = arguments[0];
         std::cout << "Trying to load " <<  worldName << std::endl;
-        std::cout << PROGRAM_NAME + " only takes one parameter. First one is processed as Map file, rest discarded." << std::endl;
+        std::cout << PROGRAM_NAME + " only takes one map parameter besides --loadpak. First one is processed as Map file, rest discarded." << std::endl;
     }
 
 #ifdef __APPLE__

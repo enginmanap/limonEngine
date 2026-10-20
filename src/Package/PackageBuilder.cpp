@@ -559,7 +559,7 @@ void PackageBuilder::rewriteObjectReferences(tinyxml2::XMLElement *element, cons
 
 void PackageBuilder::writeReport(const std::string &outputFile) const {
     std::ofstream report(outputFile + ".report.txt");
-    report << "Package " << outputFile << " from the loose Data/" << (LimonFileSystem::isPackageMounted() ? " over the mounted Data.pak" : "")
+    report << "Package " << outputFile << " from the loose Data/" << (LimonFileSystem::isPackageMounted() ? " over the mounted " + LimonFileSystem::getPackagePath() : "")
            << std::endl << std::endl;
     report << "Worlds (" << reachedWorlds.size() << ")" << std::endl;
     for (const std::string &world : reachedWorlds) {

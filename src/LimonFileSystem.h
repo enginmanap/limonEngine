@@ -27,11 +27,18 @@ public:
         }
     };
 
-    //mounts ./Engine, ./Data.pak and dataDirectory as Data/. Must run before the first read.
-    //--pack mounts its source as Data/ without the package, so the output is built from that tree alone
-    static bool initialize(const char *argv0, const std::string &dataDirectory = "./Data", bool mountPackage = true);
+    inline static const std::string DEFAULT_PACKAGE_PATH = "./Data.pak";
+
+    //mounts ./Engine, the package and dataDirectory as Data/. Must run before the first read.
+    //An empty packagePath mounts none: --pack builds the output from the source tree alone.
+    //The default package is optional, a missing required one fails, it was named on the command line
+    static bool initialize(const char *argv0, const std::string &dataDirectory = "./Data", const std::string &packagePath = DEFAULT_PACKAGE_PATH,
+                           bool packageRequired = false);
 
     static bool isPackageMounted();
+
+    //the file mounted as the package, for messages
+    static const std::string &getPackagePath();
 
     //only the loose Data/ layer, a file here wins over anything the package says about the same path
     static bool isLooseDataFile(const std::string &path);
