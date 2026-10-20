@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <filesystem>
 #include <fstream>
+#include <iomanip>
 #include <iostream>
 #include <sstream>
 #include <pybind11/embed.h>
@@ -39,7 +40,74 @@ PackageBuilder::PackageBuilder(std::shared_ptr<AssetManager> assetManager, Scrip
 
 void PackageBuilder::setStep(Step step) {
     std::lock_guard<std::mutex> lock(progressMutex);
+    endStep();
     progress.step = step;
+}
+
+void PackageBuilder::endStep() {
+    std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
+    if (progress.step != Step::NOT_STARTED && progress.step != Step::DONE) {
+        stepDurations.emplace_back(progress.step, now - stepStart);
+    }
+    stepStart = now;
+}
+
+const char *PackageBuilder::getStepName(Step step) {
+    switch (step) {
+        case Step::NOT_STARTED: return "Starting";
+        case Step::READING_WORLDS: return "Reading worlds";
+        case Step::CONVERTING_MODELS: return "Converting models";
+        case Step::FOLLOWING_SCRIPTS: return "Following script imports";
+        case Step::WRITING: return "Writing the package";
+        case Step::DONE: return "Done";
+    }
+    return "";
+}
+
+static std::string formatDuration(std::chrono::steady_clock::duration duration) {
+    double seconds = std::chrono::duration<double>(duration).count();
+    std::ostringstream text;
+    if (seconds < 60.0) {
+        text << std::fixed << std::setprecision(1) << seconds << "s";
+    } else {
+        uint64_t wholeSeconds = static_cast<uint64_t>(seconds);
+        text << wholeSeconds / 60 << "m " << wholeSeconds % 60 << "s";
+    }
+    return text.str();
+}
+
+static std::string formatSize(uint64_t bytes) {
+    static const char *const UNITS[] = {"B", "KB", "MB", "GB", "TB"};
+    double size = static_cast<double>(bytes);
+    size_t unitIndex = 0;
+    while (size >= 1024.0 && unitIndex + 1 < sizeof(UNITS) / sizeof(UNITS[0])) {
+        size /= 1024.0;
+        ++unitIndex;
+    }
+    std::ostringstream text;
+    text << std::fixed << std::setprecision(unitIndex == 0 ? 0 : 2) << size << " " << UNITS[unitIndex];
+    return text.str();
+}
+
+std::vector<std::string> PackageBuilder::getSummary() const {
+    std::lock_guard<std::mutex> lock(progressMutex);
+    std::vector<std::string> lines;
+    std::chrono::steady_clock::duration total{0};
+    for (const std::pair<Step, std::chrono::steady_clock::duration> &stepDuration : stepDurations) {
+        total += stepDuration.second;
+    }
+    lines.push_back("Took " + formatDuration(total));
+    for (const std::pair<Step, std::chrono::steady_clock::duration> &stepDuration : stepDurations) {
+        lines.push_back(std::string("  ") + getStepName(stepDuration.first) + " " + formatDuration(stepDuration.second));
+    }
+    if (packageSize != 0) {
+        lines.push_back("Package size " + formatSize(packageSize));
+        lines.push_back("  converted models " + formatSize(convertedModelBytes) + " in " + std::to_string(convertedModels.size()) + " files");
+        lines.push_back("  other files " + formatSize(packedFileBytes) + " in " + std::to_string(packedFiles.size()) + " files");
+    }
+    lines.push_back("Worlds " + std::to_string(reachedWorlds.size()) + ", types " + std::to_string(reachedTypes.size()) +
+                    ", problems " + std::to_string(countProblems()) + ", repaired texture paths " + std::to_string(repairedTextureUsers.size()));
+    return lines;
 }
 
 void PackageBuilder::addProblem(const std::string &problem) {
@@ -268,6 +336,7 @@ bool PackageBuilder::convertModel(const LoadRequester::LoadResult &loaded, const
         std::string modelBytes = modelStream.str();
         if (serialized && mz_zip_writer_add_mem(&archive, packedModel.substr(5).c_str(), modelBytes.data(), modelBytes.size(), MZ_NO_COMPRESSION)) {
             convertedModels[modelKey] = packedModel;
+            convertedModelBytes += modelBytes.size();
             for (const std::pair<const uint64_t, uint64_t> &materialHash : conversion.materialHashes) {
                 if (materialHash.first != materialHash.second) {//only embedded textures change a material, worlds of other models stay byte for byte
                     conversions[modelKey] = conversion;
@@ -418,7 +487,7 @@ bool PackageBuilder::addManifest(mz_zip_archive &archive) const {
     return true;
 }
 
-bool PackageBuilder::addPackedFiles(mz_zip_archive &archive) const {
+bool PackageBuilder::addPackedFiles(mz_zip_archive &archive) {
     bool written = true;
     //stored, not deflated: most of a game is already compressed images and sound, deflate waits for load time measurements
     for (const std::pair<const std::string, std::string> &packedFile : packedFiles) {
@@ -446,6 +515,8 @@ bool PackageBuilder::addPackedFiles(mz_zip_archive &archive) const {
         if (!mz_zip_writer_add_mem(&archive, packedFile.first.substr(5).c_str(), contents.data(), contents.size(), MZ_NO_COMPRESSION)) {
             std::cerr << "Could not add " << packedFile.first << ": " << mz_zip_get_error_string(mz_zip_get_last_error(&archive)) << std::endl;
             written = false;
+        } else {
+            packedFileBytes += contents.size();
         }
     }
     return written;
@@ -557,13 +628,30 @@ void PackageBuilder::rewriteObjectReferences(tinyxml2::XMLElement *element, cons
     }
 }
 
-void PackageBuilder::writeReport(const std::string &outputFile) const {
+void PackageBuilder::writeReport(const std::string &outputFile, bool succeeded) const {
     std::ofstream report(outputFile + ".report.txt");
     report << "Package " << outputFile << " from the loose Data/" << (LimonFileSystem::isPackageMounted() ? " over the mounted " + LimonFileSystem::getPackagePath() : "")
-           << std::endl << std::endl;
-    report << "Worlds (" << reachedWorlds.size() << ")" << std::endl;
+           << std::endl;
+    report << "Result: " << (succeeded ? "written" : "failed, nothing written") << std::endl << std::endl;
+    report << "Summary" << std::endl;
+    for (const std::string &line : getSummary()) {
+        report << "  " << line << std::endl;
+    }
+    report << std::endl << "Worlds (" << reachedWorlds.size() << ")" << std::endl;
     for (const std::string &world : reachedWorlds) {
         report << "  " << world << std::endl;
+    }
+    std::vector<std::string> problemEntries = getProblems();
+    report << std::endl << "Problems (" << problemEntries.size() << ")" << std::endl;
+    for (const std::string &problem : problemEntries) {
+        report << "  " << problem << std::endl;
+    }
+    report << std::endl << "Repaired texture paths (" << repairedTextureUsers.size() << ")" << std::endl;
+    for (const std::pair<const std::pair<std::string, std::string>, std::set<std::string>> &repair : repairedTextureUsers) {
+        report << "  " << repair.first.first << " found by file name as " << repair.first.second << ", named by:" << std::endl;
+        for (const std::string &user : repair.second) {
+            report << "      " << user << std::endl;
+        }
     }
     report << std::endl << "Types (" << reachedTypes.size() << ")" << std::endl;
     for (const std::string &typeName : reachedTypes) {
@@ -587,18 +675,6 @@ void PackageBuilder::writeReport(const std::string &outputFile) const {
         }
         for (const std::string &modelKey : users->second) {
             report << "      " << modelKey << std::endl;
-        }
-    }
-    std::vector<std::string> problemEntries = getProblems();
-    report << std::endl << "Problems (" << problemEntries.size() << ")" << std::endl;
-    for (const std::string &problem : problemEntries) {
-        report << "  " << problem << std::endl;
-    }
-    report << std::endl << "Repaired texture paths (" << repairedTextureUsers.size() << ")" << std::endl;
-    for (const std::pair<const std::pair<std::string, std::string>, std::set<std::string>> &repair : repairedTextureUsers) {
-        report << "  " << repair.first.first << " found by file name as " << repair.first.second << ", named by:" << std::endl;
-        for (const std::string &user : repair.second) {
-            report << "      " << user << std::endl;
         }
     }
 }
@@ -678,6 +754,7 @@ bool PackageBuilder::run(const std::string &outputFile) {
     std::map<std::string, std::string> modelsToConvert = modelKeys;//texture files found while converting never add models
     {
         std::lock_guard<std::mutex> lock(progressMutex);
+        endStep();
         progress.step = Step::CONVERTING_MODELS;
         progress.modelCount = static_cast<uint32_t>(modelsToConvert.size());
     }
@@ -718,14 +795,27 @@ bool PackageBuilder::run(const std::string &outputFile) {
         succeeded = false;
     }
     mz_zip_writer_end(&archive);
+    uint64_t writtenSize = 0;
     if (!succeeded) {
         std::filesystem::remove(outputFile, removeError);//half an archive must not be left where a game would mount it
+    } else {
+        std::error_code sizeError;
+        writtenSize = std::filesystem::file_size(outputFile, sizeError);
+        if (sizeError) {
+            writtenSize = 0;
+        }
     }
-    writeReport(outputFile);
-    std::cout << "--pack: " << packedFiles.size() << " files and " << convertedModels.size() << " converted models from "
-              << reachedWorlds.size() << " worlds, " << getProgress().problemCount << " problems, see " << outputFile << ".report.txt" << std::endl;
-    std::lock_guard<std::mutex> lock(progressMutex);
-    progress.succeeded = succeeded;
-    progress.step = Step::DONE;
+    {
+        std::lock_guard<std::mutex> lock(progressMutex);
+        endStep();
+        packageSize = writtenSize;
+        progress.succeeded = succeeded;
+        progress.step = Step::DONE;
+    }
+    writeReport(outputFile, succeeded);
+    std::vector<std::string> summary = getSummary();
+    std::cout << "--pack: " << (succeeded ? "written " : "failed, nothing written to ") << outputFile << ", "
+              << (convertedModels.size() + packedFiles.size()) << " files, " << (succeeded ? formatSize(writtenSize) + ", " : "")
+              << summary[0] << ", " << getProgress().problemCount << " problems, see " << outputFile << ".report.txt" << std::endl;
     return succeeded;
 }

@@ -5,6 +5,7 @@
 #ifndef LIMONENGINE_PACKAGEBUILDER_H
 #define LIMONENGINE_PACKAGEBUILDER_H
 
+#include <chrono>
 #include <deque>
 #include <map>
 #include <memory>
@@ -55,6 +56,11 @@ public:
     //sorted, a texture's users grouped under it. Once the progress says DONE, the worker adds none after that
     std::vector<std::string> getProblems() const;
 
+    //time, sizes and counts, one line each. Complete once the progress says DONE
+    std::vector<std::string> getSummary() const;
+
+    static const char *getStepName(Step step);
+
 private:
     std::shared_ptr<AssetManager> assetManager;
     ScriptManager *scriptManager;
@@ -89,6 +95,14 @@ private:
 
     mutable std::mutex progressMutex;
     Progress progress;
+    std::chrono::steady_clock::time_point stepStart;
+    std::vector<std::pair<Step, std::chrono::steady_clock::duration>> stepDurations;
+    uint64_t convertedModelBytes = 0;
+    uint64_t packedFileBytes = 0;
+    uint64_t packageSize = 0;//0 when nothing was written
+
+    //caller holds progressMutex
+    void endStep();
 
     void setStep(Step step);
 
@@ -127,7 +141,7 @@ private:
 
     bool addManifest(mz_zip_archive &archive) const;
 
-    bool addPackedFiles(mz_zip_archive &archive) const;
+    bool addPackedFiles(mz_zip_archive &archive);
 
     void rewriteWorldReferences(tinyxml2::XMLDocument &document) const;
 
@@ -136,7 +150,7 @@ private:
     //changedKeys: model asset key to the material pool keys its conversion renamed
     void rewriteObjectReferences(tinyxml2::XMLElement *element, const std::map<std::string, std::unordered_set<std::string>> &changedKeys) const;
 
-    void writeReport(const std::string &outputFile) const;
+    void writeReport(const std::string &outputFile, bool succeeded) const;
 };
 
 

@@ -167,6 +167,8 @@ public:
     bool exportFromCurrentWorld = false;
     std::string exportMessage;//a refusal, or how the last export ended
     std::vector<std::string> exportProblems;
+    std::vector<std::string> exportSummary;
+    static constexpr float EXPORT_WINDOW_WIDTH = 700.0f;
 
     GameObject* pickedObject = nullptr;
     GameObject* pendingPickedObject = nullptr;

@@ -1408,6 +1408,7 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
             exportFromCurrentWorld = exportReleaseStartingWorld.empty();//nothing else to start from
             ImGui::OpenPopup("Export Package##ExportConfirmation");
         }
+        ImGui::SetNextWindowSizeConstraints(ImVec2(EXPORT_WINDOW_WIDTH, 0.0f), ImVec2(EXPORT_WINDOW_WIDTH, FLT_MAX));//wrapped text needs a width
         if (ImGui::BeginPopupModal("Export Package##ExportConfirmation", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
             //worlds are packed from disk, an unsaved edit would be left out
             ImGui::Text("Exporting saves the world first, as %s", this->worldSaveNameBuffer);
@@ -1438,6 +1439,7 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
                 exportRequested = true;
                 exportMessage = "Saving the world...";
                 exportProblems.clear();
+                exportSummary.clear();
                 showExportWindow = true;
                 ImGui::CloseCurrentPopup();
             }
@@ -2750,37 +2752,28 @@ void Editor::startExport() {
     showExportWindow = true;
 }
 
-static const char *exportStepName(PackageBuilder::Step step) {
-    switch (step) {
-        case PackageBuilder::Step::NOT_STARTED: return "Starting";
-        case PackageBuilder::Step::READING_WORLDS: return "Reading worlds";
-        case PackageBuilder::Step::CONVERTING_MODELS: return "Converting models";
-        case PackageBuilder::Step::FOLLOWING_SCRIPTS: return "Following script imports";
-        case PackageBuilder::Step::WRITING: return "Writing the package";
-        case PackageBuilder::Step::DONE: return "Done";
-    }
-    return "";
-}
-
 void Editor::drawExportWindow() {
     if (!showExportWindow) {
         return;
     }
+    //a fixed width, auto resize alone collapses wrapped text to one column and follows every model name
+    ImGui::SetNextWindowSizeConstraints(ImVec2(EXPORT_WINDOW_WIDTH, 0.0f), ImVec2(EXPORT_WINDOW_WIDTH, FLT_MAX));
     ImGui::Begin("Export Package", isPacking() ? nullptr : &showExportWindow, ImGuiWindowFlags_AlwaysAutoResize);
     if (isPacking()) {
         PackageBuilder::Progress progress = activePackage->getProgress();
         if (progress.step == PackageBuilder::Step::DONE) {
             exportProblems = activePackage->getProblems();
+            exportSummary = activePackage->getSummary();
             bool succeeded = world->packagingCallbacks->finish();
             activePackage = nullptr;
             exportMessage = std::string(succeeded ? "Exported " : "Export failed, nothing was written to ") + exportPathBuffer;
         } else {
-            ImGui::Text("%s", exportStepName(progress.step));
+            ImGui::Text("%s", PackageBuilder::getStepName(progress.step));
             if (progress.step == PackageBuilder::Step::CONVERTING_MODELS) {
                 std::string convertedText = std::to_string(progress.convertedModelCount) + " / " + std::to_string(progress.modelCount);
                 float fraction = progress.modelCount == 0 ? 0.0f : static_cast<float>(progress.convertedModelCount) / static_cast<float>(progress.modelCount);
-                ImGui::ProgressBar(fraction, ImVec2(400.0f, 0.0f), convertedText.c_str());
-                ImGui::Text("%s", progress.currentModel.c_str());
+                ImGui::ProgressBar(fraction, ImVec2(-FLT_MIN, 0.0f), convertedText.c_str());
+                ImGui::TextWrapped("%s", progress.currentModel.c_str());
             }
             ImGui::Text("Problems so far: %u", progress.problemCount);
             ImGui::Text("The editor is locked until the export finishes.");
@@ -2788,9 +2781,12 @@ void Editor::drawExportWindow() {
     }
     if (!isPacking()) {
         ImGui::TextWrapped("%s", exportMessage.c_str());
+        for (const std::string &summaryLine : exportSummary) {
+            ImGui::TextUnformatted(summaryLine.c_str());
+        }
         if (!exportProblems.empty()) {
             ImGui::Text("Problems (%u)", static_cast<uint32_t>(exportProblems.size()));
-            ImGui::BeginChild("ExportProblems", ImVec2(600.0f, 200.0f), true, ImGuiWindowFlags_HorizontalScrollbar);
+            ImGui::BeginChild("ExportProblems", ImVec2(0.0f, 300.0f), true, ImGuiWindowFlags_HorizontalScrollbar);
             for (const std::string &problem : exportProblems) {
                 ImGui::TextUnformatted(problem.c_str());
             }
