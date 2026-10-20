@@ -52,7 +52,7 @@ public:
 
     Progress getProgress() const;
 
-    //once the progress says DONE, the worker adds none after that
+    //sorted, a texture's users grouped under it. Once the progress says DONE, the worker adds none after that
     std::vector<std::string> getProblems() const;
 
 private:
@@ -73,8 +73,11 @@ private:
     std::map<std::string, std::vector<std::pair<std::string, WorldReferenceScanner::References::PlacedObject>>> placedObjects;
     std::map<std::string, std::set<uint64_t>> worldOverriddenBases;//world file to the base hashes its world overrides replace
     std::set<std::string> modelsReachedUnplaced;//a script can spawn these anywhere, so every base of theirs is packed
+    //models convert in parallel and finish in any order, so their findings are kept in sets and grouped when read
     std::vector<std::string> problems;
-    std::vector<std::string> notes;//report only
+    std::map<std::string, std::set<std::string>> missingTextureUsers;//texture to the models asking for it
+    std::map<std::string, std::set<std::string>> textureUsers;//packed texture to the models using it, report only
+    std::map<std::pair<std::string, std::string>, std::set<std::string>> repairedTextureUsers;//named texture and the file found for it, to "model material", report only
     //copied by prepare
     std::map<std::string, std::string> pythonTypeModules;
     std::vector<std::string> scriptDirectories;
@@ -90,6 +93,11 @@ private:
     void setStep(Step step);
 
     void addProblem(const std::string &problem);
+
+    void addMissingTexture(const std::string &texture, const std::string &modelKey);
+
+    //caller holds progressMutex
+    uint32_t countProblems() const;
 
     void collectRegisteredTypes();
 

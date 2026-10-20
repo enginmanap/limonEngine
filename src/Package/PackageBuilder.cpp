@@ -28,6 +28,8 @@
 #include "limonAPI/Graphics/RenderMethodInterface.h"
 
 
+static const std::string TEXTURE_REASON = "texture of";//the report lists the models under it
+
 static bool endsWith(const std::string &text, const std::string &ending) {
     return text.size() >= ending.size() && text.compare(text.size() - ending.size(), ending.size(), ending) == 0;
 }
@@ -43,7 +45,17 @@ void PackageBuilder::setStep(Step step) {
 void PackageBuilder::addProblem(const std::string &problem) {
     std::lock_guard<std::mutex> lock(progressMutex);
     problems.push_back(problem);
-    progress.problemCount = static_cast<uint32_t>(problems.size());
+    progress.problemCount = countProblems();
+}
+
+void PackageBuilder::addMissingTexture(const std::string &texture, const std::string &modelKey) {
+    std::lock_guard<std::mutex> lock(progressMutex);
+    missingTextureUsers[texture].insert(modelKey);
+    progress.problemCount = countProblems();
+}
+
+uint32_t PackageBuilder::countProblems() const {
+    return static_cast<uint32_t>(problems.size() + missingTextureUsers.size());
 }
 
 PackageBuilder::Progress PackageBuilder::getProgress() const {
@@ -53,7 +65,16 @@ PackageBuilder::Progress PackageBuilder::getProgress() const {
 
 std::vector<std::string> PackageBuilder::getProblems() const {
     std::lock_guard<std::mutex> lock(progressMutex);
-    return problems;
+    std::vector<std::string> entries = problems;
+    for (const std::pair<const std::string, std::set<std::string>> &missingTexture : missingTextureUsers) {
+        std::string entry = "Texture " + missingTexture.first + " could not be loaded, asked for by:";
+        for (const std::string &modelKey : missingTexture.second) {
+            entry += "\n      " + modelKey;
+        }
+        entries.push_back(entry);
+    }
+    std::sort(entries.begin(), entries.end());
+    return entries;
 }
 
 void PackageBuilder::collectRegisteredTypes() {
@@ -313,7 +334,7 @@ void PackageBuilder::addTextures(const std::vector<std::shared_ptr<Material>> &m
             }
         }
         for (const std::pair<std::string, std::string> &repair : material->getTextureRepairs()) {
-            notes.push_back(modelKey + " material " + material->getName() + " names texture " + repair.first + ", packed " + repair.second + " found by file name");
+            repairedTextureUsers[repair].insert(modelKey + " material " + material->getName());
         }
     }
     if (textureFiles.empty()) {
@@ -331,9 +352,10 @@ void PackageBuilder::addTextures(const std::vector<std::shared_ptr<Material>> &m
         }
         std::shared_ptr<TextureAsset> texture = std::dynamic_pointer_cast<TextureAsset>(loaded.asset);
         if (!loaded.failureReason.empty() || texture == nullptr || texture->hasLoadFailed()) {
-            addProblem(modelKey + " asks for texture " + loaded.files[0] + ", which could not be loaded");
+            addMissingTexture(loaded.files[0], modelKey);
         } else {
-            addFile(loaded.files[0], "texture of " + modelKey);
+            addFile(loaded.files[0], TEXTURE_REASON);
+            textureUsers[LimonFileSystem::normalizePath(loaded.files[0])].insert(modelKey);
         }
         assetManager->freeAsset(loaded.files);
     }
@@ -556,14 +578,28 @@ void PackageBuilder::writeReport(const std::string &outputFile) const {
     report << std::endl << "Files (" << packedFiles.size() << ")" << std::endl;
     for (const std::pair<const std::string, std::string> &packedFile : packedFiles) {
         report << "  " << packedFile.first << "    (" << packedFile.second << ")" << std::endl;
+        std::map<std::string, std::set<std::string>>::const_iterator users = textureUsers.find(packedFile.first);
+        if (users == textureUsers.end()) {
+            continue;
+        }
+        if (packedFile.second != TEXTURE_REASON) {
+            report << "    also " << TEXTURE_REASON << std::endl;//packed for something else first
+        }
+        for (const std::string &modelKey : users->second) {
+            report << "      " << modelKey << std::endl;
+        }
     }
-    report << std::endl << "Problems (" << problems.size() << ")" << std::endl;
-    for (const std::string &problem : problems) {
+    std::vector<std::string> problemEntries = getProblems();
+    report << std::endl << "Problems (" << problemEntries.size() << ")" << std::endl;
+    for (const std::string &problem : problemEntries) {
         report << "  " << problem << std::endl;
     }
-    report << std::endl << "Repaired texture paths (" << notes.size() << ")" << std::endl;
-    for (const std::string &note : notes) {
-        report << "  " << note << std::endl;
+    report << std::endl << "Repaired texture paths (" << repairedTextureUsers.size() << ")" << std::endl;
+    for (const std::pair<const std::pair<std::string, std::string>, std::set<std::string>> &repair : repairedTextureUsers) {
+        report << "  " << repair.first.first << " found by file name as " << repair.first.second << ", named by:" << std::endl;
+        for (const std::string &user : repair.second) {
+            report << "      " << user << std::endl;
+        }
     }
 }
 
@@ -687,7 +723,7 @@ bool PackageBuilder::run(const std::string &outputFile) {
     }
     writeReport(outputFile);
     std::cout << "--pack: " << packedFiles.size() << " files and " << convertedModels.size() << " converted models from "
-              << reachedWorlds.size() << " worlds, " << problems.size() << " problems, see " << outputFile << ".report.txt" << std::endl;
+              << reachedWorlds.size() << " worlds, " << getProgress().problemCount << " problems, see " << outputFile << ".report.txt" << std::endl;
     std::lock_guard<std::mutex> lock(progressMutex);
     progress.succeeded = succeeded;
     progress.step = Step::DONE;
