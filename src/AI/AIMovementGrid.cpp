@@ -2,6 +2,7 @@
 // Created by engin on 1.01.2018.
 //
 
+#include <cstdlib>
 #include <glm/ext.hpp>
 #include "AIMovementGrid.h"
 
@@ -10,23 +11,58 @@
 
 constexpr float AIMovementGrid::floatingHeight;
 
-//FIXME: this must be the worst way to check for a node in a graph, when you already implemented a*
-std::shared_ptr<AIMovementNode>AIMovementGrid::isAlreadyVisited(const glm::vec3 &position, size_t &indexOf) {
-    if(visited.empty()) {
-        return nullptr;
-    }
-    for (size_t i = visited.size() - 1; i > 0; --i) {
-        if (isPositionCloseEnoughYOnly(position, visited[i]->getPosition())) {
-            indexOf = i;
-            return visited[i];
+void AIMovementGrid::addToVisited(const std::shared_ptr<AIMovementNode> &node) {
+    visited[getCellKey(node->getPosition())].push_back(node);
+    visitedCount++;
+}
+
+void AIMovementGrid::removeFromVisited(const std::shared_ptr<AIMovementNode> &node) {
+    std::unordered_map<uint64_t, std::vector<std::shared_ptr<AIMovementNode>>>::iterator cellIt = visited.find(getCellKey(node->getPosition()));
+    if (cellIt != visited.end()) {
+        std::vector<std::shared_ptr<AIMovementNode>> &cell = cellIt->second;
+        for (size_t i = 0; i < cell.size(); ++i) {
+            if (cell[i] == node) {
+                cell.erase(cell.begin() + i);
+                visitedCount--;
+                if (cell.empty()) {
+                    visited.erase(cellIt);
+                }
+                return;
+            }
         }
     }
-    //because size_t wraps around, i>=0 is always true. Instead, = 0 case is below
-    if (isPositionCloseEnoughYOnly(position, visited[0]->getPosition())) {
-        indexOf = 0;
-        return visited[0];
+    std::cerr << "AI grid finished a node that is not in visited, " << glm::to_string(node->getPosition()) << std::endl;
+    std::exit(-1);
+}
+
+void AIMovementGrid::finishNode(const std::shared_ptr<AIMovementNode> &node) {
+    removeFromVisited(node);
+    doneNodes.push_back(node);
+    doneCells[getCellKey(node->getPosition())].push_back(node);
+    this->max = glm::max(this->max, node->getPosition());
+    this->min = glm::min(this->min, node->getPosition());
+}
+
+const std::shared_ptr<AIMovementNode> *AIMovementGrid::findNode(const glm::vec3 &position) const {
+    uint64_t cellKey = getCellKey(position);
+    const std::unordered_map<uint64_t, std::vector<std::shared_ptr<AIMovementNode>>> *tables[2] = {&visited, &doneCells};
+    for (const std::unordered_map<uint64_t, std::vector<std::shared_ptr<AIMovementNode>>> *table : tables) {
+        std::unordered_map<uint64_t, std::vector<std::shared_ptr<AIMovementNode>>>::const_iterator cellIt = table->find(cellKey);
+        if (cellIt == table->end()) {
+            continue;
+        }
+        for (const std::shared_ptr<AIMovementNode> &candidate : cellIt->second) {
+            if (isPositionCloseEnoughYOnly(position, candidate->getPosition())) {
+                return &candidate;
+            }
+        }
     }
     return nullptr;
+}
+
+std::shared_ptr<AIMovementNode>AIMovementGrid::isAlreadyVisited(const glm::vec3 &position) {
+    const std::shared_ptr<AIMovementNode> *found = findNode(position);
+    return found != nullptr ? *found : nullptr;
 }
 
 std::shared_ptr<const AIMovementNode>
@@ -158,21 +194,21 @@ AIMovementGrid::walkMonster(glm::vec3 walkPoint, btDiscreteDynamicsWorld *static
     if (isMovable) {
         root->setIsMovable(isMovable);
         frontier.push(root);
-        visited.push_back(root);
+        gridOrigin = walkPoint;
+        addToVisited(root);
 
         std::cerr << "Root node " << GLMUtils::vectorToString(walkPoint) << "is movable, AI walk grid generation starts." << std::endl;
     } else {
         std::cerr << "Root node " << GLMUtils::vectorToString(walkPoint) << "is not movable, AI walk grid generation failed. Please check map." << std::endl;
         return root;
     }
-    size_t indexOfFoundNode;
     std::shared_ptr<AIMovementNode> current;
     while (!frontier.empty()) {
         current = frontier.front();
         frontier.pop();
 
         if(doneNodes.size() %10000 == 0) {
-            std::cout << "After "<< SDL3Helper::getTicks() << " current done " << doneNodes.size() << " nodes, partial " << visited.size() << " last node: " << glm::to_string(current->getPosition()) << std::endl;
+            std::cout << "After "<< SDL3Helper::getTicks() << " current done " << doneNodes.size() << " nodes, partial " << visitedCount << " last node: " << glm::to_string(current->getPosition()) << std::endl;
         }
 
         for (int i = -1; i <= 1; ++i) {
@@ -196,7 +232,7 @@ AIMovementGrid::walkMonster(glm::vec3 walkPoint, btDiscreteDynamicsWorld *static
                         continue;
                     }
 
-                    std::shared_ptr<AIMovementNode> visitedNode = isAlreadyVisited(neighbourPosition, indexOfFoundNode);
+                    std::shared_ptr<AIMovementNode> visitedNode = isAlreadyVisited(neighbourPosition);
                     if (visitedNode != nullptr) {
                         //std::cout << "already visited node at " << GLMUtils::vectorToString(neighbourPosition) << std::endl;
                         //std::cout << "already visited node position is " << GLMUtils::vectorToString(visitedNode->getPosition()) << std::endl;
@@ -213,7 +249,7 @@ AIMovementGrid::walkMonster(glm::vec3 walkPoint, btDiscreteDynamicsWorld *static
                         std::shared_ptr<AIMovementNode> neighbour =std::make_shared<AIMovementNode>(getNextID(), neighbourPosition);
                         neighbour->setIsMovable(isMovable);
                         current->setNeighbour(neighbourIndex, neighbour);
-                        visited.push_back(neighbour);
+                        addToVisited(neighbour);
                         if(isMovable) {
                             frontier.push(neighbour);
                         }
@@ -221,19 +257,7 @@ AIMovementGrid::walkMonster(glm::vec3 walkPoint, btDiscreteDynamicsWorld *static
                 }
             }
         }
-        if(isAlreadyVisited(current->getPosition(), indexOfFoundNode)) {
-            visited.erase(visited.begin() + indexOfFoundNode);
-        }
-
-        doneNodes.push_back(current);
-        if(current->getPosition().x > this->max.x) { this->max.x = current->getPosition().x;}
-        if(current->getPosition().y > this->max.y) { this->max.y = current->getPosition().y;}
-        if(current->getPosition().z > this->max.z) { this->max.z = current->getPosition().z;}
-
-        if(current->getPosition().x < this->min.x) { this->min.x = current->getPosition().x;}
-        if(current->getPosition().y < this->min.y) { this->min.y = current->getPosition().y;}
-        if(current->getPosition().z < this->min.z) { this->min.z = current->getPosition().z;}
-
+        finishNode(current);
     }
 
     std::cout << "Walk grid creation finished with " << doneNodes.size() << " nodes between " << glm::to_string(this->min) << ", " << glm::to_string(this->max) << std::endl;
@@ -263,6 +287,7 @@ bool AIMovementGrid::isThereCollision(btDiscreteDynamicsWorld *staticWorld) {
 
                 if (pt.getDistance() < 0.f) {
                     // There is a collision
+                    sharedManifoldArray.resize(0);//the pair, and its manifolds, are gone with the ghost removal. stale ones would be read on the next call
                     return true;
                 }
             }
@@ -283,10 +308,15 @@ AIMovementGrid::AIMovementGrid(glm::vec3 startPoint, btDiscreteDynamicsWorld *st
     sharedGhostObject->setCollisionFlags(
             sharedGhostObject->getCollisionFlags());
     sharedGhostObject->setWorldTransform(btTransform(btQuaternion::getIdentity(), GLMConverter::GLMToBlt(startPoint)));
+    if (std::fabs(min.x) > MAX_GRID_COORDINATE || std::fabs(min.z) > MAX_GRID_COORDINATE ||
+        std::fabs(max.x) > MAX_GRID_COORDINATE || std::fabs(max.z) > MAX_GRID_COORDINATE) {
+        std::cerr << "AI walk grid bounds are too large, coordinates must stay within +-" << MAX_GRID_COORDINATE << std::endl;
+        std::exit(-1);
+    }
     std::cout << "Start generating AI walk grid" << std::endl;
     doneNodes.push_back(std::make_shared<AIMovementNode>(0, glm::vec3(0,200,0)));//0 index element should be empty
     root = walkMonster(startPoint, staticOnlyPhysicsWorld, min, max, collisionGroup, collisionMask);
-    std::cout << "Finished generating AI walk grid, created " << visited.size() << " nodes, checked for collision "
+    std::cout << "Finished generating AI walk grid, created " << visitedCount << " nodes, checked for collision "
               << isThereCollisionCounter << " times." << std::endl;
     staticOnlyPhysicsWorld->removeCollisionObject(sharedGhostObject);
 }
@@ -373,24 +403,26 @@ void AIMovementGrid::debugDraw(BulletDebugDrawer *debugDrawer) const {
         }
     }
     //Same with visited nodes
-    for (size_t i = 1; i < visited.size(); i++) {
-        int neighbourCount = 5; //if not an edge, just draw first 4, the last 4 should be rendered by the neighbours
-        if (visited[i]->isIsMovable()) {
-            fromColor = glm::vec3(1, 1, 1);
-        } else {
-            fromColor = glm::vec3(1, 0, 0);
-            neighbourCount = 9; //if on an edge, neighbours will not be able to draw rest, draw all.
-        }
-        for (int j = 0; j < neighbourCount; ++j) {
-            if (visited[i]->getNeighbour(j) != nullptr) {
-                if (visited[i]->getNeighbour(j)->isIsMovable()) {
-                    toColor = glm::vec3(1, 1, 1);
-                } else {
-                    toColor = glm::vec3(1, 0, 0);
+    for (const std::pair<const uint64_t, std::vector<std::shared_ptr<AIMovementNode>>> &cell : visited) {
+        for (const std::shared_ptr<AIMovementNode> &visitedNode : cell.second) {
+            int neighbourCount = 5; //if not an edge, just draw first 4, the last 4 should be rendered by the neighbours
+            if (visitedNode->isIsMovable()) {
+                fromColor = glm::vec3(1, 1, 1);
+            } else {
+                fromColor = glm::vec3(1, 0, 0);
+                neighbourCount = 9; //if on an edge, neighbours will not be able to draw rest, draw all.
+            }
+            for (int j = 0; j < neighbourCount; ++j) {
+                if (visitedNode->getNeighbour(j) != nullptr) {
+                    if (visitedNode->getNeighbour(j)->isIsMovable()) {
+                        toColor = glm::vec3(1, 1, 1);
+                    } else {
+                        toColor = glm::vec3(1, 0, 0);
+                    }
+                    debugDrawer->drawLine(GLMConverter::GLMToBlt(visitedNode->getPosition()),
+                                          GLMConverter::GLMToBlt(visitedNode->getNeighbour(j)->getPosition()),
+                                          GLMConverter::GLMToBlt(fromColor), GLMConverter::GLMToBlt(toColor));
                 }
-                debugDrawer->drawLine(GLMConverter::GLMToBlt(visited[i]->getPosition()),
-                                      GLMConverter::GLMToBlt(visited[i]->getNeighbour(j)->getPosition()),
-                                      GLMConverter::GLMToBlt(fromColor), GLMConverter::GLMToBlt(toColor));
             }
         }
     }
@@ -415,8 +447,10 @@ bool AIMovementGrid::serializeXML(const std::string &fileName) {
         serializeNode(aiGridDocument, rootNode, *nodeIt);
     }
 
-    for (auto nodeIt = visited.begin(); nodeIt != visited.end(); ++nodeIt) {
-        serializeNode(aiGridDocument, rootNode, *nodeIt);
+    for (const std::pair<const uint64_t, std::vector<std::shared_ptr<AIMovementNode>>> &cell : visited) {
+        for (const std::shared_ptr<AIMovementNode> &visitedNode : cell.second) {
+            serializeNode(aiGridDocument, rootNode, visitedNode);
+        }
     }
 
     rootNode->InsertEndChild(nodesElement);

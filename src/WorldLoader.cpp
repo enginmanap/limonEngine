@@ -302,6 +302,7 @@ bool WorldLoader::loadObjectGroupsFromXMLV1(tinyxml2::XMLNode *worldNode, World 
             }
             if(!isAIGridStartPointSet && objectInfo->isAIGridStartPointSet ) { //if this is the first actor to set AI grid start point
                 aiGridStartPoint = objectInfo->aiGridStartPoint;
+                isAIGridStartPointSet = true;
             }
         }
         // We will add static objects first, build AI grid, then add other objects
@@ -453,6 +454,7 @@ bool WorldLoader::loadObjectsFromXML(tinyxml2::XMLNode *objectsNode, World *worl
             }
             if(!isAIGridStartPointSet && (*objectIterator)->isAIGridStartPointSet ) { //if this is the first actor to set AI grid start point
                 aiGridStartPoint = (*objectIterator)->aiGridStartPoint;
+                isAIGridStartPointSet = true;
             }
 
             // We will add static objects first, build AI grid, then add other objects
@@ -919,6 +921,7 @@ bool WorldLoader::loadObjectsFromXMLV2(tinyxml2::XMLNode *objectsNode, World *wo
             }
             if(!isAIGridStartPointSet && (*objectIterator)->isAIGridStartPointSet) {
                 aiGridStartPoint = (*objectIterator)->aiGridStartPoint;
+                isAIGridStartPointSet = true;
             }
             loadedModel = (*objectIterator)->model;
             if((*objectIterator)->model->getMass() == 0 && !(*objectIterator)->model->isAnimated()) {

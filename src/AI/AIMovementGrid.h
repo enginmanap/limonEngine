@@ -16,6 +16,10 @@
 #include <queue>
 #include <unordered_set>
 #include <map>
+#include <unordered_map>
+#include <cmath>
+#include <cstdint>
+#include <limits>
 
 #ifdef CEREAL_SUPPORT
 #include <cereal/access.hpp>
@@ -77,11 +81,34 @@ class AIMovementGrid {
     float capsuleRadius = 0.35f;//FIXME these should be configurable
     bool isThereCollision(btDiscreteDynamicsWorld *staticWorld);
 
-    glm::vec3 max,min;
-    std::vector<std::shared_ptr<AIMovementNode>> visited;
+    void finishNode(const std::shared_ptr<AIMovementNode> &node);
+
+    glm::vec3 max = glm::vec3(-std::numeric_limits<float>::max());
+    glm::vec3 min = glm::vec3(std::numeric_limits<float>::max());
+    //both keyed by x/z cell, a cell holds one node per floor height
+    std::unordered_map<uint64_t, std::vector<std::shared_ptr<AIMovementNode>>> visited;
+    size_t visitedCount = 0;
+    //finished nodes must stay findable, a miss makes a duplicate that explores everything again
+    std::unordered_map<uint64_t, std::vector<std::shared_ptr<AIMovementNode>>> doneCells;
+    glm::vec3 gridOrigin = glm::vec3(0);//nodes are whole steps from the root, rounding relative to it keeps them off the cell borders
     std::vector<std::shared_ptr<AIMovementNode>> doneNodes;
 
-    std::shared_ptr<AIMovementNode> isAlreadyVisited(const glm::vec3 &position, size_t &indexOf);
+    static constexpr float MAX_GRID_COORDINATE = 1.0e9f;//cell coordinates must fit int32_t, even relative to a far away origin
+
+    static uint64_t makeCellKey(int32_t cellX, int32_t cellZ) {
+        return (static_cast<uint64_t>(static_cast<uint32_t>(cellX)) << 32) | static_cast<uint32_t>(cellZ);
+    }
+
+    uint64_t getCellKey(const glm::vec3 &position) const {
+        return makeCellKey(static_cast<int32_t>(std::round(position.x - gridOrigin.x)),
+                           static_cast<int32_t>(std::round(position.z - gridOrigin.z)));
+    }
+
+    void addToVisited(const std::shared_ptr<AIMovementNode> &node);
+    void removeFromVisited(const std::shared_ptr<AIMovementNode> &node);
+    //the node within the position tolerance, finished or not. Never copies the shared_ptr, a copy is an atomic
+    const std::shared_ptr<AIMovementNode> *findNode(const glm::vec3 &position) const;
+    std::shared_ptr<AIMovementNode> isAlreadyVisited(const glm::vec3 &position);
 
     std::shared_ptr<AIMovementNode>
     walkMonster(glm::vec3 walkPoint, btDiscreteDynamicsWorld *staticWorld, const glm::vec3 &min,
@@ -160,17 +187,19 @@ public:
             saveNodes[doneNodes[i]->getID()].neigbours[4] = doneNodes[i]->getID();//self ID at 4
         }
 
-        for (size_t i = 0; i < visited.size(); ++i) {
-            saveNodes[visited[i]->getID()].position = visited[i]->getPosition();
-            saveNodes[visited[i]->getID()].movable = visited[i]->isIsMovable();
-            for (int j = 0; j < 9; ++j) {
-                if(visited[i]->getNeighbour(j) == nullptr) {
-                    saveNodes[visited[i]->getID()].neigbours[j] = 0;
-                } else {
-                    saveNodes[visited[i]->getID()].neigbours[j] = visited[i]->getNeighbour(j)->getID();
+        for (const std::pair<const uint64_t, std::vector<std::shared_ptr<AIMovementNode>>> &cell : visited) {
+            for (const std::shared_ptr<AIMovementNode> &visitedNode : cell.second) {
+                saveNodes[visitedNode->getID()].position = visitedNode->getPosition();
+                saveNodes[visitedNode->getID()].movable = visitedNode->isIsMovable();
+                for (int j = 0; j < 9; ++j) {
+                    if(visitedNode->getNeighbour(j) == nullptr) {
+                        saveNodes[visitedNode->getID()].neigbours[j] = 0;
+                    } else {
+                        saveNodes[visitedNode->getID()].neigbours[j] = visitedNode->getNeighbour(j)->getID();
+                    }
                 }
+                saveNodes[visitedNode->getID()].neigbours[4] = visitedNode->getID();//self ID at 4
             }
-            saveNodes[visited[i]->getID()].neigbours[4] = visited[i]->getID();//self ID at 4
         }
 
         archive(nextPossibleIndex, saveNodes);
@@ -183,7 +212,7 @@ public:
 
         this->doneNodes.resize(nextPossibleIndex);
         for (uint32_t i = 0; i < nextPossibleIndex; ++i) {
-            doneNodes[i] = std::make_shared<AIMovementNode>(0, glm::vec3(0,100,0));//we are creating nodes empty, so we can link them together later
+            doneNodes[i] = std::make_shared<AIMovementNode>(i, glm::vec3(0,100,0));//we are creating nodes empty, so we can link them together later
         }
 
         //now unflatten the nodes and move to doneNodes
