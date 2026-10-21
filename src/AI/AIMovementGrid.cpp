@@ -2,12 +2,15 @@
 // Created by engin on 1.01.2018.
 //
 
+#include <algorithm>
 #include <cstdlib>
+#include <cstring>
 #include <glm/ext.hpp>
 #include "AIMovementGrid.h"
 
 #include "SDL3Helper.h"
 #include "../LimonFileSystem.h"
+#include "../GameObjects/GameObject.h"
 
 constexpr float AIMovementGrid::floatingHeight;
 
@@ -208,7 +211,7 @@ AIMovementGrid::walkMonster(glm::vec3 walkPoint, btDiscreteDynamicsWorld *static
         frontier.pop();
 
         if(doneNodes.size() %10000 == 0) {
-            std::cout << "After "<< SDL3Helper::getTicks() << " current done " << doneNodes.size() << " nodes, partial " << visitedCount << " last node: " << glm::to_string(current->getPosition()) << std::endl;
+            std::cout << "After "<< SDL3Helper::getTicks() << " current done " << doneNodes.size() << " nodes, partial " << visitedCount << " frontier " << frontier.size() << " last node: " << glm::to_string(current->getPosition()) << std::endl;
         }
 
         for (int i = -1; i <= 1; ++i) {
@@ -260,8 +263,99 @@ AIMovementGrid::walkMonster(glm::vec3 walkPoint, btDiscreteDynamicsWorld *static
         finishNode(current);
     }
 
+    printGridStatistics(staticWorld);
     std::cout << "Walk grid creation finished with " << doneNodes.size() << " nodes between " << glm::to_string(this->min) << ", " << glm::to_string(this->max) << std::endl;
+    std::cout << "Walk grid fingerprint " << std::hex << calculateFingerprint() << std::dec << std::endl;
     return root;
+}
+
+bool AIMovementGrid::isLowerId(const AIMovementNode *left, const AIMovementNode *right) {
+    return left->getID() < right->getID();
+}
+
+//ids, positions, movable flags and links of every node, finished or not. Two grids with the same value are the same grid
+uint64_t AIMovementGrid::calculateFingerprint() const {
+    std::vector<const AIMovementNode *> nodes;
+    for (size_t i = 1; i < doneNodes.size(); ++i) {//0 is the placeholder
+        nodes.push_back(doneNodes[i].get());
+    }
+    for (const std::pair<const uint64_t, std::vector<std::shared_ptr<AIMovementNode>>> &cell : visited) {
+        for (const std::shared_ptr<AIMovementNode> &visitedNode : cell.second) {
+            nodes.push_back(visitedNode.get());
+        }
+    }
+    std::sort(nodes.begin(), nodes.end(), isLowerId);
+    uint64_t fingerprint = 14695981039346656037ULL;
+    for (const AIMovementNode *node : nodes) {
+        uint32_t positionBits[3];
+        std::memcpy(positionBits, &node->getPosition(), sizeof(positionBits));
+        uint64_t values[14] = {node->getID(), positionBits[0], positionBits[1], positionBits[2], node->isIsMovable() ? 1u : 0u};
+        for (int neighbourIndex = 0; neighbourIndex < 9; ++neighbourIndex) {
+            values[5 + neighbourIndex] = node->hasNeighbour(neighbourIndex) ? node->getNeighbour(neighbourIndex)->getID() : 0;
+        }
+        for (uint64_t value : values) {
+            fingerprint = (fingerprint ^ value) * 1099511628211ULL;
+        }
+    }
+    return fingerprint;
+}
+
+void AIMovementGrid::printCellDetails(uint64_t cellKey, btDiscreteDynamicsWorld *staticWorld) const {
+    float cellX = gridOrigin.x + static_cast<int32_t>(cellKey >> 32);
+    float cellZ = gridOrigin.z + static_cast<int32_t>(cellKey & 0xFFFFFFFF);
+    std::cout << "  cell x/z " << cellX << ", " << cellZ << " node y values:";
+    for (size_t i = 1; i < doneNodes.size(); ++i) {
+        if (getCellKey(doneNodes[i]->getPosition()) == cellKey) {
+            std::cout << " " << doneNodes[i]->getPosition().y;
+        }
+    }
+    std::cout << std::endl;
+
+    btVector3 rayFrom(cellX, this->max.y + 10.0f, cellZ);
+    btVector3 rayTo(cellX, this->min.y - 10.0f, cellZ);
+    btCollisionWorld::AllHitsRayResultCallback allHits(rayFrom, rayTo);
+    staticWorld->rayTest(rayFrom, rayTo, allHits);
+    std::map<float, std::string, std::greater<float>> hitsByHeight;//top to bottom
+    for (int i = 0; i < allHits.m_collisionObjects.size(); ++i) {
+        std::string hitName = "no game object";
+        const GameObject *hitObject = static_cast<const GameObject *>(allHits.m_collisionObjects[i]->getUserPointer());
+        if (hitObject != nullptr) {
+            hitName = hitObject->getName();
+        }
+        hitsByHeight[allHits.m_hitPointWorld[i].getY()] = hitName;
+    }
+    for (const std::pair<const float, std::string> &hit : hitsByHeight) {
+        std::cout << "    ray hit y " << hit.first << " " << hit.second << std::endl;
+    }
+}
+
+void AIMovementGrid::printGridStatistics(btDiscreteDynamicsWorld *staticWorld) const {
+    std::unordered_map<uint64_t, uint32_t> nodesPerCell;
+    for (size_t i = 1; i < doneNodes.size(); ++i) {//0 is the placeholder
+        nodesPerCell[getCellKey(doneNodes[i]->getPosition())]++;
+    }
+    std::map<uint32_t, uint32_t> cellsByNodeCount;
+    std::map<uint32_t, uint64_t> sampleCellByNodeCount;
+    uint64_t worstCell = 0;
+    uint32_t worstCount = 0;
+    for (const std::pair<const uint64_t, uint32_t> &cell : nodesPerCell) {
+        cellsByNodeCount[cell.second]++;
+        sampleCellByNodeCount.emplace(cell.second, cell.first);//first one seen stays
+        if (cell.second > worstCount) {
+            worstCount = cell.second;
+            worstCell = cell.first;
+        }
+    }
+    std::cout << "Walk grid statistics: " << nodesPerCell.size() << " x/z cells hold " << doneNodes.size() - 1 << " done nodes, " << visitedCount << " nodes left in visited" << std::endl;
+    for (const std::pair<const uint32_t, uint32_t> &bucket : cellsByNodeCount) {
+        std::cout << "  " << bucket.second << " cells with " << bucket.first << " nodes" << std::endl;
+    }
+    for (const std::pair<const uint32_t, uint64_t> &sample : sampleCellByNodeCount) {
+        std::cout << " sample of a cell with " << sample.first << " nodes:" << std::endl;
+        printCellDetails(sample.second, staticWorld);
+    }
+    std::cout << " cell with most nodes:" << std::endl;
+    printCellDetails(worstCell, staticWorld);
 }
 
 bool AIMovementGrid::isThereCollision(btDiscreteDynamicsWorld *staticWorld) {
@@ -379,50 +473,56 @@ bool AIMovementGrid::coursePath(const glm::vec3 &from, const glm::vec3 &to, uint
     return true;
 }
 
-void AIMovementGrid::debugDraw(BulletDebugDrawer *debugDrawer) const {
-    glm::vec3 toColor, fromColor;
-    for (size_t i = 1; i < doneNodes.size(); i++) {
-        int neighbourCount = 5; //if not an edge, just draw first 4, the last 4 should be rendered by the neighbours
-        if (doneNodes[i]->isIsMovable()) {
-            fromColor = glm::vec3(1, 1, 1);
-        } else {
-            fromColor = glm::vec3(1, 0, 0);
-            neighbourCount = 9; //if on an edge, neighbours will not be able to draw rest, draw all.
-        }
-        for (int j = 0; j < neighbourCount; ++j) {
-            if (doneNodes[i]->getNeighbour(j) != nullptr) {
-                if (doneNodes[i]->getNeighbour(j)->isIsMovable()) {
-                    toColor = glm::vec3(1, 1, 1);
-                } else {
-                    toColor = glm::vec3(1, 0, 0);
-                }
-                debugDrawer->drawLine(GLMConverter::GLMToBlt(doneNodes[i]->getPosition()),
-                                      GLMConverter::GLMToBlt(doneNodes[i]->getNeighbour(j)->getPosition()),
-                                      GLMConverter::GLMToBlt(fromColor), GLMConverter::GLMToBlt(toColor));
-            }
-        }
+void AIMovementGrid::buildDebugCells() const {
+    for (size_t i = 1; i < doneNodes.size(); ++i) {//0 is the placeholder
+        debugCells[getCellKey(doneNodes[i]->getPosition())].push_back(doneNodes[i].get());
     }
-    //Same with visited nodes
     for (const std::pair<const uint64_t, std::vector<std::shared_ptr<AIMovementNode>>> &cell : visited) {
         for (const std::shared_ptr<AIMovementNode> &visitedNode : cell.second) {
-            int neighbourCount = 5; //if not an edge, just draw first 4, the last 4 should be rendered by the neighbours
-            if (visitedNode->isIsMovable()) {
-                fromColor = glm::vec3(1, 1, 1);
+            debugCells[getCellKey(visitedNode->getPosition())].push_back(visitedNode.get());
+        }
+    }
+    isDebugCellsBuilt = true;
+}
+
+void AIMovementGrid::drawNodeLines(const AIMovementNode *node, BulletDebugDrawer *debugDrawer) const {
+    glm::vec3 fromColor, toColor;
+    int neighbourCount = 5; //if not an edge, just draw first 4, the last 4 should be rendered by the neighbours
+    if (node->isIsMovable()) {
+        fromColor = glm::vec3(1, 1, 1);
+    } else {
+        fromColor = glm::vec3(1, 0, 0);
+        neighbourCount = 9; //if on an edge, neighbours will not be able to draw rest, draw all.
+    }
+    for (int j = 0; j < neighbourCount; ++j) {
+        if (node->getNeighbour(j) != nullptr) {
+            if (node->getNeighbour(j)->isIsMovable()) {
+                toColor = glm::vec3(1, 1, 1);
             } else {
-                fromColor = glm::vec3(1, 0, 0);
-                neighbourCount = 9; //if on an edge, neighbours will not be able to draw rest, draw all.
+                toColor = glm::vec3(1, 0, 0);
             }
-            for (int j = 0; j < neighbourCount; ++j) {
-                if (visitedNode->getNeighbour(j) != nullptr) {
-                    if (visitedNode->getNeighbour(j)->isIsMovable()) {
-                        toColor = glm::vec3(1, 1, 1);
-                    } else {
-                        toColor = glm::vec3(1, 0, 0);
-                    }
-                    debugDrawer->drawLine(GLMConverter::GLMToBlt(visitedNode->getPosition()),
-                                          GLMConverter::GLMToBlt(visitedNode->getNeighbour(j)->getPosition()),
-                                          GLMConverter::GLMToBlt(fromColor), GLMConverter::GLMToBlt(toColor));
-                }
+            debugDrawer->drawLine(GLMConverter::GLMToBlt(node->getPosition()),
+                                  GLMConverter::GLMToBlt(node->getNeighbour(j)->getPosition()),
+                                  GLMConverter::GLMToBlt(fromColor), GLMConverter::GLMToBlt(toColor));
+        }
+    }
+}
+
+//the cells around the center only
+void AIMovementGrid::debugDraw(BulletDebugDrawer *debugDrawer, const glm::vec3 &center, int radius) const {
+    if (!isDebugCellsBuilt) {
+        buildDebugCells();
+    }
+    int64_t centerCellX = std::llround(center.x - gridOrigin.x);
+    int64_t centerCellZ = std::llround(center.z - gridOrigin.z);
+    for (int64_t cellX = centerCellX - radius; cellX <= centerCellX + radius; ++cellX) {
+        for (int64_t cellZ = centerCellZ - radius; cellZ <= centerCellZ + radius; ++cellZ) {
+            std::unordered_map<uint64_t, std::vector<const AIMovementNode *>>::const_iterator cellIt = debugCells.find(makeCellKey(cellX, cellZ));
+            if (cellIt == debugCells.end()) {
+                continue;
+            }
+            for (const AIMovementNode *node : cellIt->second) {
+                drawNodeLines(node, debugDrawer);
             }
         }
     }

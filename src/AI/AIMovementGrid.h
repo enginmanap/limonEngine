@@ -82,6 +82,8 @@ class AIMovementGrid {
     bool isThereCollision(btDiscreteDynamicsWorld *staticWorld);
 
     void finishNode(const std::shared_ptr<AIMovementNode> &node);
+    uint64_t calculateFingerprint() const;
+    static bool isLowerId(const AIMovementNode *left, const AIMovementNode *right);
 
     glm::vec3 max = glm::vec3(-std::numeric_limits<float>::max());
     glm::vec3 min = glm::vec3(std::numeric_limits<float>::max());
@@ -104,6 +106,14 @@ class AIMovementGrid {
                            static_cast<int32_t>(std::round(position.z - gridOrigin.z)));
     }
 
+    //raw pointers, doneNodes and visited own the nodes
+    mutable std::unordered_map<uint64_t, std::vector<const AIMovementNode *>> debugCells;
+    mutable bool isDebugCellsBuilt = false;
+    void buildDebugCells() const;
+    void drawNodeLines(const AIMovementNode *node, BulletDebugDrawer *debugDrawer) const;
+
+    void printGridStatistics(btDiscreteDynamicsWorld *staticWorld) const;
+    void printCellDetails(uint64_t cellKey, btDiscreteDynamicsWorld *staticWorld) const;
     void addToVisited(const std::shared_ptr<AIMovementNode> &node);
     void removeFromVisited(const std::shared_ptr<AIMovementNode> &node);
     //the node within the position tolerance, finished or not. Never copies the shared_ptr, a copy is an atomic
@@ -145,7 +155,8 @@ public:
 
     bool coursePath(const glm::vec3 &from, const glm::vec3 &to, uint32_t maximumNumberOfNodes, std::vector<glm::vec3> *route);
 
-    void debugDraw(BulletDebugDrawer *debugDrawer) const;
+    //only the cells within radius of the center, the whole grid is too many lines
+    void debugDraw(BulletDebugDrawer *debugDrawer, const glm::vec3 &center, int radius) const;
 
     bool setProperHeight(glm::vec3 *position, float floatingHeight, float checkHeight,
                          btDiscreteDynamicsWorld *staticWorld);

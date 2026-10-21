@@ -260,6 +260,7 @@ private:
 
     OptionsUtil::Options::Option<bool> renderInformationsOption;
     OptionsUtil::Options::Option<long> maxLightsOption;
+    OptionsUtil::Options::Option<long> aiGridDrawRadiusOption;
 
     // Audio channel volumes are driven by global options (the source of truth, persisted).
     // World reads the options and pushes changes to ALHelper; nothing sets channel gain directly.

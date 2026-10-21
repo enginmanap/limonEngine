@@ -49,6 +49,11 @@ public:
         return (neighbours[i]);
     }
 
+    //no copy, a shared_ptr copy is an atomic on the control block
+    bool hasNeighbour(int i) const {
+        return neighbours[i] != nullptr;
+    }
+
     bool isIsMovable() const {
         return isMovable;
     }

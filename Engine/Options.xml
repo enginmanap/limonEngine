@@ -737,4 +737,13 @@
         <IsSet>True</IsSet>
         <Index>54</Index>
     </Parameter>
+    <Parameter>
+        <RequestType>FreeNumber</RequestType>
+        <Description>debug_aiGridDrawRadius</Description>
+        <!--Debug draw only shows the AI walk grid this many cells around the player, a whole map worth of lines is too slow to render-->
+        <Value>50</Value>
+        <valueType>Long</valueType>
+        <IsSet>True</IsSet>
+        <Index>93</Index>
+    </Parameter>
 </Options>

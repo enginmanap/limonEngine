@@ -215,6 +215,7 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
 
     renderInformationsOption = options->getOption<bool>(HASH("debug_renderInformations"));
     maxLightsOption = options->getOption<long>(HASH("performance_maximumLights"));
+    aiGridDrawRadiusOption = options->getOption<long>(HASH("debug_aiGridDrawRadius"));
     activeLights.reserve(maxLightsOption.getOrDefault(4));
 
     soundVolumeOptions[(size_t)LimonTypes::AudioChannel::MASTER]  = options->getOption<double>(HASH("audio_volumeMaster"));
@@ -954,7 +955,7 @@ void World::renderDebug(const std::shared_ptr<GraphicsProgram>& renderProgram [[
        debugDrawer->drawLine(btVector3(0, 0, 0), btVector3(0, 250, 0), btVector3(1, 1, 1));
        //draw the ai-grid
        if (grid != nullptr) {
-           grid->debugDraw(debugDrawer);
+           grid->debugDraw(debugDrawer, currentPlayer->getPosition(), static_cast<int>(aiGridDrawRadiusOption.getOrDefault(50)));
        }
    }
    debugDrawer->flushDraws();
