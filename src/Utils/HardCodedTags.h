@@ -22,6 +22,8 @@ public:
     static const std::string OBJECT_MODEL_TRANSPARENT;
     static const std::string OBJECT_MODEL_AMBIENT;
     static const std::string OBJECT_MODEL_NON_OCCLUDER;//never rasterized into the software occlusion buffer
+    static const std::string OBJECT_MODEL_NO_AI_WALK;//not added by the engine, AI grid generation does not see these
+    static const std::string OBJECT_MODEL_AI_WALK_BLOCKER;//not added by the engine, AI grid generation sees these, but a ground hit on one means there is no ground
 
     static const std::string OBJECT_PLAYER_BASIC;
     static const std::string OBJECT_PLAYER_ANIMATED;

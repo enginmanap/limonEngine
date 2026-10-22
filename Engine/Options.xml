@@ -738,6 +738,15 @@
         <Index>54</Index>
     </Parameter>
     <Parameter>
+        <RequestType>FreeText</RequestType>
+        <Description>ai_gridProbeShape</Description>
+        <!--Shape the AI walk grid tests every cell with. box is one cell wide, capsule is the old round probe and only here for comparing-->
+        <Value>box</Value>
+        <valueType>String</valueType>
+        <IsSet>True</IsSet>
+        <Index>91</Index>
+    </Parameter>
+    <Parameter>
         <RequestType>FreeNumber</RequestType>
         <Description>debug_aiGridDrawRadius</Description>
         <!--Debug draw only shows the AI walk grid this many cells around the player, a whole map worth of lines is too slow to render-->

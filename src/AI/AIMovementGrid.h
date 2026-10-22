@@ -30,6 +30,10 @@
 #endif
 
 #include "AIMovementNode.h"
+#include "AIGridQueryContext.h"
+#include "../limonAPI/Options.h"
+#include "../Utils/HashUtil.h"
+#include "../Utils/HardCodedTags.h"
 #include "../LimonFileSystem.h"
 #include "../Utils/GLMConverter.h"
 #include "../Utils/GLMUtils.h"
@@ -45,7 +49,13 @@
 #define Y_DISTANCE_SQ 0.25
 
 class AIMovementGrid {
+public:
+    struct StartCandidate {
+        glm::vec3 position;
+        std::string description;//goes to the log, says why this one was in the list
+    };
 
+private:
     struct AINodeWithPriority {
         std::shared_ptr<const AIMovementNode> node;
         float priority;
@@ -69,21 +79,30 @@ class AIMovementGrid {
 
     std::shared_ptr<AIMovementNode> root = nullptr;
     btCollisionShape *ghostShape = nullptr;
-    btPairCachingGhostObject *sharedGhostObject = new btPairCachingGhostObject();
     btCollisionWorld::ClosestRayResultCallback *rayCallback = new btCollisionWorld::ClosestRayResultCallback(
             btVector3(0, 0, 0), btVector3(0, 0, 0));
-    btManifoldArray sharedManifoldArray;
     std::map<int, std::shared_ptr<const AIMovementNode>> actorLastNodeMap;
     uint32_t nextPossibleIndex = 1;//this is to be used internal and constructor only. Not thread safe
 
-    int isThereCollisionCounter = 0;//this is only meaningful for debug
     float capsuleHeight = 1.30f + 0.1f;
-    float capsuleRadius = 0.35f;//FIXME these should be configurable
-    bool isThereCollision(btDiscreteDynamicsWorld *staticWorld);
+    float capsuleRadius = 0.71f;//FIXME these should be configurable
+    //not round on purpose, a surface exactly on a box face is a coin flip at +-1500 from origin, where floats are 1e-4 apart
+    static constexpr float BOX_HALF_EXTENT_XZ = 0.5f + 0.0137f;
+    static constexpr float BOX_HALF_HEIGHT = 1.0513f;
+    static bool isDiagonalMoveAllowed(const std::shared_ptr<const AIMovementNode> &node, int neighbourIndex);
 
+    std::unique_ptr<AIGridQueryContext> queryContext;
+    const uint64_t blockerTagHash = HashUtil::hashString(HardCodedTags::OBJECT_MODEL_AI_WALK_BLOCKER);
+
+    uint64_t groundQueryCount = 0;//what really ran
+    uint64_t collisionQueryCount = 0;
     void finishNode(const std::shared_ptr<AIMovementNode> &node);
     uint64_t calculateFingerprint() const;
     static bool isLowerId(const AIMovementNode *left, const AIMovementNode *right);
+    bool chooseStartPoint(const std::vector<StartCandidate> &startCandidates, btDiscreteDynamicsWorld *staticWorld, const glm::vec3 &min,
+                          uint32_t collisionGroup, uint32_t collisionMask, glm::vec3 *startPoint);
+    bool isBlockedAt(const glm::vec3 &position, btDiscreteDynamicsWorld *staticWorld, uint32_t collisionGroup, uint32_t collisionMask);
+    bool findGroundAt(glm::vec3 *position, btDiscreteDynamicsWorld *staticWorld, float checkHeight);
 
     glm::vec3 max = glm::vec3(-std::numeric_limits<float>::max());
     glm::vec3 min = glm::vec3(std::numeric_limits<float>::max());
@@ -140,12 +159,12 @@ class AIMovementGrid {
 public:
     static constexpr float floatingHeight = 2.0f;
 
-    AIMovementGrid(glm::vec3 startPoint, btDiscreteDynamicsWorld *staticOnlyPhysicsWorld, glm::vec3 min,
-                       glm::vec3 max, uint32_t collisionGroup, uint32_t collisionMask);
+    //candidates are tried in order, the first one with ground and room for the probe is the start
+    AIMovementGrid(const std::vector<StartCandidate> &startCandidates, btDiscreteDynamicsWorld *staticOnlyPhysicsWorld, glm::vec3 min,
+                       glm::vec3 max, uint32_t collisionGroup, uint32_t collisionMask, OptionsUtil::Options *options);
 
     ~AIMovementGrid() {
         delete rayCallback;
-        delete sharedGhostObject;
         delete ghostShape;
 
     }

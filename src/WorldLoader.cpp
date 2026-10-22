@@ -470,7 +470,7 @@ bool WorldLoader::loadObjectsFromXML(tinyxml2::XMLNode *objectsNode, World *worl
         objectNode = objectNode->NextSiblingElement("Object");
     } // end of while (objects)
 
-    world->createGridFrom(aiGridStartPoint);
+    world->createGridFrom(aiGridStartPoint, isAIGridStartPointSet);
 
     for (unsigned int i = 0; i < notStaticObjects.size(); ++i) {
         world->addModelToWorld(notStaticObjects[i]);
@@ -948,7 +948,7 @@ bool WorldLoader::loadObjectsFromXMLV2(tinyxml2::XMLNode *objectsNode, World *wo
         objectNode = objectNode->NextSiblingElement("Object");
     }
 
-    world->createGridFrom(aiGridStartPoint);
+    world->createGridFrom(aiGridStartPoint, isAIGridStartPointSet);
     for (unsigned int i = 0; i < notStaticObjects.size(); ++i) {
         world->addModelToWorld(notStaticObjects[i]);
     }

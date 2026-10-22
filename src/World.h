@@ -447,7 +447,8 @@ private:
 
     void addActor(ActorInterface *actor);
 
-    void createGridFrom(const glm::vec3 &aiGridStartPoint);
+    //start point order: an AI actor's position if one set it, the player position, the ground under the top center of the world aabb
+    void createGridFrom(const glm::vec3 &aiGridStartPoint, bool isAIGridStartPointSet);
 
     void setSky(SkyBox *skyBox);
 

@@ -42,6 +42,7 @@
 #include "Profiler/ProfilerMacros.h"
 #include "Profiler/RenderProfileScope.h"
 #include "Utils/FrameTimeTracker.h"
+#include "Utils/HardCodedTags.h"
 #include "XMLHelper.h"
 #include "GamePlay/APISerializer.h"
 #include "Package/FileAccessPolicy.h"
@@ -1366,7 +1367,7 @@ void World::addActor(ActorInterface *actor) {
     this->actors[actor->getWorldID()] = actor;
 }
 
-void World::createGridFrom(const glm::vec3 &aiGridStartPoint) {
+void World::createGridFrom(const glm::vec3 &aiGridStartPoint, bool isAIGridStartPointSet) {
     if(grid != nullptr) {
         delete grid;
         grid = nullptr;
@@ -1379,8 +1380,31 @@ void World::createGridFrom(const glm::vec3 &aiGridStartPoint) {
         std::string AIWalkName = this->name.substr(0, this->name.find_last_of(".")) + ".aiwalk";
         grid = AIMovementGrid::deserialize(AIWalkName);
         if (grid == nullptr) {
-            grid = new AIMovementGrid(aiGridStartPoint, dynamicsWorld, worldAABBMin, worldAABBMax, COLLIDE_PLAYER,
-                                      COLLIDE_STATIC_MODELS | COLLIDE_EVERYTHING);
+            //no walk models are out of physics while the grid generates, only the ones we took out go back, an author disconnected one stays disconnected
+            const uint64_t noAIWalkTag = HashUtil::hashString(HardCodedTags::OBJECT_MODEL_NO_AI_WALK);
+            std::vector<Model *> hiddenModels;
+            for (std::unordered_map<uint32_t, Model *>::iterator objectIt = objects.begin(); objectIt != objects.end(); ++objectIt) {
+                if (objectIt->second->hasTag(noAIWalkTag) && objectIt->second->disconnectFromPhysicsWorld(dynamicsWorld)) {
+                    hiddenModels.push_back(objectIt->second);
+                }
+            }
+            std::cout << hiddenModels.size() << " no walk models are hidden from the AI grid generation" << std::endl;
+
+            std::vector<AIMovementGrid::StartCandidate> startCandidates;
+            if (isAIGridStartPointSet) {
+                startCandidates.push_back({aiGridStartPoint, "the position of an AI actor"});
+            }
+            if (currentPlayer != nullptr) {
+                startCandidates.push_back({currentPlayer->getPosition(), "the player position"});
+            }
+            startCandidates.push_back({glm::vec3((worldAABBMin.x + worldAABBMax.x) / 2.0f, worldAABBMax.y, (worldAABBMin.z + worldAABBMax.z) / 2.0f),
+                                       "the ground under the top center of the world AABB"});
+            grid = new AIMovementGrid(startCandidates, dynamicsWorld, worldAABBMin, worldAABBMax, COLLIDE_PLAYER,
+                                      COLLIDE_STATIC_MODELS | COLLIDE_EVERYTHING, options);
+
+            for (Model *hiddenModel : hiddenModels) {
+                connectModelToPhysics(hiddenModel);
+            }
         }
     }
 }

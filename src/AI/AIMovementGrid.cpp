@@ -11,6 +11,7 @@
 #include "SDL3Helper.h"
 #include "../LimonFileSystem.h"
 #include "../GameObjects/GameObject.h"
+#include "../limonAPI/util/HashUtil.h"
 
 constexpr float AIMovementGrid::floatingHeight;
 
@@ -68,6 +69,22 @@ std::shared_ptr<AIMovementNode>AIMovementGrid::isAlreadyVisited(const glm::vec3 
     return found != nullptr ? *found : nullptr;
 }
 
+bool AIMovementGrid::isDiagonalMoveAllowed(const std::shared_ptr<const AIMovementNode> &node, int neighbourIndex) {
+    //index is (x offset + 1) * 3 + (z offset + 1). A diagonal one is blocked by either orthogonal neighbour that shares an axis with it, a wall corner between two boxes would otherwise be squeezed through
+    int firstOrthogonal;
+    int secondOrthogonal;
+    switch (neighbourIndex) {
+        case 0: firstOrthogonal = 1; secondOrthogonal = 3; break;
+        case 2: firstOrthogonal = 1; secondOrthogonal = 5; break;
+        case 6: firstOrthogonal = 7; secondOrthogonal = 3; break;
+        case 8: firstOrthogonal = 7; secondOrthogonal = 5; break;
+        default: return true;
+    }
+    std::shared_ptr<AIMovementNode> first = node->getNeighbour(firstOrthogonal);
+    std::shared_ptr<AIMovementNode> second = node->getNeighbour(secondOrthogonal);
+    return first != nullptr && first->isIsMovable() && second != nullptr && second->isIsMovable();
+}
+
 std::shared_ptr<const AIMovementNode>
 AIMovementGrid::aStarPath(std::shared_ptr<const AIMovementNode> start, const glm::vec3 &destination, uint32_t maximumNumberOfNodes,
                           std::vector<glm::vec3> *route) {
@@ -103,6 +120,9 @@ AIMovementGrid::aStarPath(std::shared_ptr<const AIMovementNode> start, const glm
             }
             if (!currentNode->isIsMovable()) {
                 continue;//if not movable, it means we don't need its child
+            }
+            if (!isDiagonalMoveAllowed(nodeWithPriority.node, i)) {
+                continue;
             }
             //make going cross a little harder
             float movementCost = glm::length(currentNode->getPosition() - nodeWithPriority.node->getPosition());
@@ -167,6 +187,12 @@ bool AIMovementGrid::setProperHeight(glm::vec3 *position, float floatingHeight, 
     rayCallback->m_collisionObject = nullptr;
     staticWorld->rayTest(rayCallback->m_rayFromWorld, rayCallback->m_rayToWorld, *rayCallback);
     if (rayCallback->hasHit()) {
+        // We added support for 2 tags. One completely prevents us from detecting the hit, so we don't process it.
+        // Other one is a flag for us to mark that point as not walkable. This is a check for that.
+        const GameObject *hitObject = static_cast<const GameObject *>(rayCallback->m_collisionObject->getUserPointer());
+        if (hitObject != nullptr && hitObject->hasTag(blockerTagHash)) {
+            return false;//same rule as the query context, the closest surface decides
+        }
         if(rayCallback->m_hitPointWorld.getY() > (*position - glm::vec3(0, 1, 0)).y) {
             return false;
         }
@@ -180,34 +206,24 @@ bool AIMovementGrid::setProperHeight(glm::vec3 *position, float floatingHeight, 
 std::shared_ptr<AIMovementNode>
 AIMovementGrid::walkMonster(glm::vec3 walkPoint, btDiscreteDynamicsWorld *staticWorld, const glm::vec3 &min,
                             const glm::vec3 &max, uint32_t collisionGroup, uint32_t collisionMask) {
-    std::queue<std::shared_ptr<AIMovementNode>> frontier;
-    if (!setProperHeight(&walkPoint, floatingHeight, std::fabs(walkPoint.y -1 * min.y), staticWorld)) {
+    if (!findGroundAt(&walkPoint, staticWorld, std::fabs(walkPoint.y -1 * min.y))) {
         std::cerr << "Root node " << glm::to_string(walkPoint)<< " has nothing underneath, grid generation failed. " << std::endl;
         return root;
     }
 
     std::shared_ptr<AIMovementNode>root = std::make_shared<AIMovementNode>(getNextID(), walkPoint);
-    staticWorld->addCollisionObject(sharedGhostObject, collisionGroup, collisionMask);
-    sharedGhostObject->setWorldTransform(
-            btTransform(btQuaternion::getIdentity(), GLMConverter::GLMToBlt(root->getPosition())));
-    btVector3 minO, maxO;
-    sharedGhostObject->getCollisionShape()->getAabb(sharedGhostObject->getWorldTransform(), minO, maxO);
-    bool isMovable = !isThereCollision(staticWorld);
-    staticWorld->removeCollisionObject(sharedGhostObject);
-    if (isMovable) {
-        root->setIsMovable(isMovable);
-        frontier.push(root);
-        gridOrigin = walkPoint;
-        addToVisited(root);
-
-        std::cerr << "Root node " << GLMUtils::vectorToString(walkPoint) << "is movable, AI walk grid generation starts." << std::endl;
-    } else {
+    if (isBlockedAt(root->getPosition(), staticWorld, collisionGroup, collisionMask)) {
         std::cerr << "Root node " << GLMUtils::vectorToString(walkPoint) << "is not movable, AI walk grid generation failed. Please check map." << std::endl;
         return root;
     }
-    std::shared_ptr<AIMovementNode> current;
+    root->setIsMovable(true);
+    gridOrigin = walkPoint;
+    addToVisited(root);
+    std::cerr << "Root node " << GLMUtils::vectorToString(walkPoint) << "is movable, AI walk grid generation starts." << std::endl;
+    std::queue<std::shared_ptr<AIMovementNode>> frontier;
+    frontier.push(root);
     while (!frontier.empty()) {
-        current = frontier.front();
+        std::shared_ptr<AIMovementNode> current = frontier.front();
         frontier.pop();
 
         if(doneNodes.size() %10000 == 0) {
@@ -218,44 +234,35 @@ AIMovementGrid::walkMonster(glm::vec3 walkPoint, btDiscreteDynamicsWorld *static
             for (int j = -1; j <= 1; ++j) {
                 if (i == 0 && j == 0) {
                     continue; //skip the center, it is the self
+                }
+                int neighbourIndex = (i + 1) * 3 + (j + 1);
+                if(current->getNeighbour(neighbourIndex) != nullptr) {
+                    continue;//already set
+                }
+                bool isMovable = true;
+                glm::vec3 neighbourPosition = current->getPosition() + glm::vec3(i, 0, j);
+                if (!findGroundAt(&neighbourPosition, staticWorld, floatingHeight + 1.0f)) {
+                    isMovable = false;
+                }
+
+                if (neighbourPosition.x < min.x || neighbourPosition.y < min.y || neighbourPosition.z < min.z ||
+                    neighbourPosition.x > max.x || neighbourPosition.y > max.y || neighbourPosition.z > max.z) {
+                    //this means this position is out of whole world AABB, skip
+                    continue;
+                }
+
+                std::shared_ptr<AIMovementNode> visitedNode = isAlreadyVisited(neighbourPosition);
+                if (visitedNode != nullptr) {
+                    current->setNeighbour(neighbourIndex, visitedNode);
                 } else {
-                    int neighbourIndex = (i + 1) * 3 + (j + 1);
-                    if(current->getNeighbour(neighbourIndex) != nullptr) {
-                        continue;//already set
-                    }
-                    isMovable = true;
-                    glm::vec3 neighbourPosition = current->getPosition() + glm::vec3(i, 0, j);
-                    if (!setProperHeight(&neighbourPosition, floatingHeight, floatingHeight + 1.0f, staticWorld)) {
-                        isMovable = false;
-                    }
+                    isMovable = isMovable && !isBlockedAt(neighbourPosition, staticWorld, collisionGroup, collisionMask);
 
-                    if (neighbourPosition.x < min.x || neighbourPosition.y < min.y || neighbourPosition.z < min.z ||
-                        neighbourPosition.x > max.x || neighbourPosition.y > max.y || neighbourPosition.z > max.z) {
-                        //this means this position is out of whole world AABB, skip
-                        continue;
-                    }
-
-                    std::shared_ptr<AIMovementNode> visitedNode = isAlreadyVisited(neighbourPosition);
-                    if (visitedNode != nullptr) {
-                        //std::cout << "already visited node at " << GLMUtils::vectorToString(neighbourPosition) << std::endl;
-                        //std::cout << "already visited node position is " << GLMUtils::vectorToString(visitedNode->getPosition()) << std::endl;
-                        current->setNeighbour(neighbourIndex, visitedNode);
-                    } else {
-                        //std::cout << "adding new node with position " << GLMUtils::vectorToString(neighbourPosition) << std::endl;
-                        staticWorld->addCollisionObject(sharedGhostObject, collisionGroup, collisionMask);
-                        sharedGhostObject->setWorldTransform(
-                                btTransform(btQuaternion::getIdentity(), GLMConverter::GLMToBlt(neighbourPosition)));
-                        isMovable = isMovable && !isThereCollision(staticWorld);
-                        staticWorld->removeCollisionObject(sharedGhostObject);
-
-
-                        std::shared_ptr<AIMovementNode> neighbour =std::make_shared<AIMovementNode>(getNextID(), neighbourPosition);
-                        neighbour->setIsMovable(isMovable);
-                        current->setNeighbour(neighbourIndex, neighbour);
-                        addToVisited(neighbour);
-                        if(isMovable) {
-                            frontier.push(neighbour);
-                        }
+                    std::shared_ptr<AIMovementNode> neighbour =std::make_shared<AIMovementNode>(getNextID(), neighbourPosition);
+                    neighbour->setIsMovable(isMovable);
+                    current->setNeighbour(neighbourIndex, neighbour);
+                    addToVisited(neighbour);
+                    if(isMovable) {
+                        frontier.push(neighbour);
                     }
                 }
             }
@@ -358,50 +365,46 @@ void AIMovementGrid::printGridStatistics(btDiscreteDynamicsWorld *staticWorld) c
     printCellDetails(worstCell, staticWorld);
 }
 
-bool AIMovementGrid::isThereCollision(btDiscreteDynamicsWorld *staticWorld) {
-    isThereCollisionCounter++;
-    staticWorld->updateAabbs();//this should not be needed, but it is. I have no idea why
-    staticWorld->getDispatcher()->dispatchAllCollisionPairs(sharedGhostObject->getOverlappingPairCache(),
-                                                            staticWorld->getDispatchInfo(),
-                                                            staticWorld->getDispatcher());
-    btBroadphasePairArray &pairArray = sharedGhostObject->getOverlappingPairCache()->getOverlappingPairArray();
-    int numPairs = pairArray.size();
+bool AIMovementGrid::isBlockedAt(const glm::vec3 &position, btDiscreteDynamicsWorld *staticWorld, uint32_t collisionGroup, uint32_t collisionMask) {
+    collisionQueryCount++;
+    return queryContext->isBlocked(staticWorld, position, collisionGroup, collisionMask);
+}
 
-    for (int i = 0; i < numPairs; ++i) {
-        const btBroadphasePair &pair = pairArray[i];
+bool AIMovementGrid::findGroundAt(glm::vec3 *position, btDiscreteDynamicsWorld *staticWorld, float checkHeight) {
+    groundQueryCount++;
+    return queryContext->setProperHeight(staticWorld, position, floatingHeight, checkHeight);
+}
 
-        if (pair.m_algorithm) {
-            pair.m_algorithm->getAllContactManifolds(sharedManifoldArray);
+bool AIMovementGrid::chooseStartPoint(const std::vector<StartCandidate> &startCandidates, btDiscreteDynamicsWorld *staticWorld, const glm::vec3 &min,
+                                      uint32_t collisionGroup, uint32_t collisionMask, glm::vec3 *startPoint) {
+    for (const StartCandidate &candidate : startCandidates) {
+        glm::vec3 snappedPosition = candidate.position;
+        if (!findGroundAt(&snappedPosition, staticWorld, std::fabs(snappedPosition.y - min.y))) {
+            std::cout << "AI grid start candidate rejected, " << candidate.description << " at " << glm::to_string(candidate.position) << ": no walkable ground below it" << std::endl;
+            continue;
         }
-
-        for (int j = 0; j < sharedManifoldArray.size(); j++) {
-            btPersistentManifold *manifold = sharedManifoldArray[j];
-            for (int p = 0; p < manifold->getNumContacts(); ++p) {
-                const btManifoldPoint &pt = manifold->getContactPoint(p);
-
-                if (pt.getDistance() < 0.f) {
-                    // There is a collision
-                    sharedManifoldArray.resize(0);//the pair, and its manifolds, are gone with the ghost removal. stale ones would be read on the next call
-                    return true;
-                }
-            }
+        if (isBlockedAt(snappedPosition, staticWorld, collisionGroup, collisionMask)) {
+            std::cout << "AI grid start candidate rejected, " << candidate.description << " at " << glm::to_string(candidate.position) << ": ground found at " << glm::to_string(snappedPosition) << " but the probe collides there" << std::endl;
+            continue;
         }
-        sharedManifoldArray.resize(0);
-
+        std::cout << "AI grid start point is " << candidate.description << " at " << glm::to_string(candidate.position) << ", ground at " << glm::to_string(snappedPosition) << std::endl;
+        *startPoint = candidate.position;
+        return true;
     }
     return false;
 }
 
-AIMovementGrid::AIMovementGrid(glm::vec3 startPoint, btDiscreteDynamicsWorld *staticOnlyPhysicsWorld, glm::vec3 min,
-                               glm::vec3 max, uint32_t collisionGroup, uint32_t collisionMask) {
-    //sharedGhostObject->setCollisionShape(new btBoxShape(btVector3(1.0f,1.0f,1.0f)));
-    //sharedGhostObject->setCollisionShape(new btCapsuleShape(1,1));
-    ghostShape = new btCapsuleShape(capsuleRadius, capsuleHeight);
+AIMovementGrid::AIMovementGrid(const std::vector<StartCandidate> &startCandidates, btDiscreteDynamicsWorld *staticOnlyPhysicsWorld, glm::vec3 min,
+                               glm::vec3 max, uint32_t collisionGroup, uint32_t collisionMask, OptionsUtil::Options *options) {
+    if (options->getOption<std::string>(HASH("ai_gridProbeShape")).getOrDefault(std::string("box")) == "capsule") {
+        ghostShape = new btCapsuleShape(capsuleRadius, capsuleHeight);
+        std::cout << "AI grid probe shape is capsule, radius " << capsuleRadius << std::endl;
+    } else {
+        ghostShape = new btBoxShape(btVector3(BOX_HALF_EXTENT_XZ, BOX_HALF_HEIGHT, BOX_HALF_EXTENT_XZ));
+        std::cout << "AI grid probe shape is box, half extents " << BOX_HALF_EXTENT_XZ << " " << BOX_HALF_HEIGHT << " " << BOX_HALF_EXTENT_XZ << std::endl;
+    }
 
-    sharedGhostObject->setCollisionShape(ghostShape);
-    sharedGhostObject->setCollisionFlags(
-            sharedGhostObject->getCollisionFlags());
-    sharedGhostObject->setWorldTransform(btTransform(btQuaternion::getIdentity(), GLMConverter::GLMToBlt(startPoint)));
+    queryContext = std::make_unique<AIGridQueryContext>(ghostShape, blockerTagHash, collisionGroup, collisionMask);
     if (std::fabs(min.x) > MAX_GRID_COORDINATE || std::fabs(min.z) > MAX_GRID_COORDINATE ||
         std::fabs(max.x) > MAX_GRID_COORDINATE || std::fabs(max.z) > MAX_GRID_COORDINATE) {
         std::cerr << "AI walk grid bounds are too large, coordinates must stay within +-" << MAX_GRID_COORDINATE << std::endl;
@@ -409,10 +412,18 @@ AIMovementGrid::AIMovementGrid(glm::vec3 startPoint, btDiscreteDynamicsWorld *st
     }
     std::cout << "Start generating AI walk grid" << std::endl;
     doneNodes.push_back(std::make_shared<AIMovementNode>(0, glm::vec3(0,200,0)));//0 index element should be empty
+
+    glm::vec3 startPoint(0);
+    if (!chooseStartPoint(startCandidates, staticOnlyPhysicsWorld, min, collisionGroup, collisionMask, &startPoint)) {
+        std::cerr << "AI grid generation failed: none of the " << startCandidates.size() << " start candidates is valid" << std::endl;
+        return;
+    }
+
+    Uint64 generationStartTicks = SDL3Helper::getTicks();
     root = walkMonster(startPoint, staticOnlyPhysicsWorld, min, max, collisionGroup, collisionMask);
-    std::cout << "Finished generating AI walk grid, created " << visitedCount << " nodes, checked for collision "
-              << isThereCollisionCounter << " times." << std::endl;
-    staticOnlyPhysicsWorld->removeCollisionObject(sharedGhostObject);
+    std::cout << "Finished generating AI walk grid in " << SDL3Helper::getTicks() - generationStartTicks << " ms, with " << doneNodes.size() - 1 << " nodes and "
+              << visitedCount << " unmovable edge nodes" << std::endl;
+    std::cout << "AI grid queries that ran: " << groundQueryCount << " ground rays, " << collisionQueryCount << " collision tests" << std::endl;
 }
 
 bool
