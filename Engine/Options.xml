@@ -738,6 +738,24 @@
         <Index>54</Index>
     </Parameter>
     <Parameter>
+        <RequestType>FreeNumber</RequestType>
+        <Description>ai_gridThreads</Description>
+        <!--Threads the AI walk grid generation uses, -1 uses all the hardware threads. 1 runs everything on the calling thread. More threads split the queries of every level and give the same grid, the merge stays on one thread-->
+        <Value>4</Value>
+        <valueType>Long</valueType>
+        <IsSet>True</IsSet>
+        <Index>89</Index>
+    </Parameter>
+    <Parameter>
+        <RequestType>FreeNumber</RequestType>
+        <Description>ai_gridChunkSize</Description>
+        <!--How many consecutive nodes a grid generation thread takes at a time. Small chunks balance the threads better, big ones keep each thread on one patch of geometry. Only matters with ai_gridThreads above 1-->
+        <Value>4</Value>
+        <valueType>Long</valueType>
+        <IsSet>True</IsSet>
+        <Index>90</Index>
+    </Parameter>
+    <Parameter>
         <RequestType>FreeText</RequestType>
         <Description>ai_gridProbeShape</Description>
         <!--Shape the AI walk grid tests every cell with. box is one cell wide, capsule is the old round probe and only here for comparing-->

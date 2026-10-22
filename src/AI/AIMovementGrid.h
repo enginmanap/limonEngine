@@ -18,6 +18,8 @@
 #include <map>
 #include <unordered_map>
 #include <cmath>
+#include <atomic>
+#include <chrono>
 #include <cstdint>
 #include <limits>
 
@@ -31,6 +33,7 @@
 
 #include "AIMovementNode.h"
 #include "AIGridQueryContext.h"
+#include "AIGridWorkerPool.h"
 #include "../limonAPI/Options.h"
 #include "../Utils/HashUtil.h"
 #include "../Utils/HardCodedTags.h"
@@ -94,9 +97,48 @@ private:
     std::unique_ptr<AIGridQueryContext> queryContext;
     const uint64_t blockerTagHash = HashUtil::hashString(HardCodedTags::OBJECT_MODEL_AI_WALK_BLOCKER);
 
-    uint64_t groundQueryCount = 0;//what really ran
+    //ai_gridThreads above 1 splits the queries of every level across threads. The merge stays serial and in queue order, so the grid is the same as the serial one
+    struct NeighbourProposal {
+        glm::vec3 position = glm::vec3(0);
+        bool isSkipped = true;//already linked, or out of the world aabb
+        bool isGroundFound = false;
+        bool isKnown = false;//a node was there before this level started
+    };
+    struct CreatedNode {
+        std::shared_ptr<AIMovementNode> node;
+        bool isGroundFound = false;
+        bool isBlocked = false;
+    };
+    struct alignas(64) WorkerCounters {//own cache line, every worker writes only its own
+        uint64_t groundQueries = 0;
+        uint64_t collisionQueries = 0;
+        int64_t levelBusyNanoseconds = 0;//what the worker spent in the phase that just ran
+    };
+    struct LevelWork {
+        std::atomic<size_t> nextItem{0};//next chunk start, shared by the workers of the phase that runs
+        std::vector<WorkerCounters> workerCounters;
+        std::vector<CreatedNode> created;//what the merge created in this level, in creation order
+        const std::vector<std::shared_ptr<AIMovementNode>> *level = nullptr;
+        std::vector<NeighbourProposal> proposals;//9 per node of the level, indexed like the neighbours
+        btDiscreteDynamicsWorld *world = nullptr;
+        glm::vec3 min = glm::vec3(0);
+        glm::vec3 max = glm::vec3(0);
+        uint32_t collisionGroup = 0;
+        uint32_t collisionMask = 0;
+    };
+    size_t threadCount = 1;
+    size_t chunkSize = 4;//nodes a worker takes at a time
+    uint64_t groundQueryCount = 0;//what really ran, nodes of one level can't see each other's links yet, so a position can get more than one ray
     uint64_t collisionQueryCount = 0;
+    std::vector<std::unique_ptr<AIGridQueryContext>> workerContexts;
+    void walkLevels(const std::shared_ptr<AIMovementNode> &rootNode, btDiscreteDynamicsWorld *staticWorld, const glm::vec3 &min,
+                    const glm::vec3 &max, uint32_t collisionGroup, uint32_t collisionMask);
+    void proposeNode(size_t nodeIndex, LevelWork &work, AIGridQueryContext &context, WorkerCounters &counters);
+    void proposeNeighbours(size_t workerIndex, LevelWork &work);
+    void testCollisions(size_t workerIndex, LevelWork &work);
+    static void addBusyTime(const LevelWork &work, int64_t &busySumNanoseconds, int64_t &criticalPathNanoseconds);
     void finishNode(const std::shared_ptr<AIMovementNode> &node);
+    void printSearchSummary(btDiscreteDynamicsWorld *staticWorld) const;
     uint64_t calculateFingerprint() const;
     static bool isLowerId(const AIMovementNode *left, const AIMovementNode *right);
     bool chooseStartPoint(const std::vector<StartCandidate> &startCandidates, btDiscreteDynamicsWorld *staticWorld, const glm::vec3 &min,
@@ -138,6 +180,7 @@ private:
     //the node within the position tolerance, finished or not. Never copies the shared_ptr, a copy is an atomic
     const std::shared_ptr<AIMovementNode> *findNode(const glm::vec3 &position) const;
     std::shared_ptr<AIMovementNode> isAlreadyVisited(const glm::vec3 &position);
+    bool isPositionKnown(const glm::vec3 &position) const;
 
     std::shared_ptr<AIMovementNode>
     walkMonster(glm::vec3 walkPoint, btDiscreteDynamicsWorld *staticWorld, const glm::vec3 &min,

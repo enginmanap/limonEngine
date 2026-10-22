@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <cstdlib>
 #include <cstring>
+#include <thread>
 #include <glm/ext.hpp>
 #include "AIMovementGrid.h"
 
@@ -62,6 +63,10 @@ const std::shared_ptr<AIMovementNode> *AIMovementGrid::findNode(const glm::vec3 
         }
     }
     return nullptr;
+}
+
+bool AIMovementGrid::isPositionKnown(const glm::vec3 &position) const {
+    return findNode(position) != nullptr;
 }
 
 std::shared_ptr<AIMovementNode>AIMovementGrid::isAlreadyVisited(const glm::vec3 &position) {
@@ -220,59 +225,9 @@ AIMovementGrid::walkMonster(glm::vec3 walkPoint, btDiscreteDynamicsWorld *static
     gridOrigin = walkPoint;
     addToVisited(root);
     std::cerr << "Root node " << GLMUtils::vectorToString(walkPoint) << "is movable, AI walk grid generation starts." << std::endl;
-    std::queue<std::shared_ptr<AIMovementNode>> frontier;
-    frontier.push(root);
-    while (!frontier.empty()) {
-        std::shared_ptr<AIMovementNode> current = frontier.front();
-        frontier.pop();
 
-        if(doneNodes.size() %10000 == 0) {
-            std::cout << "After "<< SDL3Helper::getTicks() << " current done " << doneNodes.size() << " nodes, partial " << visitedCount << " frontier " << frontier.size() << " last node: " << glm::to_string(current->getPosition()) << std::endl;
-        }
-
-        for (int i = -1; i <= 1; ++i) {
-            for (int j = -1; j <= 1; ++j) {
-                if (i == 0 && j == 0) {
-                    continue; //skip the center, it is the self
-                }
-                int neighbourIndex = (i + 1) * 3 + (j + 1);
-                if(current->getNeighbour(neighbourIndex) != nullptr) {
-                    continue;//already set
-                }
-                bool isMovable = true;
-                glm::vec3 neighbourPosition = current->getPosition() + glm::vec3(i, 0, j);
-                if (!findGroundAt(&neighbourPosition, staticWorld, floatingHeight + 1.0f)) {
-                    isMovable = false;
-                }
-
-                if (neighbourPosition.x < min.x || neighbourPosition.y < min.y || neighbourPosition.z < min.z ||
-                    neighbourPosition.x > max.x || neighbourPosition.y > max.y || neighbourPosition.z > max.z) {
-                    //this means this position is out of whole world AABB, skip
-                    continue;
-                }
-
-                std::shared_ptr<AIMovementNode> visitedNode = isAlreadyVisited(neighbourPosition);
-                if (visitedNode != nullptr) {
-                    current->setNeighbour(neighbourIndex, visitedNode);
-                } else {
-                    isMovable = isMovable && !isBlockedAt(neighbourPosition, staticWorld, collisionGroup, collisionMask);
-
-                    std::shared_ptr<AIMovementNode> neighbour =std::make_shared<AIMovementNode>(getNextID(), neighbourPosition);
-                    neighbour->setIsMovable(isMovable);
-                    current->setNeighbour(neighbourIndex, neighbour);
-                    addToVisited(neighbour);
-                    if(isMovable) {
-                        frontier.push(neighbour);
-                    }
-                }
-            }
-        }
-        finishNode(current);
-    }
-
-    printGridStatistics(staticWorld);
-    std::cout << "Walk grid creation finished with " << doneNodes.size() << " nodes between " << glm::to_string(this->min) << ", " << glm::to_string(this->max) << std::endl;
-    std::cout << "Walk grid fingerprint " << std::hex << calculateFingerprint() << std::dec << std::endl;
+    walkLevels(root, staticWorld, min, max, collisionGroup, collisionMask);
+    printSearchSummary(staticWorld);
     return root;
 }
 
@@ -305,6 +260,198 @@ uint64_t AIMovementGrid::calculateFingerprint() const {
         }
     }
     return fingerprint;
+}
+
+void AIMovementGrid::printSearchSummary(btDiscreteDynamicsWorld *staticWorld) const {
+    printGridStatistics(staticWorld);
+    std::cout << "Walk grid creation finished with " << doneNodes.size() << " nodes between " << glm::to_string(this->min) << ", " << glm::to_string(this->max) << std::endl;
+    std::cout << "Walk grid fingerprint " << std::hex << calculateFingerprint() << std::dec << std::endl;
+}
+
+void AIMovementGrid::proposeNode(size_t nodeIndex, LevelWork &work, AIGridQueryContext &context, WorkerCounters &counters) {
+    const std::shared_ptr<AIMovementNode> &node = (*work.level)[nodeIndex];
+    for (int i = -1; i <= 1; ++i) {
+        for (int j = -1; j <= 1; ++j) {
+            int neighbourIndex = (i + 1) * 3 + (j + 1);
+            NeighbourProposal &proposal = work.proposals[nodeIndex * 9 + neighbourIndex];
+            proposal = NeighbourProposal();
+            if (i == 0 && j == 0) {
+                continue;
+            }
+            if (node->hasNeighbour(neighbourIndex)) {
+                continue;
+            }
+            glm::vec3 neighbourPosition = node->getPosition() + glm::vec3(i, 0, j);
+            counters.groundQueries++;
+            bool isGroundFound = context.setProperHeight(work.world, &neighbourPosition, floatingHeight, floatingHeight + 1.0f);
+            if (neighbourPosition.x < work.min.x || neighbourPosition.y < work.min.y || neighbourPosition.z < work.min.z ||
+                neighbourPosition.x > work.max.x || neighbourPosition.y > work.max.y || neighbourPosition.z > work.max.z) {
+                continue;
+            }
+            proposal.isSkipped = false;
+            proposal.position = neighbourPosition;
+            proposal.isGroundFound = isGroundFound;
+            if (isPositionKnown(neighbourPosition)) {
+                proposal.isKnown = true;//the tables only grow, the merge will find it too
+            }
+        }
+    }
+}
+
+//workers take chunks of consecutive nodes from a shared counter, a chunk is a small arc of the wave so its rays touch the same geometry
+void AIMovementGrid::proposeNeighbours(size_t workerIndex, LevelWork &work) {
+    AIGridQueryContext &context = *workerContexts[workerIndex];
+    WorkerCounters &counters = work.workerCounters[workerIndex];
+    std::chrono::steady_clock::time_point phaseStart = std::chrono::steady_clock::now();
+    size_t levelSize = work.level->size();
+    while (true) {
+        size_t begin = work.nextItem.fetch_add(chunkSize);
+        if (begin >= levelSize) {
+            break;
+        }
+        size_t end = std::min(begin + chunkSize, levelSize);
+        for (size_t nodeIndex = begin; nodeIndex < end; ++nodeIndex) {
+            proposeNode(nodeIndex, work, context, counters);
+        }
+    }
+    counters.levelBusyNanoseconds = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - phaseStart).count();
+}
+
+//the collision test only decides the movable flag, so it runs after the merge on the created nodes, once each
+void AIMovementGrid::testCollisions(size_t workerIndex, LevelWork &work) {
+    AIGridQueryContext &context = *workerContexts[workerIndex];
+    WorkerCounters &counters = work.workerCounters[workerIndex];
+    std::chrono::steady_clock::time_point phaseStart = std::chrono::steady_clock::now();
+    size_t createdCount = work.created.size();
+    while (true) {
+        size_t begin = work.nextItem.fetch_add(chunkSize);
+        if (begin >= createdCount) {
+            break;
+        }
+        size_t end = std::min(begin + chunkSize, createdCount);
+        for (size_t createdIndex = begin; createdIndex < end; ++createdIndex) {
+            CreatedNode &created = work.created[createdIndex];
+            if (created.isGroundFound) {
+                counters.collisionQueries++;
+                created.isBlocked = context.isBlocked(work.world, created.node->getPosition(), work.collisionGroup, work.collisionMask);
+            }
+        }
+    }
+    counters.levelBusyNanoseconds = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - phaseStart).count();
+}
+
+void AIMovementGrid::addBusyTime(const LevelWork &work, int64_t &busySumNanoseconds, int64_t &criticalPathNanoseconds) {
+    int64_t slowestNanoseconds = 0;
+    for (const WorkerCounters &counters : work.workerCounters) {
+        busySumNanoseconds += counters.levelBusyNanoseconds;
+        slowestNanoseconds = std::max(slowestNanoseconds, counters.levelBusyNanoseconds);
+    }
+    criticalPathNanoseconds += slowestNanoseconds;
+}
+
+void AIMovementGrid::walkLevels(const std::shared_ptr<AIMovementNode> &rootNode, btDiscreteDynamicsWorld *staticWorld, const glm::vec3 &min,
+                                const glm::vec3 &max, uint32_t collisionGroup, uint32_t collisionMask) {
+    workerContexts.clear();
+    for (size_t workerIndex = 0; workerIndex < threadCount; ++workerIndex) {
+        workerContexts.push_back(std::make_unique<AIGridQueryContext>(ghostShape, blockerTagHash, collisionGroup, collisionMask));
+    }
+    AIGridWorkerPool workerPool(threadCount);
+    std::cout << "AI grid search runs on " << threadCount << " threads" << std::endl;
+
+    LevelWork work;
+    work.world = staticWorld;
+    work.min = min;
+    work.max = max;
+    work.collisionGroup = collisionGroup;
+    work.collisionMask = collisionMask;
+    work.workerCounters.assign(threadCount, WorkerCounters());
+    int64_t busySumNanoseconds = 0;//all workers, all levels
+    int64_t criticalPathNanoseconds = 0;//the slowest worker of every level, what the levels cost without wake ups and the merge
+
+    std::vector<std::shared_ptr<AIMovementNode>> currentLevel;
+    std::vector<std::shared_ptr<AIMovementNode>> nextLevel;
+    currentLevel.push_back(rootNode);
+    size_t nextLogCount = 0;
+    size_t levelCount = 0;
+    std::chrono::nanoseconds parallelPhaseTime = std::chrono::nanoseconds::zero();
+    std::chrono::nanoseconds mergePhaseTime = std::chrono::nanoseconds::zero();
+    while (!currentLevel.empty()) {
+        work.level = &currentLevel;
+        work.proposals.resize(currentLevel.size() * 9);
+        work.created.clear();
+        work.nextItem.store(0);
+        std::chrono::steady_clock::time_point parallelStart = std::chrono::steady_clock::now();
+        workerPool.run(std::bind(&AIMovementGrid::proposeNeighbours, this, std::placeholders::_1, std::ref(work)));
+        std::chrono::steady_clock::time_point mergeStart = std::chrono::steady_clock::now();
+        parallelPhaseTime += mergeStart - parallelStart;
+        addBusyTime(work, busySumNanoseconds, criticalPathNanoseconds);
+
+        //same order the serial search runs in. Nodes get created here, whether they are movable is not known yet
+        nextLevel.clear();
+        for (size_t nodeIndex = 0; nodeIndex < currentLevel.size(); ++nodeIndex) {
+            const std::shared_ptr<AIMovementNode> &current = currentLevel[nodeIndex];
+            if (doneNodes.size() >= nextLogCount) {
+                std::cout << "After " << SDL3Helper::getTicks() << " current done " << doneNodes.size() << " nodes, partial " << visitedCount << " level " << levelCount
+                          << " width " << currentLevel.size() << " last node: " << glm::to_string(current->getPosition()) << std::endl;
+                nextLogCount = doneNodes.size() + 10000;
+            }
+            for (int i = -1; i <= 1; ++i) {
+                for (int j = -1; j <= 1; ++j) {
+                    if (i == 0 && j == 0) {
+                        continue;
+                    }
+                    int neighbourIndex = (i + 1) * 3 + (j + 1);
+                    const NeighbourProposal &proposal = work.proposals[nodeIndex * 9 + neighbourIndex];
+                    if (proposal.isSkipped || current->getNeighbour(neighbourIndex) != nullptr) {
+                        continue;
+                    }
+                    std::shared_ptr<AIMovementNode> visitedNode = isAlreadyVisited(proposal.position);
+                    if (visitedNode != nullptr) {
+                        current->setNeighbour(neighbourIndex, visitedNode);
+                        continue;
+                    }
+                    std::shared_ptr<AIMovementNode> neighbour = std::make_shared<AIMovementNode>(getNextID(), proposal.position);
+                    current->setNeighbour(neighbourIndex, neighbour);
+                    addToVisited(neighbour);
+                    CreatedNode created;
+                    created.node = neighbour;
+                    created.isGroundFound = proposal.isGroundFound;
+                    work.created.push_back(created);
+                }
+            }
+            finishNode(current);
+        }
+        std::chrono::steady_clock::time_point collisionStart = std::chrono::steady_clock::now();
+        mergePhaseTime += collisionStart - mergeStart;
+
+        work.nextItem.store(0);
+        workerPool.run(std::bind(&AIMovementGrid::testCollisions, this, std::placeholders::_1, std::ref(work)));
+        std::chrono::steady_clock::time_point frontierStart = std::chrono::steady_clock::now();
+        parallelPhaseTime += frontierStart - collisionStart;
+        addBusyTime(work, busySumNanoseconds, criticalPathNanoseconds);
+
+        //creation order again, so the next level is in the order the serial queue would have had
+        for (const CreatedNode &created : work.created) {
+            bool isMovable = created.isGroundFound && !created.isBlocked;
+            created.node->setIsMovable(isMovable);
+            if (isMovable) {
+                nextLevel.push_back(created.node);
+            }
+        }
+        currentLevel.swap(nextLevel);
+        mergePhaseTime += std::chrono::steady_clock::now() - frontierStart;
+        levelCount++;
+    }
+    std::cout << "AI grid search finished after " << levelCount << " levels, parallel queries took "
+              << std::chrono::duration_cast<std::chrono::milliseconds>(parallelPhaseTime).count() << " ms, serial merge took "
+              << std::chrono::duration_cast<std::chrono::milliseconds>(mergePhaseTime).count() << " ms" << std::endl;
+    for (const WorkerCounters &counters : work.workerCounters) {
+        groundQueryCount += counters.groundQueries;
+        collisionQueryCount += counters.collisionQueries;
+    }
+    std::cout << "AI grid search workers were busy " << busySumNanoseconds / 1000000 << " ms in total, the slowest worker of every level added up to "
+              << criticalPathNanoseconds / 1000000 << " ms, so the levels waited " << (criticalPathNanoseconds * static_cast<int64_t>(threadCount) * 100 / std::max<int64_t>(busySumNanoseconds, 1)) - 100
+              << "% above a perfect split, and the wake ups and joins cost " << std::chrono::duration_cast<std::chrono::milliseconds>(parallelPhaseTime).count() - criticalPathNanoseconds / 1000000 << " ms" << std::endl;
 }
 
 void AIMovementGrid::printCellDetails(uint64_t cellKey, btDiscreteDynamicsWorld *staticWorld) const {
@@ -396,6 +543,16 @@ bool AIMovementGrid::chooseStartPoint(const std::vector<StartCandidate> &startCa
 
 AIMovementGrid::AIMovementGrid(const std::vector<StartCandidate> &startCandidates, btDiscreteDynamicsWorld *staticOnlyPhysicsWorld, glm::vec3 min,
                                glm::vec3 max, uint32_t collisionGroup, uint32_t collisionMask, OptionsUtil::Options *options) {
+    long requestedThreads = options->getOption<long>(HASH("ai_gridThreads")).getOrDefault(1L);
+    if (requestedThreads == -1) {
+        requestedThreads = static_cast<long>(std::thread::hardware_concurrency());//0 when the system can't tell, that ends up as 1
+    }
+    threadCount = static_cast<size_t>(std::max(1L, requestedThreads));
+    chunkSize = static_cast<size_t>(std::max(1L, options->getOption<long>(HASH("ai_gridChunkSize")).getOrDefault(4L)));
+    if (threadCount == 1) {
+        chunkSize = std::numeric_limits<size_t>::max() / 2;//one worker takes the whole level at once
+    }
+
     if (options->getOption<std::string>(HASH("ai_gridProbeShape")).getOrDefault(std::string("box")) == "capsule") {
         ghostShape = new btCapsuleShape(capsuleRadius, capsuleHeight);
         std::cout << "AI grid probe shape is capsule, radius " << capsuleRadius << std::endl;
