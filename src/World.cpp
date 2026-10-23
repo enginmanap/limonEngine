@@ -217,6 +217,7 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
     renderInformationsOption = options->getOption<bool>(HASH("debug_renderInformations"));
     maxLightsOption = options->getOption<long>(HASH("performance_maximumLights"));
     aiGridDrawRadiusOption = options->getOption<long>(HASH("debug_aiGridDrawRadius"));
+    aiGridFloatingHeightOption = options->getOption<double>(HASH("ai_gridFloatingHeight"));
     activeLights.reserve(maxLightsOption.getOrDefault(4));
 
     soundVolumeOptions[(size_t)LimonTypes::AudioChannel::MASTER]  = options->getOption<double>(HASH("audio_volumeMaster"));
@@ -688,7 +689,7 @@ ActorInterface::ActorInformation World::fillActorInformation(ActorInterface *act
     Model* actorModel = objects[actor->getModelID()];
     if(actorModel != nullptr) {
         information.canSeePlayerDirectly = checkPlayerVisibility(
-                actor->getPosition() + glm::vec3(0, AIMovementGrid::floatingHeight+1.0f, 0),
+                actor->getPosition() + glm::vec3(0, getAIGridFloatingHeight()+1.0f, 0),
                 actorModel->getName());
         if (currentPlayer->isDead()) {
             information.playerDead = true;
@@ -743,7 +744,7 @@ ActorInterface::ActorInformation World::fillActorInformation(ActorInterface *act
             std::vector<LimonTypes::GenericParameter> parameters;
             parameters.push_back(LimonTypes::GenericParameter());
             parameters[0].value.vectorValue = GLMConverter::GLMToLimon(
-                    actor->getPosition() + glm::vec3(0, AIMovementGrid::floatingHeight, 0));
+                    actor->getPosition() + glm::vec3(0, getAIGridFloatingHeight(), 0));
             parameters.push_back(LimonTypes::GenericParameter());
             parameters[1].value.longValues[0] = 2;
             parameters[1].value.longValues[1] = actor->getWorldID();
@@ -788,8 +789,7 @@ World::fillRouteInformation(std::vector<LimonTypes::GenericParameter> parameters
     uint32_t maximumDistance = (uint32_t)parameters[1].value.longValues[2];
     std::vector<glm::vec3> route;
     glm::vec3 destinationWithGrid = glm::vec3(GLMConverter::LimonToGLM(parameters[2].value.vectorValue));
-    bool isDestinationReachable = grid->setProperHeight(&destinationWithGrid, AIMovementGrid::floatingHeight, 0.0f,
-                                                      dynamicsWorld);
+    bool isDestinationReachable = grid->setProperHeight(&destinationWithGrid, 0.0f, dynamicsWorld);
     if (isDestinationReachable && grid->coursePath(fromPosition, destinationWithGrid, actorID, maximumDistance, &route)) {
         if (!route.empty()) {             
             //Normally, this information should be used for straightening the path, but not yet.             
@@ -1365,6 +1365,13 @@ void World::updateWorldAABB(glm::vec3 aabbMin, glm::vec3 aabbMax) {
 
 void World::addActor(ActorInterface *actor) {
     this->actors[actor->getWorldID()] = actor;
+}
+
+float World::getAIGridFloatingHeight() const {
+    if (grid != nullptr) {
+        return grid->getFloatingHeight();
+    }
+    return static_cast<float>(aiGridFloatingHeightOption.getOrDefault(2.0));
 }
 
 void World::createGridFrom(const glm::vec3 &aiGridStartPoint, bool isAIGridStartPointSet) {

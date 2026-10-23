@@ -261,6 +261,7 @@ private:
     OptionsUtil::Options::Option<bool> renderInformationsOption;
     OptionsUtil::Options::Option<long> maxLightsOption;
     OptionsUtil::Options::Option<long> aiGridDrawRadiusOption;
+    OptionsUtil::Options::Option<double> aiGridFloatingHeightOption;
 
     // Audio channel volumes are driven by global options (the source of truth, persisted).
     // World reads the options and pushes changes to ALHelper; nothing sets channel gain directly.
@@ -449,6 +450,7 @@ private:
 
     //start point order: an AI actor's position if one set it, the player position, the ground under the top center of the world aabb
     void createGridFrom(const glm::vec3 &aiGridStartPoint, bool isAIGridStartPointSet);
+    float getAIGridFloatingHeight() const;//a loaded grid brings its own, the option is for worlds without one
 
     void setSky(SkyBox *skyBox);
 

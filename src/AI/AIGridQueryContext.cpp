@@ -120,7 +120,7 @@ bool AIGridQueryContext::isBlocked(btCollisionWorld *world, const glm::vec3 &pos
     return callback.isBlocked;
 }
 
-bool AIGridQueryContext::setProperHeight(btCollisionWorld *world, glm::vec3 *position, float floatingHeight, float checkHeight) {
+bool AIGridQueryContext::setProperHeight(btCollisionWorld *world, glm::vec3 *position, float floatingHeight, float stepHeight, float checkHeight) {
     btVector3 rayFrom = GLMConverter::GLMToBlt(*position);
     btVector3 rayTo;
     if (checkHeight == 0.0) {
@@ -149,7 +149,7 @@ bool AIGridQueryContext::setProperHeight(btCollisionWorld *world, glm::vec3 *pos
     if (hitObject != nullptr && hitObject->hasTag(blockerTagHash)) {
         return false;
     }
-    if (closestHit.m_hitPointWorld.getY() > (*position - glm::vec3(0, 1, 0)).y) {
+    if (closestHit.m_hitPointWorld.getY() > (*position - glm::vec3(0, floatingHeight - stepHeight, 0)).y) {
         return false;
     }
     position->y = closestHit.m_hitPointWorld.getY() + floatingHeight;

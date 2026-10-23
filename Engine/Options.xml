@@ -741,7 +741,7 @@
         <RequestType>FreeNumber</RequestType>
         <Description>ai_gridThreads</Description>
         <!--Threads the AI walk grid generation uses, -1 uses all the hardware threads. 1 runs everything on the calling thread. More threads split the queries of every level and give the same grid, the merge stays on one thread-->
-        <Value>4</Value>
+        <Value>-1</Value>
         <valueType>Long</valueType>
         <IsSet>True</IsSet>
         <Index>89</Index>
@@ -772,5 +772,68 @@
         <valueType>Long</valueType>
         <IsSet>True</IsSet>
         <Index>93</Index>
+    </Parameter>
+    <Parameter>
+        <RequestType>FreeNumber</RequestType>
+        <Description>ai_gridSpacing</Description>
+        <!--Distance between neighbour nodes of the AI walk grid in meters. The grid is saved with it, change it and generate the grid again. The probe has to be at least this wide-->
+        <Value>1.0</Value>
+        <valueType>Double</valueType>
+        <IsSet>True</IsSet>
+        <Index>94</Index>
+    </Parameter>
+    <Parameter>
+        <RequestType>FreeNumber</RequestType>
+        <Description>ai_gridFloatingHeight</Description>
+        <!--How high above the ground an AI walk grid node sits, also where actors look for their node. Saved with the grid. The probe bottom has to clear the ground, so it has to be taller than the probe half height-->
+        <Value>2.0</Value>
+        <valueType>Double</valueType>
+        <IsSet>True</IsSet>
+        <Index>95</Index>
+    </Parameter>
+    <Parameter>
+        <RequestType>FreeNumber</RequestType>
+        <Description>ai_gridStepHeight</Description>
+        <!--How much the ground height can differ between two neighbour nodes of the AI walk grid for them to link, in meters. Same for going up and down, a link has no direction. Saved with the grid-->
+        <Value>1.0</Value>
+        <valueType>Double</valueType>
+        <IsSet>True</IsSet>
+        <Index>96</Index>
+    </Parameter>
+    <Parameter>
+        <RequestType>FreeNumber</RequestType>
+        <Description>ai_gridBoxHalfExtentXZ</Description>
+        <!--Half width of the box that has to fit at every AI walk grid node, used when ai_gridProbeShape is box. Not round on purpose, a surface exactly on a face is a coin flip-->
+        <Value>0.5137</Value>
+        <valueType>Double</valueType>
+        <IsSet>True</IsSet>
+        <Index>98</Index>
+    </Parameter>
+    <Parameter>
+        <RequestType>FreeNumber</RequestType>
+        <Description>ai_gridBoxHalfHeight</Description>
+        <!--Half height of the box that has to fit at every AI walk grid node, used when ai_gridProbeShape is box-->
+        <Value>1.0513</Value>
+        <valueType>Double</valueType>
+        <IsSet>True</IsSet>
+        <Index>99</Index>
+    </Parameter>
+    <Parameter>
+        <RequestType>FreeNumber</RequestType>
+        <Description>ai_gridCapsuleRadius</Description>
+        <!--Radius of the capsule that has to fit at every AI walk grid node, used when ai_gridProbeShape is capsule-->
+        <Value>0.71</Value>
+        <valueType>Double</valueType>
+        <IsSet>True</IsSet>
+        <Index>100</Index>
+    </Parameter>
+    <Parameter>
+        <RequestType>FreeNumber</RequestType>
+        <Description>ai_gridCapsuleHeight</Description>
+        <!--Height of the cylinder part of the capsule, used when ai_gridProbeShape is capsule-->
+        <Value>1.4</Value>
+        <valueType>Double</valueType>
+        <IsSet>True</IsSet>
+        <Index>101</Index>
     </Parameter>
 </Options>

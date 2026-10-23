@@ -34,7 +34,8 @@ public:
 
     bool isBlocked(btCollisionWorld *world, const glm::vec3 &position, int collisionGroup, int collisionMask);
 
-    bool setProperHeight(btCollisionWorld *world, glm::vec3 *position, float floatingHeight, float checkHeight);
+    //position is a node height, the ground has to be within stepHeight of the ground that node stands on
+    bool setProperHeight(btCollisionWorld *world, glm::vec3 *position, float floatingHeight, float stepHeight, float checkHeight);
 };
 
 #endif //LIMONENGINE_AIGRIDQUERYCONTEXT_H

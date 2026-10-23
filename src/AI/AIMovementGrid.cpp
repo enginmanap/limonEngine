@@ -14,8 +14,6 @@
 #include "../GameObjects/GameObject.h"
 #include "../limonAPI/util/HashUtil.h"
 
-constexpr float AIMovementGrid::floatingHeight;
-
 void AIMovementGrid::addToVisited(const std::shared_ptr<AIMovementNode> &node) {
     visited[getCellKey(node->getPosition())].push_back(node);
     visitedCount++;
@@ -67,11 +65,6 @@ const std::shared_ptr<AIMovementNode> *AIMovementGrid::findNode(const glm::vec3 
 
 bool AIMovementGrid::isPositionKnown(const glm::vec3 &position) const {
     return findNode(position) != nullptr;
-}
-
-std::shared_ptr<AIMovementNode>AIMovementGrid::isAlreadyVisited(const glm::vec3 &position) {
-    const std::shared_ptr<AIMovementNode> *found = findNode(position);
-    return found != nullptr ? *found : nullptr;
 }
 
 bool AIMovementGrid::isDiagonalMoveAllowed(const std::shared_ptr<const AIMovementNode> &node, int neighbourIndex) {
@@ -174,13 +167,11 @@ AIMovementGrid::aStarPath(std::shared_ptr<const AIMovementNode> start, const glm
  * 2) if there is a hit, move position height to hit+floating height else return false
  *
  * @param position
- * @param floatingHeight
  * @param checkHeight
  * @param staticWorld
  * @return
  */
-bool AIMovementGrid::setProperHeight(glm::vec3 *position, float floatingHeight, float checkHeight,
-                                     btDiscreteDynamicsWorld *staticWorld) {
+bool AIMovementGrid::setProperHeight(glm::vec3 *position, float checkHeight, btDiscreteDynamicsWorld *staticWorld) {
     rayCallback->m_rayFromWorld = GLMConverter::GLMToBlt(*position);
     if (checkHeight == 0.0) {
         rayCallback->m_rayToWorld = GLMConverter::GLMToBlt(
@@ -198,7 +189,7 @@ bool AIMovementGrid::setProperHeight(glm::vec3 *position, float floatingHeight, 
         if (hitObject != nullptr && hitObject->hasTag(blockerTagHash)) {
             return false;//same rule as the query context, the closest surface decides
         }
-        if(rayCallback->m_hitPointWorld.getY() > (*position - glm::vec3(0, 1, 0)).y) {
+        if(rayCallback->m_hitPointWorld.getY() > (*position - glm::vec3(0, floatingHeight - stepHeight, 0)).y) {
             return false;
         }
         position->y = rayCallback->m_hitPointWorld.getY() + floatingHeight;
@@ -211,7 +202,7 @@ bool AIMovementGrid::setProperHeight(glm::vec3 *position, float floatingHeight, 
 std::shared_ptr<AIMovementNode>
 AIMovementGrid::walkMonster(glm::vec3 walkPoint, btDiscreteDynamicsWorld *staticWorld, const glm::vec3 &min,
                             const glm::vec3 &max, uint32_t collisionGroup, uint32_t collisionMask) {
-    if (!findGroundAt(&walkPoint, staticWorld, std::fabs(walkPoint.y -1 * min.y))) {
+    if (!findGroundAt(&walkPoint, staticWorld, std::fabs(walkPoint.y - min.y))) {
         std::cerr << "Root node " << glm::to_string(walkPoint)<< " has nothing underneath, grid generation failed. " << std::endl;
         return root;
     }
@@ -231,10 +222,6 @@ AIMovementGrid::walkMonster(glm::vec3 walkPoint, btDiscreteDynamicsWorld *static
     return root;
 }
 
-bool AIMovementGrid::isLowerId(const AIMovementNode *left, const AIMovementNode *right) {
-    return left->getID() < right->getID();
-}
-
 //ids, positions, movable flags and links of every node, finished or not. Two grids with the same value are the same grid
 uint64_t AIMovementGrid::calculateFingerprint() const {
     std::vector<const AIMovementNode *> nodes;
@@ -246,7 +233,7 @@ uint64_t AIMovementGrid::calculateFingerprint() const {
             nodes.push_back(visitedNode.get());
         }
     }
-    std::sort(nodes.begin(), nodes.end(), isLowerId);
+    std::sort(nodes.begin(), nodes.end(), [](const AIMovementNode *left, const AIMovementNode *right) { return left->getID() < right->getID(); });
     uint64_t fingerprint = 14695981039346656037ULL;
     for (const AIMovementNode *node : nodes) {
         uint32_t positionBits[3];
@@ -281,9 +268,9 @@ void AIMovementGrid::proposeNode(size_t nodeIndex, LevelWork &work, AIGridQueryC
             if (node->hasNeighbour(neighbourIndex)) {
                 continue;
             }
-            glm::vec3 neighbourPosition = node->getPosition() + glm::vec3(i, 0, j);
+            glm::vec3 neighbourPosition = node->getPosition() + glm::vec3(i * spacing, 0, j * spacing);
             counters.groundQueries++;
-            bool isGroundFound = context.setProperHeight(work.world, &neighbourPosition, floatingHeight, floatingHeight + 1.0f);
+            bool isGroundFound = context.setProperHeight(work.world, &neighbourPosition, floatingHeight, stepHeight, floatingHeight + stepHeight);
             if (neighbourPosition.x < work.min.x || neighbourPosition.y < work.min.y || neighbourPosition.z < work.min.z ||
                 neighbourPosition.x > work.max.x || neighbourPosition.y > work.max.y || neighbourPosition.z > work.max.z) {
                 continue;
@@ -405,9 +392,9 @@ void AIMovementGrid::walkLevels(const std::shared_ptr<AIMovementNode> &rootNode,
                     if (proposal.isSkipped || current->getNeighbour(neighbourIndex) != nullptr) {
                         continue;
                     }
-                    std::shared_ptr<AIMovementNode> visitedNode = isAlreadyVisited(proposal.position);
-                    if (visitedNode != nullptr) {
-                        current->setNeighbour(neighbourIndex, visitedNode);
+                    const std::shared_ptr<AIMovementNode> *knownNode = findNode(proposal.position);
+                    if (knownNode != nullptr) {
+                        current->setNeighbour(neighbourIndex, *knownNode);
                         continue;
                     }
                     std::shared_ptr<AIMovementNode> neighbour = std::make_shared<AIMovementNode>(getNextID(), proposal.position);
@@ -519,7 +506,7 @@ bool AIMovementGrid::isBlockedAt(const glm::vec3 &position, btDiscreteDynamicsWo
 
 bool AIMovementGrid::findGroundAt(glm::vec3 *position, btDiscreteDynamicsWorld *staticWorld, float checkHeight) {
     groundQueryCount++;
-    return queryContext->setProperHeight(staticWorld, position, floatingHeight, checkHeight);
+    return queryContext->setProperHeight(staticWorld, position, floatingHeight, stepHeight, checkHeight);
 }
 
 bool AIMovementGrid::chooseStartPoint(const std::vector<StartCandidate> &startCandidates, btDiscreteDynamicsWorld *staticWorld, const glm::vec3 &min,
@@ -541,6 +528,56 @@ bool AIMovementGrid::chooseStartPoint(const std::vector<StartCandidate> &startCa
     return false;
 }
 
+//the probe has to cover a cell or thin walls slip between the checks, and its bottom has to clear the ground it stands on
+bool AIMovementGrid::readOptions(OptionsUtil::Options *options) {
+    spacing = static_cast<float>(options->getOption<double>(HASH("ai_gridSpacing")).getOrDefault(1.0));
+    floatingHeight = static_cast<float>(options->getOption<double>(HASH("ai_gridFloatingHeight")).getOrDefault(2.0));
+    stepHeight = static_cast<float>(options->getOption<double>(HASH("ai_gridStepHeight")).getOrDefault(1.0));
+    if (!(spacing > 0.0f) || !(floatingHeight > 0.0f) || !(stepHeight > 0.0f)) {
+        std::cerr << "AI grid spacing, floating height and step height must be positive, they are " << spacing << ", " << floatingHeight << ", "
+                  << stepHeight << std::endl;
+        return false;
+    }
+
+    float probeWidth;
+    float probeHalfHeight;
+    if (options->getOption<std::string>(HASH("ai_gridProbeShape")).getOrDefault(std::string("box")) == "capsule") {
+        float radius = static_cast<float>(options->getOption<double>(HASH("ai_gridCapsuleRadius")).getOrDefault(0.71));
+        float height = static_cast<float>(options->getOption<double>(HASH("ai_gridCapsuleHeight")).getOrDefault(1.4));
+        if (!(radius > 0.0f) || !(height > 0.0f)) {
+            std::cerr << "AI grid capsule radius and height must be positive, they are " << radius << ", " << height << std::endl;
+            return false;
+        }
+        probeWidth = 2.0f * radius;
+        probeHalfHeight = height / 2.0f + radius;
+        ghostShape = new btCapsuleShape(radius, height);
+        std::cout << "AI grid probe shape is capsule, radius " << radius << " height " << height << std::endl;
+    } else {
+        //not round on purpose, a surface exactly on a box face is a coin flip at +-1500 from origin, where floats are 1e-4 apart
+        float halfExtentXZ = static_cast<float>(options->getOption<double>(HASH("ai_gridBoxHalfExtentXZ")).getOrDefault(0.5137));
+        float halfHeight = static_cast<float>(options->getOption<double>(HASH("ai_gridBoxHalfHeight")).getOrDefault(1.0513));
+        if (!(halfExtentXZ > 0.0f) || !(halfHeight > 0.0f)) {
+            std::cerr << "AI grid box half extents must be positive, they are " << halfExtentXZ << ", " << halfHeight << std::endl;
+            return false;
+        }
+        probeWidth = 2.0f * halfExtentXZ;
+        probeHalfHeight = halfHeight;
+        ghostShape = new btBoxShape(btVector3(halfExtentXZ, halfHeight, halfExtentXZ));
+        std::cout << "AI grid probe shape is box, half extents " << halfExtentXZ << " " << halfHeight << " " << halfExtentXZ << std::endl;
+    }
+
+    if (probeWidth < spacing) {
+        std::cerr << "AI grid probe is " << probeWidth << " wide, narrower than the spacing " << spacing << ", thin walls would slip between the nodes" << std::endl;
+        return false;
+    }
+    if (floatingHeight - probeHalfHeight <= 0.0f) {
+        std::cerr << "AI grid probe reaches " << probeHalfHeight << " below its node, the floating height " << floatingHeight << " leaves it inside the ground" << std::endl;
+        return false;
+    }
+    std::cout << "AI grid spacing " << spacing << ", floating height " << floatingHeight << ", step height " << stepHeight << std::endl;
+    return true;
+}
+
 AIMovementGrid::AIMovementGrid(const std::vector<StartCandidate> &startCandidates, btDiscreteDynamicsWorld *staticOnlyPhysicsWorld, glm::vec3 min,
                                glm::vec3 max, uint32_t collisionGroup, uint32_t collisionMask, OptionsUtil::Options *options) {
     long requestedThreads = options->getOption<long>(HASH("ai_gridThreads")).getOrDefault(1L);
@@ -553,18 +590,15 @@ AIMovementGrid::AIMovementGrid(const std::vector<StartCandidate> &startCandidate
         chunkSize = std::numeric_limits<size_t>::max() / 2;//one worker takes the whole level at once
     }
 
-    if (options->getOption<std::string>(HASH("ai_gridProbeShape")).getOrDefault(std::string("box")) == "capsule") {
-        ghostShape = new btCapsuleShape(capsuleRadius, capsuleHeight);
-        std::cout << "AI grid probe shape is capsule, radius " << capsuleRadius << std::endl;
-    } else {
-        ghostShape = new btBoxShape(btVector3(BOX_HALF_EXTENT_XZ, BOX_HALF_HEIGHT, BOX_HALF_EXTENT_XZ));
-        std::cout << "AI grid probe shape is box, half extents " << BOX_HALF_EXTENT_XZ << " " << BOX_HALF_HEIGHT << " " << BOX_HALF_EXTENT_XZ << std::endl;
+    if (!readOptions(options)) {
+        std::cerr << "AI grid generation refused, fix the ai_grid settings" << std::endl;
+        return;
     }
 
     queryContext = std::make_unique<AIGridQueryContext>(ghostShape, blockerTagHash, collisionGroup, collisionMask);
-    if (std::fabs(min.x) > MAX_GRID_COORDINATE || std::fabs(min.z) > MAX_GRID_COORDINATE ||
-        std::fabs(max.x) > MAX_GRID_COORDINATE || std::fabs(max.z) > MAX_GRID_COORDINATE) {
-        std::cerr << "AI walk grid bounds are too large, coordinates must stay within +-" << MAX_GRID_COORDINATE << std::endl;
+    if (std::fabs(min.x) > MAX_GRID_CELLS * spacing || std::fabs(min.z) > MAX_GRID_CELLS * spacing ||
+        std::fabs(max.x) > MAX_GRID_CELLS * spacing || std::fabs(max.z) > MAX_GRID_CELLS * spacing) {
+        std::cerr << "AI walk grid bounds are too large, coordinates must stay within +-" << MAX_GRID_CELLS * spacing << std::endl;
         std::exit(-1);
     }
     std::cout << "Start generating AI walk grid" << std::endl;
@@ -681,10 +715,10 @@ void AIMovementGrid::debugDraw(BulletDebugDrawer *debugDrawer, const glm::vec3 &
     if (!isDebugCellsBuilt) {
         buildDebugCells();
     }
-    int64_t centerCellX = std::llround(center.x - gridOrigin.x);
-    int64_t centerCellZ = std::llround(center.z - gridOrigin.z);
-    for (int64_t cellX = centerCellX - radius; cellX <= centerCellX + radius; ++cellX) {
-        for (int64_t cellZ = centerCellZ - radius; cellZ <= centerCellZ + radius; ++cellZ) {
+    int32_t centerCellX = static_cast<int32_t>(std::round((center.x - gridOrigin.x) / spacing));
+    int32_t centerCellZ = static_cast<int32_t>(std::round((center.z - gridOrigin.z) / spacing));
+    for (int32_t cellX = centerCellX - radius; cellX <= centerCellX + radius; ++cellX) {
+        for (int32_t cellZ = centerCellZ - radius; cellZ <= centerCellZ + radius; ++cellZ) {
             std::unordered_map<uint64_t, std::vector<const AIMovementNode *>>::const_iterator cellIt = debugCells.find(makeCellKey(cellX, cellZ));
             if (cellIt == debugCells.end()) {
                 continue;
@@ -703,6 +737,22 @@ bool AIMovementGrid::serializeXML(const std::string &fileName) {
 
     tinyxml2::XMLElement* currentElement = aiGridDocument.NewElement("Name");
     currentElement->SetText(fileName.c_str());
+    rootNode->InsertEndChild(currentElement);
+
+    currentElement = aiGridDocument.NewElement("Version");
+    currentElement->SetText(FILE_VERSION);
+    rootNode->InsertEndChild(currentElement);
+
+    currentElement = aiGridDocument.NewElement("Spacing");
+    currentElement->SetText(spacing);
+    rootNode->InsertEndChild(currentElement);
+
+    currentElement = aiGridDocument.NewElement("StepHeight");
+    currentElement->SetText(stepHeight);
+    rootNode->InsertEndChild(currentElement);
+
+    currentElement = aiGridDocument.NewElement("FloatingHeight");
+    currentElement->SetText(floatingHeight);
     rootNode->InsertEndChild(currentElement);
 
     currentElement = aiGridDocument.NewElement("MaximumNodeID");
@@ -801,6 +851,25 @@ AIMovementGrid *AIMovementGrid::deserialize(const std::string &fileName) {
         std::cout << "Reading AI WalkGrid from file:" << fileNameNode->GetText() << std::endl;
     }
 
+    tinyxml2::XMLElement *versionElement = AIWalkGridRootElement->FirstChildElement("Version");
+    if (versionElement == nullptr || versionElement->GetText() == nullptr || std::strtoul(versionElement->GetText(), nullptr, 0) != FILE_VERSION) {
+        std::cerr << fileName << " is in the old AI walk grid format, it has to be generated again" << std::endl;
+        return nullptr;
+    }
+    float fileSpacing = 0;
+    float fileStepHeight = 0;
+    float fileFloatingHeight = 0;
+    tinyxml2::XMLElement *spacingElement = AIWalkGridRootElement->FirstChildElement("Spacing");
+    tinyxml2::XMLElement *stepHeightElement = AIWalkGridRootElement->FirstChildElement("StepHeight");
+    tinyxml2::XMLElement *floatingHeightElement = AIWalkGridRootElement->FirstChildElement("FloatingHeight");
+    if (spacingElement == nullptr || spacingElement->QueryFloatText(&fileSpacing) != tinyxml2::XML_SUCCESS ||
+        stepHeightElement == nullptr || stepHeightElement->QueryFloatText(&fileStepHeight) != tinyxml2::XML_SUCCESS ||
+        floatingHeightElement == nullptr || floatingHeightElement->QueryFloatText(&fileFloatingHeight) != tinyxml2::XML_SUCCESS ||
+        !(fileSpacing > 0.0f) || !(fileStepHeight > 0.0f) || !(fileFloatingHeight > 0.0f)) {
+        std::cerr << fileName << " has missing or non positive grid settings, it has to be generated again" << std::endl;
+        return nullptr;
+    }
+
     uint32_t maximumNodeID = 0;
     tinyxml2::XMLElement* maximumNodeIDNode =  AIWalkGridRootElement->FirstChildElement("MaximumNodeID");
     if(maximumNodeIDNode != nullptr) {
@@ -812,6 +881,9 @@ AIMovementGrid *AIMovementGrid::deserialize(const std::string &fileName) {
     }
 
     AIMovementGrid* grid = new AIMovementGrid();
+    grid->spacing = fileSpacing;
+    grid->stepHeight = fileStepHeight;
+    grid->floatingHeight = fileFloatingHeight;
 
     for (uint32_t i = 0; i < maximumNodeID; ++i) {
         grid->doneNodes.push_back(std::make_shared<AIMovementNode>(0, glm::vec3(0,100,0)));//we are creating nodes empty, so we can link them together later

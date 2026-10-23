@@ -44,13 +44,6 @@
 
 
 
-//bigger than sqrt(3)/2
-//avoiding sqrt
-#define GRID_SNAP_DISTANCE (0.8f * 0.8f)
-
-#define X_Z_DISTANCE 0.1
-#define Y_DISTANCE_SQ 0.25
-
 class AIMovementGrid {
 public:
     struct StartCandidate {
@@ -70,14 +63,22 @@ private:
         }
     };
 
+    //fractions of the spacing and the floating height, so the tolerances follow the options
+    static constexpr float GRID_SNAP_FRACTION = 0.8f;//more than half the diagonal of a cell, 0.707 of a spacing
+    static constexpr float X_Z_FRACTION = 0.1f;
+    static constexpr float Y_FRACTION = 0.25f;//two floors in one cell are at least a probe apart, this is well under that
+
     bool inline isPositionCloseEnoughYOnly(const glm::vec3 &position1, const glm::vec3 &position2) const {
-        return ((fabs(position1.x - position2.x) < X_Z_DISTANCE) &&
-                (fabs(position1.z - position2.z) < X_Z_DISTANCE) &&
-                (((position1.y - position2.y) * (position1.y - position2.y)) <= Y_DISTANCE_SQ));
+        float xzDistance = X_Z_FRACTION * spacing;
+        float yDistance = Y_FRACTION * floatingHeight;
+        return ((fabs(position1.x - position2.x) < xzDistance) &&
+                (fabs(position1.z - position2.z) < xzDistance) &&
+                (((position1.y - position2.y) * (position1.y - position2.y)) <= yDistance * yDistance));
     }
 
     bool inline isPositionCloseEnough(const glm::vec3 &position1, const glm::vec3 &position2) const {
-        return (glm::length2(position1 - position2) < GRID_SNAP_DISTANCE);
+        float snapDistance = GRID_SNAP_FRACTION * spacing;
+        return (glm::length2(position1 - position2) < snapDistance * snapDistance);
     }
 
     std::shared_ptr<AIMovementNode> root = nullptr;
@@ -87,11 +88,11 @@ private:
     std::map<int, std::shared_ptr<const AIMovementNode>> actorLastNodeMap;
     uint32_t nextPossibleIndex = 1;//this is to be used internal and constructor only. Not thread safe
 
-    float capsuleHeight = 1.30f + 0.1f;
-    float capsuleRadius = 0.71f;//FIXME these should be configurable
-    //not round on purpose, a surface exactly on a box face is a coin flip at +-1500 from origin, where floats are 1e-4 apart
-    static constexpr float BOX_HALF_EXTENT_XZ = 0.5f + 0.0137f;
-    static constexpr float BOX_HALF_HEIGHT = 1.0513f;
+    //spacing, stepHeight and floatingHeight are saved with the grid, the rest only matters while generating
+    float spacing = 1.0f;//distance between neighbour nodes
+    float floatingHeight = 2.0f;//node height above the ground
+    float stepHeight = 1.0f;//ground height difference a link can cross, up or down. One value, a link has no direction
+    bool readOptions(OptionsUtil::Options *options);
     static bool isDiagonalMoveAllowed(const std::shared_ptr<const AIMovementNode> &node, int neighbourIndex);
 
     std::unique_ptr<AIGridQueryContext> queryContext;
@@ -140,7 +141,6 @@ private:
     void finishNode(const std::shared_ptr<AIMovementNode> &node);
     void printSearchSummary(btDiscreteDynamicsWorld *staticWorld) const;
     uint64_t calculateFingerprint() const;
-    static bool isLowerId(const AIMovementNode *left, const AIMovementNode *right);
     bool chooseStartPoint(const std::vector<StartCandidate> &startCandidates, btDiscreteDynamicsWorld *staticWorld, const glm::vec3 &min,
                           uint32_t collisionGroup, uint32_t collisionMask, glm::vec3 *startPoint);
     bool isBlockedAt(const glm::vec3 &position, btDiscreteDynamicsWorld *staticWorld, uint32_t collisionGroup, uint32_t collisionMask);
@@ -156,15 +156,15 @@ private:
     glm::vec3 gridOrigin = glm::vec3(0);//nodes are whole steps from the root, rounding relative to it keeps them off the cell borders
     std::vector<std::shared_ptr<AIMovementNode>> doneNodes;
 
-    static constexpr float MAX_GRID_COORDINATE = 1.0e9f;//cell coordinates must fit int32_t, even relative to a far away origin
+    static constexpr float MAX_GRID_CELLS = 1.0e9f;//cell coordinates must fit int32_t, even relative to a far away origin
 
     static uint64_t makeCellKey(int32_t cellX, int32_t cellZ) {
         return (static_cast<uint64_t>(static_cast<uint32_t>(cellX)) << 32) | static_cast<uint32_t>(cellZ);
     }
 
     uint64_t getCellKey(const glm::vec3 &position) const {
-        return makeCellKey(static_cast<int32_t>(std::round(position.x - gridOrigin.x)),
-                           static_cast<int32_t>(std::round(position.z - gridOrigin.z)));
+        return makeCellKey(static_cast<int32_t>(std::round((position.x - gridOrigin.x) / spacing)),
+                           static_cast<int32_t>(std::round((position.z - gridOrigin.z) / spacing)));
     }
 
     //raw pointers, doneNodes and visited own the nodes
@@ -179,7 +179,6 @@ private:
     void removeFromVisited(const std::shared_ptr<AIMovementNode> &node);
     //the node within the position tolerance, finished or not. Never copies the shared_ptr, a copy is an atomic
     const std::shared_ptr<AIMovementNode> *findNode(const glm::vec3 &position) const;
-    std::shared_ptr<AIMovementNode> isAlreadyVisited(const glm::vec3 &position);
     bool isPositionKnown(const glm::vec3 &position) const;
 
     std::shared_ptr<AIMovementNode>
@@ -198,9 +197,15 @@ private:
     friend class cereal::access;
 #endif
     AIMovementGrid() {};//used for deserialize
+    bool isLoadRejected = false;//the file is not in the format this engine writes
 
 public:
-    static constexpr float floatingHeight = 2.0f;
+    static constexpr uint32_t FILE_MAGIC = 0x41494731;//old grid files start with a node count instead
+    static constexpr uint32_t FILE_VERSION = 1;//any change to what a grid file stores bumps this
+
+    float getFloatingHeight() const {
+        return floatingHeight;
+    }
 
     //candidates are tried in order, the first one with ground and room for the probe is the start
     AIMovementGrid(const std::vector<StartCandidate> &startCandidates, btDiscreteDynamicsWorld *staticOnlyPhysicsWorld, glm::vec3 min,
@@ -220,8 +225,7 @@ public:
     //only the cells within radius of the center, the whole grid is too many lines
     void debugDraw(BulletDebugDrawer *debugDrawer, const glm::vec3 &center, int radius) const;
 
-    bool setProperHeight(glm::vec3 *position, float floatingHeight, float checkHeight,
-                         btDiscreteDynamicsWorld *staticWorld);
+    bool setProperHeight(glm::vec3 *position, float checkHeight, btDiscreteDynamicsWorld *staticWorld);
 
     bool serializeXML(const std::string& fileName);
 
@@ -275,13 +279,34 @@ public:
             }
         }
 
-        archive(nextPossibleIndex, saveNodes);
+        uint32_t magic = FILE_MAGIC;
+        uint32_t version = FILE_VERSION;
+        archive(magic, version, spacing, stepHeight, floatingHeight, nextPossibleIndex, saveNodes);
     }
 
     template<class Archive>
     void load(Archive& archive) {
+        uint32_t magic = 0;
+        archive(magic);
+        if (magic != FILE_MAGIC) {
+            std::cerr << "AI walk grid file is in the old format, it has to be generated again" << std::endl;
+            isLoadRejected = true;
+            return;
+        }
+        uint32_t version = 0;
+        archive(version);
+        if (version != FILE_VERSION) {
+            std::cerr << "AI walk grid file version is " << version << ", this engine reads " << FILE_VERSION << ", it has to be generated again" << std::endl;
+            isLoadRejected = true;
+            return;
+        }
         std::vector<FlattenedNode> saveNodes;
-        archive(nextPossibleIndex, saveNodes);
+        archive(spacing, stepHeight, floatingHeight, nextPossibleIndex, saveNodes);
+        if (!(spacing > 0.0f) || !(stepHeight > 0.0f) || !(floatingHeight > 0.0f)) {
+            std::cerr << "AI walk grid file has non positive settings, it has to be generated again" << std::endl;
+            isLoadRejected = true;
+            return;
+        }
 
         this->doneNodes.resize(nextPossibleIndex);
         for (uint32_t i = 0; i < nextPossibleIndex; ++i) {
@@ -321,6 +346,10 @@ public:
         cereal::BinaryInputArchive archive(stream);
         AIMovementGrid* aiMovementGrid = new AIMovementGrid();
         archive(*aiMovementGrid);
+        if (aiMovementGrid->isLoadRejected) {
+            delete aiMovementGrid;
+            return nullptr;
+        }
         std::cout << "Binary AI walk grid read successful. " << std::endl;
         return aiMovementGrid;
     }
