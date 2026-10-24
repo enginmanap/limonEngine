@@ -249,9 +249,9 @@
                 <Texture>
                     <Name>ForwardColorBuffer</Name>
                     <TextureType>T2D</TextureType>
-                    <InternalFormat>RGBA</InternalFormat>
+                    <InternalFormat>SRGB8_ALPHA8</InternalFormat>
                     <Format>RGBA</Format>
-                    <DataType>FLOAT</DataType>
+                    <DataType>UNSIGNED_BYTE</DataType>
                     <Height>1080</Height>
                     <Width>1920</Width>
                     <HeightOption>display_height</HeightOption>
@@ -276,9 +276,9 @@
                 <Texture>
                     <Name>ForwardAmbientBuffer</Name>
                     <TextureType>T2D</TextureType>
-                    <InternalFormat>RGBA</InternalFormat>
+                    <InternalFormat>SRGB8_ALPHA8</InternalFormat>
                     <Format>RGBA</Format>
-                    <DataType>FLOAT</DataType>
+                    <DataType>UNSIGNED_BYTE</DataType>
                     <Height>1080</Height>
                     <Width>1920</Width>
                     <HeightOption>display_height</HeightOption>
@@ -2825,9 +2825,9 @@
             <Texture>
                 <Name>ForwardColorBuffer</Name>
                 <TextureType>T2D</TextureType>
-                <InternalFormat>RGBA</InternalFormat>
+                <InternalFormat>SRGB8_ALPHA8</InternalFormat>
                 <Format>RGBA</Format>
-                <DataType>FLOAT</DataType>
+                <DataType>UNSIGNED_BYTE</DataType>
                 <Height>1080</Height>
                 <Width>1920</Width>
                 <HeightOption>display_height</HeightOption>
@@ -2852,9 +2852,9 @@
             <Texture>
                 <Name>ForwardAmbientBuffer</Name>
                 <TextureType>T2D</TextureType>
-                <InternalFormat>RGBA</InternalFormat>
+                <InternalFormat>SRGB8_ALPHA8</InternalFormat>
                 <Format>RGBA</Format>
-                <DataType>FLOAT</DataType>
+                <DataType>UNSIGNED_BYTE</DataType>
                 <Height>1080</Height>
                 <Width>1920</Width>
                 <HeightOption>display_height</HeightOption>
