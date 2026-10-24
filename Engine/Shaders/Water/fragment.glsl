@@ -23,6 +23,7 @@ uniform vec3 deepColor;
 // glint stay a broad, stable highlight tracking the swell rather than sparkly/chaotic.
 const float SHININESS = 32.0;
 const vec3 MATERIAL_AMBIENT = vec3(0.02);
+const vec3 MATERIAL_SPECULAR = vec3(1.0);
 
 void main(void) {
     vec3 viewDir = normalize(playerTransforms.position - from_vs.worldPos);
@@ -34,7 +35,7 @@ void main(void) {
     float viewDistance = length(playerTransforms.position - from_vs.worldPos);
 
     vec3 totalAmbient;
-    vec3 lit = calculateLighting(from_vs.worldPos, from_vs.normal, albedo, SHININESS, MATERIAL_AMBIENT,
+    vec3 lit = calculateLighting(from_vs.worldPos, from_vs.normal, albedo, SHININESS, MATERIAL_SPECULAR, MATERIAL_AMBIENT,
                                   viewDistance, precise_view_z, gl_FragCoord.z, totalAmbient);
 
     finalColor = vec4(lit, 1.0);

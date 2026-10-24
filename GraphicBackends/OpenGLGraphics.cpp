@@ -1728,13 +1728,15 @@ void OpenGLGraphics::setMaterial(const Material& material) {
             float shininess;
             vec3 diffuse;
             int isMap;
+            vec3 specular;
     };
     */
     float shininess = material.getSpecularExponent();
     uint32_t maps = material.getMaps();
     //authored in sRGB like the textures, the shaders light in linear
-    glm::vec3 ambientColor = Material::srgbToLinear(material.getAmbientColor());
-    glm::vec3 diffuseColor = Material::srgbToLinear(material.getDiffuseColor());
+    glm::vec3 ambientColor = material.getLinearAmbientColor();
+    glm::vec3 diffuseColor = material.getLinearDiffuseColor();
+    glm::vec3 specularColor = material.getLinearSpecularColor();
 
     if (material.getMaterialIndex() >= NR_MAX_MATERIALS) {
         //writing past the UBO would silently corrupt whatever material sits at the wrapped offset
@@ -1752,6 +1754,8 @@ void OpenGLGraphics::setMaterial(const Material& material) {
                     sizeof(glm::vec3), glm::value_ptr(diffuseColor));
     glBufferSubData(GL_UNIFORM_BUFFER, material.getMaterialIndex() * materialUniformSize + 2 *sizeof(glm::vec3) + sizeof(GLfloat),
                     sizeof(GLint), &maps);
+    glBufferSubData(GL_UNIFORM_BUFFER, material.getMaterialIndex() * materialUniformSize + 2 * sizeof(glm::vec3) + sizeof(GLfloat) + sizeof(GLint),
+                    sizeof(glm::vec3), glm::value_ptr(specularColor));
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
     checkErrors("setMaterial");
 }

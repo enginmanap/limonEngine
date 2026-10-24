@@ -72,11 +72,13 @@ void main(void) {
     vec4 albedo = getSimpleMaterialAlbedo(from_vs.materialIndex, from_vs.textureCoord);
     float shininess = AllMaterialsArray.materials[from_vs.materialIndex].shininess;
     vec3 materialAmbient = getMaterialAmbient(from_vs.materialIndex, from_vs.textureCoord);
+    vec3 materialSpecular = getMaterialSpecular(from_vs.materialIndex, from_vs.textureCoord);
 
     vec4 fragPosViewSpace = playerTransforms.camera * vec4(from_vs.fragPos, 1.0);
     float precise_view_z = abs(fragPosViewSpace.z);
 
     vec3 directLighting = vec3(0.0);
+    vec3 specularLighting = vec3(0.0);
     vec3 lightAmbient = vec3(0.0);
     vec3 viewDirectory = normalize(playerTransforms.position - from_vs.fragPos);
 
@@ -117,11 +119,13 @@ void main(void) {
         }
 
         // min, not multiply, same reasoning as Shared/Lighting.frag
-        directLighting += (min(1.0 - shadow, attenuation) * (diffuseRate + specularRate) * LightSources.lights[i].color);
+        float lightFactor = min(1.0 - shadow, attenuation);
+        directLighting += (lightFactor * diffuseRate * LightSources.lights[i].color);
+        specularLighting += (lightFactor * specularRate * LightSources.lights[i].color);
         // attenuated by distance but never by shadow, ambient is what lifts shadowed surfaces off black
         lightAmbient += attenuation * LightSources.lights[i].ambient;
     }
 
     vec3 totalAmbient = materialAmbient + lightAmbient;
-    finalColor = vec4((directLighting + totalAmbient) * albedo.rgb, albedo.a);
+    finalColor = vec4((directLighting + totalAmbient) * albedo.rgb + specularLighting * materialSpecular, albedo.a);//the highlight is not tinted by albedo
 }

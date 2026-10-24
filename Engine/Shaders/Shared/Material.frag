@@ -15,6 +15,7 @@ struct material {
     float shininess;
     vec3 diffuse;
     int isMap; 	//using the last 4, ambient=8, diffuse=4, specular=2, opacity = 1
+    vec3 specular;
 };
 
 layout (std140) uniform MaterialInformationBlock {
@@ -62,6 +63,13 @@ vec3 getMaterialAmbient(int materialIndex, vec2 uv) {
         lightingColorFactor = AllMaterialsArray.materials[materialIndex].ambient;
     }
     return lightingColorFactor;
+}
+
+vec3 getMaterialSpecular(int materialIndex, vec2 uv) {
+    if((AllMaterialsArray.materials[materialIndex].isMap & 0x0002)!=0) {
+        return vec3(texture(specularSampler, uv));
+    }
+    return AllMaterialsArray.materials[materialIndex].specular;
 }
 
 // For G-Buffer passes that only need simple albedo extraction

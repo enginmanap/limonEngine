@@ -510,6 +510,11 @@ std::shared_ptr<Material> ModelAsset::loadMaterials(const aiScene *scene, unsign
             newMaterial->setSpecularExponent(0);
         }
 
+        //no strength field, it lives in the color
+        if (AI_SUCCESS == currentMaterial->Get(AI_MATKEY_SHININESS_STRENGTH, transferFloat)) {
+            newMaterial->setSpecularColor(newMaterial->getRawSpecularColor() * transferFloat);
+        }
+
         if ((currentMaterial->GetTextureCount(aiTextureType_AMBIENT) > 0)) {
             if (AI_SUCCESS == currentMaterial->GetTexture(aiTextureType_AMBIENT, 0, &texturePath)) {
                 if(texturePath.data[0] != '*') {

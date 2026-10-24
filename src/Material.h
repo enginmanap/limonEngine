@@ -163,6 +163,19 @@ private:
     void attachTexture(size_t slotIndex, const std::shared_ptr<TextureAsset> &acquiredTexture);
     void detachTextures();
     void loadGPUSide();
+
+    //material colors come from model files, which keep them sRGB encoded like their textures, and the shaders light in linear.
+    //The curve is the one the hardware uses to decode sRGB textures
+    static float srgbToLinear(float encodedValue) {
+        if (encodedValue <= 0.04045f) {
+            return encodedValue / 12.92f;
+        }
+        return std::pow((encodedValue + 0.055f) / 1.055f, 2.4f);
+    }
+
+    static glm::vec3 srgbToLinear(const glm::vec3 &encodedColor) {
+        return glm::vec3(srgbToLinear(encodedColor.x), srgbToLinear(encodedColor.y), srgbToLinear(encodedColor.z));
+    }
 public:
     Material(AssetManager *assetManager, const std::string &name, uint32_t materialIndex, float specularExponent, const glm::vec3 &ambientColor,
              const glm::vec3 &diffuseColor, const glm::vec3 &specularColor, float refractionIndex)//FIXME: this should not use raw pointer
@@ -221,19 +234,6 @@ public:
     //appearance only, name/materialIndex/originalHash stay put so we keep our registration and UBO slot
     void restoreValuesFrom(const Material &other);
 
-    //material colors come from model files, which keep them sRGB encoded like their textures, and the shaders light in linear.
-    //The curve is the one the hardware uses to decode sRGB textures
-    static float srgbToLinear(float encodedValue) {
-        if (encodedValue <= 0.04045f) {
-            return encodedValue / 12.92f;
-        }
-        return std::pow((encodedValue + 0.055f) / 1.055f, 2.4f);
-    }
-
-    static glm::vec3 srgbToLinear(const glm::vec3 &encodedColor) {
-        return glm::vec3(srgbToLinear(encodedColor.x), srgbToLinear(encodedColor.y), srgbToLinear(encodedColor.z));
-    }
-
     // 5,6,7,8,9 are used by material, 3 and 4 stay assignable in material stages too
     static constexpr int32_t MATERIAL_SAMPLER_TEXTURE_UNIT_START = GraphicsInterface::FIRST_PIPELINE_TEXTURE_UNIT + 2;
 
@@ -282,24 +282,37 @@ public:
         this->specularExponent = specularExponent;
     }
 
-    const glm::vec3 &getAmbientColor() const {
+    //raw is what the file and the editor hold (sRGB encoded), linear is what goes to the GPU
+    const glm::vec3 &getRawAmbientColor() const {
         return ambientColor;
+    }
+
+    glm::vec3 getLinearAmbientColor() const {
+        return srgbToLinear(ambientColor);
     }
 
     void setAmbientColor(const glm::vec3 &ambientColor) {
         this->ambientColor = ambientColor;
     }
 
-    const glm::vec3 &getDiffuseColor() const {
+    const glm::vec3 &getRawDiffuseColor() const {
         return diffuseColor;
+    }
+
+    glm::vec3 getLinearDiffuseColor() const {
+        return srgbToLinear(diffuseColor);
     }
 
     void setDiffuseColor(const glm::vec3 &diffuseColor) {
         this->diffuseColor = diffuseColor;
     }
 
-    const glm::vec3 &getSpecularColor() const {
+    const glm::vec3 &getRawSpecularColor() const {
         return specularColor;
+    }
+
+    glm::vec3 getLinearSpecularColor() const {
+        return srgbToLinear(specularColor);
     }
 
     void setSpecularColor(const glm::vec3 &specularColor) {

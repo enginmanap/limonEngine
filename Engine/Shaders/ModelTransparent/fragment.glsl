@@ -26,6 +26,7 @@ void main(void) {
     }
     vec3 normal = getMaterialNormal(from_vs.materialIndex, from_vs.textureCoord, from_vs.normal);
     vec3 materialAmbient = getMaterialAmbient(from_vs.materialIndex, from_vs.textureCoord);
+    vec3 materialSpecular = getMaterialSpecular(from_vs.materialIndex, from_vs.textureCoord);
     float shininess = AllMaterialsArray.materials[from_vs.materialIndex].shininess;
 
     vec4 fragPosViewSpace = playerTransforms.camera * vec4(from_vs.fragPos, 1.0);
@@ -33,7 +34,7 @@ void main(void) {
     float viewDistance = length(playerTransforms.position - from_vs.fragPos);
 
     vec3 totalAmbient;
-    vec3 fullyLitColor = calculateLighting(from_vs.fragPos, normal, objectColor.rgb, shininess, materialAmbient, viewDistance, precise_view_z, gl_FragCoord.z, totalAmbient);
+    vec3 fullyLitColor = calculateLighting(from_vs.fragPos, normal, objectColor.rgb, shininess, materialSpecular, materialAmbient, viewDistance, precise_view_z, gl_FragCoord.z, totalAmbient);
 
     outputColor = vec4(fullyLitColor, objectColor.a);
 }

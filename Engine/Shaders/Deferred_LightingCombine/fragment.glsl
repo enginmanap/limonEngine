@@ -58,6 +58,7 @@ void main()
     // Retrieve material information from constant buffer
     float shininess = AllMaterialsArray.materials[materialIndex].shininess;
     vec3 materialAmbient = AllMaterialsArray.materials[materialIndex].ambient;
+    vec3 materialSpecular = AllMaterialsArray.materials[materialIndex].specular;//no per-pixel map in the g-buffer yet
 
     // If the material has an ambient map, it will be in the gAmbientMap
     if((AllMaterialsArray.materials[materialIndex].isMap & 0x0008) != 0) {
@@ -67,7 +68,7 @@ void main()
     float ssao = texture(pre_ssao, from_vs.textureCoordinates).r;
 
     vec3 totalAmbient;
-    vec3 fullyLitColor = calculateLighting(fragPos, normal, albedo, shininess, materialAmbient, viewDistance, precise_view_z, depth, totalAmbient);
+    vec3 fullyLitColor = calculateLighting(fragPos, normal, albedo, shininess, materialSpecular, materialAmbient, viewDistance, precise_view_z, depth, totalAmbient);
 
     vec3 occludedAmbient = totalAmbient * ssao;
     finalColor = vec4(fullyLitColor - occludedAmbient, 1.0);

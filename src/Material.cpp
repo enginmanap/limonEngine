@@ -356,13 +356,13 @@ bool Material::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *
         materialNameNode->SetText(this->getName().c_str());
         materialNode->InsertEndChild(materialNameNode);
         tinyxml2::XMLElement *materialAmbientColorNode = document.NewElement("AmbientColor");
-        XMLHelper::writeVec3(document, materialAmbientColorNode, this->getAmbientColor());
+        XMLHelper::writeVec3(document, materialAmbientColorNode, this->getRawAmbientColor());
         materialNode->InsertEndChild(materialAmbientColorNode);
         tinyxml2::XMLElement *materialDiffuseColorNode = document.NewElement("DiffuseColor");
-        XMLHelper::writeVec3(document, materialDiffuseColorNode, this->getDiffuseColor());
+        XMLHelper::writeVec3(document, materialDiffuseColorNode, this->getRawDiffuseColor());
         materialNode->InsertEndChild(materialDiffuseColorNode);
         tinyxml2::XMLElement *materialSpecularColorNode = document.NewElement("SpecularColor");
-        XMLHelper::writeVec3(document, materialSpecularColorNode, this->getSpecularColor());
+        XMLHelper::writeVec3(document, materialSpecularColorNode, this->getRawSpecularColor());
         materialNode->InsertEndChild(materialSpecularColorNode);
         tinyxml2::XMLElement *materialSpecularExponentNode = document.NewElement("SpecularExponent");
         materialSpecularExponentNode->SetText(this->getSpecularExponent());

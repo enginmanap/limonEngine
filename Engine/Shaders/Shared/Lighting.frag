@@ -17,8 +17,9 @@ float pointLightAttenuation(int lightIndex, float fragDistance) {
     return clamp(LightSources.lights[lightIndex].intensity / attenuationFactor, 0.0, 1.0) * window;
 }
 
-vec3 calculateLighting(vec3 fragPos, vec3 normal, vec3 albedo, float shininess, vec3 materialAmbient, float viewDistance, float precise_view_z, float depth, out vec3 totalAmbient) {
+vec3 calculateLighting(vec3 fragPos, vec3 normal, vec3 albedo, float shininess, vec3 materialSpecular, vec3 materialAmbient, float viewDistance, float precise_view_z, float depth, out vec3 totalAmbient) {
     vec3 directLighting = vec3(0.0);
+    vec3 specularLighting = vec3(0.0);
     vec3 lightAmbient = vec3(0.0);
     vec3 viewDirectory = normalize(playerTransforms.position - fragPos);
 
@@ -60,14 +61,16 @@ vec3 calculateLighting(vec3 fragPos, vec3 normal, vec3 albedo, float shininess, 
 
             // if we were physically based, we should have used (1.0 - shadow) * attenuation but since
             // we are missing GI, we need to account for ambient term and this is where we end up
-            directLighting += (min(1.0 - shadow, attenuation) * (diffuseRate + specularRate) * LightSources.lights[i].color);
+            float lightFactor = min(1.0 - shadow, attenuation);
+            directLighting += (lightFactor * diffuseRate * LightSources.lights[i].color);
+            specularLighting += (lightFactor * specularRate * LightSources.lights[i].color);
             // we don't check shadow for ambient, unlike GI solutions. intentional
             lightAmbient += attenuation * LightSources.lights[i].ambient;
         }
     }
 
     totalAmbient = materialAmbient + lightAmbient;
-    vec3 fullyLitColor = (directLighting + totalAmbient) * albedo;
+    vec3 fullyLitColor = (directLighting + totalAmbient) * albedo + specularLighting * materialSpecular;//the highlight is not tinted by albedo
 
     return fullyLitColor;
 }
