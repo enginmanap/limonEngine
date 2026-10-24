@@ -2656,12 +2656,12 @@ void Editor::createObjectTreeRecursive(Attachable *attachable, uint32_t pickedOb
                    if(hasFilter && filteredVisibleIDs.count(currentObject->getWorldObjectID()) == 0) {
                        continue;
                    }
-                   //if we came here, it means the first element of the parentage was this, remove that element and pass
-                   if(!parentage.empty()) {
-                       parentage.erase(parentage.begin());
+                   std::vector<uint32_t> childParentage = parentage;
+                   if(!childParentage.empty()) {
+                       childParentage.erase(childParentage.begin());
                    }
                    createObjectTreeRecursive(*iterator, pickedObjectID, nodeFlags,
-                                             leafFlags, parentage, filterText, filteredVisibleIDs);
+                                             leafFlags, childParentage, filterText, filteredVisibleIDs);
                } else {
                    if(hasFilter && filteredVisibleIDs.count(currentObject->getWorldObjectID()) == 0) {
                        continue;
