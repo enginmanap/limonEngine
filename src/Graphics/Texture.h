@@ -138,6 +138,10 @@ public:
         return textureInfo.formatType;
     }
 
+    GraphicsInterface::InternalFormatTypes getInternalFormat() {
+        return textureInfo.internalFormatType;
+    }
+
     uint32_t getHeight() const {
         return textureInfo.defaultSize[1];
     }

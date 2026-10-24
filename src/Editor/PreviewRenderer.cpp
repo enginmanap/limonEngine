@@ -18,7 +18,7 @@
 
 PreviewRenderer::PreviewRenderer(World* world, ImGuiHelper* imgGuiHelper) : world(world), imgGuiHelper(imgGuiHelper) {
     backgroundRenderStage = std::make_unique<GraphicsPipelineStage>(world->graphicsWrapper, 640,480,"","",true,true,true,false,false);
-    colorTexture = std::make_shared<Texture>(world->graphicsWrapper, GraphicsInterface::TextureTypes::T2D, GraphicsInterface::InternalFormatTypes::RGBA, GraphicsInterface::FormatTypes::RGBA, GraphicsInterface::DataTypes::UNSIGNED_BYTE, 640, 480);
+    colorTexture = std::make_shared<Texture>(world->graphicsWrapper, GraphicsInterface::TextureTypes::T2D, GraphicsInterface::InternalFormatTypes::SRGB8_ALPHA8, GraphicsInterface::FormatTypes::RGBA, GraphicsInterface::DataTypes::UNSIGNED_BYTE, 640, 480);
     colorTexture->setName("EditorColorTexture");
     colorTexture->setFilterMode(GraphicsInterface::FilterModes::NEAREST);
     depthTexture = std::make_shared<Texture>(world->graphicsWrapper, GraphicsInterface::TextureTypes::T2D, GraphicsInterface::InternalFormatTypes::DEPTH, GraphicsInterface::FormatTypes::DEPTH, GraphicsInterface::DataTypes::FLOAT, 640, 480);
@@ -33,7 +33,7 @@ PreviewRenderer::PreviewRenderer(World* world, ImGuiHelper* imgGuiHelper) : worl
     wrapper->layer = 0;
 
     modelPreview.renderStage = std::make_unique<GraphicsPipelineStage>(world->graphicsWrapper, DEFAULT_PREVIEW_WIDTH, DEFAULT_PREVIEW_HEIGHT,"","",true,true,true,false,false);
-    modelPreview.colorTexture = std::make_shared<Texture>(world->graphicsWrapper, GraphicsInterface::TextureTypes::T2D, GraphicsInterface::InternalFormatTypes::RGBA, GraphicsInterface::FormatTypes::RGBA, GraphicsInterface::DataTypes::UNSIGNED_BYTE, DEFAULT_PREVIEW_WIDTH, DEFAULT_PREVIEW_HEIGHT);
+    modelPreview.colorTexture = std::make_shared<Texture>(world->graphicsWrapper, GraphicsInterface::TextureTypes::T2D, GraphicsInterface::InternalFormatTypes::SRGB8_ALPHA8, GraphicsInterface::FormatTypes::RGBA, GraphicsInterface::DataTypes::UNSIGNED_BYTE, DEFAULT_PREVIEW_WIDTH, DEFAULT_PREVIEW_HEIGHT);
     modelPreview.colorTexture->setName("EditorBonePreviewColorTexture");
     modelPreview.colorTexture->setFilterMode(GraphicsInterface::FilterModes::NEAREST);
     modelPreview.depthTexture = std::make_shared<Texture>(world->graphicsWrapper, GraphicsInterface::TextureTypes::T2D, GraphicsInterface::InternalFormatTypes::DEPTH, GraphicsInterface::FormatTypes::DEPTH, GraphicsInterface::DataTypes::FLOAT, DEFAULT_PREVIEW_WIDTH, DEFAULT_PREVIEW_HEIGHT);
@@ -503,7 +503,7 @@ void PreviewRenderer::ensureModelPreviewTarget(uint32_t width, uint32_t height) 
     modelPreview.width = width;
     modelPreview.height = height;
     modelPreview.renderStage = std::make_unique<GraphicsPipelineStage>(world->graphicsWrapper, width, height, "", "", true, true, true, false, false);
-    modelPreview.colorTexture = std::make_shared<Texture>(world->graphicsWrapper, GraphicsInterface::TextureTypes::T2D, GraphicsInterface::InternalFormatTypes::RGBA, GraphicsInterface::FormatTypes::RGBA, GraphicsInterface::DataTypes::UNSIGNED_BYTE, width, height);
+    modelPreview.colorTexture = std::make_shared<Texture>(world->graphicsWrapper, GraphicsInterface::TextureTypes::T2D, GraphicsInterface::InternalFormatTypes::SRGB8_ALPHA8, GraphicsInterface::FormatTypes::RGBA, GraphicsInterface::DataTypes::UNSIGNED_BYTE, width, height);
     modelPreview.colorTexture->setName("EditorModelPreviewColorTexture");
     modelPreview.colorTexture->setFilterMode(GraphicsInterface::FilterModes::NEAREST);
     modelPreview.depthTexture = std::make_shared<Texture>(world->graphicsWrapper, GraphicsInterface::TextureTypes::T2D, GraphicsInterface::InternalFormatTypes::DEPTH, GraphicsInterface::FormatTypes::DEPTH, GraphicsInterface::DataTypes::FLOAT, width, height);
@@ -645,7 +645,7 @@ void PreviewRenderer::ensureComparisonTarget(ComparisonTarget &target, uint32_t 
     }
     target.size = size;
     target.renderStage = std::make_unique<GraphicsPipelineStage>(world->graphicsWrapper, size, size, "", "", true, true, true, false, false);
-    target.colorTexture = std::make_shared<Texture>(world->graphicsWrapper, GraphicsInterface::TextureTypes::T2D, GraphicsInterface::InternalFormatTypes::RGBA, GraphicsInterface::FormatTypes::RGBA, GraphicsInterface::DataTypes::UNSIGNED_BYTE, size, size);
+    target.colorTexture = std::make_shared<Texture>(world->graphicsWrapper, GraphicsInterface::TextureTypes::T2D, GraphicsInterface::InternalFormatTypes::SRGB8_ALPHA8, GraphicsInterface::FormatTypes::RGBA, GraphicsInterface::DataTypes::UNSIGNED_BYTE, size, size);
     target.colorTexture->setName(textureName);
     //nearest, because the point is to see the level's own pixels magnified, not a smoothed version of them
     target.colorTexture->setFilterMode(GraphicsInterface::FilterModes::NEAREST);

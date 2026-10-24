@@ -115,6 +115,7 @@ void ImGuiHelper::RenderDrawLists(std::shared_ptr<GraphicsProgram> graphicsProgr
                     graphicsProgram->setUniform("rangeMin", imGuiImageWrapper->rangeMin);
                     graphicsProgram->setUniform("rangeMax", imGuiImageWrapper->rangeMax);
                     graphicsProgram->setUniform("channel", imGuiImageWrapper->channel);
+                    graphicsProgram->setUniform("encodeToSRGB", imGuiImageWrapper->texture->getInternalFormat() == GraphicsInterface::InternalFormatTypes::SRGB8_ALPHA8 ? 1 : 0);
                     graphicsWrapper->render(graphicsProgram->getID(), g_VaoHandle, g_ElementsHandle, pcmd->ElemCount, idx_buffer_offset);
                 }
             }

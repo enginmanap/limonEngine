@@ -30,6 +30,14 @@ in VS_FS {
 uniform int renderModelIMGUI;
 uniform float renderModelTransparency;// 0 (never set) is the opaque player placeholder, occlusion debug overlay sets it
 
+uniform int encodeToSRGB;//the stage writes raw, and sampling an sRGB texture decodes it, so we put the curve back or color textures show dark
+
+vec3 linearToSRGB(vec3 linearColor) {
+    vec3 low = linearColor * 12.92;
+    vec3 high = 1.055 * pow(max(linearColor, vec3(0.0)), vec3(1.0 / 2.4)) - 0.055;
+    return mix(high, low, lessThanEqual(linearColor, vec3(0.0031308)));
+}
+
 vec4 renderModel() {
     //the stage doesn't cull, a translucent closed mesh would blend its far wall over its near one
     if (renderModelTransparency > 0.0 && !gl_FrontFacing) {
@@ -69,11 +77,12 @@ vec4 renderModel() {
             lightingColorFactor += ((diffuseRate + specularRate) * LightSources.lights[i].color) + LightSources.lights[i].ambient;
         }
     }
-    return vec4(
+    vec4 litColor = vec4(
     min(lightingColorFactor.x, 1.0),
     min(lightingColorFactor.y, 1.0),
     min(lightingColorFactor.z, 1.0),
     1.0 - renderModelTransparency) * objectColor;
+    return vec4(linearToSRGB(litColor.rgb), litColor.a);//lit in linear like the scene, this stage writes raw
 }
 
 uniform int remapRange;//render debugging only, 0 for everything else so UI and fonts are untouched
@@ -83,6 +92,9 @@ uniform int channel;//0 all, 1 red, 2 green, 3 blue, 4 alpha
 
 vec4 debugRemap(vec4 sampled) {
     if (remapRange == 0) {
+        if (encodeToSRGB != 0) {
+            return vec4(linearToSRGB(sampled.rgb), sampled.a);
+        }
         return sampled;
     }
     vec3 shown = sampled.rgb;
