@@ -1268,6 +1268,7 @@ uint32_t OpenGLGraphics::createTexture(int height, int width, TextureTypes type,
         case InternalFormatTypes::R32F: glInternalDataFormat = GL_R32F; break;
         case InternalFormatTypes::RGB: glInternalDataFormat = GL_RGB; break;
         case InternalFormatTypes::RGBA: glInternalDataFormat = GL_RGBA; break;
+        case InternalFormatTypes::SRGB8_ALPHA8: glInternalDataFormat = GL_SRGB8_ALPHA8; break;
         case InternalFormatTypes::RGB16F: glInternalDataFormat = GL_RGB16F; break;
         case InternalFormatTypes::RGBA16F: glInternalDataFormat = GL_RGBA16F; break;
         case InternalFormatTypes::RGB32F: glInternalDataFormat = GL_RGB32F; break;
@@ -1372,6 +1373,7 @@ OpenGLGraphics::loadTextureData(uint32_t textureID, int height, int width, Textu
         case InternalFormatTypes::R32F: glInternalDataFormat = GL_R32F; break;
         case InternalFormatTypes::RGB: glInternalDataFormat = GL_RGB; break;
         case InternalFormatTypes::RGBA: glInternalDataFormat = GL_RGBA; break;
+        case InternalFormatTypes::SRGB8_ALPHA8: glInternalDataFormat = GL_SRGB8_ALPHA8; break;
         case InternalFormatTypes::RGB16F: glInternalDataFormat = GL_RGB16F; break;
         case InternalFormatTypes::RGBA16F: glInternalDataFormat = GL_RGBA16F; break;
         case InternalFormatTypes::RGB32F: glInternalDataFormat = GL_RGB32F; break;

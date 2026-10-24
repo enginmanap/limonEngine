@@ -1304,6 +1304,11 @@ uint32_t OpenGLESGraphics::createTexture(int height, int width, TextureTypes typ
             glFormat = GL_RGBA;
             if (glInternalDataFormat == GL_RGBA8) glDataType = GL_UNSIGNED_BYTE;
             break;
+        case InternalFormatTypes::SRGB8_ALPHA8:
+            glInternalDataFormat = GL_SRGB8_ALPHA8;
+            glFormat = GL_RGBA;
+            glDataType = GL_UNSIGNED_BYTE;
+            break;
         case InternalFormatTypes::RGB16F:
             glInternalDataFormat = GL_RGB16F;
             glFormat = GL_RGB;
@@ -1454,6 +1459,11 @@ OpenGLESGraphics::loadTextureData(uint32_t textureID, int height, int width, Tex
             glInternalDataFormat = (glDataType == GL_FLOAT) ? GL_RGBA32F : GL_RGBA8;
             glFormat = GL_RGBA;
             if (glInternalDataFormat == GL_RGBA8) glDataType = GL_UNSIGNED_BYTE;
+            break;
+        case InternalFormatTypes::SRGB8_ALPHA8:
+            glInternalDataFormat = GL_SRGB8_ALPHA8;
+            glFormat = GL_RGBA;
+            glDataType = GL_UNSIGNED_BYTE;
             break;
         case InternalFormatTypes::RGB16F:
             glInternalDataFormat = GL_RGB16F;

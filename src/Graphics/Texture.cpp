@@ -21,6 +21,7 @@ std::string Texture::describe() const {
         case GraphicsInterface::InternalFormatTypes::R32F: internalFormatName = "R32F"; break;
         case GraphicsInterface::InternalFormatTypes::RGB: internalFormatName = "RGB"; break;
         case GraphicsInterface::InternalFormatTypes::RGBA: internalFormatName = "RGBA"; break;
+        case GraphicsInterface::InternalFormatTypes::SRGB8_ALPHA8: internalFormatName = "SRGB8_ALPHA8"; break;
         case GraphicsInterface::InternalFormatTypes::RGB16F: internalFormatName = "RGB16F"; break;
         case GraphicsInterface::InternalFormatTypes::RGBA16F: internalFormatName = "RGBA16F"; break;
         case GraphicsInterface::InternalFormatTypes::RGB32F: internalFormatName = "RGB32F"; break;
@@ -88,10 +89,11 @@ bool Texture::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *p
         case GraphicsInterface::InternalFormatTypes::R32F: currentElement->SetText("R32F"); break;
         case GraphicsInterface::InternalFormatTypes::RGB: currentElement->SetText("RGB"); break;
         case GraphicsInterface::InternalFormatTypes::RGBA: currentElement->SetText("RGBA"); break;
+        case GraphicsInterface::InternalFormatTypes::SRGB8_ALPHA8: currentElement->SetText("SRGB8_ALPHA8"); break;
         case GraphicsInterface::InternalFormatTypes::RGB16F: currentElement->SetText("RGB16F"); break;
         case GraphicsInterface::InternalFormatTypes::RGBA16F: currentElement->SetText("RGBA16F"); break;
         case GraphicsInterface::InternalFormatTypes::RGB32F: currentElement->SetText("RGB32F"); break;
-        case GraphicsInterface::InternalFormatTypes::RGBA32F: currentElement->SetText("RGB32AF"); break;
+        case GraphicsInterface::InternalFormatTypes::RGBA32F: currentElement->SetText("RGBA32F"); break;
         case GraphicsInterface::InternalFormatTypes::DEPTH: currentElement->SetText("DEPTH"); break;
         case GraphicsInterface::InternalFormatTypes::COMPRESSED_RGB: currentElement->SetText("COMPRESSED_RGB"); break;
         case GraphicsInterface::InternalFormatTypes::COMPRESSED_RGBA: currentElement->SetText("COMPRESSED_RGBA"); break;
@@ -293,12 +295,16 @@ std::shared_ptr<Texture> Texture::deserialize(tinyxml2::XMLElement *TextureNode,
         textureInfo.internalFormatType = GraphicsInterface::InternalFormatTypes ::RGB;
     } else if(internalFormatString == "RGBA") {
         textureInfo.internalFormatType = GraphicsInterface::InternalFormatTypes ::RGBA;
+    } else if(internalFormatString == "SRGB8_ALPHA8") {
+        textureInfo.internalFormatType = GraphicsInterface::InternalFormatTypes ::SRGB8_ALPHA8;
     } else if(internalFormatString == "RGB16F") {
         textureInfo.internalFormatType = GraphicsInterface::InternalFormatTypes ::RGB16F;
     } else if(internalFormatString == "RGBA16F") {
         textureInfo.internalFormatType = GraphicsInterface::InternalFormatTypes ::RGBA16F;
     } else if(internalFormatString == "RGB32F") {
         textureInfo.internalFormatType = GraphicsInterface::InternalFormatTypes ::RGB32F;
+    } else if(internalFormatString == "RGBA32F") {
+        textureInfo.internalFormatType = GraphicsInterface::InternalFormatTypes ::RGBA32F;
     } else if(internalFormatString == "DEPTH") {
         textureInfo.internalFormatType = GraphicsInterface::InternalFormatTypes ::DEPTH;
     } else if(internalFormatString == "COMPRESSED_RGB") {

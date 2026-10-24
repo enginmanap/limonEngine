@@ -291,13 +291,21 @@ void PipelineExtension::drawTextureSettings() {
     ImGui::SameLine();
     if(ImGui::RadioButton("RGBA##internalFormat_type_PipelineExtension", currentTextureInfo.internalFormatType == GraphicsInterface::InternalFormatTypes::RGBA)) { currentTextureInfo.internalFormatType = GraphicsInterface::InternalFormatTypes::RGBA; }
     ImGui::SameLine();
+    if(ImGui::RadioButton("SRGB8_ALPHA8##internalFormat_type_PipelineExtension", currentTextureInfo.internalFormatType == GraphicsInterface::InternalFormatTypes::SRGB8_ALPHA8)) { currentTextureInfo.internalFormatType = GraphicsInterface::InternalFormatTypes::SRGB8_ALPHA8; }
+    ImGui::SameLine();
     if(ImGui::RadioButton("RGB16F##internalFormat_type_PipelineExtension", currentTextureInfo.internalFormatType == GraphicsInterface::InternalFormatTypes::RGB16F)) { currentTextureInfo.internalFormatType = GraphicsInterface::InternalFormatTypes::RGB16F; }
     ImGui::SameLine();
     if(ImGui::RadioButton("RGBA16F##internalFormat_type_PipelineExtension", currentTextureInfo.internalFormatType == GraphicsInterface::InternalFormatTypes::RGBA16F)) { currentTextureInfo.internalFormatType = GraphicsInterface::InternalFormatTypes::RGBA16F; }
     ImGui::SameLine();
     if(ImGui::RadioButton("RGB32F##internalFormat_type_PipelineExtension", currentTextureInfo.internalFormatType == GraphicsInterface::InternalFormatTypes::RGB32F)) { currentTextureInfo.internalFormatType = GraphicsInterface::InternalFormatTypes::RGB32F; }
     ImGui::SameLine();
+    if(ImGui::RadioButton("RGBA32F##internalFormat_type_PipelineExtension", currentTextureInfo.internalFormatType == GraphicsInterface::InternalFormatTypes::RGBA32F)) { currentTextureInfo.internalFormatType = GraphicsInterface::InternalFormatTypes::RGBA32F; }
+    ImGui::SameLine();
     if(ImGui::RadioButton("DEPTH##internalFormat_type_PipelineExtension", currentTextureInfo.internalFormatType == GraphicsInterface::InternalFormatTypes::DEPTH)) { currentTextureInfo.internalFormatType = GraphicsInterface::InternalFormatTypes::DEPTH; }
+    ImGui::SameLine();
+    if(ImGui::RadioButton("COMPRESSED_RGB##internalFormat_type_PipelineExtension", currentTextureInfo.internalFormatType == GraphicsInterface::InternalFormatTypes::COMPRESSED_RGB)) { currentTextureInfo.internalFormatType = GraphicsInterface::InternalFormatTypes::COMPRESSED_RGB; }
+    ImGui::SameLine();
+    if(ImGui::RadioButton("COMPRESSED_RGBA##internalFormat_type_PipelineExtension", currentTextureInfo.internalFormatType == GraphicsInterface::InternalFormatTypes::COMPRESSED_RGBA)) { currentTextureInfo.internalFormatType = GraphicsInterface::InternalFormatTypes::COMPRESSED_RGBA; }
 
 
     ImGui::Text("Format type:");

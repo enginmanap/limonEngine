@@ -17,6 +17,14 @@ struct SDL_Surface;
 
 class TextureAsset : public Asset {
     const std::string FALLBACK_TEXTURE_NAME = "./Engine/Textures/notFoundFallback.jpg"; //This can be a configuration, either as option, or for build time?
+    bool transparentTexels = false;
+    bool loadFailed = false;
+    void loadCPUPart() override;
+    void loadGPUPart() override;
+
+    void scanForTransparentTexels();
+
+protected:
     struct TextureMetaData {
         GraphicsInterface::TextureTypes textureType;
         GraphicsInterface::InternalFormatTypes internalFormatType;
@@ -27,16 +35,10 @@ class TextureAsset : public Asset {
     };
     TextureMetaData textureMetaData;
     SDL_Surface* cpuSurface = nullptr;//gets deleted after gpu load, don't use
-    bool transparentTexels = false;
-    bool loadFailed = false;
-    void loadCPUPart() override;
-    void loadGPUPart() override;
 
-    void scanForTransparentTexels();
+    //false leaves the surface as it was. Subclasses change the metadata after it, the Texture is built from that
+    virtual bool convertToSupportedFormat();
 
-    bool convertToSupportedFormat();
-
-protected:
     std::vector<std::string> name;//texture file, or for embedded "*index" then the model it is embedded in
     std::shared_ptr<Texture> texture;
 public:
