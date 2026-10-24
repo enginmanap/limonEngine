@@ -11,12 +11,14 @@
 
 #include <array>
 #include <atomic>
+#include <cmath>
 #include <mutex>
 #include <set>
 #include <unordered_map>
 
 #include "glm/glm.hpp"
 #include "Assets/TextureAsset.h"
+#include "Assets/SRGBTextureAsset.h"
 #include "Assets/AssetManager.h"
 
 #include "Editor/ImGuiRequest.h"
@@ -117,17 +119,18 @@ private:
         std::shared_ptr<TextureAsset> Material::*texture;
         bool Material::*isMap;
         uint32_t mapBit;
+        bool isColor;//color slots load as SRGBTextureAsset, the rest as TextureAsset
     };
     static constexpr size_t TEXTURE_SLOT_COUNT = 5;
     //function local static for the same shared library reason as nextRegistrationID
     static const std::array<TextureSlot, TEXTURE_SLOT_COUNT> &getTextureSlots() {
         //never reorder: the cereal texture name layout and every saved OriginalHash follow this order
         static const std::array<TextureSlot, TEXTURE_SLOT_COUNT> textureSlots = {{
-            {"Ambient",  "ambientTexture",  "AmbientTexture",  &Material::ambientTexture,  &Material::isAmbientMap,  8},
-            {"Diffuse",  "diffuseTexture",  "DiffuseTexture",  &Material::diffuseTexture,  &Material::isDiffuseMap,  4},
-            {"Specular", "specularTexture", "SpecularTexture", &Material::specularTexture, &Material::isSpecularMap, 2},
-            {"Normal",   "normalTexture",   "NormalTexture",   &Material::normalTexture,   &Material::isNormalMap,   16},
-            {"Opacity",  "opacityTexture",  "OpacityTexture",  &Material::opacityTexture,  &Material::isOpacityMap,  1},
+            {"Ambient",  "ambientTexture",  "AmbientTexture",  &Material::ambientTexture,  &Material::isAmbientMap,  8,  true},
+            {"Diffuse",  "diffuseTexture",  "DiffuseTexture",  &Material::diffuseTexture,  &Material::isDiffuseMap,  4,  true},
+            {"Specular", "specularTexture", "SpecularTexture", &Material::specularTexture, &Material::isSpecularMap, 2,  true},
+            {"Normal",   "normalTexture",   "NormalTexture",   &Material::normalTexture,   &Material::isNormalMap,   16, false},
+            {"Opacity",  "opacityTexture",  "OpacityTexture",  &Material::opacityTexture,  &Material::isOpacityMap,  1,  false},
         }};
         return textureSlots;
     }
@@ -138,6 +141,19 @@ private:
     std::string resolveTexturePath(const std::string &requestedPath, bool &repaired) const;
 
     std::string findTextureByName(const std::string &fileName) const;
+    //takes a reference, as the asset type of the slot. A file is one asset whichever type asked first, so every request for a slot's file goes through here
+    std::shared_ptr<TextureAsset> loadSlotTexture(const TextureSlot &slot, const std::vector<std::string> &textureFiles) const;
+
+    [[noreturn]] void failTextureType(const TextureSlot &slot, const std::string &textureFile) const;
+
+    //the slots of one batch all load as TextureType, color slots and linear slots are separate batches
+    template<class TextureType>
+    static void loadSlotBatch(AssetManager *assetManager, const std::vector<std::pair<Material *, size_t>> &slotsToLoad,
+                              const std::vector<std::vector<std::string>> &filesToLoad);
+
+    //loads every texture these materials are missing in one parallel batch per asset type, only MaterialRegistry calls it, on the GL context thread
+    static void loadTextures(const std::vector<std::shared_ptr<Material>> &materials);
+
     //acquiredTexture already holds its reference, nullptr empties the slot
     void assignTexture(const TextureSlot &slot, const std::shared_ptr<TextureAsset> &acquiredTexture);
     bool putRemoveTextureButton(const TextureSlot &slot);
@@ -204,6 +220,19 @@ public:
 
     //appearance only, name/materialIndex/originalHash stay put so we keep our registration and UBO slot
     void restoreValuesFrom(const Material &other);
+
+    //material colors come from model files, which keep them sRGB encoded like their textures, and the shaders light in linear.
+    //The curve is the one the hardware uses to decode sRGB textures
+    static float srgbToLinear(float encodedValue) {
+        if (encodedValue <= 0.04045f) {
+            return encodedValue / 12.92f;
+        }
+        return std::pow((encodedValue + 0.055f) / 1.055f, 2.4f);
+    }
+
+    static glm::vec3 srgbToLinear(const glm::vec3 &encodedColor) {
+        return glm::vec3(srgbToLinear(encodedColor.x), srgbToLinear(encodedColor.y), srgbToLinear(encodedColor.z));
+    }
 
     // 5,6,7,8,9 are used by material, 3 and 4 stay assignable in material stages too
     static constexpr int32_t MATERIAL_SAMPLER_TEXTURE_UNIT_START = GraphicsInterface::FIRST_PIPELINE_TEXTURE_UNIT + 2;
@@ -422,6 +451,21 @@ public:
             }
         }
         return textureFiles;
+    }
+
+    //the same files as getTextureFiles, split by the asset type their slot loads them as
+    void getTextureFilesByType(std::vector<std::vector<std::string>> &colorFiles, std::vector<std::vector<std::string>> &linearFiles) const {
+        for (size_t slotIndex = 0; slotIndex < TEXTURE_SLOT_COUNT; ++slotIndex) {
+            std::vector<std::string> textureName = getTextureName(slotIndex);
+            if (textureName.empty()) {
+                continue;
+            }
+            if (getTextureSlots()[slotIndex].isColor) {
+                colorFiles.push_back(textureName);
+            } else {
+                linearFiles.push_back(textureName);
+            }
+        }
     }
 
     //"*N" of each texture embedded in owner, the images a file written for this material has to carry

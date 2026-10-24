@@ -48,6 +48,7 @@ private:
     bool continuousEmit = true;//emit until reaching maximum, or emit as particles are removed;
     bool enabled = true;
     bool dirty;
+    bool textureIsSRGB = true;//color textures decode to linear on sampling, masks want their raw values
 
     std::shared_ptr<TextureAsset> textureAsset;//it is the root asset for texture
     uint32_t particleDataTexture = 0;//This is a handle from backend, for multi buffered texture store. We don't know what GPU texture will it be.
@@ -58,6 +59,9 @@ private:
     std::uniform_real_distribution<float> randomStartingPoints;
     std::uniform_real_distribution<float> randomSpeedDistribution;
     long totalCreatedCount = 0;
+
+    //takes a reference, as the asset type textureIsSRGB says. A file is one asset whichever type asked first
+    std::shared_ptr<TextureAsset> loadTextureAsset(const std::string &textureFile) const;
 
     void setupVAO();
 
@@ -70,7 +74,7 @@ private:
 public:
     GPUParticleEmitter(long worldObjectId, std::string name, std::shared_ptr<AssetManager> assetManager,
             const std::string &textureFile, glm::vec3 startPosition, glm::vec3 maxStartDistances, glm::vec2 size, long count,
-            long lifeTime, uint32_t startTime, float particlePerMs = -1);
+            long lifeTime, uint32_t startTime, float particlePerMs = -1, bool textureIsSRGB = true);
 
     // Rebuilds GPU state from scratch via the normal constructor, then copies settings. Live particle
     // state is left at fresh-construction defaults (dirty=true triggers a fresh setupParticles), same
@@ -180,6 +184,13 @@ public:
     }
 
     void changeTexture(const std::string &textureFile);
+
+    //reloads the texture as the other asset type
+    void setTextureIsSRGB(bool textureIsSRGB);
+
+    bool isTextureSRGB() const {
+        return textureIsSRGB;
+    }
 
     long getMaxCount() const {
         return maxCount;

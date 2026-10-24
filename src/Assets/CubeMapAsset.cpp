@@ -40,10 +40,23 @@ void CubeMapAsset::loadGPUPart() {
 
     }
 
+    //color images, always RGBA for the same reason SRGBTextureAsset is, ES can't mipmap SRGB8
+    for (int i = 0; i < 6; i++) {
+        if (surfaces[i]->format != SDL_PIXELFORMAT_ABGR8888) {
+            SDL_Surface *convertedSurface = SDL_ConvertSurface(surfaces[i], SDL_PIXELFORMAT_ABGR8888);
+            if (convertedSurface == nullptr) {
+                std::cerr << "CubeMap face " << path + "/" + names[i] << " can't be converted to RGBA. Error:" << std::endl << SDL_GetError() << std::endl;
+                exit(-1);
+            }
+            SDL_DestroySurface(surfaces[i]);
+            surfaces[i] = convertedSurface;
+        }
+    }
+
     texture = std::make_unique<Texture>(assetManager->getGraphicsWrapper(), GraphicsInterface::TextureTypes::TCUBE_MAP,
-                                        GraphicsInterface::InternalFormatTypes::RGB, GraphicsInterface::FormatTypes::RGB, GraphicsInterface::DataTypes::UNSIGNED_BYTE,
+                                        GraphicsInterface::InternalFormatTypes::SRGB8_ALPHA8, GraphicsInterface::FormatTypes::RGBA, GraphicsInterface::DataTypes::UNSIGNED_BYTE,
                                         surfaces[0]->w, surfaces[0]->h);
-    //FIXME check if all the maps has same height/width, if they are RGB.
+    //FIXME check if all the maps has same height/width.
     texture->loadData(surfaces[0]->pixels, surfaces[1]->pixels,
                       surfaces[2]->pixels, surfaces[3]->pixels,
                       surfaces[4]->pixels, surfaces[5]->pixels);

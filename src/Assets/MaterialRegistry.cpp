@@ -106,30 +106,7 @@ void MaterialRegistry::loadTexturesAndSlot(const std::vector<std::shared_ptr<Mat
     if (newlyLoaded.empty()) {
         return;
     }
-    AssetManager *assetManager = newlyLoaded[0]->assetManager;
-    //a requester waits behind other threads' loads, so only what nobody loaded yet goes through one
-    std::vector<std::pair<Material *, size_t>> slotsToLoad;
-    std::vector<std::vector<std::string>> filesToLoad;
-    for (const std::shared_ptr<Material> &material : newlyLoaded) {
-        std::vector<size_t> slotIndices;
-        std::vector<std::vector<std::string>> textureFiles;
-        material->collectTextureFiles(slotIndices, textureFiles);
-        for (size_t entryIndex = 0; entryIndex < slotIndices.size(); ++entryIndex) {
-            std::shared_ptr<TextureAsset> loadedTexture = assetManager->acquireLoadedAsset<TextureAsset>(textureFiles[entryIndex]);
-            if (loadedTexture != nullptr) {
-                material->attachTexture(slotIndices[entryIndex], loadedTexture);
-            } else {
-                slotsToLoad.emplace_back(material.get(), slotIndices[entryIndex]);
-                filesToLoad.push_back(textureFiles[entryIndex]);
-            }
-        }
-    }
-    if (!filesToLoad.empty()) {
-        std::vector<std::shared_ptr<TextureAsset>> loadedTextures = assetManager->parallelLoadAssetList<TextureAsset>(filesToLoad);
-        for (size_t entryIndex = 0; entryIndex < slotsToLoad.size(); ++entryIndex) {
-            slotsToLoad[entryIndex].first->attachTexture(slotsToLoad[entryIndex].second, loadedTextures[entryIndex]);
-        }
-    }
+    Material::loadTextures(newlyLoaded);
     for (const std::shared_ptr<Material> &material : newlyLoaded) {
         material->loadGPUSide();
     }

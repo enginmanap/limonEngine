@@ -337,6 +337,28 @@ void OpenGLGraphics::attachGeneralUBOs(const GLuint program){
 
 OpenGLGraphics::OpenGLGraphics(OptionsUtil::Options *options): GraphicsInterface(options), options(options) {}
 
+//the pipeline writes linear colors and the framebuffer encodes them, so one that doesn't shows everything too dark.
+//Asking the driver is no use, GL_FRAMEBUFFER_ATTACHMENT_COLOR_ENCODING says linear on NVIDIA for a window that encodes,
+//so write a mid gray and read back what got stored: 0.5 reads back near 188 when it encodes
+void OpenGLGraphics::verifyDefaultFramebufferSRGB() {
+    GLfloat previousClearColor[4];
+    glGetFloatv(GL_COLOR_CLEAR_VALUE, previousClearColor);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glEnable(GL_FRAMEBUFFER_SRGB);
+    glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+    GLubyte probePixel[4] = {0, 0, 0, 0};
+    glReadBuffer(GL_BACK);
+    glReadPixels(0, 0, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, probePixel);
+    glDisable(GL_FRAMEBUFFER_SRGB);
+    glClearColor(previousClearColor[0], previousClearColor[1], previousClearColor[2], previousClearColor[3]);
+    if(probePixel[0] < 160) {
+        std::cerr << "The default framebuffer doesn't encode sRGB, the window didn't get an sRGB capable pixel format (linear 0.5 read back as "
+                  << static_cast<int>(probePixel[0]) << "). Exiting.. " << std::endl;
+        exit(-1);
+    }
+}
+
 OpenGLGraphics::ContextInformation OpenGLGraphics::getContextInformation() {
     GraphicsInterface::ContextInformation contextInformation;
     contextInformation.SDL_GL_ACCELERATED_VISUAL = 1;
@@ -465,6 +487,8 @@ bool OpenGLGraphics::createGraphicsBackend() {
     }
 
     std::cout << "Cubemap array support is present. " << std::endl;
+
+    verifyDefaultFramebufferSRGB();
 
     GLint uniformBufferAlignSize = 0;
     glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &uniformBufferAlignSize);
@@ -727,7 +751,7 @@ void OpenGLGraphics::updateVertexTextureCoordinates(const std::vector<glm::vec2>
 }
 
 void
-OpenGLGraphics::switchRenderStage(uint32_t width, uint32_t height, uint32_t frameBufferID, bool blendEnabled, bool depthTestEnabled, bool depthWriteEnabled, bool scissorEnabled, bool framebufferSRGBEnabled [[gnu::unused]],
+OpenGLGraphics::switchRenderStage(uint32_t width, uint32_t height, uint32_t frameBufferID, bool blendEnabled, bool depthTestEnabled, bool depthWriteEnabled, bool scissorEnabled, bool framebufferSRGBEnabled,
                                   bool clearColor, bool clearDepth, CullModes cullMode, std::map<uint32_t, std::shared_ptr<Texture>> &inputs, const std::string &name) {
     popDebugGroup();
     pushDebugGroup(name);
@@ -778,12 +802,17 @@ OpenGLGraphics::switchRenderStage(uint32_t width, uint32_t height, uint32_t fram
     } else {
         glDisable(GL_BLEND);
     }
+    if(framebufferSRGBEnabled) {
+        glEnable(GL_FRAMEBUFFER_SRGB);
+    } else {
+        glDisable(GL_FRAMEBUFFER_SRGB);
+    }
     checkErrors("switchRenderStage");
 }
 
 
 void
-OpenGLGraphics::switchRenderStage(uint32_t width, uint32_t height, uint32_t frameBufferID, bool blendEnabled, bool depthTestEnabled, bool depthWriteEnabled, bool scissorEnabled, bool framebufferSRGBEnabled [[gnu::unused]],
+OpenGLGraphics::switchRenderStage(uint32_t width, uint32_t height, uint32_t frameBufferID, bool blendEnabled, bool depthTestEnabled, bool depthWriteEnabled, bool scissorEnabled, bool framebufferSRGBEnabled,
                                   bool clearColor, bool clearDepth, CullModes cullMode, const std::map<uint32_t, std::shared_ptr<Texture>> &inputs,
                                   const std::map<std::shared_ptr<Texture>,
                                           std::pair<FrameBufferAttachPoints, int>> &attachmentLayerMap, const std::string &name) {
@@ -840,6 +869,11 @@ OpenGLGraphics::switchRenderStage(uint32_t width, uint32_t height, uint32_t fram
         glEnable(GL_BLEND);
     } else {
         glDisable(GL_BLEND);
+    }
+    if(framebufferSRGBEnabled) {
+        glEnable(GL_FRAMEBUFFER_SRGB);
+    } else {
+        glDisable(GL_FRAMEBUFFER_SRGB);
     }
     checkErrors("switchRenderStageLayer");
 }
@@ -1698,6 +1732,9 @@ void OpenGLGraphics::setMaterial(const Material& material) {
     */
     float shininess = material.getSpecularExponent();
     uint32_t maps = material.getMaps();
+    //authored in sRGB like the textures, the shaders light in linear
+    glm::vec3 ambientColor = Material::srgbToLinear(material.getAmbientColor());
+    glm::vec3 diffuseColor = Material::srgbToLinear(material.getDiffuseColor());
 
     if (material.getMaterialIndex() >= NR_MAX_MATERIALS) {
         //writing past the UBO would silently corrupt whatever material sits at the wrapped offset
@@ -1708,11 +1745,11 @@ void OpenGLGraphics::setMaterial(const Material& material) {
 
     glBindBuffer(GL_UNIFORM_BUFFER, allMaterialsUBOLocation);
     glBufferSubData(GL_UNIFORM_BUFFER, material.getMaterialIndex() * materialUniformSize,
-                    sizeof(glm::vec3), glm::value_ptr(material.getAmbientColor()));
+                    sizeof(glm::vec3), glm::value_ptr(ambientColor));
     glBufferSubData(GL_UNIFORM_BUFFER, material.getMaterialIndex() * materialUniformSize + sizeof(glm::vec3),
                     sizeof(GLfloat), &shininess);
     glBufferSubData(GL_UNIFORM_BUFFER, material.getMaterialIndex() * materialUniformSize + sizeof(glm::vec3) + sizeof(GLfloat),
-                    sizeof(glm::vec3), glm::value_ptr(material.getDiffuseColor()));
+                    sizeof(glm::vec3), glm::value_ptr(diffuseColor));
     glBufferSubData(GL_UNIFORM_BUFFER, material.getMaterialIndex() * materialUniformSize + 2 *sizeof(glm::vec3) + sizeof(GLfloat),
                     sizeof(GLint), &maps);
     glBindBuffer(GL_UNIFORM_BUFFER, 0);

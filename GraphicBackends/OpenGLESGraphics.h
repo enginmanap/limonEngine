@@ -300,6 +300,9 @@ public:
 
 private:
 
+    //exits when the default framebuffer would not encode the linear colors the pipeline writes
+    void verifyDefaultFramebufferSRGB();
+
     inline bool checkErrors(const std::string &callerFunc __attribute((unused))) {
 #ifndef NDEBUG
         GLenum fbStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
