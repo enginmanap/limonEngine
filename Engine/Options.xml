@@ -836,4 +836,67 @@
         <IsSet>True</IsSet>
         <Index>101</Index>
     </Parameter>
+    <Parameter>
+        <RequestType>FreeNumber</RequestType>
+        <Description>ssao_strength</Description>
+        <!--Gain on the blurred occlusion before it removes ambient, clamped to 1. The raw value peaks around 0.3 in creases. Needs a restart, it is baked into the shader-->
+        <Value>3.0</Value>
+        <valueType>Double</valueType>
+        <IsSet>True</IsSet>
+        <Index>102</Index>
+    </Parameter>
+    <Parameter>
+        <RequestType>FreeNumber</RequestType>
+        <Description>ssao_power</Description>
+        <!--Exponent on the occlusion the generation shader writes, above 1 keeps only the deep creases. Needs a restart, it is baked into the shader-->
+        <Value>1.0</Value>
+        <valueType>Double</valueType>
+        <IsSet>True</IsSet>
+        <Index>103</Index>
+    </Parameter>
+    <Parameter>
+        <RequestType>FreeNumber</RequestType>
+        <Description>ssao_radius</Description>
+        <!--Sample radius in view space units at the camera, shrinks with distance. Used by SSAO and GTAO. Needs a restart, it is baked into the shader-->
+        <Value>0.3</Value>
+        <valueType>Double</valueType>
+        <IsSet>True</IsSet>
+        <Index>104</Index>
+    </Parameter>
+    <Parameter>
+        <RequestType>FreeNumber</RequestType>
+        <Description>ssao_fadeEnd</Description>
+        <!--View distance where the occlusion has faded to nothing. Used by SSAO and GTAO. Needs a restart, it is baked into the shader-->
+        <Value>75.0</Value>
+        <valueType>Double</valueType>
+        <IsSet>True</IsSet>
+        <Index>105</Index>
+    </Parameter>
+    <Parameter>
+        <RequestType>FreeNumber</RequestType>
+        <Description>ssao_angleBias</Description>
+        <!--Dot product a sample has to exceed to count as occluding, keeps flat surfaces clean. Needs a restart, it is baked into the shader-->
+        <Value>0.05</Value>
+        <valueType>Double</valueType>
+        <IsSet>True</IsSet>
+        <Index>106</Index>
+    </Parameter>
+    <Parameter>
+        <RequestType>FreeNumber</RequestType>
+        <Description>gtao_sliceCount</Description>
+        <!--Directions the horizon search runs in per pixel-->
+        <Value>2</Value>
+        <valueType>Long</valueType>
+        <IsSet>True</IsSet>
+        <Index>107</Index>
+    </Parameter>
+    <Parameter>
+        <RequestType>FreeNumber</RequestType>
+        <Description>gtao_stepCount</Description>
+        <!--Steps along each direction, on each side-->
+        <Value>6</Value>
+        <valueType>Long</valueType>
+        <IsSet>True</IsSet>
+        <Index>108</Index>
+    </Parameter>
 </Options>

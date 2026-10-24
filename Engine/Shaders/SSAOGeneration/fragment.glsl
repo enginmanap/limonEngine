@@ -1,3 +1,20 @@
+#define_option ssao_power
+#ifndef ssao_power
+#define ssao_power 1.0
+#endif
+#define_option ssao_radius
+#ifndef ssao_radius
+#define ssao_radius 0.3
+#endif
+#define_option ssao_fadeEnd
+#ifndef ssao_fadeEnd
+#define ssao_fadeEnd 75.0
+#endif
+#define_option ssao_angleBias
+#ifndef ssao_angleBias
+#define ssao_angleBias 0.05
+#endif
+
 
 #import <./Engine/Shaders/Shared/PlayerInformation.glsl>
 
@@ -13,7 +30,7 @@ uniform sampler2D ssaoNoiseSampler;
 
 uniform vec3 ssaoKernel[128];
 uniform int ssaoSampleCount;
-float uRadius = 0.3f;
+const float uRadius = float(ssao_radius);
 
 vec3 unpackNormal(vec2 pa) {
     vec2 p = pa * 2.0 - 1.0;
@@ -52,7 +69,7 @@ void main(){
     );
 
     // Camera distance based attenuation
-    const float FADE_END = 75.0;
+    const float FADE_END = float(ssao_fadeEnd);
     const float FADE_START = 0.0;
     float viewDepth = abs(basePosition.z);
     float distanceFade = 1.0 - smoothstep(FADE_START, FADE_END, viewDepth);
@@ -78,7 +95,7 @@ void main(){
     float tempOcclusion = 0.0;
 
     // Explicit angle bias to prevent shadow acne on flat surfaces.
-    const float ANGLE_BIAS = 0.05;
+    const float ANGLE_BIAS = float(ssao_angleBias);
 
     for(int i = 0; i < ssaoSampleCount; ++i){
         vec3 sampleDir = TBN * ssaoKernel[i];
@@ -116,5 +133,5 @@ void main(){
         }
     }
 
-    occlusion = (tempOcclusion / float(ssaoSampleCount)) * distanceFade;
+    occlusion = pow(tempOcclusion / float(ssaoSampleCount), float(ssao_power)) * distanceFade;
 }

@@ -1,3 +1,8 @@
+#define_option ssao_strength
+#ifndef ssao_strength
+#define ssao_strength 3.0
+#endif
+
 layout (location = 0) out vec4 finalColor;
 
 in VS_FS {
@@ -14,6 +19,7 @@ void main() {
     vec3 ambient = texture(pre_ambientBuffer, from_vs.textureCoordinates).rgb;
     float ssao   = texture(pre_ssao,          from_vs.textureCoordinates).r;
 
-    finalColor   = vec4(color - ambient * ssao, 1.0);
+    float occlusion = clamp(ssao * float(ssao_strength), 0.0, 1.0);
+    finalColor   = vec4(color + ambient * (1.0 - occlusion), 1.0);
     gl_FragDepth = texture(pre_depthMap, from_vs.textureCoordinates).r;
 }

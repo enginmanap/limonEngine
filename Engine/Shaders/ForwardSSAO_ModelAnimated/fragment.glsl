@@ -47,7 +47,8 @@ void main(void) {
     vec3 totalAmbient;
     vec3 fullyLitColor = calculateLighting(from_vs.fragPos, world_space_normal, albedo.rgb, shininess, materialSpecular, materialAmbient, viewDistance, precise_view_z, gl_FragCoord.z, totalAmbient);
 
-    outColor   = vec4(fullyLitColor, albedo.a);
-    outAmbient = vec4(totalAmbient, 1.0);
+    vec3 ambientComponent = totalAmbient * albedo.rgb;
+    outColor   = vec4(fullyLitColor - ambientComponent, albedo.a);//direct and specular only, the combine pass adds ambient back in float. the sum would clip at 1.0 here and ssao would then remove too much
+    outAmbient = vec4(ambientComponent, 1.0);
     outNormal  = packNormal(world_space_normal);
 }

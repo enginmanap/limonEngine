@@ -1,3 +1,8 @@
+#define_option ssao_strength
+#ifndef ssao_strength
+#define ssao_strength 3.0
+#endif
+
 
 #import <./Engine/Shaders/Shared/Lights.glsl>
 #import <./Engine/Shaders/Shared/PlayerInformation.glsl>
@@ -70,7 +75,8 @@ void main()
     vec3 totalAmbient;
     vec3 fullyLitColor = calculateLighting(fragPos, normal, albedo, shininess, materialSpecular, materialAmbient, viewDistance, precise_view_z, depth, totalAmbient);
 
-    vec3 occludedAmbient = totalAmbient * ssao;
+    float occlusion = clamp(ssao * float(ssao_strength), 0.0, 1.0);
+    vec3 occludedAmbient = totalAmbient * albedo * occlusion;//the lit color adds ambient times albedo, so that is what has to come off
     finalColor = vec4(fullyLitColor - occludedAmbient, 1.0);
     gl_FragDepth = depth;
 }
