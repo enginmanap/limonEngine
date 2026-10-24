@@ -797,6 +797,7 @@ bool PipelineExtension::canBeJoined(const std::set<const Node*>& existingNodes, 
     bool existingDepthReadState = false;
     bool existingDepthWriteState = false;
     bool existingBlendingState = false;
+    bool existingFramebufferSRGBState = true;
     bool existingMaterialRequired = false;
     bool existingModelBoneTransformUsed = false;
     bool existingShadowDirectionalUsed = false;
@@ -819,6 +820,7 @@ bool PipelineExtension::canBeJoined(const std::set<const Node*>& existingNodes, 
         existingDepthReadState = stageExtension->isDepthTestEnabled();
         existingDepthWriteState = stageExtension->isDepthWriteEnabled();
         existingBlendingState = stageExtension->isBlendEnabled();
+        existingFramebufferSRGBState = stageExtension->isFramebufferSRGBEnabled();
         existingMaterialRequired = stageExtension->getProgramNameInfo().materialRequired;
         existingModelBoneTransformUsed = stageExtension->getProgramNameInfo().modelBoneTransformUsed;
         existingShadowDirectionalUsed = stageExtension->getProgramNameInfo().shadowDirectionalUsed;
@@ -922,6 +924,10 @@ bool PipelineExtension::canBeJoined(const std::set<const Node*>& existingNodes, 
     }
     if(existingBlendingState != currentStageExtension->isBlendEnabled()) {
         std::cerr << "Failed because BlendState is different" << std::endl;
+        return false;
+    }
+    if(existingFramebufferSRGBState != currentStageExtension->isFramebufferSRGBEnabled()) {
+        std::cerr << "Failed because FramebufferSRGBState is different" << std::endl;
         return false;
     }
 
@@ -1082,6 +1088,7 @@ bool PipelineExtension::buildRenderPipelineRecursive(const Node *node,
             stageInfo->cameraTags = stageExtension->getCameraTags();
             stageInfo->stage->setCameraTags(stageExtension->getCameraTags());
             stageInfo->stage->setCullMode(stageExtension->getCullmode());
+            stageInfo->stage->setFramebufferSRGBEnabled(stageExtension->isFramebufferSRGBEnabled());
             std::set<const Node*> nodeList{node};
             builtStages[stageInfo] = nodeList;//only add the stage at the first time. Because this method works from back to front, the order in the vector will be correct.
         } else {

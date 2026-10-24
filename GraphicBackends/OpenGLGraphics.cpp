@@ -727,7 +727,7 @@ void OpenGLGraphics::updateVertexTextureCoordinates(const std::vector<glm::vec2>
 }
 
 void
-OpenGLGraphics::switchRenderStage(uint32_t width, uint32_t height, uint32_t frameBufferID, bool blendEnabled, bool depthTestEnabled, bool depthWriteEnabled, bool scissorEnabled,
+OpenGLGraphics::switchRenderStage(uint32_t width, uint32_t height, uint32_t frameBufferID, bool blendEnabled, bool depthTestEnabled, bool depthWriteEnabled, bool scissorEnabled, bool framebufferSRGBEnabled [[gnu::unused]],
                                   bool clearColor, bool clearDepth, CullModes cullMode, std::map<uint32_t, std::shared_ptr<Texture>> &inputs, const std::string &name) {
     popDebugGroup();
     pushDebugGroup(name);
@@ -783,7 +783,7 @@ OpenGLGraphics::switchRenderStage(uint32_t width, uint32_t height, uint32_t fram
 
 
 void
-OpenGLGraphics::switchRenderStage(uint32_t width, uint32_t height, uint32_t frameBufferID, bool blendEnabled, bool depthTestEnabled, bool depthWriteEnabled, bool scissorEnabled,
+OpenGLGraphics::switchRenderStage(uint32_t width, uint32_t height, uint32_t frameBufferID, bool blendEnabled, bool depthTestEnabled, bool depthWriteEnabled, bool scissorEnabled, bool framebufferSRGBEnabled [[gnu::unused]],
                                   bool clearColor, bool clearDepth, CullModes cullMode, const std::map<uint32_t, std::shared_ptr<Texture>> &inputs,
                                   const std::map<std::shared_ptr<Texture>,
                                           std::pair<FrameBufferAttachPoints, int>> &attachmentLayerMap, const std::string &name) {

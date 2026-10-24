@@ -7,12 +7,12 @@
 #include <Utils/StringUtils.hpp>
 
 void GraphicsPipelineStage::activate(bool clear) {
-    graphicsWrapper->switchRenderStage(renderWidth, renderHeight, frameBufferID, blendEnabled, depthTestEnabled, depthWriteEnabled, scissorEnabled, clear && colorAttachment,
+    graphicsWrapper->switchRenderStage(renderWidth, renderHeight, frameBufferID, blendEnabled, depthTestEnabled, depthWriteEnabled, scissorEnabled, framebufferSRGBEnabled, clear && colorAttachment,
                                        clear && depthAttachment, cullMode, inputs, foundName);
 }
 
 void GraphicsPipelineStage::activate(const std::map<std::shared_ptr<Texture>, std::pair<GraphicsInterface::FrameBufferAttachPoints, int>> &attachmentLayerMap, bool clear) {
-    graphicsWrapper->switchRenderStage(renderWidth, renderHeight, frameBufferID, blendEnabled, depthTestEnabled, depthWriteEnabled, scissorEnabled, clear && colorAttachment,
+    graphicsWrapper->switchRenderStage(renderWidth, renderHeight, frameBufferID, blendEnabled, depthTestEnabled, depthWriteEnabled, scissorEnabled, framebufferSRGBEnabled, clear && colorAttachment,
                                        clear && depthAttachment, cullMode, inputs, attachmentLayerMap, foundName);
 }
 
@@ -83,6 +83,10 @@ bool GraphicsPipelineStage::serialize(tinyxml2::XMLDocument &document, tinyxml2:
     } else {
         currentElement->SetText("False");
     }
+    stageNode->InsertEndChild(currentElement);
+
+    currentElement = document.NewElement("FramebufferSRGBEnabled");
+    currentElement->SetText(framebufferSRGBEnabled ? "True" : "False");
     stageNode->InsertEndChild(currentElement);
 
     currentElement = document.NewElement("ToScreen");
@@ -322,6 +326,23 @@ std::shared_ptr<GraphicsPipelineStage> GraphicsPipelineStage::deserialize(tinyxm
         }
     }
 
+    bool framebufferSRGBEnabled = true;
+    stageNodeAttribute = stageNode->FirstChildElement("FramebufferSRGBEnabled");
+    if (stageNodeAttribute != nullptr) {
+        if(stageNodeAttribute->GetText() == nullptr) {
+            std::cerr << "Pipeline Stage framebuffer sRGB setting has no text, assuming true!" << std::endl;
+        } else {
+            std::string framebufferSRGBEnabledString = stageNodeAttribute->GetText();
+            if(framebufferSRGBEnabledString == "True") {
+                framebufferSRGBEnabled = true;
+            } else if(framebufferSRGBEnabledString == "False") {
+                framebufferSRGBEnabled = false;
+            } else {
+                std::cerr << "Pipeline Stage framebuffer sRGB setting is unknown, assuming true!" << std::endl;
+            }
+        }
+    }
+
     stageNodeAttribute = stageNode->FirstChildElement("ToScreen");
     if (stageNodeAttribute != nullptr) {
         if(stageNodeAttribute->GetText() == nullptr) {
@@ -343,6 +364,7 @@ std::shared_ptr<GraphicsPipelineStage> GraphicsPipelineStage::deserialize(tinyxm
     std::shared_ptr<GraphicsPipelineStage> newStage = std::make_shared<GraphicsPipelineStage>(graphicsWrapper, defaultRenderWidth, defaultRenderHeight, widthOption, heightOption, blendEnabled, depthTestEnabled, depthWriteEnabled, scissorEnabled, toScreen);
     newStage->depthAttachment = depthAttachmentEnabled;
     newStage->colorAttachment = colorAttachmentEnabled;
+    newStage->framebufferSRGBEnabled = framebufferSRGBEnabled;
     newStage->cameraTags = cameraTags;
     newStage->objectTags = objectTags;
 

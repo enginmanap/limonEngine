@@ -63,6 +63,7 @@ private:
     bool depthTestEnabled = true;
     bool depthWriteEnabled = true;
     bool scissorTestEnabled = false;
+    bool framebufferSRGBEnabled = true;
     bool anyOutputMultiLayered = false;
 
 public:
@@ -83,6 +84,10 @@ public:
 
     bool isBlendEnabled() const {
         return blendEnabled;
+    }
+
+    bool isFramebufferSRGBEnabled() const {
+        return framebufferSRGBEnabled;
     }
 
     const std::string &getMethodName() const {

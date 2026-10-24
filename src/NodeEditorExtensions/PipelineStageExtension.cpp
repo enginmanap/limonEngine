@@ -10,6 +10,7 @@
 #include "../Utils/StringUtils.hpp"
 #include "../GamePlay/APISerializer.h"
 #include "limonAPI/Graphics/RenderMethodInterface.h"
+#include <ImGuiHelper.h>
 
 const PipelineStageExtension::LightType PipelineStageExtension::LIGHT_TYPES[] = {
         {"NONE", ""},
@@ -155,6 +156,9 @@ void PipelineStageExtension::drawDetailPane(Node *node) {
             ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "Warning: Depth Write enabled but Depth Test disabled. This will not work as expected.");
         }
         ImGui::Checkbox("Scissor Test", &scissorTestEnabled);
+        ImGui::Checkbox("sRGB Framebuffer Encode", &framebufferSRGBEnabled);
+        ImGui::SameLine();
+        ImGuiHelper::ShowHelpMarker("Linear colors written by this stage get encoded to sRGB by the framebuffer. Turn it off for stages that write colors already encoded, like the GUI.");
         ImGui::Checkbox("Clear", &clearBefore);
 
         ImGui::InputInt2("Render Resolution##perPipelineStage", defaultRenderResolution);
@@ -257,6 +261,10 @@ void PipelineStageExtension::serialize(tinyxml2::XMLDocument &document, tinyxml2
     tinyxml2::XMLElement *blendEnabledElement = document.NewElement("BlendEnabled");
     blendEnabledElement->SetText(blendEnabled ? "True" : "False");
     stageExtensionElement->InsertEndChild(blendEnabledElement);
+
+    tinyxml2::XMLElement *framebufferSRGBEnabledElement = document.NewElement("FramebufferSRGBEnabled");
+    framebufferSRGBEnabledElement->SetText(framebufferSRGBEnabled ? "True" : "False");
+    stageExtensionElement->InsertEndChild(framebufferSRGBEnabledElement);
 
     tinyxml2::XMLElement *depthTestEnabledElement = document.NewElement("DepthTestEnabled");
     depthTestEnabledElement->SetText(depthTestEnabled ? "True" : "False");
@@ -440,6 +448,21 @@ void PipelineStageExtension::deserialize(const std::string &nodeName, tinyxml2::
             blendEnabled =false;
         } else {
             std::cerr << "Pipeline stage extension doesn't BlendEnabled flag value is unknown. Defaulting to true" << std::endl;    
+        }
+    }
+
+    tinyxml2::XMLElement *framebufferSRGBEnabledElement = nodeExtensionElement->FirstChildElement("FramebufferSRGBEnabled");
+    this->framebufferSRGBEnabled = true;
+    if(framebufferSRGBEnabledElement == nullptr || framebufferSRGBEnabledElement->GetText() == nullptr) {
+        std::cerr << "Pipeline stage extension doesn't have FramebufferSRGBEnabled flag. Defaulting to true" << std::endl;
+    } else {
+        std::string framebufferSRGBEnabledString = framebufferSRGBEnabledElement->GetText();
+        if(framebufferSRGBEnabledString == "True") {
+            framebufferSRGBEnabled = true;
+        } else if(framebufferSRGBEnabledString == "False") {
+            framebufferSRGBEnabled = false;
+        } else {
+            std::cerr << "Pipeline stage extension FramebufferSRGBEnabled flag value is unknown. Defaulting to true" << std::endl;
         }
     }
 

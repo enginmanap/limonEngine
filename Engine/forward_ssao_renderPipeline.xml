@@ -2205,6 +2205,7 @@
                     <CullMode>None</CullMode>
                     <ClearBefore>False</ClearBefore>
                     <BlendEnabled>True</BlendEnabled>
+                    <FramebufferSRGBEnabled>False</FramebufferSRGBEnabled>
                     <DepthTestEnabled>True</DepthTestEnabled>
                     <DepthWriteEnabled>True</DepthWriteEnabled>
                     <ScissorTestEnabled>True</ScissorTestEnabled>
@@ -2294,6 +2295,7 @@
                     <CullMode>NoChange</CullMode>
                     <ClearBefore>False</ClearBefore>
                     <BlendEnabled>True</BlendEnabled>
+                    <FramebufferSRGBEnabled>False</FramebufferSRGBEnabled>
                     <DepthTestEnabled>True</DepthTestEnabled>
                     <DepthWriteEnabled>True</DepthWriteEnabled>
                     <ScissorTestEnabled>False</ScissorTestEnabled>
@@ -2383,6 +2385,7 @@
                     <CullMode>NoChange</CullMode>
                     <ClearBefore>False</ClearBefore>
                     <BlendEnabled>True</BlendEnabled>
+                    <FramebufferSRGBEnabled>False</FramebufferSRGBEnabled>
                     <DepthTestEnabled>True</DepthTestEnabled>
                     <DepthWriteEnabled>True</DepthWriteEnabled>
                     <ScissorTestEnabled>False</ScissorTestEnabled>
@@ -2472,6 +2475,7 @@
                     <CullMode>NoChange</CullMode>
                     <ClearBefore>False</ClearBefore>
                     <BlendEnabled>True</BlendEnabled>
+                    <FramebufferSRGBEnabled>False</FramebufferSRGBEnabled>
                     <DepthTestEnabled>True</DepthTestEnabled>
                     <DepthWriteEnabled>True</DepthWriteEnabled>
                     <ScissorTestEnabled>False</ScissorTestEnabled>
@@ -3329,6 +3333,7 @@
                     <RenderHeightOption>display_height</RenderHeightOption>
                     <RenderWidthOption>display_width</RenderWidthOption>
                     <BlendEnabled>True</BlendEnabled>
+                    <FramebufferSRGBEnabled>False</FramebufferSRGBEnabled>
                     <ColorAttachment>True</ColorAttachment>
                     <DepthAttachment>True</DepthAttachment>
                     <DepthTestEnabled>True</DepthTestEnabled>
@@ -3379,6 +3384,7 @@
                     <RenderHeightOption>display_height</RenderHeightOption>
                     <RenderWidthOption>display_width</RenderWidthOption>
                     <BlendEnabled>True</BlendEnabled>
+                    <FramebufferSRGBEnabled>False</FramebufferSRGBEnabled>
                     <ColorAttachment>True</ColorAttachment>
                     <DepthAttachment>True</DepthAttachment>
                     <DepthTestEnabled>True</DepthTestEnabled>

@@ -28,6 +28,7 @@ class GraphicsPipelineStage {
     bool depthTestEnabled = false;
     bool depthWriteEnabled = true;
     bool scissorEnabled = false;
+    bool framebufferSRGBEnabled = true;
     bool colorAttachment = false;
     bool depthAttachment = false;
     GraphicsInterface::CullModes cullMode = GraphicsInterface::CullModes::NO_CHANGE;
@@ -170,6 +171,14 @@ public:
 
     void setScissorEnabled(bool scissorEnabled) {
         GraphicsPipelineStage::scissorEnabled = scissorEnabled;
+    }
+
+    bool isFramebufferSRGBEnabled() const {
+        return framebufferSRGBEnabled;
+    }
+
+    void setFramebufferSRGBEnabled(bool framebufferSRGBEnabled) {
+        GraphicsPipelineStage::framebufferSRGBEnabled = framebufferSRGBEnabled;
     }
 
     void activate(bool clear = false);

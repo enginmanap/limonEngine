@@ -275,11 +275,11 @@ void HeadlessGraphics::swapFrameResources() {
     exitNotImplemented("swapFrameResources");
 }
 
-void HeadlessGraphics::switchRenderStage(uint32_t, uint32_t, uint32_t, bool, bool, bool, bool, bool, bool, CullModes, std::map<uint32_t, std::shared_ptr<Texture>> &, const std::string &) {
+void HeadlessGraphics::switchRenderStage(uint32_t, uint32_t, uint32_t, bool, bool, bool, bool, bool, bool, bool, CullModes, std::map<uint32_t, std::shared_ptr<Texture>> &, const std::string &) {
     exitNotImplemented("switchRenderStage");
 }
 
-void HeadlessGraphics::switchRenderStage(uint32_t, uint32_t, uint32_t, bool, bool, bool, bool, bool, bool, CullModes, const std::map<uint32_t, std::shared_ptr<Texture>> &,
+void HeadlessGraphics::switchRenderStage(uint32_t, uint32_t, uint32_t, bool, bool, bool, bool, bool, bool, bool, CullModes, const std::map<uint32_t, std::shared_ptr<Texture>> &,
                                          const std::map<std::shared_ptr<Texture>, std::pair<FrameBufferAttachPoints, int>> &, const std::string &) {
     exitNotImplemented("switchRenderStage");
 }
