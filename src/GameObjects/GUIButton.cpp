@@ -172,9 +172,6 @@ GUIButton *GUIButton::deserialize(tinyxml2::XMLElement *GUIRenderableNode,  std:
 
         element->onClickTriggerCode = APISerializer::deserializeTriggerCode(GUIRenderableNode, GUIRenderableAttribute, "onClickTrigger", element->limonAPI,
                                                                          element->enabled);
-        if(element->onClickTriggerCode == nullptr) {
-            std::cout << "Button On click trigger code deserialization failed." << std::endl;
-        }
         element->setImageFromFlags();
 
         return element;
