@@ -257,7 +257,7 @@ private:
 
     OptionsUtil::Options *options;
 
-    int32_t materialUniformSize = 3 * sizeof(glm::vec4);//std140 rounds the struct up to 16, the specular vec3 leaves 4 spare bytes
+    int32_t materialUniformSize = 2 * sizeof(glm::vec4);
     int32_t modelUniformSize = sizeof(glm::mat4);
     //Set here so checks before initialize don't get garbage. Real value will set after initialization
     uint32_t modelIndexBatchCapacity = NR_MAX_MODEL_INDEX_BATCH;

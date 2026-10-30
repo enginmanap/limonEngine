@@ -14,18 +14,29 @@ struct material {
     vec3 ambient;
     float shininess;
     vec3 diffuse;
-    int isMap; 	//using the last 4, ambient=8, diffuse=4, specular=2, opacity = 1
-    vec3 specular;
+    uint specularAndMaps;//rgb the specular color, a the map bits, test them with materialHasMap
 };
 
 layout (std140) uniform MaterialInformationBlock {
     material materials[NR_MAX_MATERIALS];
 } AllMaterialsArray;
 
+//the map bits of Material::getTextureSlots, where they sit in specularAndMaps: the alpha byte, bits 24-31
+#define MATERIAL_OPACITY_MAP  0x01000000u
+#define MATERIAL_SPECULAR_MAP 0x02000000u
+#define MATERIAL_DIFFUSE_MAP  0x04000000u
+#define MATERIAL_AMBIENT_MAP  0x08000000u
+#define MATERIAL_NORMAL_MAP   0x10000000u
+
+//tests the bit where it is, unpackUnorm4x8(specularAndMaps).a would give the map bits as a float divided by 255
+bool materialHasMap(int materialIndex, uint mapBit) {
+    return (AllMaterialsArray.materials[materialIndex].specularAndMaps & mapBit) != 0u;
+}
+
 vec4 getMaterialAlbedo(int materialIndex, vec2 uv) {
     vec4 objectColor;
-    if((AllMaterialsArray.materials[materialIndex].isMap & 0x0004)!=0) {
-        if((AllMaterialsArray.materials[materialIndex].isMap & 0x0001)!=0) { //if there is a opacity map, and it with diffuse
+    if(materialHasMap(materialIndex, MATERIAL_DIFFUSE_MAP)) {
+        if(materialHasMap(materialIndex, MATERIAL_OPACITY_MAP)) { //if there is a opacity map, and it with diffuse
             vec4 opacity = texture(opacitySampler, uv);
             if(opacity.a < 0.05) {
                 // We shouldn't strictly discard in a helper, but it's the current logic.
@@ -49,7 +60,7 @@ vec4 getMaterialAlbedo(int materialIndex, vec2 uv) {
 
 vec3 getMaterialNormal(int materialIndex, vec2 uv, vec3 vertexNormal) {
     vec3 normal = vertexNormal;
-    if((AllMaterialsArray.materials[materialIndex].isMap & 0x0010) != 0) {
+    if(materialHasMap(materialIndex, MATERIAL_NORMAL_MAP)) {
         normal = -1.0 * vec3(texture(normalSampler, uv));
     }
     return normal;
@@ -57,7 +68,7 @@ vec3 getMaterialNormal(int materialIndex, vec2 uv, vec3 vertexNormal) {
 
 vec3 getMaterialAmbient(int materialIndex, vec2 uv) {
     vec3 lightingColorFactor;
-    if((AllMaterialsArray.materials[materialIndex].isMap & 0x0008)!=0) {
+    if(materialHasMap(materialIndex, MATERIAL_AMBIENT_MAP)) {
         lightingColorFactor = vec3(texture(ambientSampler, uv));
     } else {
         lightingColorFactor = AllMaterialsArray.materials[materialIndex].ambient;
@@ -66,16 +77,16 @@ vec3 getMaterialAmbient(int materialIndex, vec2 uv) {
 }
 
 vec3 getMaterialSpecular(int materialIndex, vec2 uv) {
-    if((AllMaterialsArray.materials[materialIndex].isMap & 0x0002)!=0) {
+    if(materialHasMap(materialIndex, MATERIAL_SPECULAR_MAP)) {
         return vec3(texture(specularSampler, uv));
     }
-    return AllMaterialsArray.materials[materialIndex].specular;
+    return unpackUnorm4x8(AllMaterialsArray.materials[materialIndex].specularAndMaps).rgb;
 }
 
 // For G-Buffer passes that only need simple albedo extraction
 vec4 getSimpleMaterialAlbedo(int materialIndex, vec2 uv) {
     vec4 albedo = vec4(1.0);
-    if((AllMaterialsArray.materials[materialIndex].isMap & 0x0004)!=0) {
+    if(materialHasMap(materialIndex, MATERIAL_DIFFUSE_MAP)) {
         albedo = texture(diffuseSampler, uv);
     } else {
         albedo = vec4(AllMaterialsArray.materials[materialIndex].diffuse, 1.0);

@@ -372,6 +372,7 @@ OpenGLGraphics::ContextInformation OpenGLGraphics::getContextInformation() {
 std::string OpenGLGraphics::getShaderHeader() const {
     return "#version 330\n"
            "#extension GL_ARB_texture_cube_map_array : enable\n"
+           "#extension GL_ARB_shading_language_packing : enable\n"//unpackUnorm4x8 for 330, core from GLSL 4.00 and in ES 3.10
            "#define NR_MODEL_INDEX_BATCH " + std::to_string(modelIndexBatchCapacity) + "\n"
            "#define MODEL_TRANSFORM_TEXTURE_WIDTH " + std::to_string(MODEL_TRANSFORM_TEXTURE_WIDTH);
 }
@@ -1727,16 +1728,14 @@ void OpenGLGraphics::setMaterial(const Material& material) {
             vec3 ambient;
             float shininess;
             vec3 diffuse;
-            int isMap;
-            vec3 specular;
+            uint specularAndMaps;//rgb specular color, a map bits, see Material::getSpecularAndMaps
     };
     */
     float shininess = material.getSpecularExponent();
-    uint32_t maps = material.getMaps();
+    glm::u8vec4 specularAndMaps = material.getSpecularAndMaps();
     //authored in sRGB like the textures, the shaders light in linear
     glm::vec3 ambientColor = material.getLinearAmbientColor();
     glm::vec3 diffuseColor = material.getLinearDiffuseColor();
-    glm::vec3 specularColor = material.getLinearSpecularColor();
 
     if (material.getMaterialIndex() >= NR_MAX_MATERIALS) {
         //writing past the UBO would silently corrupt whatever material sits at the wrapped offset
@@ -1753,9 +1752,7 @@ void OpenGLGraphics::setMaterial(const Material& material) {
     glBufferSubData(GL_UNIFORM_BUFFER, material.getMaterialIndex() * materialUniformSize + sizeof(glm::vec3) + sizeof(GLfloat),
                     sizeof(glm::vec3), glm::value_ptr(diffuseColor));
     glBufferSubData(GL_UNIFORM_BUFFER, material.getMaterialIndex() * materialUniformSize + 2 *sizeof(glm::vec3) + sizeof(GLfloat),
-                    sizeof(GLint), &maps);
-    glBufferSubData(GL_UNIFORM_BUFFER, material.getMaterialIndex() * materialUniformSize + 2 * sizeof(glm::vec3) + sizeof(GLfloat) + sizeof(GLint),
-                    sizeof(glm::vec3), glm::value_ptr(specularColor));
+                    sizeof(glm::u8vec4), glm::value_ptr(specularAndMaps));
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
     checkErrors("setMaterial");
 }

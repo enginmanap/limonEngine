@@ -63,10 +63,10 @@ void main()
     // Retrieve material information from constant buffer
     float shininess = AllMaterialsArray.materials[materialIndex].shininess;
     vec3 materialAmbient = AllMaterialsArray.materials[materialIndex].ambient;
-    vec3 materialSpecular = AllMaterialsArray.materials[materialIndex].specular;//no per-pixel map in the g-buffer yet
+    vec3 materialSpecular = unpackUnorm4x8(AllMaterialsArray.materials[materialIndex].specularAndMaps).rgb;//no per-pixel map in the g-buffer yet
 
     // If the material has an ambient map, it will be in the gAmbientMap
-    if((AllMaterialsArray.materials[materialIndex].isMap & 0x0008) != 0) {
+    if(materialHasMap(materialIndex, MATERIAL_AMBIENT_MAP)) {
         materialAmbient = texture(pre_gAmbientMap, from_vs.textureCoordinates).rgb;
     }
 

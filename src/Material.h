@@ -17,6 +17,7 @@
 #include <unordered_map>
 
 #include "glm/glm.hpp"
+#include "glm/gtc/type_precision.hpp"
 #include "Assets/TextureAsset.h"
 #include "Assets/SRGBTextureAsset.h"
 #include "Assets/AssetManager.h"
@@ -313,6 +314,13 @@ public:
 
     glm::vec3 getLinearSpecularColor() const {
         return srgbToLinear(specularColor);
+    }
+
+    //what the shaders read as specularAndMaps: the linear specular color in rgb, the map bits (all below 32) in a.
+    //Clamped because the shininess strength can push the color over 1
+    glm::u8vec4 getSpecularAndMaps() const {
+        glm::vec3 specular = glm::clamp(getLinearSpecularColor(), 0.0f, 1.0f);
+        return glm::u8vec4(glm::round(specular * 255.0f), maps);
     }
 
     void setSpecularColor(const glm::vec3 &specularColor) {
