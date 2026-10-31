@@ -67,20 +67,58 @@ float _pointAttenuation(int lightIndex, float fragDistance) {
     return clamp(LightSources.lights[lightIndex].intensity / attenuationFactor, 0.0, 1.0) * window;
 }
 
+//0 for directional, they have no position. Beyond the radius attenuation is exactly 0, so the light adds nothing
+float _lightDistance(int lightIndex, out vec3 lightDirection) {
+    if(LightSources.lights[lightIndex].type == 1) {
+        lightDirection = normalize(-LightSources.lights[lightIndex].position);
+        return 0.0;
+    }
+    vec3 toLight = LightSources.lights[lightIndex].position - from_vs.fragPos;
+    float fragDistance = length(toLight);
+    lightDirection = toLight / fragDistance;
+    return fragDistance;
+}
+
+//one light's diffuse, specular and ambient. The light loop calls it from a branch on the light type, so a directional light never runs the per-pixel radius test
+void _addLight(int lightIndex, vec3 lightDirectory, float attenuation, float shadow, vec3 world_space_normal, vec3 viewReflection, float shininess,
+               inout vec3 diffuseAndAmbientLighting, inout vec3 specularLighting) {
+    float diffuseRate = max(dot(world_space_normal, lightDirectory), 0.0);
+    float specularRate = max(dot(lightDirectory, viewReflection), 0.0);
+    if(specularRate != 0.0 && shininess != 0.0) {
+        specularRate = pow(specularRate, shininess);
+    } else {
+        specularRate = 0.0;
+    }
+    // min, not multiply, same reasoning as Shared/Lighting.frag
+    float lightFactor = min(1.0 - shadow, attenuation);
+    diffuseAndAmbientLighting += (lightFactor * diffuseRate * LightSources.lights[lightIndex].color);
+    specularLighting += (lightFactor * specularRate * LightSources.lights[lightIndex].color);
+    // attenuated by distance but never by shadow, ambient is what lifts shadowed surfaces off black
+    diffuseAndAmbientLighting += attenuation * LightSources.lights[lightIndex].ambient;
+}
+
 void main(void) {
     vec3 world_space_normal = getMaterialNormal(from_vs.materialIndex, from_vs.textureCoord, from_vs.normal);
-    vec4 albedo = getSimpleMaterialAlbedo(from_vs.materialIndex, from_vs.textureCoord);
     float shininess = AllMaterialsArray.materials[from_vs.materialIndex].shininess;
-    vec3 materialAmbient = getMaterialAmbient(from_vs.materialIndex, from_vs.textureCoord);
-    vec3 materialSpecular = getMaterialSpecular(from_vs.materialIndex, from_vs.textureCoord);
 
     vec4 fragPosViewSpace = playerTransforms.camera * vec4(from_vs.fragPos, 1.0);
     float precise_view_z = abs(fragPosViewSpace.z);
 
-    vec3 directLighting = vec3(0.0);
+    //shadows in their own loop, the accumulators and material reads stay out of the shadow sampling's registers (same as Shared/Lighting.frag sumLights)
+    float shadows[performance_maximumLights];
+    for(int i = 0; i < performance_maximumLights; ++i) {
+        shadows[i] = 0.0;
+        int lightType = LightSources.lights[i].type;
+        if(lightType == 1) {
+            shadows[i] = _shadowDirectional(i, from_vs.fragPos + world_space_normal * 0.01, precise_view_z);// orthographic over a large area, small bias is enough
+        } else if(lightType != 0) {
+            shadows[i] = _shadowPoint(i, from_vs.fragPos + world_space_normal * 0.08);// cube map depth precision degrades with distance, needs more
+        }
+    }
+
+    vec3 diffuseAndAmbientLighting = vec3(0.0);//light ambient summed in here, both only get multiplied by albedo. One less vec3 live through the loop
     vec3 specularLighting = vec3(0.0);
-    vec3 lightAmbient = vec3(0.0);
-    vec3 viewDirectory = normalize(playerTransforms.position - from_vs.fragPos);
+    vec3 viewReflection = reflect(normalize(from_vs.fragPos - playerTransforms.position), world_space_normal);//dot(V, reflect(-L, N)) == dot(L, reflect(-V, N)), one reflect instead of one per light
 
     for(int i = 0; i < performance_maximumLights; ++i) {
         int lightType = LightSources.lights[i].type;
@@ -89,43 +127,18 @@ void main(void) {
         }
 
         vec3 lightDirectory;
-        float normalBias;
+        float fragDistance = _lightDistance(i, lightDirectory);
+        //lightType is the same for every pixel, a per-pixel test here would mask the directional light's work too (a continue or an if around the rest costs the same)
         if(lightType == 1) {
-            lightDirectory = normalize(-LightSources.lights[i].position);
-            normalBias = 0.01;// orthographic over a large area, small bias is enough
-        } else {
-            lightDirectory = normalize(LightSources.lights[i].position - from_vs.fragPos);
-            normalBias = 0.08;// cube map depth precision degrades with distance, needs more
+            _addLight(i, lightDirectory, 1.0, shadows[i], world_space_normal, viewReflection, shininess, diffuseAndAmbientLighting, specularLighting);
+        } else if(fragDistance < LightSources.lights[i].radius) {//out of range adds 0, ambient is attenuated too
+            _addLight(i, lightDirectory, _pointAttenuation(i, fragDistance), shadows[i], world_space_normal, viewReflection, shininess, diffuseAndAmbientLighting, specularLighting);
         }
-
-        float diffuseRate = max(dot(world_space_normal, lightDirectory), 0.0);
-        vec3 reflectDirectory = reflect(-lightDirectory, world_space_normal);
-        float specularRate = max(dot(viewDirectory, reflectDirectory), 0.0);
-        if(specularRate != 0.0 && shininess != 0.0) {
-            specularRate = pow(specularRate, shininess);
-        } else {
-            specularRate = 0.0;
-        }
-
-        vec3 biasedFragPos = from_vs.fragPos + world_space_normal * normalBias;
-
-        float shadow;
-        float attenuation = 1.0;//directional light has no falloff, it stays 1 all the way
-        if(lightType == 1) {
-            shadow = _shadowDirectional(i, biasedFragPos, precise_view_z);
-        } else {
-            shadow = _shadowPoint(i, biasedFragPos);
-            attenuation = _pointAttenuation(i, length(LightSources.lights[i].position - from_vs.fragPos));
-        }
-
-        // min, not multiply, same reasoning as Shared/Lighting.frag
-        float lightFactor = min(1.0 - shadow, attenuation);
-        directLighting += (lightFactor * diffuseRate * LightSources.lights[i].color);
-        specularLighting += (lightFactor * specularRate * LightSources.lights[i].color);
-        // attenuated by distance but never by shadow, ambient is what lifts shadowed surfaces off black
-        lightAmbient += attenuation * LightSources.lights[i].ambient;
     }
 
-    vec3 totalAmbient = materialAmbient + lightAmbient;
-    finalColor = vec4((directLighting + totalAmbient) * albedo.rgb + specularLighting * materialSpecular, albedo.a);//the highlight is not tinted by albedo
+    //material reads after the light loops, so they don't stay in registers through them
+    vec4 albedo = getSimpleMaterialAlbedo(from_vs.materialIndex, from_vs.textureCoord);
+    vec3 materialAmbient = getMaterialAmbient(from_vs.materialIndex, from_vs.textureCoord);
+    vec3 materialSpecular = getMaterialSpecular(from_vs.materialIndex, from_vs.textureCoord);
+    finalColor = vec4((diffuseAndAmbientLighting + materialAmbient) * albedo.rgb + specularLighting * materialSpecular, albedo.a);//the highlight is not tinted by albedo
 }
