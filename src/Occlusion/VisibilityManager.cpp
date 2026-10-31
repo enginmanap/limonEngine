@@ -394,7 +394,7 @@ void VisibilityManager::fillVisibleObjectPerCamera(const VisibilityRequest* visi
                                 occluderCounter += meshMetas.size();
                                 //an animated occluder would need its node transform and pose, which we don't have here, so it only ever occludes itself
                                 if (runOcclusion && !currentModel->isAnimated() && !occludersSubmitted && !currentModel->hasTag(nonOccluderTag)) {
-                                    visibilityRequest->occlusionCuller.renderOccluder(currentModel, occluderLodLevel);
+                                    visibilityRequest->occlusionCuller.renderOccluder(currentModel, currentModel->getModelAsset()->getLodLadder().getMeshLodIndexForFullLadderLevel(occluderLodLevel));
                                     //std::cout << currentModel->getName() << ":" << " is occluder " << std::endl;
                                 }
                                 for (auto& meshMeta:meshMetas) {
@@ -439,7 +439,7 @@ void VisibilityManager::fillVisibleObjectPerCamera(const VisibilityRequest* visi
                                         }
                                         occluderCounter++;
                                         if (runOcclusion && !currentModel->isAnimated() && !occludersSubmitted && !currentModel->hasTag(nonOccluderTag)) {
-                                            visibilityRequest->occlusionCuller.renderOccluder(meshMeta, currentModel->getTransformation()->getWorldTransform(), occluderLodLevel);
+                                            visibilityRequest->occlusionCuller.renderOccluder(meshMeta, currentModel->getTransformation()->getWorldTransform(), currentModel->getModelAsset()->getLodLadder().getMeshLodIndexForFullLadderLevel(occluderLodLevel));
                                         }
                                         if (runOcclusion) {
                                             visibilityRequest->occlusionCuller.addOccludee(meshMeta, currentModel, lod, objectAverageDepth, &visibilityEntry.second);

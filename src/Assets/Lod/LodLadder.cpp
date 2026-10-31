@@ -562,7 +562,7 @@ uint32_t LodLadder::selectLevel(const LodSelectionContext &context, uint32_t pre
         return 0;
     }
     if (context.forceLevel >= 0) {
-        return std::min((uint32_t) context.forceLevel, meshLodCount - 1);
+        return getMeshLodIndexForFullLadderLevel((uint32_t) context.forceLevel);
     }
     //the two reaches the dead band allows. Moving up a step needs to be clearly past the switch, moving back
     //down clearly before it
@@ -584,6 +584,44 @@ uint32_t LodLadder::selectLevel(const LodSelectionContext &context, uint32_t pre
         }
     }
     return selected;
+}
+
+uint32_t LodLadder::getMeshLodIndexForFullLadderLevel(uint32_t fullLadderLevel) const {
+    //a missing shadow level falls back to the shadow levels before it, then to the first shadow step's visual
+    //level. A missing visual level falls back to the visual levels before it. Never to a coarser step
+    size_t visualStepCount = std::min((size_t) fullLadderLevel, steps.size());
+    if (fullLadderLevel > steps.size()) {
+        const size_t shadowLevel = fullLadderLevel - steps.size();
+        size_t firstShadowStep = steps.size();
+        size_t requestedShadowStep = steps.size();
+        size_t shadowCount = 0;
+        for (size_t stepIndex = 0; stepIndex < steps.size(); ++stepIndex) {
+            if (!isWeldedStep(stepIndex)) {
+                continue;
+            }
+            if (firstShadowStep == steps.size()) {
+                firstShadowStep = stepIndex;
+            }
+            if (shadowCount < shadowLevel) {
+                requestedShadowStep = stepIndex;//past the last shadow level this stays on the last one
+                shadowCount++;
+            }
+        }
+        if (firstShadowStep < steps.size()) {
+            for (size_t stepIndex = requestedShadowStep + 1; stepIndex > firstShadowStep; --stepIndex) {
+                if (steps[stepIndex - 1].welded.built) {
+                    return steps[stepIndex - 1].welded.meshLodIndex;
+                }
+            }
+            visualStepCount = firstShadowStep + 1;
+        }
+    }
+    for (size_t stepIndex = visualStepCount; stepIndex > 0; --stepIndex) {
+        if (steps[stepIndex - 1].structure.built) {
+            return steps[stepIndex - 1].structure.meshLodIndex;
+        }
+    }
+    return 0;
 }
 
 void LodLadder::buildViews(std::vector<View> &views) {

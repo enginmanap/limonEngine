@@ -171,6 +171,10 @@ public:
     //on a threshold doesn't flip every frame
     uint32_t selectLevel(const LodSelectionContext &context, uint32_t previousLevel) const;
 
+    //options count levels as if every step was built: 0 original, then each visual step, then each shadow step.
+    //Slots skip what this model didn't build, so a raw option value lands on a different step per model
+    uint32_t getMeshLodIndexForFullLadderLevel(uint32_t fullLadderLevel) const;
+
     const std::vector<LodStep> &getSteps() const {
         return steps;
     }
