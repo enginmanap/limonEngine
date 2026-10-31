@@ -23,25 +23,26 @@ void main(void) {
     float alpha = getMaterialAlbedo(from_vs.materialIndex, from_vs.textureCoord).a;
     if(alpha >= CUTOUT_ALPHA_THRESHOLD) {
         discard;//ModelTransparentCutout drew these with depth, this stage doesn't write depth so unsorted edges can't hide what is behind
+    } else {//v3d keeps running discarded pixels, in the else a fully discarded group skips this
+        vec3 normal = getMaterialNormal(from_vs.materialIndex, from_vs.textureCoord, from_vs.normal);
+        float shininess = AllMaterialsArray.materials[from_vs.materialIndex].shininess;
+
+        vec4 fragPosViewSpace = playerTransforms.camera * vec4(from_vs.fragPos, 1.0);
+        float precise_view_z = abs(fragPosViewSpace.z);
+        float viewDistance = length(playerTransforms.position - from_vs.fragPos);
+
+        vec3 directLighting;
+        vec3 specularLighting;
+        vec3 lightAmbient;
+        sumLights(from_vs.fragPos, normal, shininess, viewDistance, precise_view_z, directLighting, specularLighting, lightAmbient);
+
+        //material reads after the light loop, so they don't stay in registers through it. Simple albedo is enough, alpha was already read above
+        vec3 albedo = getSimpleMaterialAlbedo(from_vs.materialIndex, from_vs.textureCoord).rgb;
+        vec3 materialAmbient = getMaterialAmbient(from_vs.materialIndex, from_vs.textureCoord);
+        vec3 materialSpecular = getMaterialSpecular(from_vs.materialIndex, from_vs.textureCoord);
+        vec3 totalAmbient;
+        vec3 fullyLitColor = combineLighting(directLighting, specularLighting, lightAmbient, albedo, materialSpecular, materialAmbient, totalAmbient);
+
+        outputColor = vec4(fullyLitColor, alpha);
     }
-    vec3 normal = getMaterialNormal(from_vs.materialIndex, from_vs.textureCoord, from_vs.normal);
-    float shininess = AllMaterialsArray.materials[from_vs.materialIndex].shininess;
-
-    vec4 fragPosViewSpace = playerTransforms.camera * vec4(from_vs.fragPos, 1.0);
-    float precise_view_z = abs(fragPosViewSpace.z);
-    float viewDistance = length(playerTransforms.position - from_vs.fragPos);
-
-    vec3 directLighting;
-    vec3 specularLighting;
-    vec3 lightAmbient;
-    sumLights(from_vs.fragPos, normal, shininess, viewDistance, precise_view_z, directLighting, specularLighting, lightAmbient);
-
-    //material reads after the light loop, so they don't stay in registers through it. Simple albedo is enough, alpha was already read above
-    vec3 albedo = getSimpleMaterialAlbedo(from_vs.materialIndex, from_vs.textureCoord).rgb;
-    vec3 materialAmbient = getMaterialAmbient(from_vs.materialIndex, from_vs.textureCoord);
-    vec3 materialSpecular = getMaterialSpecular(from_vs.materialIndex, from_vs.textureCoord);
-    vec3 totalAmbient;
-    vec3 fullyLitColor = combineLighting(directLighting, specularLighting, lightAmbient, albedo, materialSpecular, materialAmbient, totalAmbient);
-
-    outputColor = vec4(fullyLitColor, alpha);
 }

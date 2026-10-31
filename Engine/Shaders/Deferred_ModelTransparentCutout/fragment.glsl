@@ -32,15 +32,15 @@ void main(void) {
     vec4 albedo = getMaterialAlbedo(from_vs.materialIndex, from_vs.textureCoord);
     if(albedo.a < CUTOUT_ALPHA_THRESHOLD) {
         discard;//the blended ModelTransparent stage draws these after lighting
+    } else {//v3d keeps running discarded pixels, in the else a fully discarded group skips this
+        // Normal (World-space)
+        vec3 world_space_normal = getMaterialNormal(from_vs.materialIndex, from_vs.textureCoord, from_vs.normal);
+        gNormal = packNormal(world_space_normal);
+
+        // Output materialIndex in alpha instead of shininess
+        gAlbedoSpec = vec4(albedo.rgb, float(from_vs.materialIndex) / 255.0);
+
+        // Ambient Color (Only from map)
+        gAmbient.rgb = getMaterialAmbient(from_vs.materialIndex, from_vs.textureCoord);
     }
-
-    // Normal (World-space)
-    vec3 world_space_normal = getMaterialNormal(from_vs.materialIndex, from_vs.textureCoord, from_vs.normal);
-    gNormal = packNormal(world_space_normal);
-
-    // Output materialIndex in alpha instead of shininess
-    gAlbedoSpec = vec4(albedo.rgb, float(from_vs.materialIndex) / 255.0);
-
-    // Ambient Color (Only from map)
-    gAmbient.rgb = getMaterialAmbient(from_vs.materialIndex, from_vs.textureCoord);
 }

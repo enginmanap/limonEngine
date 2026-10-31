@@ -470,6 +470,68 @@
                 </ExtraVariables>
             </NodeType>
             <NodeType>
+                <Name>ModelTransparentSimple</Name>
+                <CombineInputs>True</CombineInputs>
+                <Editable>False</Editable>
+                <Inputs>
+                    <ConnectionDesc>
+                        <Name>pre_shadowDirectional</Name>
+                        <Type>Texture array</Type>
+                    </ConnectionDesc>
+                    <ConnectionDesc>
+                        <Name>pre_shadowPoint</Name>
+                        <Type>Cubemap array</Type>
+                    </ConnectionDesc>
+                </Inputs>
+                <Outputs>
+                    <ConnectionDesc>
+                        <Name>Depth</Name>
+                        <Type>Texture</Type>
+                    </ConnectionDesc>
+                    <ConnectionDesc>
+                        <Name>outputColor</Name>
+                        <Type>Texture</Type>
+                    </ConnectionDesc>
+                </Outputs>
+                <NodeExtension>PipelineStageExtension</NodeExtension>
+                <ExtraVariables>
+                    <Variable Value="./Engine/Shaders/ModelTransparentSimple/fragment.glsl">fragmentShaderName</Variable>
+                    <Variable Value="">geometryShaderName</Variable>
+                    <Variable Value="./Engine/Shaders/ModelTransparentSimple/vertex.glsl">vertexShaderName</Variable>
+                </ExtraVariables>
+            </NodeType>
+            <NodeType>
+                <Name>ModelTransparentCutoutSimple</Name>
+                <CombineInputs>True</CombineInputs>
+                <Editable>False</Editable>
+                <Inputs>
+                    <ConnectionDesc>
+                        <Name>pre_shadowDirectional</Name>
+                        <Type>Texture array</Type>
+                    </ConnectionDesc>
+                    <ConnectionDesc>
+                        <Name>pre_shadowPoint</Name>
+                        <Type>Cubemap array</Type>
+                    </ConnectionDesc>
+                </Inputs>
+                <Outputs>
+                    <ConnectionDesc>
+                        <Name>Depth</Name>
+                        <Type>Texture</Type>
+                    </ConnectionDesc>
+                    <ConnectionDesc>
+                        <Name>outputColor</Name>
+                        <Type>Texture</Type>
+                    </ConnectionDesc>
+                </Outputs>
+                <NodeExtension>PipelineStageExtension</NodeExtension>
+                <ExtraVariables>
+                    <Variable Value="./Engine/Shaders/ModelTransparentCutoutSimple/fragment.glsl">fragmentShaderName</Variable>
+                    <Variable Value="">geometryShaderName</Variable>
+                    <Variable Value="./Engine/Shaders/ModelTransparentCutoutSimple/vertex.glsl">vertexShaderName</Variable>
+                </ExtraVariables>
+            </NodeType>
+            <NodeType>
                 <Name>Particles</Name>
                 <CombineInputs>True</CombineInputs>
                 <Editable>False</Editable>
@@ -1255,7 +1317,7 @@
             </Node>
             <Node>
                 <ID>11</ID>
-                <Name>ModelTransparent</Name>
+                <Name>ModelTransparentSimple</Name>
                 <DisplayName>TransparentObjects</DisplayName>
                 <Editable>False</Editable>
                 <CombineInputs>True</CombineInputs>
@@ -1367,15 +1429,15 @@
                         </OutputInfo>
                     </OutputTextures>
                     <ProgramInfo>
-                        <VertexShaderName>./Engine/Shaders/ModelTransparent/vertex.glsl</VertexShaderName>
+                        <VertexShaderName>./Engine/Shaders/ModelTransparentSimple/vertex.glsl</VertexShaderName>
                         <GeometryShaderName></GeometryShaderName>
-                        <FragmentShaderName>./Engine/Shaders/ModelTransparent/fragment.glsl</FragmentShaderName>
+                        <FragmentShaderName>./Engine/Shaders/ModelTransparentSimple/fragment.glsl</FragmentShaderName>
                     </ProgramInfo>
                 </NodeExtension>
             </Node>
             <Node>
                 <ID>30</ID>
-                <Name>ModelTransparentCutout</Name>
+                <Name>ModelTransparentCutoutSimple</Name>
                 <DisplayName>TransparentCutoutObjects</DisplayName>
                 <Editable>False</Editable>
                 <CombineInputs>True</CombineInputs>
@@ -1487,9 +1549,9 @@
                         </OutputInfo>
                     </OutputTextures>
                     <ProgramInfo>
-                        <VertexShaderName>./Engine/Shaders/ModelTransparentCutout/vertex.glsl</VertexShaderName>
+                        <VertexShaderName>./Engine/Shaders/ModelTransparentCutoutSimple/vertex.glsl</VertexShaderName>
                         <GeometryShaderName></GeometryShaderName>
-                        <FragmentShaderName>./Engine/Shaders/ModelTransparentCutout/fragment.glsl</FragmentShaderName>
+                        <FragmentShaderName>./Engine/Shaders/ModelTransparentCutoutSimple/fragment.glsl</FragmentShaderName>
                     </ProgramInfo>
                 </NodeExtension>
             </Node>
@@ -2425,9 +2487,9 @@
                         <Name>Render Tagged Objects</Name>
                         <Index>0</Index>
                         <GraphicsProgram>
-                            <VertexShader>./Engine/Shaders/ModelTransparentCutout/vertex.glsl</VertexShader>
+                            <VertexShader>./Engine/Shaders/ModelTransparentCutoutSimple/vertex.glsl</VertexShader>
                             <GeometryShader></GeometryShader>
-                            <FragmentShader>./Engine/Shaders/ModelTransparentCutout/fragment.glsl</FragmentShader>
+                            <FragmentShader>./Engine/Shaders/ModelTransparentCutoutSimple/fragment.glsl</FragmentShader>
                             <MaterialRequired>True</MaterialRequired>
                             <PresetValues>
                                 <Uniform Name="pre_shadowPoint">30</Uniform>
@@ -2465,9 +2527,9 @@
                         <Name>Render Tagged Objects</Name>
                         <Index>0</Index>
                         <GraphicsProgram>
-                            <VertexShader>./Engine/Shaders/ModelTransparent/vertex.glsl</VertexShader>
+                            <VertexShader>./Engine/Shaders/ModelTransparentSimple/vertex.glsl</VertexShader>
                             <GeometryShader></GeometryShader>
-                            <FragmentShader>./Engine/Shaders/ModelTransparent/fragment.glsl</FragmentShader>
+                            <FragmentShader>./Engine/Shaders/ModelTransparentSimple/fragment.glsl</FragmentShader>
                             <MaterialRequired>True</MaterialRequired>
                             <PresetValues>
                                 <Uniform Name="pre_shadowPoint">30</Uniform>
