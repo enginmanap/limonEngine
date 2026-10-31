@@ -1,0 +1,41 @@
+<RenderPipeline>
+    <GraphicsPipeline>
+        <Textures/>
+        <Stages>
+            <StageInformation>
+                <RenderMethods>
+                    <Method>
+                        <Name>Render Editor</Name>
+                        <Index>0</Index>
+                        <GraphicsProgram>
+                            <VertexShader>./Engine/Shaders/ImGui/vertex.glsl</VertexShader>
+                            <GeometryShader></GeometryShader>
+                            <FragmentShader>./Engine/Shaders/ImGui/fragment.glsl</FragmentShader>
+                        </GraphicsProgram>
+                        <Parameters/>
+                    </Method>
+                </RenderMethods>
+                <Clear>True</Clear>
+                <GraphicsPipelineStage>
+                    <DefaultRenderHeight>1080</DefaultRenderHeight>
+                    <DefaultRenderWidth>1920</DefaultRenderWidth>
+                    <RenderHeightOption>display_height</RenderHeightOption>
+                    <RenderWidthOption>display_width</RenderWidthOption>
+                    <BlendEnabled>True</BlendEnabled>
+                    <ColorAttachment>True</ColorAttachment>
+                    <DepthAttachment>True</DepthAttachment>
+                    <DepthTestEnabled>True</DepthTestEnabled>
+                    <DepthWriteEnabled>True</DepthWriteEnabled>
+                    <ScissorEnabled>True</ScissorEnabled>
+                    <FramebufferSRGBEnabled>False</FramebufferSRGBEnabled>
+                    <ToScreen>True</ToScreen>
+                    <CameraTags>player_camera</CameraTags>
+                    <ObjectTags></ObjectTags>
+                    <CullMode>NONE</CullMode>
+                    <Inputs/>
+                    <Outputs/>
+                </GraphicsPipelineStage>
+            </StageInformation>
+        </Stages>
+    </GraphicsPipeline>
+</RenderPipeline>
