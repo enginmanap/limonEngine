@@ -14,7 +14,7 @@ in VS_FS {
 } from_vs;
 
 // Surface albedo authoring - the actual lighting (direction/color/shadows) below comes from the
-// scene's real lights via calculateLighting(), not from these.
+// scene's real lights via sumLights(), not from these.
 uniform vec3 shallowColor;
 uniform vec3 deepColor;
 
@@ -26,17 +26,22 @@ const vec3 MATERIAL_AMBIENT = vec3(0.02);
 const vec3 MATERIAL_SPECULAR = vec3(1.0);
 
 void main(void) {
-    vec3 viewDir = normalize(playerTransforms.position - from_vs.worldPos);
-    float fresnel = pow(1.0 - max(dot(from_vs.normal, viewDir), 0.0), 5.0);
-    vec3 albedo = mix(deepColor, shallowColor, fresnel);
-
     vec4 fragPosViewSpace = playerTransforms.camera * vec4(from_vs.worldPos, 1.0);
     float precise_view_z = abs(fragPosViewSpace.z);
     float viewDistance = length(playerTransforms.position - from_vs.worldPos);
 
+    vec3 directLighting;
+    vec3 specularLighting;
+    vec3 lightAmbient;
+    sumLights(from_vs.worldPos, from_vs.normal, SHININESS, viewDistance, precise_view_z, directLighting, specularLighting, lightAmbient);
+
+    //after the light loop, so the albedo doesn't stay in registers through it
+    vec3 viewDir = normalize(playerTransforms.position - from_vs.worldPos);
+    float fresnel = pow(1.0 - max(dot(from_vs.normal, viewDir), 0.0), 5.0);
+    vec3 albedo = mix(deepColor, shallowColor, fresnel);
+
     vec3 totalAmbient;
-    vec3 lit = calculateLighting(from_vs.worldPos, from_vs.normal, albedo, SHININESS, MATERIAL_SPECULAR, MATERIAL_AMBIENT,
-                                  viewDistance, precise_view_z, gl_FragCoord.z, totalAmbient);
+    vec3 lit = combineLighting(directLighting, specularLighting, lightAmbient, albedo, MATERIAL_SPECULAR, MATERIAL_AMBIENT, totalAmbient);
 
     finalColor = vec4(lit, 1.0);
 }

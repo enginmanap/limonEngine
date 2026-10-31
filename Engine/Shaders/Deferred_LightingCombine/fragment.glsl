@@ -49,34 +49,36 @@ vec3 unpackNormal(vec2 pa) {
 
 void main()
 {
-    float depth = texture(pre_depthMap, from_vs.textureCoordinates).r;
+    //textureLod so the compiler can't merge these with the texture() reads after sumLights
+    float depth = textureLod(pre_depthMap, from_vs.textureCoordinates, 0.0).r;
     vec4 viewSpacePos = ReconstructViewPos(from_vs.textureCoordinates, depth);
     float precise_view_z = abs(viewSpacePos.z);
     vec3 fragPos = (playerTransforms.inverseCamera * viewSpacePos).xyz;
     float viewDistance = length(viewSpacePos.xyz); // camera is at origin in view space
 
     vec3 normal = unpackNormal(texture(pre_gNormalMap, from_vs.textureCoordinates).xy);
-    vec4 albedoSpec = texture(pre_gAlbedoSpecMap, from_vs.textureCoordinates);
-    vec3 albedo = albedoSpec.rgb;
-    int materialIndex = int(albedoSpec.a * 255.0 + 0.5);//8 bit round trip, truncating here lands us on the previous material
-
-    // Retrieve material information from constant buffer
+    int materialIndex = int(textureLod(pre_gAlbedoSpecMap, from_vs.textureCoordinates, 0.0).a * 255.0 + 0.5);//8 bit round trip, truncating here lands us on the previous material
     float shininess = AllMaterialsArray.materials[materialIndex].shininess;
-    vec3 materialAmbient = AllMaterialsArray.materials[materialIndex].ambient;
-    vec3 materialSpecular = unpackUnorm4x8(AllMaterialsArray.materials[materialIndex].specularAndMaps).rgb;//no per-pixel map in the g-buffer yet
 
+    vec3 directLighting;
+    vec3 specularLighting;
+    vec3 lightAmbient;
+    sumLights(fragPos, normal, shininess, viewDistance, precise_view_z, directLighting, specularLighting, lightAmbient);
+
+    vec3 albedo = texture(pre_gAlbedoSpecMap, from_vs.textureCoordinates).rgb;
+    vec3 materialAmbient = AllMaterialsArray.materials[materialIndex].ambient;
     // If the material has an ambient map, it will be in the gAmbientMap
     if(materialHasMap(materialIndex, MATERIAL_AMBIENT_MAP)) {
         materialAmbient = texture(pre_gAmbientMap, from_vs.textureCoordinates).rgb;
     }
-
+    vec3 materialSpecular = unpackUnorm4x8(AllMaterialsArray.materials[materialIndex].specularAndMaps).rgb;//no per-pixel map in the g-buffer yet
     float ssao = texture(pre_ssao, from_vs.textureCoordinates).r;
 
     vec3 totalAmbient;
-    vec3 fullyLitColor = calculateLighting(fragPos, normal, albedo, shininess, materialSpecular, materialAmbient, viewDistance, precise_view_z, depth, totalAmbient);
+    vec3 fullyLitColor = combineLighting(directLighting, specularLighting, lightAmbient, albedo, materialSpecular, materialAmbient, totalAmbient);
 
     float occlusion = clamp(ssao * float(ssao_strength), 0.0, 1.0);
     vec3 occludedAmbient = totalAmbient * albedo * occlusion;//the lit color adds ambient times albedo, so that is what has to come off
     finalColor = vec4(fullyLitColor - occludedAmbient, 1.0);
-    gl_FragDepth = depth;
+    gl_FragDepth = texture(pre_depthMap, from_vs.textureCoordinates).r;
 }

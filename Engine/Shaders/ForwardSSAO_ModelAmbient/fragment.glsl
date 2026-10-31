@@ -31,18 +31,23 @@ in VS_FS {
 
 void main(void) {
     vec3 world_space_normal = getMaterialNormal(from_vs.materialIndex, from_vs.textureCoord, from_vs.normal);
-    vec4 albedo = getSimpleMaterialAlbedo(from_vs.materialIndex, from_vs.textureCoord);
-
     float shininess = AllMaterialsArray.materials[from_vs.materialIndex].shininess;
-    vec3 materialAmbient = getMaterialAmbient(from_vs.materialIndex, from_vs.textureCoord);
-    vec3 materialSpecular = getMaterialSpecular(from_vs.materialIndex, from_vs.textureCoord);
 
     vec4 fragPosViewSpace = playerTransforms.camera * vec4(from_vs.fragPos, 1.0);
     float precise_view_z = abs(fragPosViewSpace.z);
     float viewDistance = length(playerTransforms.position - from_vs.fragPos);
 
+    vec3 directLighting;
+    vec3 specularLighting;
+    vec3 lightAmbient;
+    sumLights(from_vs.fragPos, world_space_normal, shininess, viewDistance, precise_view_z, directLighting, specularLighting, lightAmbient);
+
+    //material reads after the light loop, so they don't stay in registers through it
+    vec4 albedo = getSimpleMaterialAlbedo(from_vs.materialIndex, from_vs.textureCoord);
+    vec3 materialAmbient = getMaterialAmbient(from_vs.materialIndex, from_vs.textureCoord);
+    vec3 materialSpecular = getMaterialSpecular(from_vs.materialIndex, from_vs.textureCoord);
     vec3 totalAmbient;
-    vec3 fullyLitColor = calculateLighting(from_vs.fragPos, world_space_normal, albedo.rgb, shininess, materialSpecular, materialAmbient, viewDistance, precise_view_z, gl_FragCoord.z, totalAmbient);
+    vec3 fullyLitColor = combineLighting(directLighting, specularLighting, lightAmbient, albedo.rgb, materialSpecular, materialAmbient, totalAmbient);
 
     vec3 ambientComponent = totalAmbient * albedo.rgb;
     outColor   = vec4(fullyLitColor - ambientComponent, albedo.a);//direct and specular only, the combine pass adds ambient back in float. the sum would clip at 1.0 here and ssao would then remove too much
