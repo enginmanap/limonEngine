@@ -333,9 +333,19 @@ void OpenGLESGraphics::attachGeneralUBOs(const GLuint program){
 }
 
 
-OpenGLESGraphics::OpenGLESGraphics(OptionsUtil::Options *options): GraphicsInterface(options), options(options) {}
+OpenGLESGraphics::OpenGLESGraphics(OptionsUtil::Options *options): GraphicsInterface(options), options(options), screenColorFormat(readScreenColorFormat(options)) {}
 
-//the pipeline writes linear colors and the surface encodes them, so one that doesn't (EGL_KHR_gl_colorspace missing) shows everything too dark.
+GraphicsInterface::ScreenColorFormat OpenGLESGraphics::readScreenColorFormat(OptionsUtil::Options *options) {
+    std::string formatName = options->getOption<std::string>(HASH("render_screenColorFormat")).getOrDefault("UNORM");
+    if (formatName != "UNORM" && formatName != "sRGB") {
+        std::cerr << "render_screenColorFormat must be UNORM or sRGB, got \"" << formatName << "\". Exiting.. " << std::endl;
+        exit(-1);
+    }
+    std::cout << "Screen color format: " << formatName << std::endl;
+    return formatName == "sRGB" ? ScreenColorFormat::sRGB : ScreenColorFormat::UNORM;
+}
+
+//on an sRGB screen the pipeline writes linear colors and the surface encodes them, so one that doesn't (EGL_KHR_gl_colorspace missing) shows everything too dark.
 //Asking the driver is unreliable, so write a mid gray and read back what got stored: 0.5 reads back near 188 when it encodes
 void OpenGLESGraphics::verifyDefaultFramebufferSRGB() {
     GLfloat previousClearColor[4];
@@ -351,7 +361,7 @@ void OpenGLESGraphics::verifyDefaultFramebufferSRGB() {
     glClearColor(previousClearColor[0], previousClearColor[1], previousClearColor[2], previousClearColor[3]);
     if(probePixel[0] < 160) {
         std::cerr << "The default framebuffer doesn't encode sRGB, the window surface didn't get an sRGB color space (linear 0.5 read back as "
-                  << static_cast<int>(probePixel[0]) << "). Exiting.. " << std::endl;
+                  << static_cast<int>(probePixel[0]) << "). Set render_screenColorFormat to UNORM. Exiting.. " << std::endl;
         exit(-1);
     }
 }
@@ -363,6 +373,7 @@ OpenGLESGraphics::ContextInformation OpenGLESGraphics::getContextInformation() {
     contextInformation.SDL_GL_CONTEXT_MINOR_VERSION = 1;
     contextInformation.SDL_GL_CONTEXT_PROFILE_MASK = 4;
     contextInformation.SDL_GL_CONTEXT_FLAGS = 1;
+    contextInformation.SDL_GL_FRAMEBUFFER_SRGB_CAPABLE = screenColorFormat == ScreenColorFormat::sRGB ? 1 : 0;//a UNORM screen stores what is written, only the sRGB one encodes
     return contextInformation;
 }
 
@@ -371,6 +382,7 @@ std::string OpenGLESGraphics::getShaderHeader() const {
            "#extension GL_EXT_shader_io_blocks : enable\n"
            "#extension GL_EXT_geometry_shader : enable\n"
            "#extension GL_EXT_texture_cube_map_array : enable\n"
+           + std::string(screenColorFormat == ScreenColorFormat::UNORM ? "#define LIMON_SCREEN_UNORM\n" : "") +
            "precision highp float;\n"
            "precision highp sampler2D;\n"
            "precision highp sampler2DArray;\n"
@@ -435,7 +447,6 @@ bool OpenGLESGraphics::createGraphicsBackend() {
     glGetIntegerv(GL_NUM_EXTENSIONS, &n);
     std::cout << "found " << n << " extensions." << std::endl;
     bool isCubeMapArraySupported = false;
-    bool isSRGBWriteControlSupported = false;
     char extensionNameBuffer[100];
     int foundExtensionCount = 0;
     for (i = 0; i < n; i++) {
@@ -488,12 +499,14 @@ bool OpenGLESGraphics::createGraphicsBackend() {
 
     std::cout << "Cubemap array support is present. " << std::endl;
 
-    //ES always encodes writes to an sRGB surface, only this extension lets a stage switch that off, and the GUI stages need it off
-    if(!isSRGBWriteControlSupported) {
-        std::cerr << "GL_EXT_sRGB_write_control is mandatory, exiting.. " << std::endl;
-        exit(-1);
+    if (screenColorFormat == ScreenColorFormat::sRGB) {
+        //ES always encodes writes to an sRGB surface, only this extension lets a stage switch that off, and the GUI stages need it off
+        if(!isSRGBWriteControlSupported) {
+            std::cerr << "GL_EXT_sRGB_write_control is mandatory for render_screenColorFormat sRGB, use UNORM. Exiting.. " << std::endl;
+            exit(-1);
+        }
+        verifyDefaultFramebufferSRGB();
     }
-    verifyDefaultFramebufferSRGB();
 
     GLint uniformBufferAlignSize = 0;
     glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &uniformBufferAlignSize);
@@ -806,12 +819,19 @@ OpenGLESGraphics::switchRenderStage(uint32_t width, uint32_t height, uint32_t fr
     } else {
         if (isIndexedBlendSupported) { glDisablei(GL_BLEND, 0); } else { glDisable(GL_BLEND); }
     }
+    applyFramebufferSRGB(framebufferSRGBEnabled);
+    checkErrors("switchRenderStage");
+}
+
+void OpenGLESGraphics::applyFramebufferSRGB(bool framebufferSRGBEnabled) {
+    if (screenColorFormat == ScreenColorFormat::UNORM) {
+        return;//the surface doesn't encode, and sRGB render targets must keep encoding like they do without the extension
+    }
     if(framebufferSRGBEnabled) {
         glEnable(GL_FRAMEBUFFER_SRGB_EXT);
     } else {
         glDisable(GL_FRAMEBUFFER_SRGB_EXT);
     }
-    checkErrors("switchRenderStage");
 }
 
 
@@ -874,11 +894,7 @@ OpenGLESGraphics::switchRenderStage(uint32_t width, uint32_t height, uint32_t fr
     } else {
         if (isIndexedBlendSupported) { glDisablei(GL_BLEND, 0); } else { glDisable(GL_BLEND); }
     }
-    if(framebufferSRGBEnabled) {
-        glEnable(GL_FRAMEBUFFER_SRGB_EXT);
-    } else {
-        glDisable(GL_FRAMEBUFFER_SRGB_EXT);
-    }
+    applyFramebufferSRGB(framebufferSRGBEnabled);
     checkErrors("switchRenderStageLayer");
 }
 
@@ -1456,6 +1472,9 @@ void
 OpenGLESGraphics::loadTextureData(uint32_t textureID, int height, int width, TextureTypes type, InternalFormatTypes internalFormat, FormatTypes format, DataTypes dataType, uint32_t depth,
                                    void *data, void *data2, void *data3, void *data4, void *data5, void *data6) {
     state->activateTextureUnit(0);//this is the default working texture
+    //only image pixels can stay encoded, render targets hold what the pipeline writes and keep the sRGB format.
+    //the sky shader writes its cube map out without decoding, so cube maps stay encoded exactly when the screen doesn't encode
+    bool storeEncoded = internalFormat == InternalFormatTypes::SRGB8_ALPHA8 && data != nullptr && type == TextureTypes::TCUBE_MAP && screenColorFormat == ScreenColorFormat::UNORM;
 
     GLenum glFormat = 0;
     switch (format) {
@@ -1504,7 +1523,7 @@ OpenGLESGraphics::loadTextureData(uint32_t textureID, int height, int width, Tex
             if (glInternalDataFormat == GL_RGBA8) glDataType = GL_UNSIGNED_BYTE;
             break;
         case InternalFormatTypes::SRGB8_ALPHA8:
-            glInternalDataFormat = GL_SRGB8_ALPHA8;
+            glInternalDataFormat = storeEncoded ? GL_RGBA8 : GL_SRGB8_ALPHA8;
             glFormat = GL_RGBA;
             glDataType = GL_UNSIGNED_BYTE;
             break;

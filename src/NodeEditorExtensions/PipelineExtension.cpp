@@ -28,6 +28,7 @@ PipelineExtension::PipelineExtension(GraphicsInterface *graphicsWrapper, Generat
         for(std::shared_ptr<Texture> texture:currentGraphicsPipeline->getTextures()) {
             usedTextures[texture->getName()] = texture;
         }
+        linearColorOutput = currentGraphicsPipeline->isLinearColorOutput();
 
         //key must equal the texture's own name, they used to differ (Screen vs ScreenPlaceHolder) and that's how output selections drifted silently
         if(usedTextures.find(PipelineExtension::SCREEN_COLOR_TEXTURE_NAME) == usedTextures.end()) {
@@ -100,6 +101,11 @@ bool PipelineExtension::getNameOfTexture(void* data, int index, const char** out
 
 void PipelineExtension::drawDetailPane(NodeGraph* nodeGraph, const std::vector<const Node *>& nodes, const Node* selectedNode [[gnu::unused]]) {
     ImGui::Text("Graphics Pipeline Details");
+
+    ImGui::Checkbox("Linear color output", &linearColorOutput);
+    ImGui::TextWrapped("Lighting is linear and every final write to the screen goes through linearToOutputColor. "
+                       "The engine can't verify this: a final shader that skips the call shows too dark on a UNORM screen. "
+                       "Unchecked, the pipeline writes colors to show as they are and doesn't load on an sRGB screen.");
 
     if(ImGui::CollapsingHeader("Textures")) {
         ImGui::Text("Current Textures");
@@ -1236,6 +1242,10 @@ void PipelineExtension::serialize(tinyxml2::XMLDocument &document, tinyxml2::XML
     tinyxml2::XMLElement *nameElement = document.NewElement("Name");
     nameElement->SetText(getName().c_str());
     graphicsExtensionElement->InsertEndChild(nameElement);
+
+    tinyxml2::XMLElement *linearColorOutputElement = document.NewElement("LinearColorOutput");
+    linearColorOutputElement->SetText(linearColorOutput ? "True" : "False");
+    graphicsExtensionElement->InsertEndChild(linearColorOutputElement);
 /*
     std::map<std::string, std::shared_ptr<Texture>> usedTextures;
 */
@@ -1259,6 +1269,9 @@ void PipelineExtension::serialize(tinyxml2::XMLDocument &document, tinyxml2::XML
 }
 
 void PipelineExtension::deserialize(const std::string &fileName[[gnu::unused]], tinyxml2::XMLElement *editorExtensionElement) {
+    //missing means the baseline, same as GraphicsPipeline::deserialize
+    tinyxml2::XMLElement *linearColorOutputElement = editorExtensionElement->FirstChildElement("LinearColorOutput");
+    linearColorOutput = linearColorOutputElement != nullptr && linearColorOutputElement->GetText() != nullptr && std::string(linearColorOutputElement->GetText()) == "True";
 
     tinyxml2::XMLElement *usedTexturesElement = editorExtensionElement->FirstChildElement("UsedTextures");
     if (usedTexturesElement == nullptr) {

@@ -899,4 +899,13 @@
         <IsSet>True</IsSet>
         <Index>108</Index>
     </Parameter>
+    <Parameter>
+        <RequestType>FreeText</RequestType>
+        <Description>render_screenColorFormat</Description>
+        <!--The screen's color buffer. UNORM: stores what is written, nothing encodes. A pipeline with linear color output encodes in its final shaders (linearToOutputColor), one without shows its colors as they are. sRGB: the window encodes writes, GUI stages switch that off (ES needs GL_EXT_sRGB_write_control). Only pipelines with linear color output load on it-->
+        <Value>UNORM</Value>
+        <valueType>String</valueType>
+        <IsSet>True</IsSet>
+        <Index>109</Index>
+    </Parameter>
 </Options>

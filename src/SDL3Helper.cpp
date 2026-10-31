@@ -47,7 +47,7 @@ void SDL3Helper::initWindow(const char* title, const GraphicsInterface::ContextI
      * You may need to change this to 16 or 32 for your system */
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
-    SDL_GL_SetAttribute(SDL_GL_FRAMEBUFFER_SRGB_CAPABLE, 1);//only a request, the backend checks what the default framebuffer really is
+    SDL_GL_SetAttribute(SDL_GL_FRAMEBUFFER_SRGB_CAPABLE, contextInformation.SDL_GL_FRAMEBUFFER_SRGB_CAPABLE);//only a request, the backend checks what the default framebuffer really is
 
 
     SDL_SetHint(SDL_HINT_VIDEO_WAYLAND_MODE_SCALING, "aspect");

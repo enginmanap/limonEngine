@@ -39,6 +39,7 @@ public:
     void reportBatch(uint32_t materialSwitchCount) override;
     ContextInformation getContextInformation() override;
     std::string getShaderHeader() const override;
+    ScreenColorFormat getScreenColorFormat() const override { return ScreenColorFormat::UNORM; }
     bool getFallbackContextInformation(ContextInformation &fallbackContext) override;
     bool verifyContext() override;
     bool createGraphicsBackend() override;

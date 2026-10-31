@@ -3,6 +3,8 @@
 #define ssao_strength 3.0
 #endif
 
+#import <./Engine/Shaders/Shared/ColorSpace.glsl>
+
 layout (location = 0) out vec4 finalColor;
 
 in VS_FS {
@@ -20,6 +22,6 @@ void main() {
     float ssao   = texture(pre_ssao,          from_vs.textureCoordinates).r;
 
     float occlusion = clamp(ssao * float(ssao_strength), 0.0, 1.0);
-    finalColor   = vec4(color + ambient * (1.0 - occlusion), 1.0);
+    finalColor   = vec4(linearToOutputColor(color + ambient * (1.0 - occlusion)), 1.0);//the buffers decode on sampling, this is the write to the screen
     gl_FragDepth = texture(pre_depthMap, from_vs.textureCoordinates).r;
 }

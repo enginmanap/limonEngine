@@ -9,6 +9,7 @@
 #import <./Engine/Shaders/Shared/PointShadow.frag>
 #import <./Engine/Shaders/Shared/DirectionalShadow.frag>
 #import <./Engine/Shaders/Shared/Material.frag>
+#import <./Engine/Shaders/Shared/ColorSpace.glsl>
 
 out vec4 finalColor;
 
@@ -79,6 +80,6 @@ void main()
 
     float occlusion = clamp(ssao * float(ssao_strength), 0.0, 1.0);
     vec3 occludedAmbient = totalAmbient * albedo * occlusion;//the lit color adds ambient times albedo, so that is what has to come off
-    finalColor = vec4(fullyLitColor - occludedAmbient, 1.0);
+    finalColor = vec4(linearToOutputColor(fullyLitColor - occludedAmbient), 1.0);
     gl_FragDepth = texture(pre_depthMap, from_vs.textureCoordinates).r;
 }

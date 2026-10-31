@@ -4,6 +4,7 @@
 #import <./Engine/Shaders/Shared/PointShadow.frag>
 #import <./Engine/Shaders/Shared/DirectionalShadow.frag>
 #import <./Engine/Shaders/Shared/Lighting.frag>
+#import <./Engine/Shaders/Shared/ColorSpace.glsl>
 
 out vec4 finalColor;
 
@@ -43,5 +44,5 @@ void main(void) {
     vec3 totalAmbient;
     vec3 lit = combineLighting(directLighting, specularLighting, lightAmbient, albedo, MATERIAL_SPECULAR, MATERIAL_AMBIENT, totalAmbient);
 
-    finalColor = vec4(lit, 1.0);
+    finalColor = vec4(linearToOutputColor(lit), 1.0);
 }

@@ -48,6 +48,7 @@ public:
     enum class TextureWrapModes {NONE, REPEAT, BORDER, EDGE};
     enum class FilterModes {NEAREST, LINEAR, TRILINEAR};
     enum class CullModes {FRONT, BACK, NONE, NO_CHANGE};
+    enum class ScreenColorFormat {UNORM, sRGB};
 
     //We reserve texture unit 0 as scratch pad, uploads bind there.
     // 1 -> Model transform texture
@@ -102,6 +103,7 @@ public:
         int SDL_GL_CONTEXT_MINOR_VERSION = 3;
         int SDL_GL_CONTEXT_PROFILE_MASK = 1;
         int SDL_GL_CONTEXT_FLAGS = 1;
+        int SDL_GL_FRAMEBUFFER_SRGB_CAPABLE = 0;//the baseline screen doesn't encode, backends ask for 1 with render_screenColorFormat sRGB
     };
 
     //per frame counters, all reset in clearFrame. the *RequestCount pairs are what the state cache was asked for,
@@ -129,6 +131,9 @@ public:
     virtual ContextInformation getContextInformation() = 0;
     //only valid after createGraphicsBackend, the header carries limits we can't know before there is a context
     virtual std::string getShaderHeader() const = 0;
+
+    //render_screenColorFormat. With sRGB the screen encodes what is written to it, pipelines without linear color output don't load then
+    virtual ScreenColorFormat getScreenColorFormat() const = 0;
     virtual bool getFallbackContextInformation(ContextInformation& fallbackContext) = 0;
     virtual bool verifyContext() = 0;
     virtual bool createGraphicsBackend() = 0;

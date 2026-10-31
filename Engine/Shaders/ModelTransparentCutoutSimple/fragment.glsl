@@ -4,6 +4,7 @@
 #import <./Engine/Shaders/Shared/Lights.glsl>
 #import <./Engine/Shaders/Shared/PlayerInformation.glsl>
 #import <./Engine/Shaders/Shared/Material.frag>
+#import <./Engine/Shaders/Shared/ColorSpace.glsl>
 
 //experiment pipeline (forward_split_renderPipeline.xml), single tap hard shadows on purpose, it measures a ceiling
 
@@ -143,6 +144,6 @@ void main(void) {
         discard;//the blended ModelTransparentSimple stage draws these after us
     } else {//v3d keeps running discarded pixels, in the else a fully discarded group skips this
         vec3 world_space_normal = getMaterialNormal(from_vs.materialIndex, from_vs.textureCoord, from_vs.normal);
-        outputColor = vec4(_litColor(world_space_normal), 1.0);
+        outputColor = vec4(linearToOutputColor(_litColor(world_space_normal)), 1.0);
     }
 }

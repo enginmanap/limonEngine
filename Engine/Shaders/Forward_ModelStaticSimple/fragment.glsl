@@ -4,6 +4,7 @@
 #import <./Engine/Shaders/Shared/Lights.glsl>
 #import <./Engine/Shaders/Shared/PlayerInformation.glsl>
 #import <./Engine/Shaders/Shared/Material.frag>
+#import <./Engine/Shaders/Shared/ColorSpace.glsl>
 
 // Experiment pipeline, see Engine/forward_split_renderPipeline.xml. Shadow sampling is a single tap
 // for both light types, no rotation, no poisson disk, no early out probe and no cascade blend.
@@ -140,5 +141,5 @@ void main(void) {
     vec4 albedo = getSimpleMaterialAlbedo(from_vs.materialIndex, from_vs.textureCoord);
     vec3 materialAmbient = getMaterialAmbient(from_vs.materialIndex, from_vs.textureCoord);
     vec3 materialSpecular = getMaterialSpecular(from_vs.materialIndex, from_vs.textureCoord);
-    finalColor = vec4((diffuseAndAmbientLighting + materialAmbient) * albedo.rgb + specularLighting * materialSpecular, albedo.a);//the highlight is not tinted by albedo
+    finalColor = vec4(linearToOutputColor((diffuseAndAmbientLighting + materialAmbient) * albedo.rgb + specularLighting * materialSpecular), albedo.a);//the highlight is not tinted by albedo
 }

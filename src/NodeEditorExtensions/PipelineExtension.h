@@ -47,6 +47,7 @@ private:
     std::vector<std::pair<std::set<const Node*>, std::shared_ptr<GraphicsPipeline::StageInfo>>> orderedStages; // used to keep the node order for stage so we can show it to the user
     std::shared_ptr<GraphicsPipeline> builtPipeline = nullptr;
     bool nodeGraphValid = true; //if there are nodes that are unknown, then we can't build.
+    bool linearColorOutput = false;//goes to the built pipeline, GraphicsPipeline::isLinearColorOutput
     int32_t selectedTexture = -1;//-1 means it is not selected, there for we are building a new one
 
     static bool getNameOfTexture(void* data, int index, const char** outText);
@@ -137,6 +138,10 @@ public:
         }
         builtGraphicsPipeline->printTextureUnits(graphicsWrapper, "built in editor");
         builtGraphicsPipeline->setGraphicsWrapper(graphicsWrapper);
+        builtGraphicsPipeline->setLinearColorOutput(linearColorOutput);
+        if (graphicsWrapper->getScreenColorFormat() == GraphicsInterface::ScreenColorFormat::sRGB && !linearColorOutput) {
+            addError("Pipeline doesn't have linear color output, it won't load while render_screenColorFormat is sRGB.");
+        }
         addMessage("Built new Pipeline");
         return builtGraphicsPipeline;
     }

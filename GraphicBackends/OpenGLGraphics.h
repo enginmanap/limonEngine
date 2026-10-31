@@ -276,8 +276,14 @@ public:
 
 private:
 
-    //exits when the default framebuffer would not encode the linear colors the pipeline writes
+    ScreenColorFormat screenColorFormat;
+
+    static ScreenColorFormat readScreenColorFormat(OptionsUtil::Options *options);
+
+    //sRGB screen: exits when the default framebuffer would not encode the linear colors the pipeline writes
     void verifyDefaultFramebufferSRGB();
+
+    void applyFramebufferSRGB(uint32_t frameBufferID, bool framebufferSRGBEnabled);
 
     inline bool checkErrors(const std::string &callerFunc __attribute((unused))) {
 #ifndef NDEBUG
@@ -367,6 +373,10 @@ public:
     GraphicsInterface::ContextInformation getContextInformation() override;
 
     std::string getShaderHeader() const override;
+
+    ScreenColorFormat getScreenColorFormat() const override {
+        return screenColorFormat;
+    }
     bool getFallbackContextInformation(GraphicsInterface::ContextInformation& fallbackContext) override;
     bool verifyContext() override;
     bool createGraphicsBackend() override;

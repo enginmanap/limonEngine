@@ -154,6 +154,15 @@ public:
 
     void finalize();
 
+    //nothing verifies true, a final shader that skips linearToOutputColor shows dark on a UNORM screen
+    bool isLinearColorOutput() const {
+        return linearColorOutput;
+    }
+
+    void setLinearColorOutput(bool linearColorOutput) {
+        this->linearColorOutput = linearColorOutput;
+    }
+
     //the file is written by the node editor, which puts the graph this was built from next to it
     void serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentElement, OptionsUtil::Options *options);
 
@@ -186,6 +195,7 @@ private:
 
     std::map<std::string, std::vector<std::set<std::string>>> cameraTagToRenderTagMap;//Per stage, we configure camera name(tag) and renderTags(objects to render). We should combine them and make accessible so culling can use the info.
     RenderMethods renderMethods;
+    bool linearColorOutput = false;//missing in the file means false
     std::vector<StageInfo> pipelineStages;
     std::vector<std::shared_ptr<Texture>> textures;
 };

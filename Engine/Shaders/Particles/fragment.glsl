@@ -1,5 +1,6 @@
 
 #import <./Engine/Shaders/Shared/PlayerInformation.glsl>
+#import <./Engine/Shaders/Shared/ColorSpace.glsl>
 
 layout (location = 0) out vec4 color;
 
@@ -15,5 +16,6 @@ uniform sampler2D pre_depthMap;
 void main(void){
     color = (texture(sprite, from_vs.textureCoordinates));
     color *= from_vs.colorMultiplier;
+    color.rgb = linearToOutputColor(color.rgb);
 
 }

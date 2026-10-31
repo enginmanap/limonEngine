@@ -65,6 +65,10 @@ void GraphicsPipeline::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLE
     tinyxml2::XMLElement *graphicsPipelineElement = document.NewElement("GraphicsPipeline");
     parentElement->InsertEndChild(graphicsPipelineElement);
 
+    tinyxml2::XMLElement *linearColorOutputElement = document.NewElement("LinearColorOutput");
+    linearColorOutputElement->SetText(linearColorOutput ? "True" : "False");
+    graphicsPipelineElement->InsertEndChild(linearColorOutputElement);
+
     tinyxml2::XMLElement *texturesElement = document.NewElement("Textures");
     uint32_t textureSerializeID = 0;
     for(const std::shared_ptr<Texture>& texture:this->textures) {
@@ -173,6 +177,17 @@ GraphicsPipeline::deserialize(const std::string &graphicsPipelineFileName, Graph
         return rejectPipeline(errors, graphicsPipelineFileName, "has no built pipeline, its node graph didn't build when it was saved. Fix it in the node editor and save again.");
     }
 
+    //missing means a pipeline that writes values to show as they are, the baseline
+    bool linearColorOutput = false;
+    tinyxml2::XMLElement* linearColorOutputElement = graphicsPipelineNode->FirstChildElement("LinearColorOutput");
+    if (linearColorOutputElement != nullptr && linearColorOutputElement->GetText() != nullptr) {
+        linearColorOutput = std::string(linearColorOutputElement->GetText()) == "True";
+    }
+    if (graphicsWrapper->getScreenColorFormat() == GraphicsInterface::ScreenColorFormat::sRGB && !linearColorOutput) {
+        return rejectPipeline(errors, graphicsPipelineFileName, "doesn't have linear color output, the sRGB screen would encode colors that are already meant for display. "
+                                                                "Set render_screenColorFormat to UNORM, or make its final shaders call linearToOutputColor and set Linear color output in the pipeline editor.");
+    }
+
     tinyxml2::XMLElement* graphicsPipelineElement = nullptr;
 
     graphicsPipelineElement = graphicsPipelineNode->FirstChildElement("Textures");
@@ -185,6 +200,7 @@ GraphicsPipeline::deserialize(const std::string &graphicsPipelineFileName, Graph
         std::cout << "Render pipeline doesn't have any textures, this might be a mistake." << std::endl;
     }
     std::unique_ptr<GraphicsPipeline> graphicsPipeline = std::make_unique<GraphicsPipeline>(renderMethods);
+    graphicsPipeline->setLinearColorOutput(linearColorOutput);
     while(textureElement !=nullptr) {
         std::shared_ptr<Texture> texture = Texture::deserialize(textureElement, graphicsWrapper, assetManager, options);
         if(texture != nullptr) {
