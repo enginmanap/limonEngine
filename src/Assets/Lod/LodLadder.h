@@ -39,8 +39,8 @@ enum class LodLimitKind : uint8_t {
 //negative value switches that check off, as a measurement it is what the level actually showed
 struct LodPixels {
     float surface = 0.0f;   //how far the visible surface moved, a uv slide included
-    float outline = 0.0f;   //how far the silhouette moved
-    float holes = 0.0f;     //widest place where something behind shows through
+    float outline = 0.0f;   //how far the silhouette moved, in the worst view
+    float holes = 0.0f;     //widest place where something behind shows through, lost coverage included
     float texture = 0.0f;   //widest place where the uv jumped to another part of the texture
     float normal = 0.0f;    //widest place whose shading changed past LOD_normalDeviation
 

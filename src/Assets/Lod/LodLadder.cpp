@@ -880,9 +880,10 @@ bool LodLadder::measureCandidate(const std::vector<MeshGeometry> &meshes, float 
     std::vector<uint8_t> textureMask;
     std::vector<uint8_t> normalMask;
     std::vector<float> movements;//screen pixels
-    uint64_t mismatched = 0;
-    uint64_t boundary = 0;
     for (size_t viewIndex = 0; viewIndex < views.size(); ++viewIndex) {
+        //per view: pooled over all views, half a roof gone from above read as a thin band around every outline
+        uint64_t mismatched = 0;
+        uint64_t boundary = 0;
         reference.reset(resolution);
         simplified.reset(resolution);
         rasterize(meshes, nullptr, views[viewIndex], center, scale, resolution, meshPositionPerUv, reference);
@@ -907,6 +908,9 @@ bool LodLadder::measureCandidate(const std::vector<MeshGeometry> &meshes, float 
             }
             if (referenceCovered != candidateCovered) {
                 mismatched++;//the outline moved, in or out
+                if (referenceCovered) {
+                    holeMask[pixel] = 1;//lost coverage shows what is behind, a shadow or an occluder loses it entirely
+                }
                 continue;
             }
             if (!referenceCovered) {
@@ -947,9 +951,10 @@ bool LodLadder::measureCandidate(const std::vector<MeshGeometry> &meshes, float 
         candidate.measured.holes = std::max(candidate.measured.holes, largestRegionWidth(holeMask, resolution) / perScreenPixel);
         candidate.measured.texture = std::max(candidate.measured.texture, largestRegionWidth(textureMask, resolution) / perScreenPixel);
         candidate.measured.normal = std::max(candidate.measured.normal, largestRegionWidth(normalMask, resolution) / perScreenPixel);
+        //the mismatched pixels form a band along the outline, so its width is the band over the outline length
+        const float viewOutline = boundary > 0 ? (float) ((double) mismatched / (double) boundary) / perScreenPixel : 0.0f;
+        candidate.measured.outline = std::max(candidate.measured.outline, viewOutline);
     }
-    //the mismatched pixels form a band along the outline, so its width is the band over the outline length
-    candidate.measured.outline = boundary > 0 ? (float) ((double) mismatched / (double) boundary) / perScreenPixel : 0.0f;
     if (!movements.empty()) {
         size_t index = (size_t) (LOD_SURFACE_QUANTILE * (double) (movements.size() - 1));
         std::nth_element(movements.begin(), movements.begin() + index, movements.end());
