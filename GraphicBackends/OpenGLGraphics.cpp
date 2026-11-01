@@ -335,16 +335,26 @@ void OpenGLGraphics::attachGeneralUBOs(const GLuint program){
 }
 
 
-OpenGLGraphics::OpenGLGraphics(OptionsUtil::Options *options): GraphicsInterface(options), options(options), screenColorFormat(readScreenColorFormat(options)) {}
-
-GraphicsInterface::ScreenColorFormat OpenGLGraphics::readScreenColorFormat(OptionsUtil::Options *options) {
-    std::string formatName = options->getOption<std::string>(HASH("render_screenColorFormat")).getOrDefault("UNORM");
-    if (formatName != "UNORM" && formatName != "sRGB") {
-        std::cerr << "render_screenColorFormat must be UNORM or sRGB, got \"" << formatName << "\". Exiting.. " << std::endl;
+OpenGLGraphics::OpenGLGraphics(OptionsUtil::Options *options): GraphicsInterface(options), options(options) {
+    //read once: the shader header is built from these, a later change would mix stored and expected colors
+    std::string screenFormatName = options->getOption<std::string>(HASH("render_screenColorFormat")).getOrDefault("UNORM");
+    if (screenFormatName != "UNORM" && screenFormatName != "sRGB") {
+        std::cerr << "render_screenColorFormat \"" << screenFormatName << "\" is unknown, using UNORM." << std::endl;
+    }
+    screenColorFormat = screenFormatName == "sRGB" ? ScreenColorFormat::sRGB : ScreenColorFormat::UNORM;
+    std::string textureFormatName = options->getOption<std::string>(HASH("render_colorTextureFormat")).getOrDefault("UNORM");
+    if (textureFormatName != "UNORM" && textureFormatName != "sRGB") {
+        std::cerr << "render_colorTextureFormat \"" << textureFormatName << "\" is unknown, using UNORM." << std::endl;
+    }
+    colorTextureFormat = textureFormatName == "sRGB" ? ColorTextureFormat::sRGB : ColorTextureFormat::UNORM;
+    linearColor = options->getOption<bool>(HASH("render_linearColor")).getOrDefault(false);
+    if (!linearColor && (screenColorFormat == ScreenColorFormat::sRGB || colorTextureFormat == ColorTextureFormat::sRGB)) {
+        std::cerr << "render_linearColor False needs render_screenColorFormat and render_colorTextureFormat UNORM, an sRGB one hands the shaders linear values. Exiting.. " << std::endl;
         exit(-1);
     }
-    std::cout << "Screen color format: " << formatName << std::endl;
-    return formatName == "sRGB" ? ScreenColorFormat::sRGB : ScreenColorFormat::UNORM;
+    std::cout << "Color options: screen " << (screenColorFormat == ScreenColorFormat::sRGB ? "sRGB" : "UNORM")
+              << ", textures " << (colorTextureFormat == ColorTextureFormat::sRGB ? "sRGB" : "UNORM")
+              << ", linear " << (linearColor ? "True" : "False") << std::endl;
 }
 
 //the pipeline writes linear colors and the framebuffer encodes them, so one that doesn't shows everything too dark.
@@ -384,7 +394,9 @@ std::string OpenGLGraphics::getShaderHeader() const {
     return "#version 330\n"
            "#extension GL_ARB_texture_cube_map_array : enable\n"
            "#extension GL_ARB_shading_language_packing : enable\n"//unpackUnorm4x8 for 330, core from GLSL 4.00 and in ES 3.10
-           + std::string(screenColorFormat == ScreenColorFormat::UNORM ? "#define LIMON_SCREEN_UNORM\n" : "") +
+           + std::string(linearColor ? "#define LIMON_LINEAR_COLOR\n" : "")
+           + std::string(screenColorFormat == ScreenColorFormat::UNORM ? "#define LIMON_SCREEN_UNORM\n" : "")
+           + std::string(colorTextureFormat == ColorTextureFormat::UNORM ? "#define LIMON_TEXTURES_UNORM\n" : "") +
            "#define NR_MODEL_INDEX_BATCH " + std::to_string(modelIndexBatchCapacity) + "\n"
            "#define MODEL_TRANSFORM_TEXTURE_WIDTH " + std::to_string(MODEL_TRANSFORM_TEXTURE_WIDTH);
 }
@@ -1402,13 +1414,15 @@ uint32_t OpenGLGraphics::createTexture(int height, int width, TextureTypes type,
     return texture;
 }
 
-void
+bool
 OpenGLGraphics::loadTextureData(uint32_t textureID, int height, int width, TextureTypes type, InternalFormatTypes internalFormat, FormatTypes format, DataTypes dataType, uint32_t depth,
                                    void *data, void *data2, void *data3, void *data4, void *data5, void *data6) {
     state->activateTextureUnit(0);//this is the default working texture
     //only image pixels can stay encoded, render targets hold what the pipeline writes and keep the sRGB format.
-    //the sky shader writes its cube map out without decoding, so cube maps stay encoded exactly when the screen doesn't encode
-    bool storeEncoded = internalFormat == InternalFormatTypes::SRGB8_ALPHA8 && data != nullptr && type == TextureTypes::TCUBE_MAP && screenColorFormat == ScreenColorFormat::UNORM;
+    //the sky shader writes its cube map out without decoding, so cube maps stay encoded exactly when the screen doesn't encode (TODO: per texture flag)
+    bool isCubeMap = type == TextureTypes::TCUBE_MAP;
+    bool storeEncoded = internalFormat == InternalFormatTypes::SRGB8_ALPHA8 && data != nullptr &&
+                        (isCubeMap ? screenColorFormat == ScreenColorFormat::UNORM : colorTextureFormat == ColorTextureFormat::UNORM);
 
     GLint glInternalDataFormat = 0;
     switch (internalFormat) {
@@ -1496,6 +1510,7 @@ OpenGLGraphics::loadTextureData(uint32_t textureID, int height, int width, Textu
     glBindTexture(glTextureType, 0);
 
     checkErrors("loadTextureData");
+    return storeEncoded;
 }
 
 void OpenGLGraphics::applyFramebufferSRGB(uint32_t frameBufferID, bool framebufferSRGBEnabled) {
@@ -1753,10 +1768,10 @@ void OpenGLGraphics::setMaterial(const Material& material) {
     };
     */
     float shininess = material.getSpecularExponent();
-    glm::u8vec4 specularAndMaps = material.getSpecularAndMaps();
-    //authored in sRGB like the textures, the shaders light in linear
-    glm::vec3 ambientColor = material.getLinearAmbientColor();
-    glm::vec3 diffuseColor = material.getLinearDiffuseColor();
+    glm::u8vec4 specularAndMaps = material.getSpecularAndMaps(linearColor);
+    //authored in sRGB like the textures
+    glm::vec3 ambientColor = linearColor ? material.getLinearAmbientColor() : material.getRawAmbientColor();
+    glm::vec3 diffuseColor = linearColor ? material.getLinearDiffuseColor() : material.getRawDiffuseColor();
 
     if (material.getMaterialIndex() >= NR_MAX_MATERIALS) {
         //writing past the UBO would silently corrupt whatever material sits at the wrapped offset

@@ -31,8 +31,8 @@ void HeadlessGraphics::setTextureBorder(uint32_t, TextureTypes, bool, const std:
 
 void HeadlessGraphics::setFilterMode(uint32_t, TextureTypes, FilterModes) {}
 
-void HeadlessGraphics::loadTextureData(uint32_t, int, int, TextureTypes, InternalFormatTypes, FormatTypes, DataTypes, uint32_t,
-                                       void *, void *, void *, void *, void *, void *) {}
+bool HeadlessGraphics::loadTextureData(uint32_t, int, int, TextureTypes, InternalFormatTypes, FormatTypes, DataTypes, uint32_t,
+                                       void *, void *, void *, void *, void *, void *) { return false; }
 
 void HeadlessGraphics::setTextureLabel(uint32_t, const std::string &) {}
 

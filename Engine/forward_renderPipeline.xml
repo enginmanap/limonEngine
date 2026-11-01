@@ -3,6 +3,7 @@
         <EditorExtension>
             <Name>PipelineExtension</Name>
             <LinearColorOutput>True</LinearColorOutput>
+            <ColorTextureInput>Any</ColorTextureInput>
             <UsedTextures>
                 <Texture>
                     <Name>ColorBuffer</Name>
@@ -2763,6 +2764,7 @@
     </NodeGraph>
     <GraphicsPipeline>
         <LinearColorOutput>True</LinearColorOutput>
+        <ColorTextureInput>Any</ColorTextureInput>
         <Textures>
             <Texture>
                 <Name>PointShadow</Name>

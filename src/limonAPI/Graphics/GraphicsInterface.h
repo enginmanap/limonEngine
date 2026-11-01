@@ -49,6 +49,7 @@ public:
     enum class FilterModes {NEAREST, LINEAR, TRILINEAR};
     enum class CullModes {FRONT, BACK, NONE, NO_CHANGE};
     enum class ScreenColorFormat {UNORM, sRGB};
+    enum class ColorTextureFormat {UNORM, sRGB};
 
     //We reserve texture unit 0 as scratch pad, uploads bind there.
     // 1 -> Model transform texture
@@ -76,7 +77,8 @@ protected:
 
     virtual void setFilterMode(uint32_t textureID, TextureTypes textureType, FilterModes filterMode) = 0;
 
-    virtual void loadTextureData(uint32_t textureID, int height, int width, TextureTypes type, InternalFormatTypes internalFormat, FormatTypes format, DataTypes dataType, uint32_t depth,
+    //true when an sRGB image was stored as its bytes, sampling gives them back encoded
+    virtual bool loadTextureData(uint32_t textureID, int height, int width, TextureTypes type, InternalFormatTypes internalFormat, FormatTypes format, DataTypes dataType, uint32_t depth,
                          void *data, void *data2, void *data3, void *data4, void *data5, void *data6) = 0;
 
     //2D only, data is tightly packed rows of the region
@@ -134,6 +136,7 @@ public:
 
     //render_screenColorFormat. With sRGB the screen encodes what is written to it, pipelines without linear color output don't load then
     virtual ScreenColorFormat getScreenColorFormat() const = 0;
+    virtual ColorTextureFormat getColorTextureFormat() const = 0;
     virtual bool getFallbackContextInformation(ContextInformation& fallbackContext) = 0;
     virtual bool verifyContext() = 0;
     virtual bool createGraphicsBackend() = 0;

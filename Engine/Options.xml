@@ -908,4 +908,22 @@
         <IsSet>True</IsSet>
         <Index>109</Index>
     </Parameter>
+    <Parameter>
+        <RequestType>FreeText</RequestType>
+        <Description>render_colorTextureFormat</Description>
+        <!--How color images are stored. UNORM: their own bytes, sampling gives them back as they are. sRGB: the sampler decodes them to linear. Pipelines declare which they expect (Color texture input in the pipeline editor) and don't load with the other-->
+        <Value>UNORM</Value>
+        <valueType>String</valueType>
+        <IsSet>True</IsSet>
+        <Index>110</Index>
+    </Parameter>
+    <Parameter>
+        <RequestType>FreeText</RequestType>
+        <Description>render_linearColor</Description>
+        <!--True: shaders light in linear. The engine's colorTextureToLinear decodes UNORM color images, linearToOutputColor encodes for a UNORM screen, material colors are uploaded linear. False: no gamma correction, everything is used as authored. False needs render_screenColorFormat and render_colorTextureFormat UNORM-->
+        <Value>False</Value>
+        <valueType>Boolean</valueType>
+        <IsSet>True</IsSet>
+        <Index>111</Index>
+    </Parameter>
 </Options>

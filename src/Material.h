@@ -316,10 +316,10 @@ public:
         return srgbToLinear(specularColor);
     }
 
-    //what the shaders read as specularAndMaps: the linear specular color in rgb, the map bits (all below 32) in a.
+    //map bits share the alpha byte, they must stay below 32.
     //Clamped because the shininess strength can push the color over 1
-    glm::u8vec4 getSpecularAndMaps() const {
-        glm::vec3 specular = glm::clamp(getLinearSpecularColor(), 0.0f, 1.0f);
+    glm::u8vec4 getSpecularAndMaps(bool linearColor) const {
+        glm::vec3 specular = glm::clamp(linearColor ? getLinearSpecularColor() : getRawSpecularColor(), 0.0f, 1.0f);
         return glm::u8vec4(glm::round(specular * 255.0f), maps);
     }
 

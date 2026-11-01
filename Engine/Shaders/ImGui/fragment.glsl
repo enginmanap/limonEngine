@@ -65,7 +65,7 @@ vec4 renderModel() {
             float specularRate = max(dot(viewDirectory, reflectDirectory), 0.0);
             if(specularRate != 0.0 && AllMaterialsArray.materials[from_vs.materialIndex].shininess != 0.0) {
                 specularRate = pow(specularRate, AllMaterialsArray.materials[from_vs.materialIndex].shininess);
-                vec3 specularColor = vec3(texture(specularSampler, from_vs.textureCoord));
+                vec3 specularColor = sampleColorTexture(specularSampler, from_vs.textureCoord).rgb;
                 float specularAverage = (specularColor.x + specularColor.y + specularColor.z) / 3.0;
                 specularRate = specularRate * specularAverage;
                 //specularRate = specularRate * materialSpecular;//we should get specularMap to here
@@ -82,7 +82,11 @@ vec4 renderModel() {
     min(lightingColorFactor.y, 1.0),
     min(lightingColorFactor.z, 1.0),
     1.0 - renderModelTransparency) * objectColor;
+#ifdef LIMON_LINEAR_COLOR
     return vec4(linearToSRGB(litColor.rgb), litColor.a);//lit in linear like the scene, this stage writes raw
+#else
+    return litColor;//baseline, nothing was decoded either
+#endif
 }
 
 uniform int remapRange;//render debugging only, 0 for everything else so UI and fonts are untouched

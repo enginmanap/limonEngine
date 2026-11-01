@@ -22,6 +22,8 @@ class RenderMethodInterface;
 
 class GraphicsPipeline {
 public:
+    //nothing verifies the shaders match it, missing in the file means Encoded
+    enum class ColorTextureInput {Encoded, Decoded, Any};
 
     struct StageInfo {
         uint32_t highestPriority = 999;//keeps the highest priority, used for render ordering, which is lower. priority 1 is higher priority then priority 10.
@@ -163,6 +165,24 @@ public:
         this->linearColorOutput = linearColorOutput;
     }
 
+    ColorTextureInput getColorTextureInput() const {
+        return colorTextureInput;
+    }
+
+    void setColorTextureInput(ColorTextureInput colorTextureInput) {
+        this->colorTextureInput = colorTextureInput;
+    }
+
+    static const char* colorTextureInputName(ColorTextureInput colorTextureInput);
+    //missing gives the default silently, an unknown value logs and gives the default
+    static ColorTextureInput parseColorTextureInput(const char* name, const std::string &fileName);
+    static bool parseLinearColorOutput(const char* name, const std::string &fileName);
+
+    static bool acceptsColorTextureFormat(ColorTextureInput colorTextureInput, GraphicsInterface::ColorTextureFormat colorTextureFormat);
+
+    //needs the stages loaded, it checks which ones draw to the screen
+    bool acceptsScreenColorFormat(GraphicsInterface::ScreenColorFormat screenColorFormat) const;
+
     //the file is written by the node editor, which puts the graph this was built from next to it
     void serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentElement, OptionsUtil::Options *options);
 
@@ -196,6 +216,7 @@ private:
     std::map<std::string, std::vector<std::set<std::string>>> cameraTagToRenderTagMap;//Per stage, we configure camera name(tag) and renderTags(objects to render). We should combine them and make accessible so culling can use the info.
     RenderMethods renderMethods;
     bool linearColorOutput = false;//missing in the file means false
+    ColorTextureInput colorTextureInput = ColorTextureInput::Encoded;
     std::vector<StageInfo> pipelineStages;
     std::vector<std::shared_ptr<Texture>> textures;
 };

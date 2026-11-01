@@ -4,11 +4,19 @@
 #define NR_MAX_MATERIALS 200
 #define CUTOUT_ALPHA_THRESHOLD 0.99 //ModelTransparentCutout draws at or above with depth, ModelTransparent blends below
 
+#import <./Engine/Shaders/Shared/ColorSpace.glsl>
+
 uniform sampler2D ambientSampler;
 uniform sampler2D diffuseSampler;
 uniform sampler2D specularSampler;
 uniform sampler2D opacitySampler;
 uniform sampler2D normalSampler;
+
+//color maps only, opacity and normal maps hold data
+vec4 sampleColorTexture(sampler2D colorSampler, vec2 uv) {
+    vec4 sampled = texture(colorSampler, uv);
+    return vec4(colorTextureToLinear(sampled.rgb), sampled.a);
+}
 
 struct material {
     vec3 ambient;
@@ -44,10 +52,10 @@ vec4 getMaterialAlbedo(int materialIndex, vec2 uv) {
                 // Keeping it as is for minimal disruption, though it limits reusability if someone *doesn't* want to discard.
                 discard;
             }
-            objectColor = texture(diffuseSampler, uv);
+            objectColor = sampleColorTexture(diffuseSampler, uv);
             objectColor.w = opacity.a;
         } else {
-            objectColor = texture(diffuseSampler, uv);
+            objectColor = sampleColorTexture(diffuseSampler, uv);
             if(objectColor.a < 0.05) {
                 discard;
             }
@@ -69,7 +77,7 @@ vec3 getMaterialNormal(int materialIndex, vec2 uv, vec3 vertexNormal) {
 vec3 getMaterialAmbient(int materialIndex, vec2 uv) {
     vec3 lightingColorFactor;
     if(materialHasMap(materialIndex, MATERIAL_AMBIENT_MAP)) {
-        lightingColorFactor = vec3(texture(ambientSampler, uv));
+        lightingColorFactor = sampleColorTexture(ambientSampler, uv).rgb;
     } else {
         lightingColorFactor = AllMaterialsArray.materials[materialIndex].ambient;
     }
@@ -78,7 +86,7 @@ vec3 getMaterialAmbient(int materialIndex, vec2 uv) {
 
 vec3 getMaterialSpecular(int materialIndex, vec2 uv) {
     if(materialHasMap(materialIndex, MATERIAL_SPECULAR_MAP)) {
-        return vec3(texture(specularSampler, uv));
+        return sampleColorTexture(specularSampler, uv).rgb;
     }
     return unpackUnorm4x8(AllMaterialsArray.materials[materialIndex].specularAndMaps).rgb;
 }
@@ -87,7 +95,7 @@ vec3 getMaterialSpecular(int materialIndex, vec2 uv) {
 vec4 getSimpleMaterialAlbedo(int materialIndex, vec2 uv) {
     vec4 albedo = vec4(1.0);
     if(materialHasMap(materialIndex, MATERIAL_DIFFUSE_MAP)) {
-        albedo = texture(diffuseSampler, uv);
+        albedo = sampleColorTexture(diffuseSampler, uv);
     } else {
         albedo = vec4(AllMaterialsArray.materials[materialIndex].diffuse, 1.0);
     }

@@ -277,8 +277,8 @@ public:
 private:
 
     ScreenColorFormat screenColorFormat;
-
-    static ScreenColorFormat readScreenColorFormat(OptionsUtil::Options *options);
+    ColorTextureFormat colorTextureFormat;
+    bool linearColor;
 
     //sRGB screen: exits when the default framebuffer would not encode the linear colors the pipeline writes
     void verifyDefaultFramebufferSRGB();
@@ -358,7 +358,7 @@ protected:
 
     void setFilterMode(uint32_t textureID, TextureTypes textureType, FilterModes filterMode) override;
 
-    void loadTextureData(uint32_t textureID, int height, int width, TextureTypes type, InternalFormatTypes internalFormat, FormatTypes format, DataTypes dataType, uint32_t depth,
+    bool loadTextureData(uint32_t textureID, int height, int width, TextureTypes type, InternalFormatTypes internalFormat, FormatTypes format, DataTypes dataType, uint32_t depth,
                          void *data, void *data2, void *data3, void *data4, void *data5, void *data6) override;
 
     void updateTextureRegion(uint32_t textureID, int x, int y, int width, int height, FormatTypes format, DataTypes dataType, const void *data) override;
@@ -376,6 +376,10 @@ public:
 
     ScreenColorFormat getScreenColorFormat() const override {
         return screenColorFormat;
+    }
+
+    ColorTextureFormat getColorTextureFormat() const override {
+        return colorTextureFormat;
     }
     bool getFallbackContextInformation(GraphicsInterface::ContextInformation& fallbackContext) override;
     bool verifyContext() override;

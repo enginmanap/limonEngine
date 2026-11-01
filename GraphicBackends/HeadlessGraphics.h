@@ -25,7 +25,7 @@ protected:
     void setWrapMode(uint32_t textureID, TextureTypes textureType, TextureWrapModes wrapModeS, TextureWrapModes wrapModeT, TextureWrapModes wrapModeR) override;
     void setTextureBorder(uint32_t textureID, TextureTypes textureType, bool isBorderColorSet, const std::vector<float> &borderColors) override;
     void setFilterMode(uint32_t textureID, TextureTypes textureType, FilterModes filterMode) override;
-    void loadTextureData(uint32_t textureID, int height, int width, TextureTypes type, InternalFormatTypes internalFormat, FormatTypes format, DataTypes dataType, uint32_t depth,
+    bool loadTextureData(uint32_t textureID, int height, int width, TextureTypes type, InternalFormatTypes internalFormat, FormatTypes format, DataTypes dataType, uint32_t depth,
                          void *data, void *data2, void *data3, void *data4, void *data5, void *data6) override;
     void updateTextureRegion(uint32_t textureID, int x, int y, int width, int height, FormatTypes format, DataTypes dataType, const void *data) override;
     uint32_t createGraphicsProgram(const std::string &vertexShaderContent, const std::string &vertexShaderName, const std::string &geometryShaderContent, const std::string &geometryShaderName,
@@ -40,6 +40,7 @@ public:
     ContextInformation getContextInformation() override;
     std::string getShaderHeader() const override;
     ScreenColorFormat getScreenColorFormat() const override { return ScreenColorFormat::UNORM; }
+    ColorTextureFormat getColorTextureFormat() const override { return ColorTextureFormat::UNORM; }
     bool getFallbackContextInformation(ContextInformation &fallbackContext) override;
     bool verifyContext() override;
     bool createGraphicsBackend() override;

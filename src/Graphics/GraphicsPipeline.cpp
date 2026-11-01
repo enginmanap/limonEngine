@@ -69,6 +69,10 @@ void GraphicsPipeline::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLE
     linearColorOutputElement->SetText(linearColorOutput ? "True" : "False");
     graphicsPipelineElement->InsertEndChild(linearColorOutputElement);
 
+    tinyxml2::XMLElement *colorTextureInputElement = document.NewElement("ColorTextureInput");
+    colorTextureInputElement->SetText(colorTextureInputName(colorTextureInput));
+    graphicsPipelineElement->InsertEndChild(colorTextureInputElement);
+
     tinyxml2::XMLElement *texturesElement = document.NewElement("Textures");
     uint32_t textureSerializeID = 0;
     for(const std::shared_ptr<Texture>& texture:this->textures) {
@@ -140,6 +144,51 @@ bool GraphicsPipeline::StageInfo::serialize(tinyxml2::XMLDocument &document, tin
     return true;
 }
 
+const char* GraphicsPipeline::colorTextureInputName(ColorTextureInput colorTextureInput) {
+    switch (colorTextureInput) {
+        case ColorTextureInput::Decoded: return "Decoded";
+        case ColorTextureInput::Any: return "Any";
+        case ColorTextureInput::Encoded: break;
+    }
+    return "Encoded";
+}
+
+GraphicsPipeline::ColorTextureInput GraphicsPipeline::parseColorTextureInput(const char* name, const std::string &fileName) {
+    if (name == nullptr || std::string(name) == "Encoded") return ColorTextureInput::Encoded;
+    if (std::string(name) == "Decoded") return ColorTextureInput::Decoded;
+    if (std::string(name) == "Any") return ColorTextureInput::Any;
+    std::cerr << fileName << ": unknown ColorTextureInput \"" << name << "\", using Encoded." << std::endl;
+    return ColorTextureInput::Encoded;
+}
+
+bool GraphicsPipeline::parseLinearColorOutput(const char* name, const std::string &fileName) {
+    if (name == nullptr || std::string(name) == "False") return false;
+    if (std::string(name) == "True") return true;
+    std::cerr << fileName << ": unknown LinearColorOutput \"" << name << "\", using False." << std::endl;
+    return false;
+}
+
+bool GraphicsPipeline::acceptsColorTextureFormat(ColorTextureInput colorTextureInput, GraphicsInterface::ColorTextureFormat colorTextureFormat) {
+    switch (colorTextureInput) {
+        case ColorTextureInput::Encoded: return colorTextureFormat == GraphicsInterface::ColorTextureFormat::UNORM;
+        case ColorTextureInput::Decoded: return colorTextureFormat == GraphicsInterface::ColorTextureFormat::sRGB;
+        case ColorTextureInput::Any: break;
+    }
+    return true;
+}
+
+bool GraphicsPipeline::acceptsScreenColorFormat(GraphicsInterface::ScreenColorFormat screenColorFormat) const {
+    if (screenColorFormat == GraphicsInterface::ScreenColorFormat::UNORM || linearColorOutput) {
+        return true;
+    }
+    for (const StageInfo &stageInfo : pipelineStages) {
+        if (stageInfo.stage->isToScreen() && stageInfo.stage->isFramebufferSRGBEnabled()) {
+            return false;
+        }
+    }
+    return true;
+}
+
 static std::unique_ptr<GraphicsPipeline> rejectPipeline(std::vector<std::string> &errors, const std::string &graphicsPipelineFileName, const std::string &message) {
     std::cerr << graphicsPipelineFileName << ": " << message << std::endl;
     errors.emplace_back(graphicsPipelineFileName + ": " + message);
@@ -178,14 +227,14 @@ GraphicsPipeline::deserialize(const std::string &graphicsPipelineFileName, Graph
     }
 
     //missing means a pipeline that writes values to show as they are, the baseline
-    bool linearColorOutput = false;
     tinyxml2::XMLElement* linearColorOutputElement = graphicsPipelineNode->FirstChildElement("LinearColorOutput");
-    if (linearColorOutputElement != nullptr && linearColorOutputElement->GetText() != nullptr) {
-        linearColorOutput = std::string(linearColorOutputElement->GetText()) == "True";
-    }
-    if (graphicsWrapper->getScreenColorFormat() == GraphicsInterface::ScreenColorFormat::sRGB && !linearColorOutput) {
-        return rejectPipeline(errors, graphicsPipelineFileName, "doesn't have linear color output, the sRGB screen would encode colors that are already meant for display. "
-                                                                "Set render_screenColorFormat to UNORM, or make its final shaders call linearToOutputColor and set Linear color output in the pipeline editor.");
+    bool linearColorOutput = parseLinearColorOutput(linearColorOutputElement == nullptr ? nullptr : linearColorOutputElement->GetText(), graphicsPipelineFileName);
+    tinyxml2::XMLElement* colorTextureInputElement = graphicsPipelineNode->FirstChildElement("ColorTextureInput");
+    ColorTextureInput colorTextureInput = parseColorTextureInput(colorTextureInputElement == nullptr ? nullptr : colorTextureInputElement->GetText(), graphicsPipelineFileName);
+    if (!acceptsColorTextureFormat(colorTextureInput, graphicsWrapper->getColorTextureFormat())) {
+        return rejectPipeline(errors, graphicsPipelineFileName, std::string("expects ") + colorTextureInputName(colorTextureInput) + " color textures, render_colorTextureFormat is " +
+                                                                (graphicsWrapper->getColorTextureFormat() == GraphicsInterface::ColorTextureFormat::sRGB ? "sRGB" : "UNORM") +
+                                                                ". Change the option, or the pipeline's Color texture input in the pipeline editor.");
     }
 
     tinyxml2::XMLElement* graphicsPipelineElement = nullptr;
@@ -201,6 +250,7 @@ GraphicsPipeline::deserialize(const std::string &graphicsPipelineFileName, Graph
     }
     std::unique_ptr<GraphicsPipeline> graphicsPipeline = std::make_unique<GraphicsPipeline>(renderMethods);
     graphicsPipeline->setLinearColorOutput(linearColorOutput);
+    graphicsPipeline->setColorTextureInput(colorTextureInput);
     while(textureElement !=nullptr) {
         std::shared_ptr<Texture> texture = Texture::deserialize(textureElement, graphicsWrapper, assetManager, options);
         if(texture != nullptr) {
@@ -230,6 +280,11 @@ GraphicsPipeline::deserialize(const std::string &graphicsPipelineFileName, Graph
         graphicsPipeline->addNewStage(std::move(stageInfo));
         stageInfoElement =  stageInfoElement->NextSiblingElement("StageInformation");
         ++stageIndex;
+    }
+
+    if (!graphicsPipeline->acceptsScreenColorFormat(graphicsWrapper->getScreenColorFormat())) {
+        return rejectPipeline(errors, graphicsPipelineFileName, "doesn't have linear color output and a stage that draws to the screen has sRGB encode on, the sRGB screen would encode colors that are already meant for display. "
+                                                                "Set render_screenColorFormat to UNORM, or make its final shaders call linearToOutputColor and set Linear color output in the pipeline editor.");
     }
 
     std::string assignmentError;

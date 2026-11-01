@@ -3,6 +3,7 @@
         <EditorExtension>
             <Name>PipelineExtension</Name>
             <LinearColorOutput>True</LinearColorOutput>
+            <ColorTextureInput>Any</ColorTextureInput>
             <UsedTextures>
                 <Texture>
                     <Name>DepthBuffer</Name>
@@ -2602,6 +2603,7 @@
     </NodeGraph>
     <GraphicsPipeline>
         <LinearColorOutput>True</LinearColorOutput>
+        <ColorTextureInput>Any</ColorTextureInput>
         <Textures>
             <Texture>
                 <Name>DepthBuffer</Name>

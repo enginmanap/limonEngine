@@ -14,7 +14,8 @@ uniform sampler2D pre_depthMap;
 
 
 void main(void){
-    color = (texture(sprite, from_vs.textureCoordinates));
+    vec4 sampled = texture(sprite, from_vs.textureCoordinates);
+    color = vec4(colorTextureToLinear(sampled.rgb), sampled.a);
     color *= from_vs.colorMultiplier;
     color.rgb = linearToOutputColor(color.rgb);
 

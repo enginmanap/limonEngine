@@ -1,5 +1,6 @@
 <RenderPipeline>
     <GraphicsPipeline>
+        <ColorTextureInput>Any</ColorTextureInput>
         <Textures/>
         <Stages>
             <StageInformation>

@@ -177,6 +177,10 @@ public:
         return framebufferSRGBEnabled;
     }
 
+    bool isToScreen() const {
+        return frameBufferID == 0;
+    }
+
     void setFramebufferSRGBEnabled(bool framebufferSRGBEnabled) {
         GraphicsPipelineStage::framebufferSRGBEnabled = framebufferSRGBEnabled;
     }

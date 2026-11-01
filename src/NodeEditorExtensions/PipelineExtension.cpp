@@ -29,6 +29,7 @@ PipelineExtension::PipelineExtension(GraphicsInterface *graphicsWrapper, Generat
             usedTextures[texture->getName()] = texture;
         }
         linearColorOutput = currentGraphicsPipeline->isLinearColorOutput();
+        colorTextureInput = currentGraphicsPipeline->getColorTextureInput();
 
         //key must equal the texture's own name, they used to differ (Screen vs ScreenPlaceHolder) and that's how output selections drifted silently
         if(usedTextures.find(PipelineExtension::SCREEN_COLOR_TEXTURE_NAME) == usedTextures.end()) {
@@ -105,7 +106,16 @@ void PipelineExtension::drawDetailPane(NodeGraph* nodeGraph, const std::vector<c
     ImGui::Checkbox("Linear color output", &linearColorOutput);
     ImGui::TextWrapped("Lighting is linear and every final write to the screen goes through linearToOutputColor. "
                        "The engine can't verify this: a final shader that skips the call shows too dark on a UNORM screen. "
-                       "Unchecked, the pipeline writes colors to show as they are and doesn't load on an sRGB screen.");
+                       "Unchecked, the pipeline writes colors to show as they are. On an sRGB screen it loads only if every stage that draws to the screen has sRGB encode off.");
+
+    const char* colorTextureInputNames[] = {"Encoded", "Decoded", "Any"};
+    int colorTextureInputIndex = static_cast<int>(colorTextureInput);
+    if (ImGui::Combo("Color texture input", &colorTextureInputIndex, colorTextureInputNames, IM_ARRAYSIZE(colorTextureInputNames))) {
+        colorTextureInput = static_cast<GraphicsPipeline::ColorTextureInput>(colorTextureInputIndex);
+    }
+    ImGui::TextWrapped("What the shaders expect when they sample color images. Encoded: the image bytes, loads with render_colorTextureFormat UNORM. "
+                       "Decoded: linear values from the sRGB sampler, loads with sRGB. Any: they sample through colorTextureToLinear, loads with both. "
+                       "The engine can't verify this: a shader that expects the other kind shows too dark or washed out.");
 
     if(ImGui::CollapsingHeader("Textures")) {
         ImGui::Text("Current Textures");
@@ -1246,6 +1256,10 @@ void PipelineExtension::serialize(tinyxml2::XMLDocument &document, tinyxml2::XML
     tinyxml2::XMLElement *linearColorOutputElement = document.NewElement("LinearColorOutput");
     linearColorOutputElement->SetText(linearColorOutput ? "True" : "False");
     graphicsExtensionElement->InsertEndChild(linearColorOutputElement);
+
+    tinyxml2::XMLElement *colorTextureInputElement = document.NewElement("ColorTextureInput");
+    colorTextureInputElement->SetText(GraphicsPipeline::colorTextureInputName(colorTextureInput));
+    graphicsExtensionElement->InsertEndChild(colorTextureInputElement);
 /*
     std::map<std::string, std::shared_ptr<Texture>> usedTextures;
 */
@@ -1268,10 +1282,12 @@ void PipelineExtension::serialize(tinyxml2::XMLDocument &document, tinyxml2::XML
     }
 }
 
-void PipelineExtension::deserialize(const std::string &fileName[[gnu::unused]], tinyxml2::XMLElement *editorExtensionElement) {
+void PipelineExtension::deserialize(const std::string &fileName, tinyxml2::XMLElement *editorExtensionElement) {
     //missing means the baseline, same as GraphicsPipeline::deserialize
     tinyxml2::XMLElement *linearColorOutputElement = editorExtensionElement->FirstChildElement("LinearColorOutput");
-    linearColorOutput = linearColorOutputElement != nullptr && linearColorOutputElement->GetText() != nullptr && std::string(linearColorOutputElement->GetText()) == "True";
+    linearColorOutput = GraphicsPipeline::parseLinearColorOutput(linearColorOutputElement == nullptr ? nullptr : linearColorOutputElement->GetText(), fileName);
+    tinyxml2::XMLElement *colorTextureInputElement = editorExtensionElement->FirstChildElement("ColorTextureInput");
+    colorTextureInput = GraphicsPipeline::parseColorTextureInput(colorTextureInputElement == nullptr ? nullptr : colorTextureInputElement->GetText(), fileName);
 
     tinyxml2::XMLElement *usedTexturesElement = editorExtensionElement->FirstChildElement("UsedTextures");
     if (usedTexturesElement == nullptr) {

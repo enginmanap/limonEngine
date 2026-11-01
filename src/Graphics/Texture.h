@@ -34,6 +34,7 @@ public:
 private:
     GraphicsInterface* graphicsWrapper;
     TextureInfo textureInfo;
+    bool storedEncoded = false;
     uint32_t textureID;
     std::string source;
     uint32_t height, width;//These are current values, as it might be either a default, or coming from an option.
@@ -80,7 +81,7 @@ public:
     }
 
     void loadData(void *data, void *data2 = nullptr, void *data3 = nullptr, void *data4 = nullptr, void *data5 = nullptr, void *data6 = nullptr) {
-        graphicsWrapper->loadTextureData(this->textureID, textureInfo.defaultSize[1], textureInfo.defaultSize[0], textureInfo.textureType, textureInfo.internalFormatType, textureInfo.formatType, textureInfo.dataType, textureInfo.depth, data, data2, data3, data4, data5, data6);
+        storedEncoded = graphicsWrapper->loadTextureData(this->textureID, textureInfo.defaultSize[1], textureInfo.defaultSize[0], textureInfo.textureType, textureInfo.internalFormatType, textureInfo.formatType, textureInfo.dataType, textureInfo.depth, data, data2, data3, data4, data5, data6);
     }
 
     void updateRegion(int x, int y, int regionWidth, int regionHeight, const void *data) {
@@ -140,6 +141,11 @@ public:
 
     GraphicsInterface::InternalFormatTypes getInternalFormat() {
         return textureInfo.internalFormatType;
+    }
+
+    //the editor shows it as is
+    bool isSampledAsLinearColor() const {
+        return textureInfo.internalFormatType == GraphicsInterface::InternalFormatTypes::SRGB8_ALPHA8 && !storedEncoded;
     }
 
     uint32_t getHeight() const {
