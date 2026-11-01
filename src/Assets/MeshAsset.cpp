@@ -347,8 +347,8 @@ void MeshAsset::buildLods(const LodGenerator *generator, const std::vector<LodLa
     }
 }
 
-// occluders are rendered from this every frame, so we pay the bake once at load. Only the level the option asks for is
-// baked here, exporting a limonmodel bakes the rest. Animated meshes never occlude, their occluder would need the node
+// occluders are rendered from this every frame, so we pay the bake once at load. A forced level option bakes only
+// that level here, exporting a limonmodel bakes the rest. Animated meshes never occlude, their occluder would need the node
 // transform and the pose, which we don't have at load
 void MeshAsset::bakeOccluderLod(uint32_t lodLevel) {
     if (lodLevel >= triangleCount.size() || isPartOfAnimated || bones ||

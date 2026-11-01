@@ -40,6 +40,15 @@ class OcclusionCullerHelper {
     glm::mat4 cameraProjectionMatrix;
 public:
     int dumpFrameCount = 0;
+
+    //the defaults newFrame creates the buffer with
+    int32_t getBufferWidth() const {
+        return static_cast<int32_t>(widthOption.getOrDefault(512));
+    }
+
+    int32_t getBufferHeight() const {
+        return static_cast<int32_t>(heightOption.getOrDefault(256));
+    }
 private:
 public:
     OcclusionCullerHelper(const OptionsUtil::Options::Option<long>& widthOption,

@@ -1554,8 +1554,8 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
                 ImGui::SetTooltip("The same threshold for the directional shadow cascades, it changes shadow culling, not what the player camera culls. Applies on the next tick.");
             }
             OptionsUtil::Options::Option<long> occluderBakeLodOption = world->options->getOption<long>(world->options->getHash("occlusion_bakeLodLevel"));
-            int occluderBakeLod = (int)occluderBakeLodOption.getOrDefault(0L);
-            if (ImGui::SliderInt("Occluder bake LOD", &occluderBakeLod, 0, (int)MeshAsset::LOD_MAX_LEVEL_COUNT - 1)) {
+            int occluderBakeLod = (int)occluderBakeLodOption.getOrDefault(-1L);
+            if (ImGui::SliderInt("Occluder bake LOD", &occluderBakeLod, -1, (int)MeshAsset::LOD_MAX_LEVEL_COUNT - 1, occluderBakeLod < 0 ? "by distance" : "%d")) {
                 if (occluderBakeLodOption.isUsable()) {
                     occluderBakeLodOption.set((long)occluderBakeLod);
                 }
@@ -1564,7 +1564,7 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
                 std::cerr << "occlusion_bakeLodLevel is not in the loaded options, so the occluder bake LOD can't be changed. Is Engine/Options.xml up to date?" << std::endl;
             }
             if (ImGui::IsItemHovered()) {
-                ImGui::SetTooltip("Which LOD is rasterized as the occluder. 0 is the full mesh, higher is cheaper but culls more. A mesh with fewer levels uses its simplest one. Applies on the next tick.");
+                ImGui::SetTooltip("Which LOD is rasterized as the occluder. By distance picks per occluder from the size of an occlusion buffer pixel at it, a number forces that level everywhere: 0 is the full mesh, higher is cheaper but culls more. A mesh with fewer levels uses its simplest one. Applies on the next tick, but a level that wasn't baked at load falls back to a finer one.");
             }
             OptionsUtil::Options::Option<bool> occluderSizeByGroupOption = world->options->getOption<bool>(world->options->getHash("occlusion_occluderSizeByGroup"));
             bool occluderSizeByGroup = occluderSizeByGroupOption.getOrDefault(true);

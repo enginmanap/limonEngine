@@ -262,12 +262,16 @@ void ModelAsset::buildLodLevels(LodLadder::BuildMode buildMode) {
         }
     }
 
-    uint32_t bakeOccluderLodLevel = 0;
+    int32_t bakeOccluderLodLevel = -1;
     if (options != nullptr) {
-        bakeOccluderLodLevel = (uint32_t) options->getOption<long>(HASH("occlusion_bakeLodLevel")).getOrDefault(0L);
+        bakeOccluderLodLevel = static_cast<int32_t>(options->getOption<long>(HASH("occlusion_bakeLodLevel")).getOrDefault(-1L));
     }
     for (size_t meshIndex = 0; meshIndex < meshes.size(); ++meshIndex) {
-        meshes[meshIndex]->bakeOccluderLod(meshes[meshIndex]->getSimplestLodLevel(bakeOccluderLodLevel));
+        if (bakeOccluderLodLevel < 0) {
+            meshes[meshIndex]->bakeAllOccluderLods();//picked by distance, any level can be asked for
+        } else {
+            meshes[meshIndex]->bakeOccluderLod(meshes[meshIndex]->getSimplestLodLevel(static_cast<uint32_t>(bakeOccluderLodLevel)));
+        }
     }
 }
 

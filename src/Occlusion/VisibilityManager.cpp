@@ -249,8 +249,9 @@ void VisibilityManager::resetTagsAndRefillCulling() {
 void VisibilityManager::fillVisibleObjectPerCamera(const VisibilityRequest* visibilityRequest) {
     PROFILE_VISIBILITY("fillVisibleObjectPerCamera");
     ZoneNameV(___tracy_scoped_zone, visibilityRequest->camera->getName().c_str(), visibilityRequest->camera->getName().size());
-    //every LOD is baked, so this picks which bake occludes. Meshes the baker refused fall back to the same level raw
-    const uint32_t occluderLodLevel = static_cast<uint32_t>(visibilityRequest->occlusionBakeLodLevelOption.getOrDefault(0L));
+    //-1 picks each occluder's bake by the size of an occlusion buffer pixel, 0 and up forces that level. Meshes the
+    //baker refused fall back to the same level raw
+    const int32_t forcedOccluderLodLevel = static_cast<int32_t>(visibilityRequest->occlusionBakeLodLevelOption.getOrDefault(-1L));
     float skipRenderDistance = 0, skipRenderSize = 0, maxSkipRenderSize = 0;
     float objectAverageDepth;
     float objectScreenSize;
@@ -272,13 +273,20 @@ void VisibilityManager::fillVisibleObjectPerCamera(const VisibilityRequest* visi
     glm::mat4 cameraProjectionMatrix;
     glm::vec3 viewDirection;
     glm::vec3 cameraPos;
+    //world size of one occlusion buffer pixel along its coarser axis, per unit of distance for a perspective camera
+    float occluderPixelSize = 0.0f;
+    bool occluderPixelGrowsWithDistance = false;
     splitModelToMeshCount = visibilityRequest->splitModelToMeshCountOption.get();
     if(visibilityRequest->camera->getType() == Camera::CameraTypes::PERSPECTIVE ||
        visibilityRequest->camera->getType() == Camera::CameraTypes::ORTHOGRAPHIC) {
         skipRenderDistance = visibilityRequest->skipRenderDistanceOption.get();
         skipRenderSize = visibilityRequest->skipRenderSizeOption.get();
         maxSkipRenderSize = visibilityRequest->maxSkipRenderSizeOption.get();
-        cameraProjectionMatrix = visibilityRequest->camera->getProjectionMatrix() * visibilityRequest->camera->getCameraMatrixConst();
+        const glm::mat4 projectionMatrix = visibilityRequest->camera->getProjectionMatrix();
+        cameraProjectionMatrix = projectionMatrix * visibilityRequest->camera->getCameraMatrixConst();
+        occluderPixelSize = std::max(2.0f / (projectionMatrix[0][0] * static_cast<float>(visibilityRequest->occlusionCuller.getBufferWidth())),
+                                     2.0f / (projectionMatrix[1][1] * static_cast<float>(visibilityRequest->occlusionCuller.getBufferHeight())));
+        occluderPixelGrowsWithDistance = visibilityRequest->camera->getType() == Camera::CameraTypes::PERSPECTIVE;
     }
     int& frameCount = visibilityRequest->occlusionCuller.dumpFrameCount;
     // Read live (realtime toggle, editor exposed). When disabled, the player camera still rebuilds its render
@@ -394,7 +402,8 @@ void VisibilityManager::fillVisibleObjectPerCamera(const VisibilityRequest* visi
                                 occluderCounter += meshMetas.size();
                                 //an animated occluder would need its node transform and pose, which we don't have here, so it only ever occludes itself
                                 if (runOcclusion && !currentModel->isAnimated() && !occludersSubmitted && !currentModel->hasTag(nonOccluderTag)) {
-                                    visibilityRequest->occlusionCuller.renderOccluder(currentModel, currentModel->getModelAsset()->getLodLadder().getMeshLodIndexForFullLadderLevel(occluderLodLevel));
+                                    visibilityRequest->occlusionCuller.renderOccluder(currentModel, selectOccluderLod(currentModel->getModelAsset()->getLodLadder(), forcedOccluderLodLevel,
+                                                                                                         occluderPixelSize * (occluderPixelGrowsWithDistance ? objectDistance : 1.0f), getLodObjectScale(currentModel)));
                                     //std::cout << currentModel->getName() << ":" << " is occluder " << std::endl;
                                 }
                                 for (auto& meshMeta:meshMetas) {
@@ -439,7 +448,9 @@ void VisibilityManager::fillVisibleObjectPerCamera(const VisibilityRequest* visi
                                         }
                                         occluderCounter++;
                                         if (runOcclusion && !currentModel->isAnimated() && !occludersSubmitted && !currentModel->hasTag(nonOccluderTag)) {
-                                            visibilityRequest->occlusionCuller.renderOccluder(meshMeta, currentModel->getTransformation()->getWorldTransform(), currentModel->getModelAsset()->getLodLadder().getMeshLodIndexForFullLadderLevel(occluderLodLevel));
+                                            visibilityRequest->occlusionCuller.renderOccluder(meshMeta, currentModel->getTransformation()->getWorldTransform(),
+                                                                                              selectOccluderLod(currentModel->getModelAsset()->getLodLadder(), forcedOccluderLodLevel,
+                                                                                                                occluderPixelSize * (occluderPixelGrowsWithDistance ? objectDistance : 1.0f), getLodObjectScale(currentModel)));
                                         }
                                         if (runOcclusion) {
                                             visibilityRequest->occlusionCuller.addOccludee(meshMeta, currentModel, lod, objectAverageDepth, &visibilityEntry.second);
@@ -596,6 +607,19 @@ bool VisibilityManager::passesOccluderSize(const ModelGroup* group, float ownScr
 float VisibilityManager::getLodObjectScale(const Model* model) {
     glm::vec3 scale = model->getTransformation()->getScale();
     return std::max(std::abs(scale.x), std::max(std::abs(scale.y), std::abs(scale.z)));
+}
+
+//levels are scored by what they show on the reference screen at a distance, so the occluder picks the level whose
+//reference pixel is as big as an occlusion buffer pixel at the object. The occluder is depth only, so welded levels qualify
+uint32_t VisibilityManager::selectOccluderLod(const LodLadder& ladder, int32_t forcedFullLadderLevel, float occluderPixelSizeAtObject, float objectScale) {
+    if (forcedFullLadderLevel >= 0) {
+        return ladder.getMeshLodIndexForFullLadderLevel(static_cast<uint32_t>(forcedFullLadderLevel));
+    }
+    LodSelectionContext occluderContext;
+    occluderContext.isShadowCamera = true;
+    occluderContext.objectDistance = occluderPixelSizeAtObject * ladder.getReferencePixelsPerMeter();
+    occluderContext.objectScale = objectScale;
+    return ladder.selectLevel(occluderContext, 0);//no hysteresis, a switching occluder isn't seen
 }
 
 float VisibilityManager::distanceToBox(const glm::vec3 &point, const glm::vec3 &minAABB, const glm::vec3 &maxAABB) {

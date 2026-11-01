@@ -297,8 +297,8 @@
     <Parameter>
         <RequestType>FreeNumber</RequestType>
         <Description>occlusion_bakeLodLevel</Description>
-        <!--Which LOD occludes in software culling. Every LOD is baked at conversion, so this can be changed without re-exporting. 0 is the full mesh and the most accurate, 2 is about 40% faster to rasterize but over culls more, mostly on ground pieces-->
-        <Value>0</Value>
+        <!--Which LOD occludes in software culling. -1 picks per occluder from the size of an occlusion buffer pixel at it, 0 and up forces that level everywhere: 0 is the full mesh and the most accurate, higher is cheaper but culls more. Every LOD is baked at conversion, so this can be changed without re-exporting-->
+        <Value>-1</Value>
         <valueType>Long</valueType>
         <IsSet>True</IsSet>
         <Index>60</Index>

@@ -12,6 +12,7 @@
 class World;
 class Camera;
 class ModelGroup;
+class LodLadder;
 class RenderList;
 class GraphicsPipeline;
 class VisibilityManager {
@@ -40,6 +41,8 @@ class VisibilityManager {
     static void staticOcclusionThread(VisibilityRequest* request);
     static bool isSkippedByLodDistance(float skipRenderDistance, float skipRenderSize, float maxSkipRenderSize, const glm::mat4 &cameraProjectionMatrix, const glm::vec3& playerPosition, glm::vec3 minAABB, glm::vec3 maxAABB, float &objectAverageDepth, float &objectScreenSize, float &objectDistance);
     static float getLodObjectScale(const Model* model);
+
+    static uint32_t selectOccluderLod(const LodLadder& ladder, int32_t forcedFullLadderLevel, float occluderPixelSizeAtObject, float objectScale);
     //nearest point of the box, zero inside it
     static float distanceToBox(const glm::vec3 &point, const glm::vec3 &minAABB, const glm::vec3 &maxAABB);
 

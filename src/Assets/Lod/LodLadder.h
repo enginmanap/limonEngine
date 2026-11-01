@@ -175,6 +175,10 @@ public:
     //Slots skip what this model didn't build, so a raw option value lands on a different step per model
     uint32_t getMeshLodIndexForFullLadderLevel(uint32_t fullLadderLevel) const;
 
+    float getReferencePixelsPerMeter() const {
+        return referencePixelsPerMeter;
+    }
+
     const std::vector<LodStep> &getSteps() const {
         return steps;
     }
