@@ -20,6 +20,7 @@
 #include "Asset.h"
 #include "LoadRequester.h"
 #include "MaterialRegistry.h"
+#include "AssetTreeManager.h" //TODO: We need this for a single enum, maybe we can find another place?
 #include "../LimonFileSystem.h"
 #include <thread>
 #include <mutex>
@@ -29,7 +30,6 @@
 
 class GraphicsInterface;
 class ALHelper;
-class AssetTreeManager;
 class Material;
 class World;//only ever used as an opaque owner token for material override rules
 
@@ -153,6 +153,10 @@ private:
     std::thread::id mainThread;//owns the graphics context, GPU parts run only there
 
     std::unordered_map<std::string, std::vector<std::shared_ptr<const EmbeddedTexture>>> embeddedTextures;
+
+    std::map<std::vector<std::string>, TextureColorSpace> chosenTextureColorSpaces;//what the map chose, main thread only
+
+    void reloadTexture(const std::vector<std::string> &files);
 
     //its own object because it shares no state with asset caching, neither touches the other's members
     MaterialRegistry materialRegistry;
@@ -488,6 +492,15 @@ public:
         }
         return textureSet->second[textureID];
     }
+
+    //false when the map didn't choose, the rules decide then
+    bool getChosenTextureColorSpace(const std::vector<std::string> &files, TextureColorSpace &colorSpace) const;
+    //main thread. The texture is reloaded in place, so every user sees the change
+    void chooseTextureColorSpace(const std::vector<std::string> &files, TextureColorSpace colorSpace);
+    //main thread. Loaded textures whose color space changes are reloaded
+    void replaceChosenTextureColorSpaces(const std::map<std::vector<std::string>, TextureColorSpace> &colorSpaces);
+    //the map's choice, else the first matching rule, else color. Textures upload with it
+    TextureColorSpace getTextureColorSpace(const std::vector<std::string> &files) const;
 
     //the asset files on disk, for pickers and lookups by name
     AssetTreeManager *getTree() const {

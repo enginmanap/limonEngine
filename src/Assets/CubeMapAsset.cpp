@@ -40,7 +40,7 @@ void CubeMapAsset::loadGPUPart() {
 
     }
 
-    //color images, always RGBA for the same reason SRGBTextureAsset is, ES can't mipmap SRGB8
+    //color images, always RGBA, ES can't mipmap SRGB8
     for (int i = 0; i < 6; i++) {
         if (surfaces[i]->format != SDL_PIXELFORMAT_ABGR8888) {
             SDL_Surface *convertedSurface = SDL_ConvertSurface(surfaces[i], SDL_PIXELFORMAT_ABGR8888);

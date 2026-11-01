@@ -5,6 +5,8 @@
 #include "GUIImageBase.h"
 #include "../Assets/AssetManager.h"
 #include "../Assets/TextureAsset.h"
+#include "../ImGuiHelper.h"
+#include "../../libs/ImGui/imgui.h"
 
 std::shared_ptr<GraphicsProgram> GUIImageBase::imageRenderProgram = nullptr;
 
@@ -46,4 +48,13 @@ void GUIImageBase::getAABB(glm::vec2 &aabbMin, glm::vec2 &aabbMax) const {
 
     aabbMax.x = std::max(downLeft.x, upRight.x);
     aabbMax.y = std::max(downLeft.y, upRight.y);
+}
+
+void GUIImageBase::putImageColorSpace(const std::vector<std::string> &imageName, const std::string &idSuffix) const {
+    ImGui::Indent();
+    if (ImGuiHelper::showTextureColorSpace(assetManager.get(), imageName, idSuffix) == TextureColorSpace::DATA) {
+        //every user of the file gets the change, so a mismatch is shown, not fixed
+        ImGui::TextWrapped("GUI images show color, but the texture is Data for this map.");
+    }
+    ImGui::Unindent();
 }

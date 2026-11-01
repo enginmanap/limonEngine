@@ -84,6 +84,17 @@ public:
         storedEncoded = graphicsWrapper->loadTextureData(this->textureID, textureInfo.defaultSize[1], textureInfo.defaultSize[0], textureInfo.textureType, textureInfo.internalFormatType, textureInfo.formatType, textureInfo.dataType, textureInfo.depth, data, data2, data3, data4, data5, data6);
     }
 
+    //same texture id, so whoever holds this Texture or its id draws the new data from the next bind
+    void reloadData(GraphicsInterface::InternalFormatTypes internalFormat, GraphicsInterface::FormatTypes format, uint32_t newHeight, uint32_t newWidth, void *data) {
+        textureInfo.internalFormatType = internalFormat;
+        textureInfo.formatType = format;
+        textureInfo.defaultSize[1] = newHeight;
+        textureInfo.defaultSize[0] = newWidth;
+        this->height = newHeight;
+        this->width = newWidth;
+        loadData(data);
+    }
+
     void updateRegion(int x, int y, int regionWidth, int regionHeight, const void *data) {
         graphicsWrapper->updateTextureRegion(this->textureID, x, y, regionWidth, regionHeight, textureInfo.formatType, textureInfo.dataType, data);
     }

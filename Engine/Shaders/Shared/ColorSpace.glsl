@@ -23,4 +23,11 @@ vec3 colorTextureToLinear(vec3 sampledColor) {
 }
 #endif
 
+//the exact curve the hardware uses, for stages that show what an sRGB sampler decoded
+vec3 linearToSRGB(vec3 linearColor) {
+    vec3 low = linearColor * 12.92;
+    vec3 high = 1.055 * pow(max(linearColor, vec3(0.0)), vec3(1.0 / 2.4)) - 0.055;
+    return mix(high, low, lessThanEqual(linearColor, vec3(0.0031308)));
+}
+
 #endif // COLORSPACE_GLSL

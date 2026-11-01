@@ -209,6 +209,9 @@ ImGuiResult GUIButton::addImGuiEditorElements(const ImGuiRequest &request) {
                 std::cerr << "New image file can't be read" << std::endl;
             }
         }
+        if (images[i] != nullptr) {
+            putImageColorSpace(images[i]->getName(), "GUIButtonColorSpace" + std::to_string(getWorldObjectID()) + "_" + std::to_string(i));
+        }
     }
     result.updated = this->transformation.addImGuiEditorElements(request.orthogonalCameraMatrix, request.orthogonalMatrix, true);
 

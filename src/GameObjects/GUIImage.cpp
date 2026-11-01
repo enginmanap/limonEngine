@@ -197,6 +197,7 @@ ImGuiResult GUIImage::addImGuiEditorElements(const ImGuiRequest &request) {
             std::cerr << "New image file can't be read" << std::endl;
         }
     }
+    putImageColorSpace(image->getName(), "GUIImageColorSpace" + std::to_string(getWorldObjectID()));
 
     bool fullScreenEditor = this->fullScreen;
     ImGui::Checkbox("full screen", &fullScreenEditor);

@@ -19,7 +19,6 @@
 #include "glm/glm.hpp"
 #include "glm/gtc/type_precision.hpp"
 #include "Assets/TextureAsset.h"
-#include "Assets/SRGBTextureAsset.h"
 #include "Assets/AssetManager.h"
 
 #include "Editor/ImGuiRequest.h"
@@ -120,7 +119,7 @@ private:
         std::shared_ptr<TextureAsset> Material::*texture;
         bool Material::*isMap;
         uint32_t mapBit;
-        bool isColor;//color slots load as SRGBTextureAsset, the rest as TextureAsset
+        bool isColor;//what the shaders read here: color slots decode sRGB, the rest read as stored
     };
     static constexpr size_t TEXTURE_SLOT_COUNT = 5;
     //function local static for the same shared library reason as nextRegistrationID
@@ -142,22 +141,21 @@ private:
     std::string resolveTexturePath(const std::string &requestedPath, bool &repaired) const;
 
     std::string findTextureByName(const std::string &fileName) const;
-    //takes a reference, as the asset type of the slot. A file is one asset whichever type asked first, so every request for a slot's file goes through here
+    //takes a reference
     std::shared_ptr<TextureAsset> loadSlotTexture(const TextureSlot &slot, const std::vector<std::string> &textureFiles) const;
 
+    //the file is loaded as an asset that isn't a texture, a bug in whoever loaded it
     [[noreturn]] void failTextureType(const TextureSlot &slot, const std::string &textureFile) const;
 
-    //the slots of one batch all load as TextureType, color slots and linear slots are separate batches
-    template<class TextureType>
-    static void loadSlotBatch(AssetManager *assetManager, const std::vector<std::pair<Material *, size_t>> &slotsToLoad,
-                              const std::vector<std::vector<std::string>> &filesToLoad);
-
-    //loads every texture these materials are missing in one parallel batch per asset type, only MaterialRegistry calls it, on the GL context thread
+    //loads every texture these materials are missing in one parallel batch, only MaterialRegistry calls it, on the GL context thread
     static void loadTextures(const std::vector<std::shared_ptr<Material>> &materials);
 
     //acquiredTexture already holds its reference, nullptr empties the slot
     void assignTexture(const TextureSlot &slot, const std::shared_ptr<TextureAsset> &acquiredTexture);
     bool putRemoveTextureButton(const TextureSlot &slot);
+    void putTextureColorSpace(const TextureSlot &slot, size_t slotIndex);
+
+    std::string colorSpaceNotice;//editor only, what the last pick changed
 
     //only MaterialRegistry calls these, they make GL calls
     void collectTextureFiles(std::vector<size_t> &slotIndices, std::vector<std::vector<std::string>> &textureFiles) const;
@@ -472,21 +470,6 @@ public:
             }
         }
         return textureFiles;
-    }
-
-    //the same files as getTextureFiles, split by the asset type their slot loads them as
-    void getTextureFilesByType(std::vector<std::vector<std::string>> &colorFiles, std::vector<std::vector<std::string>> &linearFiles) const {
-        for (size_t slotIndex = 0; slotIndex < TEXTURE_SLOT_COUNT; ++slotIndex) {
-            std::vector<std::string> textureName = getTextureName(slotIndex);
-            if (textureName.empty()) {
-                continue;
-            }
-            if (getTextureSlots()[slotIndex].isColor) {
-                colorFiles.push_back(textureName);
-            } else {
-                linearFiles.push_back(textureName);
-            }
-        }
     }
 
     //"*N" of each texture embedded in owner, the images a file written for this material has to carry

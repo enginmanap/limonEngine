@@ -1359,6 +1359,28 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
                     ImGui::Text("No loading image set");
                 }
             }
+            if(ImGui::CollapsingHeader("Textures##WorldTextures")) {
+                ImGui::Indent(16.0f);
+                ImGui::TextWrapped("Color or Data for each texture this map uses. It is the texture's setting for the whole map, every user of it gets a change. Saving the map keeps all of them.");
+                const char *colorSpaceNames[] = {"Color", "Data"};
+                int textureIndex = 0;
+                for (const std::pair<const std::vector<std::string>, std::set<std::string>> &usedTexture : world->getUsedTextures()) {
+                    TextureColorSpace colorSpace = world->assetManager->getTextureColorSpace(usedTexture.first);
+                    TextureColorSpace chosen;
+                    bool isChosen = world->assetManager->getChosenTextureColorSpace(usedTexture.first, chosen);
+                    int selectedColorSpace = colorSpace == TextureColorSpace::DATA ? 1 : 0;
+                    ImGui::SetNextItemWidth(ImGui::GetFontSize() * 6.0f);
+                    if (ImGui::Combo(("##WorldTextureColorSpace" + std::to_string(textureIndex++)).c_str(), &selectedColorSpace, colorSpaceNames, IM_ARRAYSIZE(colorSpaceNames))) {
+                        world->assetManager->chooseTextureColorSpace(usedTexture.first, selectedColorSpace == 1 ? TextureColorSpace::DATA : TextureColorSpace::COLOR);
+                    }
+                    ImGui::SameLine();
+                    ImGui::TextWrapped("%s%s", StringUtils::join(usedTexture.first, ",").c_str(), isChosen ? "" : " (rule default)");
+                    ImGui::Indent(16.0f);
+                    ImGui::TextDisabled("used by %s", StringUtils::join(std::vector<std::string>(usedTexture.second.begin(), usedTexture.second.end()), ", ").c_str());
+                    ImGui::Unindent(16.0f);
+                }
+                ImGui::Unindent(16.0f);
+            }
 
 
             if(ImGui::CollapsingHeader("ESC handling")) {

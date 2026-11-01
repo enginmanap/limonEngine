@@ -36,8 +36,8 @@ protected:
     TextureMetaData textureMetaData;
     SDL_Surface* cpuSurface = nullptr;//gets deleted after gpu load, don't use
 
-    //false leaves the surface as it was. Subclasses change the metadata after it, the Texture is built from that
-    virtual bool convertToSupportedFormat();
+    //false leaves the surface as it was
+    bool convertToSupportedFormat();
 
     std::vector<std::string> name;//texture file, or for embedded "*index" then the model it is embedded in
     std::shared_ptr<Texture> texture;
@@ -68,6 +68,9 @@ public:
     std::vector<std::string> getName() const {
         return name;
     }
+
+    //main thread. Decodes the file again and uploads into the same texture id, everyone holding it sees the new color space
+    void reload();
 
     //false until the CPU load is done
     bool hasTransparentTexels() const {

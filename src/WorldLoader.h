@@ -55,6 +55,8 @@ private:
 
     //objects name their override materials by key in the world's <Materials>, so it is indexed before they load
     static void indexSavedMaterials(tinyxml2::XMLNode *worldNode, World *world);
+    //before any texture loads, so every load in this map uses its choice
+    static void loadTextureColorSpaces(tinyxml2::XMLNode *worldNode, World *world);
     static std::shared_ptr<Material> resolveSavedMaterial(World *world, const std::string &key);
     static std::vector<Model::MeshMaterialOverride> readMeshMaterialOverrides(World *world, tinyxml2::XMLElement *objectNode);
 

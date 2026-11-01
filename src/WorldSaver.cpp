@@ -120,6 +120,19 @@ bool WorldSaver::saveWorld(const std::string& mapName, const World* world) {
     }
     XMLHelper::writeElement(mapDocument, rootNode, "SoundDistanceModel", distanceModelStr);
 
+    //every texture the map uses, so its look doesn't change when the rules do
+    std::map<std::vector<std::string>, TextureColorSpace> savedColorSpaces;
+    tinyxml2::XMLElement *colorSpacesElement = mapDocument.NewElement("TextureColorSpaces");
+    for (const std::pair<const std::vector<std::string>, std::set<std::string>> &usedTexture : world->getUsedTextures()) {
+        TextureColorSpace colorSpace = world->assetManager->getTextureColorSpace(usedTexture.first);
+        savedColorSpaces[usedTexture.first] = colorSpace;
+        tinyxml2::XMLElement *textureElement = mapDocument.NewElement("Texture");
+        textureElement->SetAttribute("colorSpace", colorSpace == TextureColorSpace::DATA ? "Data" : "Color");
+        textureElement->SetText(StringUtils::join(usedTexture.first, ",").c_str());
+        colorSpacesElement->InsertEndChild(textureElement);
+    }
+    rootNode->InsertEndChild(colorSpacesElement);
+
     //objects name their materials by key, so the pool is known only once they are written. The element goes in first to stay ahead of them in the file
     tinyxml2::XMLElement *materialsElement = mapDocument.NewElement("Materials");
     rootNode->InsertEndChild(materialsElement);
@@ -201,6 +214,9 @@ bool WorldSaver::saveWorld(const std::string& mapName, const World* world) {
     tinyxml2::XMLError eResult = mapDocument.SaveFile(mapName.c_str());
     if(eResult != tinyxml2::XML_SUCCESS) {
         std::cerr  << "ERROR " << eResult << std::endl;
+    } else {
+        //saved means seen and agreed, the editor stops changing them on its own
+        world->assetManager->replaceChosenTextureColorSpaces(savedColorSpaces);
     }
 
     return true;

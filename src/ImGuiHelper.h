@@ -183,6 +183,9 @@ public:
     //picked, empty otherwise. idSuffix keeps pickers of different objects apart
     std::string pickTexture(const std::string &idSuffix);
 
+    //Color or Data for this map and a button to flip it. Every user of the file gets the change
+    static TextureColorSpace showTextureColorSpace(AssetManager *assetManager, const std::vector<std::string> &textureName, const std::string &idSuffix);
+
     static void ShowHelpMarker(const std::string &helpDescription)
     {
         ImGui::TextDisabled("(?)");

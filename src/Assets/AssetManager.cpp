@@ -5,6 +5,7 @@
 #include "AssetManager.h"
 #include "AssetTreeManager.h"
 #include "ModelAsset.h"
+#include "TextureAsset.h"
 
 #include <algorithm>
 #include <string>
@@ -101,6 +102,62 @@ std::unique_ptr<LoadRequester> AssetManager::openRequester(bool reportFailures, 
 bool AssetManager::isRunning(LoadRequester &requester) {
     std::lock_guard<std::mutex> lock(requestersMutex);
     return requester.running;
+}
+
+bool AssetManager::getChosenTextureColorSpace(const std::vector<std::string> &files, TextureColorSpace &colorSpace) const {
+    std::map<std::vector<std::string>, TextureColorSpace>::const_iterator chosen = chosenTextureColorSpaces.find(files);
+    if (chosen == chosenTextureColorSpaces.end()) {
+        return false;
+    }
+    colorSpace = chosen->second;
+    return true;
+}
+
+void AssetManager::chooseTextureColorSpace(const std::vector<std::string> &files, TextureColorSpace colorSpace) {
+    std::map<std::vector<std::string>, TextureColorSpace> colorSpaces = chosenTextureColorSpaces;
+    colorSpaces[files] = colorSpace;
+    replaceChosenTextureColorSpaces(colorSpaces);
+}
+
+void AssetManager::replaceChosenTextureColorSpaces(const std::map<std::vector<std::string>, TextureColorSpace> &colorSpaces) {
+    exitUnlessGPUContextThread("Texture color space change");
+    //only a texture one of the two maps has can change
+    std::map<std::vector<std::string>, TextureColorSpace> before;
+    for (const std::pair<const std::vector<std::string>, TextureColorSpace> &chosen : chosenTextureColorSpaces) {
+        before[chosen.first] = getTextureColorSpace(chosen.first);
+    }
+    for (const std::pair<const std::vector<std::string>, TextureColorSpace> &chosen : colorSpaces) {
+        before[chosen.first] = getTextureColorSpace(chosen.first);
+    }
+    chosenTextureColorSpaces = colorSpaces;
+    for (const std::pair<const std::vector<std::string>, TextureColorSpace> &previous : before) {
+        if (getTextureColorSpace(previous.first) != previous.second) {
+            reloadTexture(previous.first);
+        }
+    }
+}
+
+TextureColorSpace AssetManager::getTextureColorSpace(const std::vector<std::string> &files) const {
+    TextureColorSpace colorSpace = TextureColorSpace::COLOR;
+    if (!getChosenTextureColorSpace(files, colorSpace)) {
+        assetTree->findTextureColorSpaceRule(files[0], colorSpace);
+    }
+    return colorSpace;
+}
+
+void AssetManager::reloadTexture(const std::vector<std::string> &files) {
+    std::shared_ptr<TextureAsset> texture;
+    {
+        std::lock_guard<std::mutex> lock(assetsMutex);
+        std::map<const std::vector<std::string>, std::pair<std::shared_ptr<Asset>, uint32_t>>::const_iterator assetIt = assets.find(files);
+        //one still loading reads the new value at upload
+        if (assetIt != assets.end() && assetIt->second.first->getLoadState() == Asset::LoadState::DONE) {
+            texture = std::dynamic_pointer_cast<TextureAsset>(assetIt->second.first);
+        }
+    }
+    if (texture != nullptr) {
+        texture->reload();
+    }
 }
 
 void AssetManager::exitUnlessGPUContextThread(const char *operation) const {

@@ -66,4 +66,6 @@
     <Asset type="Texture">tif</Asset>
     <Asset type="Sound">wav</Asset>
     <Asset type="Graphics Program">glsl</Asset>
+    <!--texture color space when the map doesn't choose: the first matching rule, then one channel images are Data, the rest Color-->
+    <TextureColorSpace match="(_n|_nrm|_normal|_mask|_opacity)(_[0-9]+)?\.[a-z0-9]+$">Data</TextureColorSpace>
 </Assets>

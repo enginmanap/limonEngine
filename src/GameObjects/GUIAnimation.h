@@ -43,6 +43,10 @@ public:
     static GUIAnimation *
     deserialize(tinyxml2::XMLElement *GUIRenderableNode,  std::shared_ptr<AssetManager> assetManager, OptionsUtil::Options *options); //will turn into factory class at some point
 
+    std::vector<std::string> getImageFiles() const override {
+        return imageFiles;
+    }
+
     /******************** Game object methods ************************************/
     ObjectTypes getTypeID() const override;
 

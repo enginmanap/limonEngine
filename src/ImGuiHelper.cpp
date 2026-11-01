@@ -433,6 +433,19 @@ void ImGuiHelper::showTexturePreviewTooltip(const AssetTreeManager::AvailableAss
     ImGui::EndTooltip();
 }
 
+TextureColorSpace ImGuiHelper::showTextureColorSpace(AssetManager *assetManager, const std::vector<std::string> &textureName, const std::string &idSuffix) {
+    TextureColorSpace colorSpace = assetManager->getTextureColorSpace(textureName);
+    TextureColorSpace chosen;
+    bool isChosen = assetManager->getChosenTextureColorSpace(textureName, chosen);
+    ImGui::Text("%s for this map%s", colorSpace == TextureColorSpace::COLOR ? "Color" : "Data", isChosen ? "" : " (rule default)");
+    ImGui::SameLine();
+    if (ImGui::Button(("Change for this map##" + idSuffix).c_str())) {
+        colorSpace = colorSpace == TextureColorSpace::COLOR ? TextureColorSpace::DATA : TextureColorSpace::COLOR;
+        assetManager->chooseTextureColorSpace(textureName, colorSpace);
+    }
+    return colorSpace;
+}
+
 std::string ImGuiHelper::pickTexture(const std::string &idSuffix) {
     std::string popupName = "Select Texture##" + idSuffix;
     if (ImGui::Button(("Change##" + idSuffix).c_str())) {

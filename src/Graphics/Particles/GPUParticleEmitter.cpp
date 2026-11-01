@@ -3,7 +3,7 @@
 //
 
 #include <Assets/TextureAsset.h>
-#include <Assets/SRGBTextureAsset.h>
+#include <Assets/TextureAsset.h>
 
 #include <utility>
 #include "ImGui/imgui.h"
@@ -17,13 +17,12 @@
 
 GPUParticleEmitter::GPUParticleEmitter(long worldObjectId, std::string name, std::shared_ptr<AssetManager> assetManager,
                  const std::string &textureFile, glm::vec3 startPosition, glm::vec3 maxStartDistances, glm::vec2 size, long count,
-                 long lifeTime, uint32_t startTime [[gnu::unused]], float particlePerMs, bool textureIsSRGB) :
+                 long lifeTime, uint32_t startTime [[gnu::unused]], float particlePerMs) :
         Renderable(assetManager->getGraphicsWrapper()), assetManager(assetManager), worldObjectID(worldObjectId), name(std::move(name)), size(size),
         maxCount(count), lifeTime(lifeTime), maxStartDistances(maxStartDistances),
         randomFloatGenerator(randomDevice()), randomStartingPoints(-1.0f, 1.0f),
         randomSpeedDistribution(-1.0f, 1.0f){
     this->transformation.setTranslate(startPosition);
-    this->textureIsSRGB = textureIsSRGB;
     textureAsset = loadTextureAsset(textureFile);
     this->texture = textureAsset->getTexture();
 
@@ -52,7 +51,7 @@ GPUParticleEmitter::GPUParticleEmitter(long worldObjectId, std::string name, std
 GPUParticleEmitter::GPUParticleEmitter(const GPUParticleEmitter& other, uint32_t newObjectID) :
         GPUParticleEmitter(newObjectID, other.name, other.assetManager, other.textureAsset->getName().front(),
                            other.transformation.getTranslate(), other.maxStartDistances, other.size, other.maxCount,
-                           other.lifeTime, 0, other.perMsParticleCount, other.textureIsSRGB) {
+                           other.lifeTime, 0, other.perMsParticleCount) {
     this->gravity = other.gravity;
     this->speedMultiplier = other.speedMultiplier;
     this->speedOffset = other.speedOffset;
@@ -140,14 +139,9 @@ void GPUParticleEmitter::setupVAO() {
 }
 
 std::shared_ptr<TextureAsset> GPUParticleEmitter::loadTextureAsset(const std::string &textureFile) const {
-    std::shared_ptr<TextureAsset> loadedTexture;
-    if (textureIsSRGB) {
-        loadedTexture = assetManager->loadAsset<SRGBTextureAsset>({textureFile});
-    } else {
-        loadedTexture = assetManager->loadAsset<TextureAsset>({textureFile});
-    }
+    std::shared_ptr<TextureAsset> loadedTexture = assetManager->loadAsset<TextureAsset>({textureFile});
     if (loadedTexture == nullptr) {
-        std::cerr << "Texture " << textureFile << " of GPU particle emitter " << name << " is already loaded as another asset type. Exiting..." << std::endl;
+        std::cerr << "Texture " << textureFile << " of GPU particle emitter " << name << " is already loaded as an asset that isn't a texture. Exiting..." << std::endl;
         exit(-1);
     }
     return loadedTexture;
@@ -157,20 +151,6 @@ void GPUParticleEmitter::changeTexture(const std::string &textureFile) {
     std::shared_ptr<TextureAsset> newTextureAsset = loadTextureAsset(textureFile);//before the free, picking the same file must not unload it
     assetManager->freeAsset(textureAsset->getName());
     textureAsset = newTextureAsset;
-    texture = textureAsset->getTexture();
-}
-
-void GPUParticleEmitter::setTextureIsSRGB(bool textureIsSRGB) {
-    if (this->textureIsSRGB == textureIsSRGB) {
-        return;
-    }
-    //free before the load, the same file as the other type can't be loaded while this one holds it
-    std::vector<std::string> textureName = textureAsset->getName();
-    texture = nullptr;
-    textureAsset = nullptr;//AssetManager reports an asset that still has a shared_ptr to it when freed
-    assetManager->freeAsset(textureName);
-    this->textureIsSRGB = textureIsSRGB;
-    textureAsset = loadTextureAsset(textureName.front());
     texture = textureAsset->getTexture();
 }
 
@@ -195,13 +175,9 @@ ImGuiResult GPUParticleEmitter::addImGuiEditorElements(const ImGuiRequest &reque
             imGuiResult.updated = true;
         }
     }
-    bool textureIsSRGBEdit = textureIsSRGB;
-    if (ImGui::Checkbox("Color texture (sRGB)##GPUParticleEmitter", &textureIsSRGBEdit)) {
-        setTextureIsSRGB(textureIsSRGBEdit);
-        imGuiResult.updated = true;
-    }
+    ImGuiHelper::showTextureColorSpace(assetManager.get(), textureAsset->getName(), "GPUParticleEmitterColorSpace" + std::to_string(getWorldObjectID()));
     ImGui::SameLine();
-    ImGuiHelper::ShowHelpMarker("Color images are stored sRGB and decode to linear on sampling. Turn it off for masks and noise, which want their raw values.");
+    ImGuiHelper::ShowHelpMarker("Color images are converted from sRGB, use Data for masks and noise, which want their raw values. It is the texture's setting for this map, every user of it gets the change.");
 
     float startPositionValues[3];
     startPositionValues[0] = transformation.getTranslate().x;
@@ -416,14 +392,15 @@ GPUParticleEmitter *GPUParticleEmitter::deserialize(tinyxml2::XMLElement *gpuEmi
         return nullptr;
     }
 
-    bool textureIsSRGB = true;
+    //older maps kept the color space on the emitter, the map's texture list holds it now
     std::string textureIsSRGBStr;
-    if(!XMLHelper::readOptionalText(gpuEmitterNode, "TextureSRGB", textureIsSRGBStr)) {
-        std::cerr << "GPU Particle emitter does not have TextureSRGB set. Assuming true" << std::endl;
-    } else if(textureIsSRGBStr == "False") {
-        textureIsSRGB = false;
-    } else if(textureIsSRGBStr != "True") {
-        std::cerr << "TextureSRGB setting unknown, assuming true " << std::endl;
+    TextureColorSpace chosenColorSpace;
+    if (XMLHelper::readOptionalText(gpuEmitterNode, "TextureSRGB", textureIsSRGBStr) && !assetManager->getChosenTextureColorSpace({textureFile}, chosenColorSpace)) {
+        if (textureIsSRGBStr == "True" || textureIsSRGBStr == "False") {
+            assetManager->chooseTextureColorSpace({textureFile}, textureIsSRGBStr == "True" ? TextureColorSpace::COLOR : TextureColorSpace::DATA);
+        } else {
+            std::cerr << "GPU Particle emitter TextureSRGB \"" << textureIsSRGBStr << "\" is unknown, the rules decide the texture's color space." << std::endl;
+        }
     }
 
     std::string idStr;
@@ -535,7 +512,7 @@ GPUParticleEmitter *GPUParticleEmitter::deserialize(tinyxml2::XMLElement *gpuEmi
     }
 
     GPUParticleEmitter* emitter = new GPUParticleEmitter(id, name, assetManager, textureFile, startPosition,
-                                                           maxStartDistances, size, maxCount, lifeTime, 0, -1, textureIsSRGB);
+                                                           maxStartDistances, size, maxCount, lifeTime, 0, -1);
     emitter->setGravity(gravity);
     emitter->setSpeedMultiplier(speedMultiplier);
     emitter->setSpeedOffset(speedOffset);

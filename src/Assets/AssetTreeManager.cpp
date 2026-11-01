@@ -13,6 +13,16 @@ AssetTreeManager::AssetTreeManager() {
     loadAssetList();
 }
 
+bool AssetTreeManager::findTextureColorSpaceRule(const std::string &fileName, TextureColorSpace &colorSpace) const {
+    for (const std::pair<std::regex, TextureColorSpace> &rule : textureColorSpaceRules) {
+        if (std::regex_search(fileName, rule.first)) {
+            colorSpace = rule.second;
+            return true;
+        }
+    }
+    return false;
+}
+
 AssetTreeManager::~AssetTreeManager() {
     if (assetReloadThread.joinable()) {
         assetReloadThread.join();
@@ -72,7 +82,7 @@ void AssetTreeManager::addAssetsRecursively(const std::string &directoryPath, co
 }
 
 
-std::vector<std::pair<std::string, AssetTreeManager::AssetTypes>> AssetTreeManager::loadAssetExtensionList() {
+std::vector<std::pair<std::string, AssetTreeManager::AssetTypes>> AssetTreeManager::loadAssetExtensionList(std::vector<std::pair<std::regex, TextureColorSpace>> *colorSpaceRules) {
     std::vector<std::pair<std::string, AssetTypes>> extensionList;
     tinyxml2::XMLDocument xmlDoc;
     tinyxml2::XMLError eResult = LimonFileSystem::loadXML(ASSET_EXTENSIONS_FILE, xmlDoc);
@@ -112,11 +122,28 @@ std::vector<std::pair<std::string, AssetTreeManager::AssetTypes>> AssetTreeManag
         }
         currentAssetNode = currentAssetNode->NextSiblingElement("Asset");
     }
+    if (colorSpaceRules == nullptr) {
+        return extensionList;
+    }
+    for (tinyxml2::XMLElement *ruleNode = assetsNode->FirstChildElement("TextureColorSpace"); ruleNode != nullptr;
+         ruleNode = ruleNode->NextSiblingElement("TextureColorSpace")) {
+        const char *match = ruleNode->Attribute("match");
+        std::string value = ruleNode->GetText() == nullptr ? "" : ruleNode->GetText();
+        if (match == nullptr || (value != "Color" && value != "Data")) {
+            std::cerr << ASSET_EXTENSIONS_FILE << ": TextureColorSpace rule needs a match attribute and Color or Data, got \"" << value << "\". Skipping it." << std::endl;
+            continue;
+        }
+        try {
+            colorSpaceRules->emplace_back(std::regex(match, std::regex::ECMAScript | std::regex::icase), value == "Data" ? TextureColorSpace::DATA : TextureColorSpace::COLOR);
+        } catch (const std::regex_error &error) {
+            std::cerr << ASSET_EXTENSIONS_FILE << ": TextureColorSpace match \"" << match << "\" is not a valid regex (" << error.what() << "). Skipping it." << std::endl;
+        }
+    }
     return extensionList;
 }
 
 bool AssetTreeManager::loadAssetList() {
-    std::vector<std::pair<std::string, AssetTypes>> fileExtensions = loadAssetExtensionList();
+    std::vector<std::pair<std::string, AssetTypes>> fileExtensions = loadAssetExtensionList(&textureColorSpaceRules);
     availableAssetsRootNode = new AvailableAssetsNode();
     availableAssetsRootNode->assetType = Asset_type_DIRECTORY;
     availableAssetsRootNode->fullPath = ".";

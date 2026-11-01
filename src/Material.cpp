@@ -73,12 +73,7 @@ void Material::collectTextureFiles(std::vector<size_t> &slotIndices, std::vector
 }
 
 std::shared_ptr<TextureAsset> Material::loadSlotTexture(const TextureSlot &slot, const std::vector<std::string> &textureFiles) const {
-    std::shared_ptr<TextureAsset> loadedTexture;
-    if (slot.isColor) {
-        loadedTexture = assetManager->loadAsset<SRGBTextureAsset>(textureFiles);
-    } else {
-        loadedTexture = assetManager->loadAsset<TextureAsset>(textureFiles);
-    }
+    std::shared_ptr<TextureAsset> loadedTexture = assetManager->loadAsset<TextureAsset>(textureFiles);
     if (loadedTexture == nullptr) {
         failTextureType(slot, textureFiles[0]);
     }
@@ -86,27 +81,9 @@ std::shared_ptr<TextureAsset> Material::loadSlotTexture(const TextureSlot &slot,
 }
 
 void Material::failTextureType(const TextureSlot &slot, const std::string &textureFile) const {
-    //a file is one asset whichever type asked first, nothing deduplicates per type yet
     std::cerr << "Texture " << textureFile << " for the " << slot.displayName << " slot of material " << getName()
-              << " is already loaded as another asset type. Exiting..." << std::endl;
+              << " is already loaded as an asset that isn't a texture. Exiting..." << std::endl;
     exit(-1);
-}
-
-template<class TextureType>
-void Material::loadSlotBatch(AssetManager *assetManager, const std::vector<std::pair<Material *, size_t>> &slotsToLoad,
-                             const std::vector<std::vector<std::string>> &filesToLoad) {
-    if (filesToLoad.empty()) {
-        return;
-    }
-    std::vector<std::shared_ptr<TextureType>> loadedTextures = assetManager->parallelLoadAssetList<TextureType>(filesToLoad);
-    for (size_t entryIndex = 0; entryIndex < slotsToLoad.size(); ++entryIndex) {
-        Material *material = slotsToLoad[entryIndex].first;
-        size_t slotIndex = slotsToLoad[entryIndex].second;
-        if (loadedTextures[entryIndex] == nullptr) {
-            material->failTextureType(getTextureSlots()[slotIndex], filesToLoad[entryIndex][0]);
-        }
-        material->attachTexture(slotIndex, loadedTextures[entryIndex]);
-    }
 }
 
 void Material::loadTextures(const std::vector<std::shared_ptr<Material>> &materials) {
@@ -115,35 +92,34 @@ void Material::loadTextures(const std::vector<std::shared_ptr<Material>> &materi
     }
     AssetManager *assetManager = materials[0]->assetManager;
     //a requester waits behind other threads' loads, so only what nobody loaded yet goes through one
-    std::vector<std::pair<Material *, size_t>> colorSlotsToLoad;
-    std::vector<std::vector<std::string>> colorFilesToLoad;
-    std::vector<std::pair<Material *, size_t>> linearSlotsToLoad;
-    std::vector<std::vector<std::string>> linearFilesToLoad;
+    std::vector<std::pair<Material *, size_t>> slotsToLoad;
+    std::vector<std::vector<std::string>> filesToLoad;
     for (const std::shared_ptr<Material> &material : materials) {
         std::vector<size_t> slotIndices;
         std::vector<std::vector<std::string>> textureFiles;
         material->collectTextureFiles(slotIndices, textureFiles);
         for (size_t entryIndex = 0; entryIndex < slotIndices.size(); ++entryIndex) {
-            bool isColor = getTextureSlots()[slotIndices[entryIndex]].isColor;
-            std::shared_ptr<TextureAsset> loadedTexture;
-            if (isColor) {
-                loadedTexture = assetManager->acquireLoadedAsset<SRGBTextureAsset>(textureFiles[entryIndex]);
-            } else {
-                loadedTexture = assetManager->acquireLoadedAsset<TextureAsset>(textureFiles[entryIndex]);
-            }
+            std::shared_ptr<TextureAsset> loadedTexture = assetManager->acquireLoadedAsset<TextureAsset>(textureFiles[entryIndex]);
             if (loadedTexture != nullptr) {
                 material->attachTexture(slotIndices[entryIndex], loadedTexture);
-            } else if (isColor) {
-                colorSlotsToLoad.emplace_back(material.get(), slotIndices[entryIndex]);
-                colorFilesToLoad.push_back(textureFiles[entryIndex]);
             } else {
-                linearSlotsToLoad.emplace_back(material.get(), slotIndices[entryIndex]);
-                linearFilesToLoad.push_back(textureFiles[entryIndex]);
+                slotsToLoad.emplace_back(material.get(), slotIndices[entryIndex]);
+                filesToLoad.push_back(textureFiles[entryIndex]);
             }
         }
     }
-    loadSlotBatch<SRGBTextureAsset>(assetManager, colorSlotsToLoad, colorFilesToLoad);
-    loadSlotBatch<TextureAsset>(assetManager, linearSlotsToLoad, linearFilesToLoad);
+    if (filesToLoad.empty()) {
+        return;
+    }
+    std::vector<std::shared_ptr<TextureAsset>> loadedTextures = assetManager->parallelLoadAssetList<TextureAsset>(filesToLoad);
+    for (size_t entryIndex = 0; entryIndex < slotsToLoad.size(); ++entryIndex) {
+        Material *material = slotsToLoad[entryIndex].first;
+        size_t slotIndex = slotsToLoad[entryIndex].second;
+        if (loadedTextures[entryIndex] == nullptr) {
+            material->failTextureType(getTextureSlots()[slotIndex], filesToLoad[entryIndex][0]);
+        }
+        material->attachTexture(slotIndex, loadedTextures[entryIndex]);
+    }
 }
 
 void Material::attachTexture(size_t slotIndex, const std::shared_ptr<TextureAsset> &acquiredTexture) {
@@ -249,12 +225,25 @@ ImGuiResult Material::addImGuiEditorElements(const ImGuiRequest &request) {
             ImGui::SameLine();
             std::string pickedTexture = request.imgGuiHelper->pickTexture(std::string("MaterialTexture") + slot.imGuiIDSuffix);
             if (!pickedTexture.empty()) {
-                assignTexture(slot, loadSlotTexture(slot, {pickedTexture}));
+                std::shared_ptr<TextureAsset> pickedAsset = loadSlotTexture(slot, {pickedTexture});
+                assignTexture(slot, pickedAsset);
+                colorSpaceNotice.clear();
+                TextureColorSpace slotColorSpace = slot.isColor ? TextureColorSpace::COLOR : TextureColorSpace::DATA;
+                TextureColorSpace chosen;
+                if (assetManager->getTextureColorSpace(pickedAsset->getName()) != slotColorSpace && !assetManager->getChosenTextureColorSpace(pickedAsset->getName(), chosen)) {
+                    //nobody chose for it yet, so the rule guessed. This slot is a better guess
+                    assetManager->chooseTextureColorSpace(pickedAsset->getName(), slotColorSpace);
+                    colorSpaceNotice = pickedTexture + " is " + (slot.isColor ? "Color" : "Data") + " for this map now, the " + slot.displayName + " slot reads it that way.";
+                }
                 dirty = true;//without it the edit stays on the asset's material, never splits into a world override
             }
         }
         ImGui::SameLine();
         dirty = putRemoveTextureButton(slot) || dirty;
+        putTextureColorSpace(slot, slotIndex);
+    }
+    if (!colorSpaceNotice.empty()) {
+        ImGui::TextWrapped("%s", colorSpaceNotice.c_str());
     }
     if(dirty) {
         if (isLoaded()) {//slot 0 belongs to nobody
@@ -302,6 +291,21 @@ bool Material::putRemoveTextureButton(const TextureSlot &slot) {
         ImGui::EndDisabled();
     }
     return removed;
+}
+
+void Material::putTextureColorSpace(const TextureSlot &slot, size_t slotIndex) {
+    std::vector<std::string> textureName = getTextureName(slotIndex);
+    if (textureName.empty()) {
+        return;
+    }
+    ImGui::Indent();
+    TextureColorSpace colorSpace = ImGuiHelper::showTextureColorSpace(assetManager, textureName, std::string("MaterialColorSpace") + slot.imGuiIDSuffix);
+    if ((colorSpace == TextureColorSpace::COLOR) != slot.isColor) {
+        //every user of the file gets the change, so a mismatch is shown, not fixed
+        ImGui::TextWrapped(slot.isColor ? "This slot reads color, but the texture is Data for this map."
+                                        : "This slot reads data, but the texture is Color for this map.");
+    }
+    ImGui::Unindent();
 }
 
 void Material::configureProgram(const std::shared_ptr<GraphicsProgram>& program) {

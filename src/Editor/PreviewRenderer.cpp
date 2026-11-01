@@ -92,30 +92,22 @@ bool PreviewRenderer::isTexturePrefetchDone(const std::string &assetFullPath) {
             }
             tookReference = true;
         }
-        std::set<std::vector<std::string>> colorTextureFiles;
-        std::set<std::vector<std::string>> linearTextureFiles;
+        std::set<std::vector<std::string>> textureFiles;
         for (const std::shared_ptr<MeshAsset> &mesh : modelAsset->getMeshes()) {
             std::shared_ptr<Material> meshMaterial = modelAsset->getMeshMaterial(mesh);
             if (meshMaterial == nullptr || meshMaterial->isLoaded()) {
                 continue;//whoever draws it holds its textures already
             }
-            std::vector<std::vector<std::string>> colorFiles;
-            std::vector<std::vector<std::string>> linearFiles;
-            meshMaterial->getTextureFilesByType(colorFiles, linearFiles);
-            colorTextureFiles.insert(colorFiles.begin(), colorFiles.end());
-            linearTextureFiles.insert(linearFiles.begin(), linearFiles.end());
+            std::vector<std::vector<std::string>> materialFiles = meshMaterial->getTextureFiles();
+            textureFiles.insert(materialFiles.begin(), materialFiles.end());
         }
         if (tookReference) {
             world->assetManager->freeAsset({assetFullPath});
         }
         TexturePrefetch prefetch;
-        if (!colorTextureFiles.empty() || !linearTextureFiles.empty()) {
+        if (!textureFiles.empty()) {
             prefetch.requester = world->assetManager->openRequester(false, LoadRequester::GPUMode::UPLOADED, 0);
-            //the type the material slot loads it as, the material load later finds this asset and can't use another type
-            for (const std::vector<std::string> &textureFile : colorTextureFiles) {
-                world->assetManager->requestAsset<SRGBTextureAsset>(*prefetch.requester, textureFile);
-            }
-            for (const std::vector<std::string> &textureFile : linearTextureFiles) {
+            for (const std::vector<std::string> &textureFile : textureFiles) {
                 world->assetManager->requestAsset<TextureAsset>(*prefetch.requester, textureFile);
             }
         }

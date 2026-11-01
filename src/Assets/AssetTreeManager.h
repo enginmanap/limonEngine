@@ -9,10 +9,14 @@
 #include <cstdint>
 #include <map>
 #include <mutex>
+#include <regex>
 #include <string>
 #include <thread>
 #include <utility>
 #include <vector>
+
+//COLOR images are converted from sRGB when the shaders light in linear, DATA (normal maps, masks) is read as stored
+enum class TextureColorSpace {COLOR, DATA};
 
 //the asset files under Data/ and Engine/ as a tree, for the editor's pickers and lookups by name. Only AssetManager creates
 //one, everyone else reaches it through AssetManager::getTree()
@@ -61,6 +65,7 @@ private:
     std::map<std::pair<AssetTypes, std::string>, AvailableAssetsNode*> filteredResults;
     std::atomic<bool> assetListReloadInProgress{false};
     AvailableAssetsNode* pendingAssetsRootNode = nullptr;
+    std::vector<std::pair<std::regex, TextureColorSpace>> textureColorSpaceRules;//filled once in the constructor
     std::thread assetReloadThread;
     uint32_t assetListVersion = 0;
 
@@ -70,7 +75,8 @@ private:
                                   const std::vector<std::pair<std::string, AssetTypes>> &fileExtensions,
                                   AvailableAssetsNode* nodeToProcess);
 
-    std::vector<std::pair<std::string, AssetTypes>> loadAssetExtensionList();
+    //rules only at construction, a reload changing them would leave loaded textures on the old decision
+    std::vector<std::pair<std::string, AssetTypes>> loadAssetExtensionList(std::vector<std::pair<std::regex, TextureColorSpace>> *colorSpaceRules = nullptr);
 
     bool loadAssetList();
 
@@ -93,6 +99,9 @@ private:
 
 public:
     ~AssetTreeManager();
+
+    //the first rule in assetExtensions.xml that matches the file name, false when none does
+    bool findTextureColorSpaceRule(const std::string &fileName, TextureColorSpace &colorSpace) const;
 
     AssetTreeManager(const AssetTreeManager &) = delete;
     AssetTreeManager &operator=(const AssetTreeManager &) = delete;

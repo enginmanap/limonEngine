@@ -32,12 +32,6 @@ uniform float renderModelTransparency;// 0 (never set) is the opaque player plac
 
 uniform int encodeToSRGB;//the stage writes raw, and sampling an sRGB texture decodes it, so we put the curve back or color textures show dark
 
-vec3 linearToSRGB(vec3 linearColor) {
-    vec3 low = linearColor * 12.92;
-    vec3 high = 1.055 * pow(max(linearColor, vec3(0.0)), vec3(1.0 / 2.4)) - 0.055;
-    return mix(high, low, lessThanEqual(linearColor, vec3(0.0031308)));
-}
-
 vec4 renderModel() {
     //the stage doesn't cull, a translucent closed mesh would blend its far wall over its near one
     if (renderModelTransparency > 0.0 && !gl_FrontFacing) {

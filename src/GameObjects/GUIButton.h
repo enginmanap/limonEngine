@@ -89,6 +89,10 @@ public:
         this->setImageFromFlags();
     }
 
+    std::vector<std::string> getImageFiles() const override {
+        return imageFiles;
+    }
+
     /******************** Game object methods ************************************/
     ObjectTypes getTypeID() const override;
 

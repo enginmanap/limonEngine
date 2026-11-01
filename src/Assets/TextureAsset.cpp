@@ -167,15 +167,40 @@ void TextureAsset::scanForTransparentTexels() {
     }
 }
 
+void TextureAsset::reload() {
+    loadCPUPart();
+    loadGPUPart();
+    std::cout << "Texture " << StringUtils::join(name, ",") << " reloaded as " << (assetManager->getTextureColorSpace(name) == TextureColorSpace::COLOR ? "Color" : "Data") << std::endl;
+}
+
 void TextureAsset::loadGPUPart() {
-    texture = std::make_unique<Texture>(assetManager->getGraphicsWrapper(), textureMetaData.textureType,
-                                        textureMetaData.internalFormatType, textureMetaData.formatType, textureMetaData.dataType,
-                                        textureMetaData.width, textureMetaData.height);
-    texture->loadData(cpuSurface->pixels);
-    if (name.size() > 1) {
-        texture->setName(name[0] + "|" + name[1]);
+    if (assetManager->getTextureColorSpace(name) == TextureColorSpace::COLOR) {
+        //ES can't generate mipmaps for SRGB8, so color images go up as RGBA
+        if (cpuSurface->format != SDL_PIXELFORMAT_ABGR8888) {
+            //SDL fills the new alpha with 255 when the source has none, so the image stays opaque
+            SDL_Surface *expandedSurface = SDL_ConvertSurface(cpuSurface, SDL_PIXELFORMAT_ABGR8888);
+            if (expandedSurface == nullptr) {
+                std::cerr << "Texture " << name[0] << " can't be expanded to RGBA for color. Error:" << std::endl << SDL_GetError() << std::endl << "Exiting..." << std::endl;
+                exit(-1);
+            }
+            SDL_DestroySurface(cpuSurface);
+            cpuSurface = expandedSurface;
+            textureMetaData.formatType = GraphicsInterface::FormatTypes::RGBA;
+        }
+        textureMetaData.internalFormatType = GraphicsInterface::InternalFormatTypes::SRGB8_ALPHA8;
+    }
+    if (texture == nullptr) {
+        texture = std::make_unique<Texture>(assetManager->getGraphicsWrapper(), textureMetaData.textureType,
+                                            textureMetaData.internalFormatType, textureMetaData.formatType, textureMetaData.dataType,
+                                            textureMetaData.width, textureMetaData.height);
+        texture->loadData(cpuSurface->pixels);
+        if (name.size() > 1) {
+            texture->setName(name[0] + "|" + name[1]);
+        } else {
+            texture->setName(name[0]);
+        }
     } else {
-        texture->setName(name[0]);
+        texture->reloadData(textureMetaData.internalFormatType, textureMetaData.formatType, textureMetaData.height, textureMetaData.width, cpuSurface->pixels);
     }
     SDL_DestroySurface(cpuSurface);
     cpuSurface = nullptr;

@@ -432,6 +432,9 @@ private:
 
     bool isMaterialOverride(const std::shared_ptr<const Material> &material) const;
 
+    //texture to what uses it. The map saves each one's color space, the editor lists them
+    std::map<std::vector<std::string>, std::set<std::string>> getUsedTextures() const;
+
     const std::unordered_map<uint64_t, std::shared_ptr<Material>>& getMaterialOverrides() const {
         return materialOverrides;
     }

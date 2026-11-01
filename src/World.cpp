@@ -1186,6 +1186,50 @@ World::~World() {
 
 }
 
+std::map<std::vector<std::string>, std::set<std::string>> World::getUsedTextures() const {
+    std::map<std::vector<std::string>, std::set<std::string>> usedTextures;
+    auto addMaterial = [&usedTextures](const std::shared_ptr<Material> &material) {
+        if (material == nullptr) {
+            return;
+        }
+        for (const std::vector<std::string> &textureFile : material->getTextureFiles()) {
+            usedTextures[textureFile].insert("material " + material->getName());
+        }
+    };
+    for (const std::pair<const uint32_t, Model *> &object : objects) {
+        for (const std::shared_ptr<Material> &material : object.second->getMaterials()) {
+            addMaterial(material);
+        }
+    }
+    for (const std::pair<const uint64_t, std::shared_ptr<Material>> &materialOverride : materialOverrides) {
+        addMaterial(materialOverride.second);
+    }
+    //emitter textures are never embedded, so the texture's name is its file
+    for (const std::pair<const uint32_t, std::shared_ptr<Emitter>> &emitter : emitters) {
+        usedTextures[{emitter.second->getTexture()->getName()}].insert("emitter " + emitter.second->getName());
+    }
+    for (const std::pair<const uint32_t, std::shared_ptr<GPUParticleEmitter>> &emitter : gpuParticleEmitters) {
+        usedTextures[{emitter.second->getTexture()->getName()}].insert("emitter " + emitter.second->getName());
+    }
+    //cube maps don't follow the setting yet, it is listed and saved so the map has it once they do
+    if (sky != nullptr) {
+        usedTextures[{sky->getPath(), sky->getRight(), sky->getLeft(), sky->getTop(), sky->getDown(), sky->getBack(), sky->getFront()}].insert("sky");
+    }
+    for (const std::pair<const uint32_t, GUIRenderable *> &guiElement : guiElements) {
+        GUIImageBase *guiImage = dynamic_cast<GUIImageBase *>(guiElement.second);
+        GameObject *guiObject = dynamic_cast<GameObject *>(guiElement.second);
+        if (guiImage == nullptr) {
+            continue;
+        }
+        for (const std::string &imageFile : guiImage->getImageFiles()) {
+            if (!imageFile.empty()) {
+                usedTextures[{imageFile}].insert("GUI " + (guiObject != nullptr ? guiObject->getName() : std::string("element")));
+            }
+        }
+    }
+    return usedTextures;
+}
+
 bool World::isMaterialOverride(const std::shared_ptr<const Material> &material) const {
     for (std::unordered_map<uint64_t, std::shared_ptr<Material>>::const_iterator overrideIt = materialOverrides.begin(); overrideIt != materialOverrides.end(); ++overrideIt) {
         if (overrideIt->second == material) {

@@ -203,6 +203,8 @@ World * WorldLoader::loadMapFromXML(const std::string &worldFileName, LimonAPI *
         }
     }
 
+    loadTextureColorSpaces(worldNode, world);
+
     //objects name their override materials by key
     indexSavedMaterials(worldNode, world);
 
@@ -497,6 +499,24 @@ bool WorldLoader::loadObjectsFromXML(tinyxml2::XMLNode *objectsNode, World *worl
         assetManager->freeAsset({assetFile});
     }
     return true;
+}
+
+void WorldLoader::loadTextureColorSpaces(tinyxml2::XMLNode *worldNode, World *world) {
+    std::map<std::vector<std::string>, TextureColorSpace> colorSpaces;//a map without the list chose nothing yet, the rules decide
+    tinyxml2::XMLElement *colorSpacesNode = worldNode->FirstChildElement("TextureColorSpaces");
+    if (colorSpacesNode != nullptr) {
+        for (tinyxml2::XMLElement *textureNode = colorSpacesNode->FirstChildElement("Texture"); textureNode != nullptr;
+             textureNode = textureNode->NextSiblingElement("Texture")) {
+            const char *colorSpace = textureNode->Attribute("colorSpace");
+            if (textureNode->GetText() == nullptr || colorSpace == nullptr || (std::string(colorSpace) != "Color" && std::string(colorSpace) != "Data")) {
+                std::cerr << "Texture color space entry \"" << (textureNode->GetText() == nullptr ? "" : textureNode->GetText()) << "\" with color space \""
+                          << (colorSpace == nullptr ? "" : colorSpace) << "\" is invalid, the rules decide for it." << std::endl;
+                continue;
+            }
+            colorSpaces[StringUtils::split(textureNode->GetText(), ",")] = std::string(colorSpace) == "Data" ? TextureColorSpace::DATA : TextureColorSpace::COLOR;
+        }
+    }
+    world->assetManager->replaceChosenTextureColorSpaces(colorSpaces);
 }
 
 void WorldLoader::indexSavedMaterials(tinyxml2::XMLNode *worldNode, World *world) {
