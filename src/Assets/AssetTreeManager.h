@@ -63,6 +63,8 @@ private:
     //std::map<std::string, AssetTypes> availableAssetsList;//this map should be ordered, or editor list order would be unpredictable
     AvailableAssetsNode* availableAssetsRootNode = nullptr;
     std::map<std::pair<AssetTypes, std::string>, AvailableAssetsNode*> filteredResults;
+    //findFirstAssetPathByName answers, a repaired texture asks on every pack and refresh. Dropped with the tree, so a new file is found after a reload
+    std::map<std::pair<AssetTypes, std::string>, std::string> nameLookups;
     std::atomic<bool> assetListReloadInProgress{false};
     AvailableAssetsNode* pendingAssetsRootNode = nullptr;
     std::vector<std::pair<std::regex, TextureColorSpace>> textureColorSpaceRules;//filled once in the constructor

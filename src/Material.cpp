@@ -19,10 +19,7 @@ std::string Material::findTextureByName(const std::string &fileName) const {
     return assetManager->getTree()->findFirstAssetPathByName(AssetTreeManager::Asset_type_TEXTURE, fileName);
 }
 
-//model files name textures wherever the artist kept them, so a path that isn't a file is looked up by name. The slot keeps
-//what was found, so saving the material writes a path that loads directly from then on
-std::string Material::resolveTexturePath(const std::string &requestedPath, bool &repaired) const {
-    repaired = false;
+std::string Material::resolveTexturePath(const std::string &requestedPath) const {
     if (LimonFileSystem::fileExists(requestedPath)) {
         return requestedPath;
     }
@@ -34,29 +31,41 @@ std::string Material::resolveTexturePath(const std::string &requestedPath, bool 
     if (foundPath.empty()) {
         return requestedPath;//TextureAsset reports it and loads the not found texture
     }
-    repaired = true;
     return foundPath;
+}
+
+std::vector<std::string> Material::resolveTextureName(const std::vector<std::string> &requestedName) const {
+    if (requestedName.size() != 1) {//two names are an embedded texture and its model, nothing to resolve
+        return requestedName;
+    }
+    return {resolveTexturePath(requestedName[0])};
+}
+
+std::vector<std::string> Material::getResolvedTextureName(size_t slotIndex) const {
+    return resolveTextureName(getTextureName(slotIndex));
+}
+
+std::vector<std::pair<std::string, std::string>> Material::getTextureRepairs() const {
+    std::vector<std::pair<std::string, std::string>> repairs;
+    for (size_t slotIndex = 0; slotIndex < TEXTURE_SLOT_COUNT; ++slotIndex) {
+        std::vector<std::string> requestedName = getTextureName(slotIndex);
+        if (requestedName.size() != 1) {
+            continue;
+        }
+        std::string resolvedPath = resolveTexturePath(requestedName[0]);
+        if (resolvedPath != requestedName[0]) {
+            repairs.emplace_back(requestedName[0], resolvedPath);
+        }
+    }
+    return repairs;
 }
 
 void Material::setTextureName(const TextureSlot &slot, const std::vector<std::string> &textureFiles) {
     size_t slotIndex = &slot - getTextureSlots().data();
-    std::vector<std::string> storedFiles = textureFiles;
-    bool repaired = false;
-    if (storedFiles.size() == 1) {//two names are an embedded texture and its model, nothing to resolve
-        storedFiles[0] = resolveTexturePath(textureFiles[0], repaired);
-    }
     if (textureNames == nullptr) {
         textureNames = std::make_shared<std::vector<std::vector<std::string>>>(TEXTURE_SLOT_COUNT);
     }
-    (*textureNames)[slotIndex] = storedFiles;
-    if (repaired) {
-        if (requestedTextureNames == nullptr) {
-            requestedTextureNames = std::make_unique<std::array<std::string, TEXTURE_SLOT_COUNT>>();
-        }
-        (*requestedTextureNames)[slotIndex] = textureFiles[0];
-    } else if (requestedTextureNames != nullptr) {
-        (*requestedTextureNames)[slotIndex].clear();
-    }
+    (*textureNames)[slotIndex] = textureFiles;
     this->*slot.isMap = true;
 }
 
@@ -67,7 +76,7 @@ void Material::collectTextureFiles(std::vector<size_t> &slotIndices, std::vector
     for (size_t slotIndex = 0; slotIndex < TEXTURE_SLOT_COUNT; ++slotIndex) {
         if (!(*textureNames)[slotIndex].empty() && this->*getTextureSlots()[slotIndex].texture == nullptr) {
             slotIndices.push_back(slotIndex);
-            textureFiles.push_back((*textureNames)[slotIndex]);
+            textureFiles.push_back(getResolvedTextureName(slotIndex));
         }
     }
 }
@@ -124,9 +133,37 @@ void Material::loadTextures(const std::vector<std::shared_ptr<Material>> &materi
 
 void Material::attachTexture(size_t slotIndex, const std::shared_ptr<TextureAsset> &acquiredTexture) {
     this->*getTextureSlots()[slotIndex].texture = acquiredTexture;
-    if (requestedTextureNames != nullptr && !(*requestedTextureNames)[slotIndex].empty()) {
-        std::cerr << "Material " << getName() << " names texture " << (*requestedTextureNames)[slotIndex] << ", using "
-                  << (*textureNames)[slotIndex][0] << " found by file name." << std::endl;
+    std::vector<std::string> requestedName = getTextureName(slotIndex);
+    if (requestedName.size() == 1 && acquiredTexture != nullptr && acquiredTexture->getName()[0] != requestedName[0]) {
+        std::cerr << "Material " << getName() << " names texture " << requestedName[0] << ", using "
+                  << acquiredTexture->getName()[0] << " found by file name." << std::endl;
+    }
+}
+
+void Material::reresolveTextures() {
+    if (!isLoaded()) {
+        return;//nothing is attached, the next load resolves
+    }
+    bool anySwapped = false;
+    for (size_t slotIndex = 0; slotIndex < TEXTURE_SLOT_COUNT; ++slotIndex) {
+        const TextureSlot &slot = getTextureSlots()[slotIndex];
+        if (this->*slot.texture == nullptr) {
+            continue;
+        }
+        std::vector<std::string> resolvedName = getResolvedTextureName(slotIndex);
+        if (resolvedName == (this->*slot.texture)->getName()) {
+            continue;
+        }
+        //acquire before free, the new file may be the one the old one shares
+        std::shared_ptr<TextureAsset> newTexture = loadSlotTexture(slot, resolvedName);
+        std::shared_ptr<TextureAsset> previousTexture = this->*slot.texture;
+        this->*slot.texture = newTexture;
+        assetManager->freeAsset(previousTexture->getName());
+        anySwapped = true;
+    }
+    if (anySwapped) {
+        deserialized = false;
+        loadGPUSide();
     }
 }
 
@@ -164,7 +201,7 @@ void Material::restoreValuesFrom(const Material &other) {
         //acquire before free, swapping between two materials that share a texture would drop it to zero in between
         std::shared_ptr<TextureAsset> newTexture = nullptr;
         if (isLoaded() && !otherNames[slotIndex].empty()) {
-            newTexture = loadSlotTexture(slot, otherNames[slotIndex]);
+            newTexture = loadSlotTexture(slot, resolveTextureName(otherNames[slotIndex]));
         }
         std::shared_ptr<TextureAsset> previousTexture = this->*slot.texture;
         this->*slot.texture = newTexture;
@@ -175,9 +212,6 @@ void Material::restoreValuesFrom(const Material &other) {
             textureNames = std::make_shared<std::vector<std::vector<std::string>>>(TEXTURE_SLOT_COUNT);
         }
         (*textureNames)[slotIndex] = otherNames[slotIndex];
-        if (requestedTextureNames != nullptr) {
-            (*requestedTextureNames)[slotIndex].clear();
-        }
     }
     if (isLoaded()) {
         deserialized = false;
@@ -219,7 +253,12 @@ ImGuiResult Material::addImGuiEditorElements(const ImGuiRequest &request) {
         if (textureName.empty()) {
             ImGui::Text("%s Texture: not set", slot.displayName);
         } else {
-            ImGui::Text("%s Texture: %s", slot.displayName, textureName.at(0).c_str());
+            std::string resolvedFile = getResolvedTextureName(slotIndex).at(0);
+            if (resolvedFile != textureName.at(0)) {
+                ImGui::Text("%s Texture: %s, using %s", slot.displayName, textureName.at(0).c_str(), resolvedFile.c_str());
+            } else {
+                ImGui::Text("%s Texture: %s", slot.displayName, textureName.at(0).c_str());
+            }
         }
         if (request.imgGuiHelper != nullptr) {
             ImGui::SameLine();
@@ -272,9 +311,6 @@ void Material::assignTexture(const TextureSlot &slot, const std::shared_ptr<Text
         textureNames = std::make_shared<std::vector<std::vector<std::string>>>(TEXTURE_SLOT_COUNT);
     }
     (*textureNames)[slotIndex] = acquiredTexture != nullptr ? acquiredTexture->getName() : std::vector<std::string>();
-    if (requestedTextureNames != nullptr) {
-        (*requestedTextureNames)[slotIndex].clear();
-    }
 }
 
 bool Material::putRemoveTextureButton(const TextureSlot &slot) {
@@ -294,7 +330,7 @@ bool Material::putRemoveTextureButton(const TextureSlot &slot) {
 }
 
 void Material::putTextureColorSpace(const TextureSlot &slot, size_t slotIndex) {
-    std::vector<std::string> textureName = getTextureName(slotIndex);
+    std::vector<std::string> textureName = getResolvedTextureName(slotIndex);//the color space belongs to the file
     if (textureName.empty()) {
         return;
     }

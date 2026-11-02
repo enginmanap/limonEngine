@@ -79,6 +79,9 @@ private:
      * vector has vector<string>, because embedded textures are saved with pairs, first element is the index, second element is the model file itself.
      *
      * Never cleared, the packer thread reads these while the main thread sets and clears the texture pointers below.
+     *
+     * What was asked for, by the asset or by whoever edited a copy, never what a lookup by name found instead. The hash, the files
+     * and the world all keep this, the file it loads is resolveTexturePath of it, looked up whenever it is needed.
      */
 
 
@@ -91,8 +94,6 @@ private:
     std::shared_ptr<TextureAsset> normalTexture = nullptr;
     std::shared_ptr<TextureAsset> opacityTexture = nullptr;
 
-    //only the slots load repaired, printed when the texture is used
-    std::unique_ptr<std::array<std::string, 5>> requestedTextureNames;
 #ifdef CEREAL_SUPPORT
     friend class cereal::access;
 #endif
@@ -137,8 +138,12 @@ private:
     //records the file only, doesn't touch maps, same as the public setters
     void setTextureName(const TextureSlot &slot, const std::vector<std::string> &textureFiles);
 
-    //prints nothing, attachTexture says it if the texture is ever used
-    std::string resolveTexturePath(const std::string &requestedPath, bool &repaired) const;
+    //model files name textures wherever the artist kept them, so a path that isn't a file is looked up by name. Prints nothing,
+    //attachTexture says it if the texture is ever used. The path comes back as it is when nothing is found
+    std::string resolveTexturePath(const std::string &requestedPath) const;
+
+    //what a slot's request loads: the file it resolves to, embedded textures as they are
+    std::vector<std::string> resolveTextureName(const std::vector<std::string> &requestedName) const;
 
     std::string findTextureByName(const std::string &fileName) const;
     //takes a reference
@@ -451,26 +456,26 @@ public:
         return materialIndex != 0;
     }
 
-    std::vector<std::pair<std::string, std::string>> getTextureRepairs() const {
-        std::vector<std::pair<std::string, std::string>> repairs;
-        for (size_t slotIndex = 0; requestedTextureNames != nullptr && slotIndex < TEXTURE_SLOT_COUNT; ++slotIndex) {
-            if (!(*requestedTextureNames)[slotIndex].empty()) {
-                repairs.emplace_back((*requestedTextureNames)[slotIndex], (*textureNames)[slotIndex][0]);
-            }
-        }
-        return repairs;
-    }
+    //what loads, the request resolved. Same as getTextureName unless a lookup by name replaces the request
+    std::vector<std::string> getResolvedTextureName(size_t slotIndex) const;
 
+    //asked for, using. Slots whose request is not a file but another file is found by name
+    std::vector<std::pair<std::string, std::string>> getTextureRepairs() const;
+
+    //every file this material loads, resolved
     std::vector<std::vector<std::string>> getTextureFiles() const {
         std::vector<std::vector<std::string>> textureFiles;
         for (size_t slotIndex = 0; slotIndex < TEXTURE_SLOT_COUNT; ++slotIndex) {
-            std::vector<std::string> textureName = getTextureName(slotIndex);
+            std::vector<std::string> textureName = getResolvedTextureName(slotIndex);
             if (!textureName.empty()) {
                 textureFiles.push_back(textureName);
             }
         }
         return textureFiles;
     }
+
+    //after the asset tree was rebuilt: a loaded texture whose request now resolves to another file is swapped
+    void reresolveTextures();
 
     //"*N" of each texture embedded in owner, the images a file written for this material has to carry
     void addEmbeddedTextureIndices(const std::string &owner, std::set<uint32_t> &indices) const;
@@ -543,7 +548,6 @@ public:
         }
     }
 
-    //before registering, the hash needs the repaired names
     void afterLoad(AssetManager* assetManager) {
         this->assetManager = assetManager;
         if (textureNames == nullptr) {

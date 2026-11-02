@@ -180,7 +180,14 @@ std::string AssetTreeManager::findFirstAssetPathByName(AssetTreeManager::AssetTy
     if (availableAssetsRootNode == nullptr) {
         return "";
     }
-    return findFirstAssetPathByNameRecursive(availableAssetsRootNode, type, nameLower);
+    std::pair<AssetTypes, std::string> lookupKey = std::make_pair(type, nameLower);
+    std::map<std::pair<AssetTypes, std::string>, std::string>::const_iterator knownLookup = nameLookups.find(lookupKey);
+    if (knownLookup != nameLookups.end()) {
+        return knownLookup->second;
+    }
+    std::string found = findFirstAssetPathByNameRecursive(availableAssetsRootNode, type, nameLower);
+    nameLookups[lookupKey] = found;
+    return found;
 }
 
 std::string AssetTreeManager::findFirstAssetPathByNameRecursive(const AvailableAssetsNode *assetsNode, AssetTreeManager::AssetTypes type, const std::string &nameLower) {
@@ -318,6 +325,7 @@ bool AssetTreeManager::applyPendingAssetListReload() {
             delete treeIterator->second;
         }
         filteredResults.clear();
+        nameLookups.clear();
         delete availableAssetsRootNode;
         availableAssetsRootNode = pendingAssetsRootNode;
     }

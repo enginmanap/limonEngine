@@ -783,7 +783,9 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
             }
         }
 
-        world->assetManager->getTree()->applyPendingAssetListReload();
+        if (world->assetManager->getTree()->applyPendingAssetListReload()) {
+            world->assetManager->getMaterialRegistry().reresolveLoadedTextures();//a texture added or moved is what a repaired request finds now
+        }
 
         //list available elements
         static uint32_t lastAssetListVersion = 0;

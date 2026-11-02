@@ -45,6 +45,9 @@ public:
     //GL context thread, the last one can free a texture's last reference, and ~Texture deletes it on the GPU
     void unloadMaterial(const std::shared_ptr<const Material> &material);
 
+    //after the asset tree was rebuilt, GL context thread. Loaded materials whose texture requests now resolve elsewhere swap their files
+    void reresolveLoadedTextures();
+
     /**
      * A copy, taken under the lock, because registerMaterial runs on the background asset threads while the
      * editor walks this. Handing out a reference to the live map was a data race whatever container it used:

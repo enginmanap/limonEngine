@@ -132,6 +132,21 @@ void MaterialRegistry::unloadMaterial(const std::shared_ptr<const Material> &mat
     released->detachTextures();//not under our lock, freeAsset takes the asset lock
 }
 
+void MaterialRegistry::reresolveLoadedTextures() {
+    std::vector<std::shared_ptr<Material>> loadedMaterials;
+    {
+        std::lock_guard<std::mutex> lock(materialsMutex);
+        for (std::map<uint32_t, MaterialRegistryEntry>::const_iterator materialIt = materials.begin(); materialIt != materials.end(); ++materialIt) {
+            if (materialIt->second.loads != 0) {
+                loadedMaterials.push_back(materialIt->second.material);
+            }
+        }
+    }
+    for (const std::shared_ptr<Material> &loadedMaterial : loadedMaterials) {
+        loadedMaterial->reresolveTextures();//not under our lock, it takes the asset lock
+    }
+}
+
 void MaterialRegistry::fillMaterialsSnapshot(std::vector<std::pair<uint32_t, std::shared_ptr<Material>>> &outSnapshot) const {
     std::lock_guard<std::mutex> lock(materialsMutex);
     outSnapshot.clear();//keeps its capacity, so a rebuild does not go back to the heap
