@@ -18,6 +18,7 @@
 #include "BoneNode.h"
 
 class AssetManager;
+class Material;
 class ModelAsset;
 
 /**
@@ -41,7 +42,8 @@ public:
     static std::unique_ptr<ModelAsset> buildPiece(AssetManager *assetManager, const aiScene *scene, uint32_t meshIndex, bool mirrorX,
                                                   const std::string &sourcePath, const std::string &piecePath, const std::string &meshName,
                                                   const aiNode *skeletonRoot, const std::set<const aiNode *> &skeletonNodes,
-                                                  const glm::mat4 &skeletonPlacement);
+                                                  const glm::mat4 &skeletonPlacement,
+                                                  const std::map<std::string, std::string> &missingTextureStandIns);
 
     //the meshes a set of animations moves. groupRoot's global is the object's transform, so the clips must already name
     //this tree's nodes and key the root relative to its rest
@@ -49,7 +51,11 @@ public:
                                                            const std::set<const aiNode *> &groupNodes,
                                                            const std::set<std::pair<const aiNode *, uint32_t>> &groupMeshes,
                                                            const std::vector<aiAnimation *> &groupClips,
-                                                           const std::string &sourcePath, const std::string &groupPath);
+                                                           const std::string &sourcePath, const std::string &groupPath,
+                                                           const std::map<std::string, std::string> &missingTextureStandIns);
+
+    //every material of the scene as a model load would read it, unregistered so identical ones stay separate. Null where Assimp gave no name
+    static std::vector<std::shared_ptr<Material>> readSceneMaterials(AssetManager *assetManager, const aiScene *scene, const std::string &sourcePath);
 };
 
 

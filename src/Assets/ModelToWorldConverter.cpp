@@ -18,6 +18,7 @@
 #include "AssetManager.h"
 #include "ModelAsset.h"
 #include "ModelAssetBuilder.h"
+#include "../Material.h"
 #include "../Transformation.h"
 #include "../World.h"
 #include "../XMLHelper.h"
@@ -1014,6 +1015,42 @@ void ModelToWorldConverter::collectInstances(const aiScene *scene, const aiNode 
     }
 }
 
+//differently named materials are different materials, but registering merges the ones with the same content
+void ModelToWorldConverter::findIdenticalMaterials(const aiScene *scene) {
+    std::vector<std::shared_ptr<Material>> sceneMaterials = ModelAssetBuilder::readSceneMaterials(assetManager.get(), scene, sourcePath);
+    std::set<uint32_t> usedMaterialIndices;
+    for (unsigned int meshIndex = 0; meshIndex < scene->mNumMeshes; ++meshIndex) {
+        usedMaterialIndices.insert(scene->mMeshes[meshIndex]->mMaterialIndex);
+    }
+    std::map<uint64_t, std::map<std::string, std::shared_ptr<Material>>> materialsByContent;
+    for (uint32_t materialIndex : usedMaterialIndices) {
+        const std::shared_ptr<Material> &sceneMaterial = sceneMaterials[materialIndex];
+        if (sceneMaterial == nullptr) {
+            continue;
+        }
+        materialsByContent[sceneMaterial->getHash()][sceneMaterial->getName()] = sceneMaterial;
+    }
+    std::set<std::string> usedPaths;
+    for (const std::pair<const uint64_t, std::map<std::string, std::shared_ptr<Material>>> &sameContent : materialsByContent) {
+        if (sameContent.second.size() < 2) {
+            continue;
+        }
+        for (const std::pair<const std::string, std::shared_ptr<Material>> &namedMaterial : sameContent.second) {
+            std::string standInPath = "Converter/Missing/" + sanitizeForFileName(namedMaterial.first);
+            while (usedPaths.count(standInPath) != 0) {
+                standInPath += "_";//two names that sanitize alike would merge again
+            }
+            if (!ModelAsset::setStandInTexture(*namedMaterial.second, standInPath + ".png")) {
+                break;//every slot it can use is set, so they are the same material
+            }
+            usedPaths.insert(standInPath);
+            missingTextureStandIns[namedMaterial.first] = standInPath + ".png";
+        }
+    }
+    std::cout << missingTextureStandIns.size() << " of " << usedMaterialIndices.size() << " used materials look identical to another under a different name, "
+              << "they get a texture path under Converter/Missing/ to stay apart" << std::endl;
+}
+
 bool ModelToWorldConverter::convert() {
     std::cout << "Converting " << sourcePath << " into " << outputDirectory << " with scale " << scale << std::endl;
     if (!(scale > 0.0f)) {
@@ -1073,6 +1110,7 @@ bool ModelToWorldConverter::convert() {
     if (!embeddedTextures.empty()) {
         assetManager->addEmbeddedTextures(sourcePath, embeddedTextures);
     }
+    findIdenticalMaterials(scene);
 
     uint32_t groupFileCount = 0;
     for (const AnimationGroup &group : animationGroups) {
@@ -1116,7 +1154,7 @@ bool ModelToWorldConverter::convert() {
                   << " nodes, " << clips.size() << " animations: " << group.filePath << std::endl;
         std::unique_ptr<ModelAsset> groupAsset = ModelAssetBuilder::buildAnimationGroup(assetManager.get(), scene, group.root,
                                                                                         group.treeNodes, group.meshReferences, clips,
-                                                                                        sourcePath, group.filePath);
+                                                                                        sourcePath, group.filePath, missingTextureStandIns);
         ModelAsset::LimonConversion groupConversion;//the generated world refers to no material, only the key is used
         if (!groupAsset->convertToLimon(group.filePath, group.filePath, groupConversion)) {
             anyPieceFailed = true;
@@ -1153,7 +1191,8 @@ void ModelToWorldConverter::buildPieces(const aiScene *scene, const std::vector<
                                                                                pieceIterator->second.firstNodeName,
                                                                                pieceIterator->second.skeletonRoot,
                                                                                pieceIterator->second.skeletonNodes,
-                                                                               pieceIterator->second.skeletonPlacement);
+                                                                               pieceIterator->second.skeletonPlacement,
+                                                                               missingTextureStandIns);
         ModelAsset::LimonConversion pieceConversion;//the generated world refers to no material, only the key is used
         if (!pieceAsset->convertToLimon(pieceIterator->second.filePath, pieceIterator->second.filePath, pieceConversion)) {
             anyPieceFailed = true;

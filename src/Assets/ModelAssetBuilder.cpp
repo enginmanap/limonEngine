@@ -16,8 +16,10 @@
 std::unique_ptr<ModelAsset> ModelAssetBuilder::buildPiece(AssetManager *assetManager, const aiScene *scene, uint32_t meshIndex, bool mirrorX,
                                                           const std::string &sourcePath, const std::string &piecePath, const std::string &meshName,
                                                           const aiNode *skeletonRoot, const std::set<const aiNode *> &skeletonNodes,
-                                                          const glm::mat4 &skeletonPlacement) {
+                                                          const glm::mat4 &skeletonPlacement,
+                                                          const std::map<std::string, std::string> &missingTextureStandIns) {
     std::unique_ptr<ModelAsset> asset(new ModelAsset(assetManager, piecePath));
+    asset->missingTextureStandIns = &missingTextureStandIns;
     asset->sourcePath = sourcePath;
     asset->reverseWinding = mirrorX;
     asset->hasAnimation = false;
@@ -33,6 +35,7 @@ std::unique_ptr<ModelAsset> ModelAssetBuilder::buildPiece(AssetManager *assetMan
 
     const aiMesh *sourceMesh = scene->mMeshes[meshIndex];
     std::shared_ptr<Material> meshMaterial = asset->loadMaterials(scene, sourceMesh->mMaterialIndex);
+    asset->missingTextureStandIns = nullptr;
     //no node transform on purpose, every node using this mesh places it through its own object transform
     glm::mat4 mirrorTransform = mirrorX ? glm::scale(glm::mat4(1.0f), glm::vec3(-1.0f, 1.0f, 1.0f)) : glm::mat4(1.0f);
     std::shared_ptr<MeshAsset> mesh = std::make_shared<MeshAsset>(sourceMesh, meshName, asset->rootNode, mirrorTransform, false, asset->reverseWinding);
@@ -62,8 +65,10 @@ std::unique_ptr<ModelAsset> ModelAssetBuilder::buildAnimationGroup(AssetManager 
                                                                    const std::set<const aiNode *> &groupNodes,
                                                                    const std::set<std::pair<const aiNode *, uint32_t>> &groupMeshes,
                                                                    const std::vector<aiAnimation *> &groupClips,
-                                                                   const std::string &sourcePath, const std::string &groupPath) {
+                                                                   const std::string &sourcePath, const std::string &groupPath,
+                                                                   const std::map<std::string, std::string> &missingTextureStandIns) {
     std::unique_ptr<ModelAsset> asset(new ModelAsset(assetManager, groupPath));
+    asset->missingTextureStandIns = &missingTextureStandIns;
     asset->sourcePath = sourcePath;
     asset->hasAnimation = true;
     //the root's rest transform is the object's, so the tree starts at identity and the gizmo sits on the model
@@ -72,6 +77,7 @@ std::unique_ptr<ModelAsset> ModelAssetBuilder::buildAnimationGroup(AssetManager 
     asset->rootNode = asset->loadNodeTree(groupRoot, &groupNodes);
     asset->rootNode->transformation = glm::mat4(1.0f);
     asset->createMeshes(scene, groupRoot, belowRootRest, &groupMeshes);
+    asset->missingTextureStandIns = nullptr;
     if (asset->meshes.empty()) {
         std::cerr << "Animation group " << groupPath << " of " << sourcePath << " has no mesh with triangles." << std::endl;
         exit(-1);
@@ -90,6 +96,19 @@ std::unique_ptr<ModelAsset> ModelAssetBuilder::buildAnimationGroup(AssetManager 
     asset->centerOffset = (asset->boundingBoxMin + asset->boundingBoxMax) / 2.0f;
     asset->buildPhysicsMeshes();
     return asset;
+}
+
+std::vector<std::shared_ptr<Material>> ModelAssetBuilder::readSceneMaterials(AssetManager *assetManager, const aiScene *scene, const std::string &sourcePath) {
+    ModelAsset reader(assetManager, sourcePath);
+    reader.sourcePath = sourcePath;//owner of the embedded textures a material names
+    std::vector<std::shared_ptr<Material>> materials(scene->mNumMaterials);
+    for (unsigned int materialIndex = 0; materialIndex < scene->mNumMaterials; ++materialIndex) {
+        aiString materialName;
+        if (AI_SUCCESS == scene->mMaterials[materialIndex]->Get(AI_MATKEY_NAME, materialName)) {
+            materials[materialIndex] = reader.readMaterial(scene->mMaterials[materialIndex], materialName.C_Str());
+        }
+    }
+    return materials;
 }
 
 void ModelAssetBuilder::collectRestGlobals(const std::shared_ptr<BoneNode> &boneNode, const glm::mat4 &parentTransform,

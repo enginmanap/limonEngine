@@ -36,9 +36,9 @@ private:
 
 
     #ifdef ASSIMP_VALIDATE_WORKAROUND
-    static constexpr unsigned int ASSIMP_FLAGS = (aiProcess_GlobalScale|aiProcess_GenBoundingBoxes | aiProcess_FlipUVs | aiProcessPreset_TargetRealtime_MaxQuality) & ~aiProcess_FindInvalidData;
+    static constexpr unsigned int ASSIMP_FLAGS = (aiProcess_GlobalScale|aiProcess_GenBoundingBoxes | aiProcess_FlipUVs | aiProcessPreset_TargetRealtime_MaxQuality) & ~aiProcess_FindInvalidData & ~aiProcess_RemoveRedundantMaterials;
     #else
-    static constexpr  unsigned int ASSIMP_FLAGS = (aiProcess_GlobalScale|aiProcess_GenBoundingBoxes | aiProcess_FlipUVs | aiProcessPreset_TargetRealtime_MaxQuality);
+    static constexpr  unsigned int ASSIMP_FLAGS = (aiProcess_GlobalScale|aiProcess_GenBoundingBoxes | aiProcess_FlipUVs | aiProcessPreset_TargetRealtime_MaxQuality) & ~aiProcess_RemoveRedundantMaterials;
     #endif
     void loadCPUPart() override;
     void loadGPUPart() override;
@@ -106,7 +106,10 @@ private:
 
     bool transparentMaterialUsed = false;
 
+    std::shared_ptr<Material> readMaterial(const aiMaterial *currentMaterial, const std::string &materialName);
     std::shared_ptr<Material> loadMaterials(const aiScene *scene, unsigned int materialIndex);
+    //material name to the made up texture path it gets so it doesn't dedup with its twins. Only ModelAssetBuilder sets it, and clears it before it returns
+    const std::map<std::string, std::string> *missingTextureStandIns = nullptr;
 
     void loadConvertedCPUPart();
 
@@ -181,6 +184,9 @@ private:
     ModelAsset(AssetManager *assetManager, const std::string &path);
 
 public:
+    //names the first empty slot of diffuse, ambient, specular. Normal and opacity are never used, a stand-in there breaks lighting or discards pixels. False when all three are taken
+    static bool setStandInTexture(Material &material, const std::string &standInPath);
+
     void bakeAllOccluderLods();//the limonmodel export calls this, load only bakes the level the option asks for
 
     //the steps, where they are used, and everything the editor edits about them

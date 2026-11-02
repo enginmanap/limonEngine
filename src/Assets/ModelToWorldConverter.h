@@ -114,6 +114,9 @@ class ModelToWorldConverter {
     std::vector<ModelGroupNode> modelGroups;//parents before children, so a group's parent is always written first
     std::map<const aiNode *, uint32_t> modelGroupOfNode;
 
+    std::map<std::string, std::string> missingTextureStandIns;//material name to the made up texture path it gets
+
+    void findIdenticalMaterials(const aiScene *scene);
     void indexNodes(const aiNode *node, const aiNode *parent);
     void collectMeshReferences(const aiScene *scene, const aiNode *node, std::vector<std::pair<const aiNode *, uint32_t>> &meshReferences) const;
     void findAnimationGroups(const aiScene *scene);
