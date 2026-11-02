@@ -456,6 +456,9 @@ public:
         return materialIndex != 0;
     }
 
+    //files a slot names that are not there, they load the not found texture. Embedded textures are not files
+    std::vector<std::string> getMissingTextureFiles() const;
+
     //what loads, the request resolved. Same as getTextureName unless a lookup by name replaces the request
     std::vector<std::string> getResolvedTextureName(size_t slotIndex) const;
 

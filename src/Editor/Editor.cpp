@@ -600,12 +600,77 @@ void Editor::holdSelectedMaterial(const std::shared_ptr<Material> &material) {
     heldSelectedMaterial = material;
 }
 
-bool Editor::isMaterialListedBefore(const std::pair<uint32_t, std::shared_ptr<Material>> &left,
-                                    const std::pair<uint32_t, std::shared_ptr<Material>> &right) {
-    if (left.second->getName() != right.second->getName()) {
-        return left.second->getName() < right.second->getName();
+//the player's placeholder is drawn but never joins objects, every other model, attachments included, is in objects
+void Editor::collectMaterialsInUse(std::unordered_set<uint32_t> &registrationIDs) const {
+    for (std::unordered_map<uint32_t, Model *>::const_iterator objectIt = world->objects.begin(); objectIt != world->objects.end(); ++objectIt) {
+        for (const Model::MeshMeta *meshMeta : objectIt->second->getMeshMetaData()) {
+            registrationIDs.insert(meshMeta->material->getRegistrationID());
+        }
     }
-    return left.first < right.first;//base is registered before its override, so it comes first
+    if (world->playerPlaceHolder != nullptr) {
+        for (const Model::MeshMeta *meshMeta : world->playerPlaceHolder->getMeshMetaData()) {
+            registrationIDs.insert(meshMeta->material->getRegistrationID());
+        }
+    }
+}
+
+void Editor::showMaterialRows(const std::vector<std::pair<uint32_t, std::shared_ptr<Material>>> &rows, const char *listBoxID,
+                              std::shared_ptr<Material> &selectedMaterial) {
+    if (!ImGui::BeginListBox(listBoxID)) {
+        return;
+    }
+    for (std::vector<std::pair<uint32_t, std::shared_ptr<Material>>>::const_iterator it = rows.begin(); it != rows.end(); ++it) {
+        bool isSelected = selectedRegistrationID == it->first;
+        if (isSelected) {
+            selectedMaterial = it->second;//keyed by identity, so a selection can not go stale
+        }
+        std::unordered_map<uint32_t, std::string>::const_iterator knownLabel = materialRowLabels.find(it->first);
+        const std::string &rowLabel = knownLabel != materialRowLabels.end() ? knownLabel->second : it->second->getName();
+        //the text is drawn by hand so the icons have a column, the ID after ### keeps the row's identity
+        std::unordered_map<uint32_t, uint8_t>::const_iterator textureProblem = materialTextureProblems.find(it->first);
+        uint8_t problemBits = textureProblem == materialTextureProblems.end() ? 0 : textureProblem->second;
+        const float iconSize = std::min(ImGui::GetTextLineHeight(), 16.0f);
+        const float iconColumnWidth = materialTextureProblems.empty() ? 0.0f : 2.0f * (iconSize + 2.0f);
+        if (ImGui::Selectable(("###" + std::to_string(it->first)).c_str(), isSelected)) {
+            selectedRegistrationID = it->first;
+            selectedMaterial = it->second;
+        }
+        ImVec2 rowMin = ImGui::GetItemRectMin();
+        ImDrawList *rowDrawList = ImGui::GetWindowDrawList();
+        rowDrawList->AddText(ImVec2(rowMin.x + iconColumnWidth, rowMin.y), ImGui::GetColorU32(ImGuiCol_Text),
+                             (rowLabel + " -> " + std::to_string(it->first)).c_str());
+        float iconX = rowMin.x;
+        const std::pair<uint8_t, ImGuiHelper::Icon> rowIcons[2] = {{TEXTURE_PROBLEM_MISSING, ImGuiHelper::Icon::ERROR_SIGN},
+                                                                   {TEXTURE_PROBLEM_REPAIRED, ImGuiHelper::Icon::WARNING_SIGN}};
+        for (const std::pair<uint8_t, ImGuiHelper::Icon> &rowIcon : rowIcons) {
+            if ((problemBits & rowIcon.first) == 0) {
+                continue;
+            }
+            ImGuiImageWrapper *iconWrapper = imgGuiHelper->getIcon(rowIcon.second);
+            if (iconWrapper != nullptr) {
+                rowDrawList->AddImage((ImTextureID)(intptr_t)iconWrapper, ImVec2(iconX, rowMin.y), ImVec2(iconX + iconSize, rowMin.y + iconSize));
+            }
+            iconX += iconSize + 2.0f;
+        }
+        if (problemBits != 0 && ImGui::IsItemHovered()) {
+            ImGui::BeginTooltip();
+            for (const std::string &missingFile : it->second->getMissingTextureFiles()) {
+                ImGui::Text("No file at %s, loads the not found texture", missingFile.c_str());
+            }
+            for (const std::pair<std::string, std::string> &repair : it->second->getTextureRepairs()) {
+                ImGui::Text("Asked for %s, using %s", repair.first.c_str(), repair.second.c_str());
+            }
+            ImGui::EndTooltip();
+        }
+        //a split or the model selection can pick a row that is scrolled out of view
+        if (isSelected && lastScrolledRegistrationID != it->first) {
+            lastScrolledRegistrationID = it->first;
+            if (!ImGui::IsItemVisible()) {
+                ImGui::SetScrollHereY(0.5f);
+            }
+        }
+    }
+    ImGui::EndListBox();
 }
 
 //points every mesh in this world that uses baseMaterial at overrideMaterial
@@ -1674,6 +1739,7 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
         }
 
         if(ImGui::CollapsingHeader("List materials")) {
+            ImGui::Indent();//a header doesn't indent what is under it, without this the Not in use header reads as a sibling of this one
             //listing
             static bool syncWithObjectSelection = true;
             ImGui::Checkbox("follow model material selection", &syncWithObjectSelection);
@@ -1683,45 +1749,77 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
                 }
                 selectedMeshMaterial = nullptr;
             }
-            bool isSelected = false;
             /*
              * A copy, because the background asset threads register materials while we walk this. Rebuilt
              * only when the registry actually changed, so browsing the list costs nothing per frame - the
              * vector keeps its capacity, so a rebuild does not go back to the heap either.
              */
             MaterialRegistry& materialRegistry = world->assetManager->getMaterialRegistry();
+            bool materialsSnapshotRebuilt = false;
             if (materialsSnapshotVersion != materialRegistry.getMaterialsVersion()) {
                 materialsSnapshotVersion = materialRegistry.getMaterialsVersion();
                 materialRegistry.fillMaterialsSnapshot(materialsSnapshot);
-                std::sort(materialsSnapshot.begin(), materialsSnapshot.end(), isMaterialListedBefore);
+                materialsSnapshotRebuilt = true;
             }
-            const std::vector<std::pair<uint32_t, std::shared_ptr<Material>>>& allMaterials = materialsSnapshot;
-            ImGui::Text("Total material count is %lu", (unsigned long) allMaterials.size());
-            std::shared_ptr<Material> selectedMaterial = nullptr;
-            if (ImGui::BeginListBox("Materials")) {
-                for (std::vector<std::pair<uint32_t, std::shared_ptr<Material>>>::const_iterator it = allMaterials.begin(); it != allMaterials.end(); ++it) {
-                    isSelected = selectedRegistrationID == it->first;
-                    if (isSelected) {
-                        selectedMaterial = it->second;//keyed by identity, so a selection can not go stale
+            if (materialsSnapshotRebuilt || ImGui::GetTime() - materialTextureProblemsTime > 1.0) {
+                materialTextureProblemsTime = ImGui::GetTime();
+                materialTextureProblems.clear();
+                for (const std::pair<uint32_t, std::shared_ptr<Material>> &listedMaterial : materialsSnapshot) {
+                    uint8_t problemBits = 0;
+                    if (!listedMaterial.second->getMissingTextureFiles().empty()) {
+                        problemBits |= TEXTURE_PROBLEM_MISSING;
                     }
-                    //derived, not stored: the base is usually ModelAsset's own material, shared by every
-                    //world and cached to disk, so it must not be renamed just because this world overrode it
-                    std::string rowLabel = world->isOverriddenBase(*it->second)
-                                           ? "base_" + it->second->getName()
-                                           : it->second->getName();
-                    if (ImGui::Selectable((rowLabel + " -> " + std::to_string(it->first)).c_str(), isSelected)) {
-                        selectedRegistrationID = it->first;
-                        selectedMaterial = it->second;
+                    if (!listedMaterial.second->getTextureRepairs().empty()) {
+                        problemBits |= TEXTURE_PROBLEM_REPAIRED;
                     }
-                    //a split or the model selection can pick a row that is scrolled out of view
-                    if (isSelected && lastScrolledRegistrationID != it->first) {
-                        lastScrolledRegistrationID = it->first;
-                        if (!ImGui::IsItemVisible()) {
-                            ImGui::SetScrollHereY(0.5f);
-                        }
+                    if (problemBits != 0) {
+                        materialTextureProblems[listedMaterial.first] = problemBits;
                     }
                 }
-                ImGui::EndListBox();
+                //a Switch material click changes what is shown without moving the registry, so this rides the timer too
+                std::unordered_set<uint32_t> materialsInUse;
+                collectMaterialsInUse(materialsInUse);
+                //sorted by what the row shows, case ignored. The id only breaks ties
+                materialRowLabels.clear();
+                std::vector<std::pair<std::string, std::pair<uint32_t, std::shared_ptr<Material>>>> orderedInUse;
+                std::vector<std::pair<std::string, std::pair<uint32_t, std::shared_ptr<Material>>>> orderedNotInUse;
+                for (const std::pair<uint32_t, std::shared_ptr<Material>> &listedMaterial : materialsSnapshot) {
+                    //derived, not stored: the base is usually ModelAsset's own material, shared by every
+                    //world and cached to disk, so it must not be renamed just because this world overrode it
+                    std::string rowLabel = world->isOverriddenBase(*listedMaterial.second)
+                                           ? "base_" + listedMaterial.second->getName()
+                                           : listedMaterial.second->getName();
+                    materialRowLabels[listedMaterial.first] = rowLabel;
+                    std::string sortKey = rowLabel;
+                    std::transform(sortKey.begin(), sortKey.end(), sortKey.begin(), ::tolower);
+                    (materialsInUse.count(listedMaterial.first) != 0 ? orderedInUse : orderedNotInUse).emplace_back(sortKey, listedMaterial);
+                }
+                std::sort(orderedInUse.begin(), orderedInUse.end());
+                std::sort(orderedNotInUse.begin(), orderedNotInUse.end());
+                materialsInUseRows.clear();
+                materialsNotInUseRows.clear();
+                for (const std::pair<std::string, std::pair<uint32_t, std::shared_ptr<Material>>> &orderedRow : orderedInUse) {
+                    materialsInUseRows.push_back(orderedRow.second);
+                }
+                for (const std::pair<std::string, std::pair<uint32_t, std::shared_ptr<Material>>> &orderedRow : orderedNotInUse) {
+                    materialsNotInUseRows.push_back(orderedRow.second);
+                }
+            }
+            ImGui::Text("Total material count is %lu", (unsigned long) materialsSnapshot.size());
+            std::shared_ptr<Material> selectedMaterial = nullptr;
+            ImGui::Text("In use by this world (%lu)", (unsigned long) materialsInUseRows.size());
+            showMaterialRows(materialsInUseRows, "##MaterialsInUse", selectedMaterial);
+            //collapsed by default. The ID after ### keeps it from closing again every time the count changes
+            if (ImGui::CollapsingHeader(("Not in use (" + std::to_string(materialsNotInUseRows.size()) + ")###MaterialsNotInUse").c_str())) {
+                showMaterialRows(materialsNotInUseRows, "##MaterialsNotInUse", selectedMaterial);
+            } else if (selectedMaterial == nullptr) {
+                //a selection in the hidden list is still the selection, the editor below needs it
+                for (const std::pair<uint32_t, std::shared_ptr<Material>> &hiddenRow : materialsNotInUseRows) {
+                    if (hiddenRow.first == selectedRegistrationID) {
+                        selectedMaterial = hiddenRow.second;
+                        break;
+                    }
+                }
             }
             if (selectedMaterial != snapshotSourceMaterial) {
                 //snapshot before anything can be dragged, so an asset owned material can be put back exactly
@@ -1749,6 +1847,7 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
                     refreshTransparencyTagsOfMaterialUsers(selectedMaterial);
                 }
             }
+            ImGui::Unindent();
         }
         ImGui::EndDisabled();
         ImGui::End();

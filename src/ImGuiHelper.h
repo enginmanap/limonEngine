@@ -38,6 +38,7 @@ struct ImGuiImageWrapper {
 class ImGuiHelper {
 public:
     enum class PreviewMode { NoPreview, Preview };
+    enum class Icon { ERROR_SIGN, WARNING_SIGN, COUNT };
 
 private:
     ImGuiImageWrapper fontTexture;
@@ -94,6 +95,8 @@ private:
 
     std::shared_ptr<AssetManager> assetManager;
     TexturePreviewCache previewCache;
+    ImGuiImageWrapper iconWrappers[static_cast<size_t>(Icon::COUNT)];
+    bool iconLoadTried[static_cast<size_t>(Icon::COUNT)] = {false, false};
     const AssetTreeManager::AvailableAssetsNode* pickedTextureAsset = nullptr;//only one texture picker popup is open at a time
     GraphicsInterface* graphicsWrapper = nullptr;
     OptionsUtil::Options* options;
@@ -151,6 +154,9 @@ private:
     static ImGuiKey SDL2KeyEventToImGuiKey(uint32_t keycodeInt);
 
 public:
+    //16 px, drawn at the text line height. Loaded on first use, null when its file is missing. Flipped uv like every other texture here, see the Image calls in Editor
+    ImGuiImageWrapper *getIcon(Icon icon);
+
     ImGuiHelper(std::shared_ptr<AssetManager> assetManager, OptionsUtil::Options* options);
     ~ImGuiHelper();
     void        NewFrame(std::shared_ptr<GraphicsProgram> graphicsProgram);

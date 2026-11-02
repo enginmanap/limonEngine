@@ -503,8 +503,32 @@ ImGuiHelper::ImGuiHelper(std::shared_ptr<AssetManager> assetManager, OptionsUtil
     displayWidth = options->getOption<long>(HASH("display_width"));
 }
 
+static const char *getIconPath(ImGuiHelper::Icon icon) {
+    return icon == ImGuiHelper::Icon::ERROR_SIGN ? "./Engine/Textures/editorIconError.png" : "./Engine/Textures/editorIconWarning.png";
+}
+
+ImGuiImageWrapper *ImGuiHelper::getIcon(Icon icon) {
+    size_t iconIndex = static_cast<size_t>(icon);
+    if (!iconLoadTried[iconIndex]) {
+        iconLoadTried[iconIndex] = true;
+        std::shared_ptr<TextureAsset> iconAsset = assetManager->loadAsset<TextureAsset>({getIconPath(icon)});
+        if (iconAsset != nullptr && iconAsset->getTexture() != nullptr && !iconAsset->hasLoadFailed()) {
+            iconWrappers[iconIndex].texture = iconAsset->getTexture();
+        } else {
+            assetManager->freeAsset({getIconPath(icon)});//the fallback texture is no icon, the row just goes without
+        }
+    }
+    return iconWrappers[iconIndex].texture != nullptr ? &iconWrappers[iconIndex] : nullptr;
+}
+
 ImGuiHelper::~ImGuiHelper()
 {
+    for (size_t iconIndex = 0; iconIndex < static_cast<size_t>(Icon::COUNT); ++iconIndex) {
+        if (iconWrappers[iconIndex].texture != nullptr) {
+            iconWrappers[iconIndex].texture = nullptr;
+            assetManager->freeAsset({getIconPath(static_cast<Icon>(iconIndex))});
+        }
+    }
     InvalidateDeviceObjects();
     ImGui::DestroyContext(context);
 }

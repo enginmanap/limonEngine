@@ -90,9 +90,20 @@ class Editor {
     //the material list's own copy of the registry, rebuilt only when the registry's version moves
     std::vector<std::pair<uint32_t, std::shared_ptr<Material>>> materialsSnapshot;
     uint32_t materialsSnapshotVersion = 0;
-    //raw name, so a split keeps base_ next to its override instead of reordering the list
-    static bool isMaterialListedBefore(const std::pair<uint32_t, std::shared_ptr<Material>> &left,
-                                       const std::pair<uint32_t, std::shared_ptr<Material>> &right);
+    //per registration ID, only materials with a problem are in it. Files appear and go without the registry noticing, so it also refreshes on a timer
+    static constexpr uint8_t TEXTURE_PROBLEM_MISSING = 1;
+    static constexpr uint8_t TEXTURE_PROBLEM_REPAIRED = 2;
+    std::unordered_map<uint32_t, uint8_t> materialTextureProblems;
+    double materialTextureProblemsTime = -10.0;
+    //materialsSnapshot split by whether a mesh in the world shows it, rebuilt with the problems above, never kept in sync between rebuilds
+    std::vector<std::pair<uint32_t, std::shared_ptr<Material>>> materialsInUseRows;
+    std::vector<std::pair<uint32_t, std::shared_ptr<Material>>> materialsNotInUseRows;
+    void collectMaterialsInUse(std::unordered_set<uint32_t> &registrationIDs) const;
+    //draws one list box of material rows. A row that is selected sets selectedMaterial
+    void showMaterialRows(const std::vector<std::pair<uint32_t, std::shared_ptr<Material>>> &rows, const char *listBoxID,
+                          std::shared_ptr<Material> &selectedMaterial);
+    //what each row shows, base_ included, and what both lists sort by. Rebuilt with the lists
+    std::unordered_map<uint32_t, std::string> materialRowLabels;
     //once per selection, or the list snaps back every time the user scrolls away from it
     uint32_t lastScrolledRegistrationID = 0;
     //what the material list currently has picked, handed to the object pane so "Switch material" can apply it

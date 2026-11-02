@@ -131,6 +131,17 @@ void Material::loadTextures(const std::vector<std::shared_ptr<Material>> &materi
     }
 }
 
+std::vector<std::string> Material::getMissingTextureFiles() const {
+    std::vector<std::string> missingFiles;
+    for (size_t slotIndex = 0; slotIndex < TEXTURE_SLOT_COUNT; ++slotIndex) {
+        std::vector<std::string> textureName = getResolvedTextureName(slotIndex);
+        if (textureName.size() == 1 && !LimonFileSystem::fileExists(textureName[0])) {
+            missingFiles.push_back(textureName[0]);
+        }
+    }
+    return missingFiles;
+}
+
 void Material::attachTexture(size_t slotIndex, const std::shared_ptr<TextureAsset> &acquiredTexture) {
     this->*getTextureSlots()[slotIndex].texture = acquiredTexture;
     std::vector<std::string> requestedName = getTextureName(slotIndex);
