@@ -63,7 +63,6 @@ private:
     bool isPartOfAnimated;
 
     btTriangleMesh bulletMesh;
-    btShapeHull *bulletHull;
     std::map<uint32_t, btConvexHullShape *> bulletHullMap;
     std::map<uint32_t, btTransform> bulletParentTransformMap;
     std::vector<btTriangleMesh *> shapeCopies;
