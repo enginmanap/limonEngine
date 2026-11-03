@@ -714,10 +714,12 @@ bool PackageBuilder::run(const std::string &outputFile) {
             addFile(engineDataFile, "read by the engine");
         }
     }
+    std::string startingWorldFile;
     if (!startingWorldOverride.empty()) {
         //written even when there is no Release.xml on disk, the package has to start from this world
         packedFiles[LimonFileSystem::normalizePath(EngineDataFiles::RELEASE)] = "points the package at " + startingWorldOverride;
-        addFile(startingWorldOverride, "the world the package starts from, chosen at export");
+        startingWorldFile = startingWorldOverride;
+        addFile(startingWorldFile, "the world the package starts from, chosen at export");
     } else {
         tinyxml2::XMLDocument releaseDocument;
         const tinyxml2::XMLElement *startingWorldElement = nullptr;
@@ -730,7 +732,8 @@ bool PackageBuilder::run(const std::string &outputFile) {
             setStep(Step::DONE);
             return false;
         }
-        addFile(startingWorldElement->GetText(), "the starting world in Release.xml");
+        startingWorldFile = startingWorldElement->GetText();
+        addFile(startingWorldFile, "the starting world in Release.xml");
     }
 
     scanRenderPipeline();
@@ -739,6 +742,11 @@ bool PackageBuilder::run(const std::string &outputFile) {
         std::string worldFile = worldQueue.front();
         worldQueue.pop_front();
         succeeded = scanWorld(worldFile) && succeeded;
+    }
+    if (reachedWorlds.count(LimonFileSystem::normalizePath(startingWorldFile)) == 0) {
+        //unlike a missing texture this is never seen in the editor, the package would hold nothing the world shows
+        addProblem("the starting world " + startingWorldFile + " is not a world file under Data/, a world exported from the editor is found by its Name");
+        succeeded = false;
     }
 
     std::error_code removeError;

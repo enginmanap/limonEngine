@@ -53,6 +53,9 @@ void WorldReferenceScanner::scanTypeNames(const tinyxml2::XMLDocument &document,
 
 void WorldReferenceScanner::collectTextReferences(const tinyxml2::XMLElement *element, const std::set<std::string> &typeNames, References &references) {
     for (const tinyxml2::XMLElement *child = element->FirstChildElement(); child != nullptr; child = child->NextSiblingElement()) {
+        if (std::string(child->Name()) == "TextureColorSpaces") {
+            continue;//texture asset keys, not paths: a cube map's joins its folder and faces with commas
+        }
         const char *text = child->GetText();
         if (text != nullptr) {
             addDataPath(text, references);
