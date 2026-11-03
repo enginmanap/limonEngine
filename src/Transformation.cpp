@@ -89,8 +89,8 @@ Transformation::addImGuiEditorElements(const glm::mat4 &cameraMatrix, const glm:
             ImGui::Checkbox("##SnapCheckBox", &(editorState.useSnap));
             if(ImGui::IsItemHovered()) {
                 ImGui::BeginTooltip();
-                ImGui::Text("Builtin Camera tags are:");
-                ImGui::Text("shortcut S");
+                ImGui::Text("Snap movement to the step in the field next to it.");
+                ImGui::Text("Pressing left Ctrl switches snapping on and off.");
                 ImGui::EndTooltip();
             }
             ImGui::SameLine();
