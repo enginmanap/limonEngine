@@ -11,6 +11,7 @@
 #include "Occlusion/OcclusionCullerHelper.h"
 #include "Occlusion/RenderList.h"
 #include "CullingEntry.h"
+#include "limonAPI/Graphics/GraphicsInterface.h"//NR_MAX_MODELS
 
 
 class PhysicalRenderable;
@@ -85,7 +86,7 @@ public:
         mutable RenderList debugOverlayRenderList;
         mutable OcclusionCullerHelper occlusionCuller;
         mutable std::unordered_map<uint32_t, const std::vector<glm::mat4>*> changedBoneTransforms;
-        mutable std::unordered_map<uint32_t, uint32_t> previousLodLevels;
+        mutable std::vector<uint8_t> previousLodLevels;//indexed by world object id, ids never reach NR_MAX_MODELS
         bool running = true; //non atomic because only used in between latch/barrier. But, must be checked before doing anything (because false means dangling pointers to camera and objects)
         bool cameraIsDirty = true; // cached by main thread before each signal; avoids Python GIL call from background thread
         bool playerDead = false; // same reason, isDead() reaches the player and we cannot touch that from here
@@ -109,18 +110,18 @@ public:
                 lodForceLevelOption(options->getOption<long>(HASH("LOD_forceLevel"))),
                 cullingEntries(cullingEntries), playerObject(playerObject), visibility(visibility),
                 occlusionCuller(options->getOption<long>(HASH("occlusion_renderWidth")),
-                options->getOption<long>(HASH("occlusion_renderHeight"))) {
+                options->getOption<long>(HASH("occlusion_renderHeight"))),
+                previousLodLevels(NR_MAX_MODELS, 0) {
         }
 
         //last level this camera chose per object, so a model sitting on a switch point does not flip every frame.
-        //Owned by this camera's culling thread, so it needs no locking
+        //Owned by this camera's culling thread, so it needs no locking. A removed object's level stays, a reused id inherits it
         uint32_t getPreviousLodLevel(uint32_t objectId) const {
-            std::unordered_map<uint32_t, uint32_t>::const_iterator found = previousLodLevels.find(objectId);
-            return found == previousLodLevels.end() ? 0 : found->second;
+            return previousLodLevels[objectId];
         }
 
         void setPreviousLodLevel(uint32_t objectId, uint32_t level) const {
-            previousLodLevels[objectId] = level;
+            previousLodLevels[objectId] = (uint8_t)level;//the level fits, VisibilityManager.cpp checks LOD_MAX_LEVEL_COUNT
         }
 
     static bool isAnyTagMatch(const std::vector<HashUtil::HashedString>& renderTags, const std::vector<HashUtil::HashedString> & objectTags) {

@@ -8,6 +8,8 @@
 #include "Utils/HardCodedTags.h"
 #include "../Profiler/ProfilerMacros.h"
 
+static_assert(MeshAsset::LOD_MAX_LEVEL_COUNT <= 256, "VisibilityRequest keeps the previous LOD level of each object in a uint8_t");
+
 VisibilityManager::VisibilityManager(World* world) : world(world) {
     OptionsUtil::Options::Option<bool> multiThreadCullingOption = world->options->getOption<bool>(HASH("performance_multiThreadedCulling"));
     multiThreadedCulling = multiThreadCullingOption.getOrDefault(true);
