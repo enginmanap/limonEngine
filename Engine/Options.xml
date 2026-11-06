@@ -674,15 +674,6 @@
     </Parameter>
     <Parameter>
         <RequestType>FreeNumber</RequestType>
-        <Description>SplitModelToMeshCount</Description>
-        <!-- When doing occlusion tests, we prefer to do it per model. If a model contains more than this number of meshes, only then the tests will be done per mesh-->
-        <Value>10</Value>
-        <valueType>Long</valueType>
-        <IsSet>True</IsSet>
-        <Index>47</Index>
-    </Parameter>
-    <Parameter>
-        <RequestType>FreeNumber</RequestType>
         <Description>ssao_blurRadius</Description>
         <Value>1</Value>
         <valueType>Long</valueType>

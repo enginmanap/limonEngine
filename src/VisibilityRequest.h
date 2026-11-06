@@ -65,7 +65,6 @@ public:
         const OptionsUtil::Options::Option<double> skipRenderDistanceOption;
         const OptionsUtil::Options::Option<double> skipRenderSizeOption;
         const OptionsUtil::Options::Option<double> maxSkipRenderSizeOption;
-        const OptionsUtil::Options::Option<long> splitModelToMeshCountOption;
 
         const OptionsUtil::Options::Option<bool> occlusionRenderDumpOption;
         const OptionsUtil::Options::Option<long> occlusionRenderDumpFrequencyOption;
@@ -96,7 +95,6 @@ public:
                 skipRenderDistanceOption(options->getOption<double>(HASH("LOD_skipRenderDistance"))),
                 skipRenderSizeOption(options->getOption<double>(HASH("LOD_skipRenderSize"))),
                 maxSkipRenderSizeOption(options->getOption<double>(HASH("LOD_maxSkipRenderSize"))),
-                splitModelToMeshCountOption(options->getOption<long>(HASH("SplitModelToMeshCount"))),
                 occlusionRenderDumpOption(options->getOption<bool>(HASH("occlusion_renderDump"))),
                 occlusionRenderDumpFrequencyOption(options->getOption<long>(HASH("occlusion_renderDumpFrequency"))),
                 occlusionOccluderSizePerspectiveOption(options->getOption<double>(HASH("occlusion_occluderSizePerspective"))),

@@ -1319,7 +1319,7 @@ void World::deleteModel(Model *model) {
     }
     delete model;//before the entry goes, the destructor still reads it
     if (entry != &cullingEntries.back()) {
-        *entry = cullingEntries.back();
+        *entry = std::move(cullingEntries.back());
         entry->model->setCullingEntry(entry);
     }
     cullingEntries.pop_back();

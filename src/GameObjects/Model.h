@@ -24,21 +24,22 @@
 
 class ActorInterface;
 class RenderList;
+//outside Model only so CullingEntry can declare it, Model::MeshMeta is the name to use
+struct MeshMeta {
+    std::shared_ptr<MeshAsset> mesh = nullptr;
+    std::shared_ptr<const Material> material = nullptr;
+};
+
 class Model : public PhysicalRenderable, public GameObject {
 public:
-    struct MeshMeta {
-        std::shared_ptr<MeshAsset> mesh = nullptr;
-        std::shared_ptr<const Material> material = nullptr;
-    };
+    typedef ::MeshMeta MeshMeta;
 private:
-    uint32_t objectID;
     uint32_t rigID = 0; //initialize as 0, because thats the value for non animated.
     std::unordered_set<Model*>* pendingTransformUploads = nullptr;//only set while a world holds this model
     CullingEntry* cullingEntry;//a world's entry, or a standalone one for models drawn outside a world. Valid for the model's whole life
 
     ActorInterface *AIActor = nullptr;
     std::shared_ptr<AssetManager> assetManager;
-    std::shared_ptr<ModelAsset> modelAsset;
     std::string animationName;
     //float, not an integer type. animationTimeScale below can be 0.01, which truncates to a 0ms advance every tick
     float animationTime = 0.0f;
@@ -65,7 +66,6 @@ private:
     std::vector<glm::mat4> boneTransforms;
     std::map<uint32_t, uint32_t> boneIdCompoundChildMap;
 
-    std::vector<MeshMeta *> meshMetaData;
 
     //asset materials are registered by the asset, so we only release the ones we swapped in ourselves
     void releaseOwnedMeshMaterial(size_t meshIndex);
@@ -172,7 +172,7 @@ public:
      */
     btCompoundShape *getCompoundShapeForSweepTest(std::vector<btCollisionShape *> &childrenPhysicsShapes) const {
         std::map<uint32_t, uint32_t> boneIdCompoundChildMapTemp;
-        btCompoundShape *compoundShape = this->modelAsset->getCompoundShapeForMass(1, boneIdCompoundChildMapTemp, childrenPhysicsShapes);
+        btCompoundShape *compoundShape = cullingEntry->modelAsset->getCompoundShapeForMass(1, boneIdCompoundChildMapTemp, childrenPhysicsShapes);
         btVector3 scale;
         if(isScaled) {
             scale = GLMConverter::GLMToBlt(this->getTransformation()->getScale());
@@ -221,7 +221,7 @@ public:
 
     bool setupRenderVariables(MeshMeta *meshMetaData);
 
-    const std::vector<MeshMeta *> &getMeshMetaData() const { return meshMetaData; }
+    const std::vector<MeshMeta *> &getMeshMetaData() const { return cullingEntry->meshMetaData; }
 
     void setupForTime(uint32_t time) override;
 
@@ -265,7 +265,7 @@ public:
     }
 
     const std::map<std::string, std::shared_ptr<AnimationInterface>>& getAnimations() const {
-        return modelAsset->getAnimations();
+        return cullingEntry->modelAsset->getAnimations();
     }
 
     bool isAnimationFinished() {
@@ -306,7 +306,7 @@ public:
 
     /************Game Object methods **************/
     uint32_t getWorldObjectID() const override {
-        return objectID;
+        return cullingEntry->worldObjectID;
     }
     ObjectTypes getTypeID() const override {
         return ObjectTypes::MODEL;
@@ -315,7 +315,7 @@ public:
      const std::vector<glm::mat4>* getBoneTransforms() const {return &boneTransforms;}
 
     std::string getName() const override {
-        return name + "_" + std::to_string(objectID);
+        return name + "_" + std::to_string(cullingEntry->worldObjectID);
     }
 
     ImGuiResult addImGuiEditorElements(const ImGuiRequest &request) override;
@@ -334,11 +334,11 @@ public:
     }
 
     uint32_t getAssetID() {
-        return modelAsset->getAssetID();
+        return cullingEntry->modelAsset->getAssetID();
     }
 
     const std::shared_ptr<ModelAsset>& getModelAsset() const {
-        return modelAsset;
+        return cullingEntry->modelAsset;
     }
 
     int32_t getSelectedBoneID() const {
@@ -376,7 +376,7 @@ public:
             glm::vec3 translate, scale;
             glm::quat orientation;
 
-            glm::decompose(this->transformation.getWorldTransform() * boneTransforms[selectedBoneID] * glm::inverse(modelAsset->getBoneBindOffset(selectedBoneID)), scale, orientation, translate, temp1, temp2);//the bone's own frame, not its skinning matrix, so an offset of zero is the joint
+            glm::decompose(this->transformation.getWorldTransform() * boneTransforms[selectedBoneID] * glm::inverse(cullingEntry->modelAsset->getBoneBindOffset(selectedBoneID)), scale, orientation, translate, temp1, temp2);//the bone's own frame, not its skinning matrix, so an offset of zero is the joint
 
             exposedBoneTransforms[selectedBoneID]->setTranslate(translate);
             exposedBoneTransforms[selectedBoneID]->setScale(scale);
@@ -411,7 +411,7 @@ public:
 
     std::vector<std::shared_ptr<Material>> getMaterials() const override {
         std::vector<std::shared_ptr<Material>> materials;
-        for(const auto& element:this->modelAsset->getMaterialMap()){
+        for(const auto& element:cullingEntry->modelAsset->getMaterialMap()){
             materials.emplace_back(element.second);
         }
         return materials;
@@ -443,6 +443,14 @@ public:
         return cullingEntry;
     }
 
+    //HashedString can't be assigned, so the copy is rebuilt element by element
+    void copyTagsToCullingEntry() {
+        cullingEntry->tags.clear();
+        for (const HashUtil::HashedString& tag : getTags()) {
+            cullingEntry->tags.emplace_back(tag);
+        }
+    }
+
     //World moves the last entry into a released one, the model whose entry moved is pointed at its new place
     void setCullingEntry(CullingEntry* newCullingEntry) {
         this->cullingEntry = newCullingEntry;
@@ -450,7 +458,9 @@ public:
 
     bool addTag(const std::string& text) override {
         setDirtyForFrustum();
-        return GameObject::addTag(text);
+        bool added = GameObject::addTag(text);
+        copyTagsToCullingEntry();
+        return added;
     }
 
     bool removeTag(const std::string& text) override {
@@ -459,6 +469,7 @@ public:
         if(getTags().empty()) {
             addDefaultTags();//a model with no tags matches no render stage at all, it would be invisible everywhere
         }
+        copyTagsToCullingEntry();
         return removed;
     }
 

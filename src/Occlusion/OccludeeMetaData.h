@@ -7,8 +7,8 @@
 #include "GameObjects/Model.h"
 
 
+//one per model, its box is the model's. A visible one adds all of its meshes
 struct OcculudeeMetaData {
-    const Model::MeshMeta* meshMeta;
     const Model* model;
     uint32_t lod;
     float averageDepth;
@@ -16,7 +16,7 @@ struct OcculudeeMetaData {
 
     OcculudeeMetaData() = default;
 
-    OcculudeeMetaData(const Model::MeshMeta * meshMeta, const Model * model, uint32_t lod, float averageDepth, RenderList* renderList) :
-    meshMeta(meshMeta), model(model), lod(lod), averageDepth(averageDepth), renderList(renderList) {};
+    OcculudeeMetaData(const Model * model, uint32_t lod, float averageDepth, RenderList* renderList) :
+    model(model), lod(lod), averageDepth(averageDepth), renderList(renderList) {};
 };
 #endif //LIMONENGINE_OCCLUDERMETADATA_H

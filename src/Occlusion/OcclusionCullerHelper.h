@@ -27,8 +27,8 @@ class OcclusionCullerHelper {
         float maxy;
         float maxz;
     };
-    std::vector<OcculudeeMetaData> possibleVisibleSetMesh; // These 2 are split because that is how the sdoc wants it
-    std::vector<float> possibleVisibleSetMeshAABBs;        //
+    std::vector<OcculudeeMetaData> possibleVisibleSet; // These 2 are split because that is how the sdoc wants it
+    std::vector<float> possibleVisibleSetAABBs;        //
 
     SOC::SOCPrivate* sdocInstance =nullptr;
 
@@ -54,7 +54,7 @@ public:
     OcclusionCullerHelper(const OptionsUtil::Options::Option<long>& widthOption,
         const OptionsUtil::Options::Option<long>& heightOption) :
     widthOption(widthOption), heightOption(heightOption) {
-        possibleVisibleSetMeshAABBs.reserve(6); // if no entry, .data() call returns null.
+        possibleVisibleSetAABBs.reserve(6); // if no entry, .data() call returns null.
     }
 
     void extractForDX(const glm::mat4 &cameraMatrix, const glm::mat4 &projectionMatrix) {
@@ -112,8 +112,8 @@ public:
         extractForOpenGL(cameraMatrix, projectionMatrix);
 
         sdocStartNewFrame(sdocInstance, glm::value_ptr(playerPos), glm::value_ptr(viewDir), glm::value_ptr(cameraProjectionMatrix));
-        possibleVisibleSetMeshAABBs.clear();
-        possibleVisibleSetMesh.clear();
+        possibleVisibleSetAABBs.clear();
+        possibleVisibleSet.clear();
     }
 
     void endFrame() {
@@ -165,71 +165,55 @@ public:
             true);
     }
 
-    void addOccludee(const Model* model, uint32_t lod, float averageDepth, RenderList* renderList) {
-        for (size_t i = 0; i < model->getMeshMetaData().size(); ++i) {
-            addOccludee(model->getMeshMetaData()[i], model, lod, averageDepth, renderList);
-        }
-    }
-
-    void addOccludee(const Model::MeshMeta* meshMeta, const Model* model, uint32_t lod, float averageDepth, RenderList* renderList) {
-
-        glm::vec3 minWorldAABB;
-        glm::vec3 maxWorldAABB;
-        if (model->isAnimated()) {
-            //mesh aabb is the bind pose, a posed limb outside it would get culled while on screen
-            minWorldAABB = model->getAabbMin();
-            maxWorldAABB = model->getAabbMax();
-        } else {
-            AABBConverter::getWorldSpaceAABB(model->getTransformation()->getWorldTransform(), meshMeta->mesh->getAabbMin(), meshMeta->mesh->getAabbMax(), minWorldAABB, maxWorldAABB);
-        }
-        possibleVisibleSetMesh.push_back(OcculudeeMetaData(meshMeta, model, lod, averageDepth, renderList));
-        possibleVisibleSetMeshAABBs.push_back(minWorldAABB.x);
-        possibleVisibleSetMeshAABBs.push_back(minWorldAABB.y);
-        possibleVisibleSetMeshAABBs.push_back(minWorldAABB.z);
-        possibleVisibleSetMeshAABBs.push_back(maxWorldAABB.x);
-        possibleVisibleSetMeshAABBs.push_back(maxWorldAABB.y);
-        possibleVisibleSetMeshAABBs.push_back(maxWorldAABB.z);
+    void addOccludee(const Model* model, const glm::vec3& minWorldAABB, const glm::vec3& maxWorldAABB, uint32_t lod, float averageDepth, RenderList* renderList) {
+        possibleVisibleSet.push_back(OcculudeeMetaData(model, lod, averageDepth, renderList));
+        possibleVisibleSetAABBs.push_back(minWorldAABB.x);
+        possibleVisibleSetAABBs.push_back(minWorldAABB.y);
+        possibleVisibleSetAABBs.push_back(minWorldAABB.z);
+        possibleVisibleSetAABBs.push_back(maxWorldAABB.x);
+        possibleVisibleSetAABBs.push_back(maxWorldAABB.y);
+        possibleVisibleSetAABBs.push_back(maxWorldAABB.z);
 
     }
 
-    std::vector<OcculudeeMetaData*> getNonOccludedMeshMeta() {
+    std::vector<OcculudeeMetaData*> getNonOccluded() {
         PROFILE_VISIBILITY("Culling::QueryOccludees");//SDOC rasterizes the occluders here, at flush, not when they are submitted
         std::vector<OcculudeeMetaData*> returnList;
-        size_t meshCount = possibleVisibleSetMesh.size();
-        returnList.reserve(meshCount);
-        bool* results = new bool[meshCount];
-        // Ensure AABB data size matches mesh count (6 floats per mesh)
-        if (possibleVisibleSetMeshAABBs.size() != meshCount * 6) {
-            std::cerr << "Inconsistent AABB data size: expected " << meshCount * 6 << " floats, got " << possibleVisibleSetMeshAABBs.size() << " floats, can't calculate" << std::endl;
+        size_t occludeeCount = possibleVisibleSet.size();
+        returnList.reserve(occludeeCount);
+        bool* results = new bool[occludeeCount];
+        // Ensure AABB data size matches occludee count (6 floats per occludee)
+        if (possibleVisibleSetAABBs.size() != occludeeCount * 6) {
+            std::cerr << "Inconsistent AABB data size: expected " << occludeeCount * 6 << " floats, got " << possibleVisibleSetAABBs.size() << " floats, can't calculate" << std::endl;
             delete[] results;
             return returnList;
         }
-        sdocQueryOccludees(sdocInstance, possibleVisibleSetMeshAABBs.data(), meshCount, results);
-        for (size_t i = 0; i < meshCount; ++i) {
+        sdocQueryOccludees(sdocInstance, possibleVisibleSetAABBs.data(), occludeeCount, results);
+        for (size_t i = 0; i < occludeeCount; ++i) {
             if (results[i]) {
-                returnList.push_back(&possibleVisibleSetMesh[i]);
+                returnList.push_back(&possibleVisibleSet[i]);
             }
         }
         delete[] results;
         return returnList;
     }
 
-    //same query as getNonOccludedMeshMeta, for occlusion_debugReverse which needs the removed ones too
+    //same query as getNonOccluded, for occlusion_debugReverse which needs the removed ones too
     void splitOccludees(std::vector<OcculudeeMetaData*>& nonOccluded, std::vector<OcculudeeMetaData*>& occluded) {
         PROFILE_VISIBILITY("Culling::QueryOccludeesDebugReverse");
-        size_t meshCount = possibleVisibleSetMesh.size();
-        nonOccluded.reserve(meshCount);
-        if (possibleVisibleSetMeshAABBs.size() != meshCount * 6) {
-            std::cerr << "Inconsistent AABB data size: expected " << meshCount * 6 << " floats, got " << possibleVisibleSetMeshAABBs.size() << " floats, can't calculate" << std::endl;
+        size_t occludeeCount = possibleVisibleSet.size();
+        nonOccluded.reserve(occludeeCount);
+        if (possibleVisibleSetAABBs.size() != occludeeCount * 6) {
+            std::cerr << "Inconsistent AABB data size: expected " << occludeeCount * 6 << " floats, got " << possibleVisibleSetAABBs.size() << " floats, can't calculate" << std::endl;
             return;
         }
-        bool* results = new bool[meshCount];
-        sdocQueryOccludees(sdocInstance, possibleVisibleSetMeshAABBs.data(), meshCount, results);
-        for (size_t i = 0; i < meshCount; ++i) {
+        bool* results = new bool[occludeeCount];
+        sdocQueryOccludees(sdocInstance, possibleVisibleSetAABBs.data(), occludeeCount, results);
+        for (size_t i = 0; i < occludeeCount; ++i) {
             if (results[i]) {
-                nonOccluded.push_back(&possibleVisibleSetMesh[i]);
+                nonOccluded.push_back(&possibleVisibleSet[i]);
             } else {
-                occluded.push_back(&possibleVisibleSetMesh[i]);
+                occluded.push_back(&possibleVisibleSet[i]);
             }
         }
         delete[] results;

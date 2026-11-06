@@ -22,44 +22,45 @@
 #endif
 Model::Model(uint32_t objectID,  std::shared_ptr<AssetManager> assetManager, const float mass, const std::string &modelFile,
              bool disconnected, CullingEntry* cullingEntry, const std::string &flipAxes) :
-        PhysicalRenderable(assetManager->getGraphicsWrapper(), mass, disconnected), objectID(objectID), cullingEntry(cullingEntry),
+        PhysicalRenderable(assetManager->getGraphicsWrapper(), mass, disconnected), cullingEntry(cullingEntry),
         assetManager(assetManager), name(modelFile), flipAxes(flipAxes) {
     cullingEntry->model = this;
+    cullingEntry->worldObjectID = objectID;
 
     //this is required because the shader has fixed size arrays
     boneTransforms.resize(128);
     std::string assetKey = flipAxes.empty() ? modelFile : modelFile + "?flip" + flipAxes;
-    modelAsset = assetManager->loadAsset<ModelAsset>({assetKey});
+    cullingEntry->modelAsset = assetManager->loadAsset<ModelAsset>({assetKey});
     //set up the rigid body
     this->triangleCount = 0;
     this->vao = 0;
     this->ebo = 0;//these are not per Model, but per Mesh, and comes from ModelAsset->MeshAsset, shared between instances
-    this->centerOffset = modelAsset->getCenterOffset();
+    this->centerOffset = cullingEntry->modelAsset->getCenterOffset();
     this->centerOffsetMatrix = glm::translate(glm::mat4(1.0f), centerOffset);
 
     btTransform baseTransform;
     baseTransform.setIdentity();
     baseTransform.setOrigin(GLMConverter::GLMToBlt(-1.0f * centerOffset));
-    cullingEntry->animated = modelAsset->isAnimated();
+    cullingEntry->animated = cullingEntry->modelAsset->isAnimated();
     std::map<uint32_t, btConvexHullShape *> hullMap;
 
     std::map<uint32_t, btTransform> btTransformMap;
 
     MeshMeta *meshMeta;
-    std::vector<std::shared_ptr<MeshAsset>> assetMeshes = modelAsset->getMeshes();
+    std::vector<std::shared_ptr<MeshAsset>> assetMeshes = cullingEntry->modelAsset->getMeshes();
 
     bool hasAmbientMapInAnyMesh = false;
     for (auto iter = assetMeshes.begin(); iter != assetMeshes.end(); ++iter) {
         meshMeta = new MeshMeta();
         meshMeta->mesh = (*iter);
-        meshMeta->material = modelAsset->getMeshMaterial((*iter));
+        meshMeta->material = cullingEntry->modelAsset->getMeshMaterial((*iter));
         if (meshMeta->material->hasAmbientMap()) {
             hasAmbientMapInAnyMesh = true;
         }
-        meshMetaData.push_back(meshMeta);
+        cullingEntry->meshMetaData.push_back(meshMeta);
     }
 
-    compoundShape = this->modelAsset->getCompoundShapeForMass(this->mass, this->boneIdCompoundChildMap, childrenPhysicsShapes);
+    compoundShape = cullingEntry->modelAsset->getCompoundShapeForMass(this->mass, this->boneIdCompoundChildMap, childrenPhysicsShapes);
     motionState = new btDefaultMotionState(
             btTransform(btQuaternion(0, 0, 0, 1), GLMConverter::GLMToBlt(centerOffset)));
 
@@ -86,7 +87,7 @@ Model::Model(uint32_t objectID,  std::shared_ptr<AssetManager> assetManager, con
 //FIXME temporarily set the tags as hard coded
 void Model::addDefaultTags() {
     bool hasAmbientMapInAnyMesh = false;
-    for (const MeshMeta* meshMeta:meshMetaData) {
+    for (const MeshMeta* meshMeta:cullingEntry->meshMetaData) {
         if (meshMeta->material->hasAmbientMap()) {
             hasAmbientMapInAnyMesh = true;
             break;
@@ -144,10 +145,10 @@ void Model::advanceAnimationClock(uint32_t time) {
             }
             //getTransformBlended reports a missing name as not finished
             animationLastFramePlayed = !animationNameOld.empty() && !animationName.empty() &&
-                                       modelAsset->isAnimationFinished(animationNameOld, animationTimeOld, animationLoopedOld) &&
-                                       modelAsset->isAnimationFinished(animationName, animationTime, animationLooped);
+                                       cullingEntry->modelAsset->isAnimationFinished(animationNameOld, animationTimeOld, animationLoopedOld) &&
+                                       cullingEntry->modelAsset->isAnimationFinished(animationName, animationTime, animationLooped);
         } else {
-            animationLastFramePlayed = modelAsset->isAnimationFinished(animationName, animationTime, animationLooped);
+            animationLastFramePlayed = cullingEntry->modelAsset->isAnimationFinished(animationName, animationTime, animationLooped);
         }
         posePending = true;
     }
@@ -163,11 +164,11 @@ void Model::evaluatePose() {
     if(posePending) {
         if(animationBlend) {
             float blendFactor = std::min(1.0f, (float)animationTime / (float)animationBlendTime);
-            modelAsset->getTransformBlended(animationNameOld, animationTimeOld, animationLoopedOld,
+            cullingEntry->modelAsset->getTransformBlended(animationNameOld, animationTimeOld, animationLoopedOld,
                                             animationName, animationTime, animationLooped,
                                             blendFactor, boneTransforms);
         } else {
-            modelAsset->getTransform(animationTime, animationLooped, animationName, boneTransforms);
+            cullingEntry->modelAsset->getTransform(animationTime, animationLooped, animationName, boneTransforms);
         }
         //written even while disconnected, reconnecting would otherwise bring back the bind pose shape
         btVector3 scale;
@@ -198,13 +199,13 @@ void Model::evaluatePose() {
         glm::vec3 translate, scale;
         glm::quat orientation;
 
-        glm::decompose(this->transformation.getWorldTransform() * boneTransforms[boneIterator->first] * glm::inverse(modelAsset->getBoneBindOffset(boneIterator->first)), scale, orientation, translate, temp1, temp2);//the bone's own frame, see getAttachmentTransform
+        glm::decompose(this->transformation.getWorldTransform() * boneTransforms[boneIterator->first] * glm::inverse(cullingEntry->modelAsset->getBoneBindOffset(boneIterator->first)), scale, orientation, translate, temp1, temp2);//the bone's own frame, see getAttachmentTransform
         exposedBoneTransforms[boneIterator->first]->setTransformations(translate,scale, orientation);
     }
 }
 
 void Model::renderWithProgram(std::shared_ptr<GraphicsProgram> program, uint32_t lodLevel) {
-    for (auto iter = meshMetaData.begin(); iter != meshMetaData.end(); ++iter) {
+    for (auto iter = cullingEntry->meshMetaData.begin(); iter != cullingEntry->meshMetaData.end(); ++iter) {
 
         if (isAnimated()) {
             //set all of the bones to unitTransform for testing
@@ -226,7 +227,7 @@ void Model::renderWithProgram(std::shared_ptr<GraphicsProgram> program, uint32_t
 RenderList Model::convertSingleModelToRenderList(uint32_t lodLevel, float depth, int32_t rigIdOverride) const {
     RenderList renderList;
 
-    for (auto iter = meshMetaData.begin(); iter != meshMetaData.end(); ++iter) {
+    for (auto iter = cullingEntry->meshMetaData.begin(); iter != cullingEntry->meshMetaData.end(); ++iter) {
         renderList.addMeshMaterial((*iter)->material, (*iter)->mesh, this, lodLevel, depth, rigIdOverride);
     }
     renderList.finalize();
@@ -271,7 +272,7 @@ bool Model::fillObjects(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *o
     objectElement->InsertEndChild(currentElement);
 
     currentElement = document.NewElement("ID");
-    currentElement->SetText(objectID);
+    currentElement->SetText(getWorldObjectID());
     objectElement->InsertEndChild(currentElement);
 
     if(this->parentObject != nullptr) {
@@ -450,7 +451,7 @@ static void putLodLimitCell(const char *inputId, float measured, bool measuredKn
 
 void Model::putLodTableInGui(ImGuiResult &result, std::vector<float> &editedTrianglePercents,
                              std::vector<std::array<float, 6>> &editedStepSettings) {
-    const LodLadder &ladder = modelAsset->getLodLadder();
+    const LodLadder &ladder = cullingEntry->modelAsset->getLodLadder();
     const std::vector<LodStep> &steps = ladder.getSteps();
     const uint32_t originalTriangleCount = ladder.getOriginalTriangleCount();
     //fixed widths sized to what a cell holds, and a horizontal scrollbar when the panel is narrower. Stretched
@@ -633,7 +634,7 @@ void Model::putLodTableInGui(ImGuiResult &result, std::vector<float> &editedTria
 }
 
 void Model::putLodPanelInGui(ImGuiResult &result, const ImGuiRequest &request, bool isLimonModel) {
-    const LodLadder &ladder = modelAsset->getLodLadder();
+    const LodLadder &ladder = cullingEntry->modelAsset->getLodLadder();
     const std::vector<LodStep> &steps = ladder.getSteps();
     if (steps.empty()) {
         ImGui::Text("No LOD step was configured, everything renders at the original.");
@@ -681,7 +682,7 @@ void Model::putLodPanelInGui(ImGuiResult &result, const ImGuiRequest &request, b
     }
 
     //edits stay in memory until saved here or by a world save. A converted model rewrites its limonmodel
-    if (modelAsset->hasUnsavedChanges()) {
+    if (cullingEntry->modelAsset->hasUnsavedChanges()) {
         ImGui::TextWrapped("Unsaved changes, lost on reload unless saved here or with the world.");
     }
     //keyed by object, not reset with editedObjectID: that one is also cleared to re-read after a triangle commit
@@ -727,7 +728,7 @@ void Model::putPreviewInGui(const ImGuiRequest &request, ImGuiResult &result) {
         return;
     }
     //the live map switches levels by distance, this is how one level is judged on its own
-    const LodLadder &ladder = modelAsset->getLodLadder();
+    const LodLadder &ladder = cullingEntry->modelAsset->getLodLadder();
     int32_t maximumLevel = std::max((int32_t) ladder.getMeshLodCount() - 1, 0);
     previewPanel.level = std::min(std::max(previewPanel.level, 0), maximumLevel);//a recalibration can leave fewer levels
     //the number with the table's name for it, so 4 reads as the shadow level it is
@@ -857,7 +858,7 @@ ImGuiResult Model::addImGuiEditorElements(const ImGuiRequest &request) {
     if (isAnimated()) {
         if (ImGui::CollapsingHeader("Model animation properties")) {
             if (ImGui::BeginCombo("Animation Name", animationName.c_str())) {
-                for (auto it = modelAsset->getAnimations().begin(); it != modelAsset->getAnimations().end(); it++) {
+                for (auto it = cullingEntry->modelAsset->getAnimations().begin(); it != cullingEntry->modelAsset->getAnimations().end(); it++) {
                     bool isThisAnimationCurrent = this->getAnimationName() == it->first;
                     if (ImGui::Selectable((it->first + "##AnimationName").c_str(), isThisAnimationCurrent)) {
                         setAnimation(it->first, true);
@@ -876,14 +877,14 @@ ImGuiResult Model::addImGuiEditorElements(const ImGuiRequest &request) {
             ImGui::InputText("New animation Name", newAnimationName, sizeof(newAnimationName) - 1 );
             ImGui::InputFloat2("Animation start and end times", times);
             if(ImGui::Button("CreateSection")){
-                this->modelAsset->addAnimationAsSubSequence(this->animationName, std::string(newAnimationName), times[0], times[1]);
+                cullingEntry->modelAsset->addAnimationAsSubSequence(this->animationName, std::string(newAnimationName), times[0], times[1]);
             }
         }
         previewPanel.boneSectionOpen = ImGui::CollapsingHeader("Expose Bone for attachment");
         if (previewPanel.boneSectionOpen) {
             //bones are picked on the Preview above, which shows the skeleton while this is open
             ImGui::BeginChild("BoneTreeScrollRegion", ImVec2(0.0f, 200.0f), true);
-            int32_t newSelectedBoneID = this->modelAsset->buildEditorBoneTree(selectedBoneID, boneTreeShouldFollowSelection);
+            int32_t newSelectedBoneID = cullingEntry->modelAsset->buildEditorBoneTree(selectedBoneID, boneTreeShouldFollowSelection);
             boneTreeShouldFollowSelection = false;//consumed for this frame regardless of whether it found a target
             if (newSelectedBoneID != -1 && newSelectedBoneID != selectedBoneID) {
                 selectedBoneID = newSelectedBoneID;
@@ -981,12 +982,12 @@ ImGuiResult Model::addImGuiEditorElements(const ImGuiRequest &request) {
         //add material listing
         bool isSelected = false;
         if(ImGui::BeginListBox("Meshes##ModelObject")) {
-            for (size_t i = 0; i < meshMetaData.size(); ++i) {
+            for (size_t i = 0; i < cullingEntry->meshMetaData.size(); ++i) {
                 isSelected = selectedIndex == static_cast<int32_t>(i);
                 //assimp keeps the source name on both halves of a split mesh, so only the index keeps the ids apart
-                if (ImGui::Selectable((meshMetaData[i]->mesh->getName() + " -> " + meshMetaData[i]->material->getName() + "##meshMaterial" + std::to_string(i)).c_str(), isSelected)) {
+                if (ImGui::Selectable((cullingEntry->meshMetaData[i]->mesh->getName() + " -> " + cullingEntry->meshMetaData[i]->material->getName() + "##meshMaterial" + std::to_string(i)).c_str(), isSelected)) {
                     if (selectedIndex != static_cast<int32_t>(i)) { //means selection changed, trigger material change on main window
-                        result.selectedMeshMaterial = meshMetaData[i]->material;
+                        result.selectedMeshMaterial = cullingEntry->meshMetaData[i]->material;
                     }
                     selectedIndex = static_cast<int32_t>(i);
                 }
@@ -1048,6 +1049,9 @@ ImGuiResult Model::addImGuiEditorElements(const ImGuiRequest &request) {
 void Model::setAabb(const glm::vec3 &newAabbMin, const glm::vec3 &newAabbMax) {
     cullingEntry->aabbMin = newAabbMin;
     cullingEntry->aabbMax = newAabbMax;
+    const glm::vec3 scale = transformation.getScale();//every transform change comes through here
+    //level distances are set for the model as authored, so a model scaled up is used at proportionally further distances
+    cullingEntry->lodScale = std::max(std::abs(scale.x), std::max(std::abs(scale.y), std::abs(scale.z)));
     if (cullingEntry->nearestModelGroup != nullptr) {
         cullingEntry->nearestModelGroup->markAabbStale();
     }
@@ -1071,10 +1075,10 @@ Model::~Model() {
     }
     delete AIActor;
 
-    for (size_t i = 0; i < meshMetaData.size(); ++i) {
+    for (size_t i = 0; i < cullingEntry->meshMetaData.size(); ++i) {
         //a material this model overrode to belongs to this model, so it goes away with it
         releaseOwnedMeshMaterial(i);
-        delete meshMetaData[i];
+        delete cullingEntry->meshMetaData[i];
     }
 
     // Null out children's parent pointer so they don't dangle; their own
@@ -1082,7 +1086,10 @@ Model::~Model() {
     for (size_t i = 0; i < children.size(); ++i) {
         children[i]->setParentObject(nullptr);
     }
-    assetManager->freeAsset({modelAsset->getAssetName()});
+    assetManager->freeAsset({cullingEntry->modelAsset->getAssetName()});
+    //the entry outlives this in ~World, holding the asset there would free it after the asset manager
+    cullingEntry->modelAsset.reset();
+    cullingEntry->meshMetaData.clear();
 }
 
 Model::Model(const Model &otherModel, uint32_t objectID, CullingEntry* cullingEntry) :
@@ -1126,14 +1133,14 @@ Model::Model(const Model &otherModel, uint32_t objectID, CullingEntry* cullingEn
     this->setTags(otherTags);//setTags, so a default tag the original had removed stays removed on the copy
 
     //same asset means same mesh order, so the index is exact. Names are not unique
-    if (this->meshMetaData.size() != otherModel.meshMetaData.size()) {
-        std::cerr << "Copy of " << name << " has " << this->meshMetaData.size() << " meshes but the original has "
-                  << otherModel.meshMetaData.size() << ", mesh materials are not copied." << std::endl;
+    if (cullingEntry->meshMetaData.size() != otherModel.cullingEntry->meshMetaData.size()) {
+        std::cerr << "Copy of " << name << " has " << cullingEntry->meshMetaData.size() << " meshes but the original has "
+                  << otherModel.cullingEntry->meshMetaData.size() << ", mesh materials are not copied." << std::endl;
     } else {
-        for (size_t meshIndex = 0; meshIndex < otherModel.meshMetaData.size(); ++meshIndex) {
-            if (otherModel.meshMetaData[meshIndex]->material != this->meshMetaData[meshIndex]->material) {
+        for (size_t meshIndex = 0; meshIndex < otherModel.cullingEntry->meshMetaData.size(); ++meshIndex) {
+            if (otherModel.cullingEntry->meshMetaData[meshIndex]->material != cullingEntry->meshMetaData[meshIndex]->material) {
                 //the copy holds its own reference to the override, it does not share the original's
-                this->setMeshMaterial(meshIndex, otherModel.meshMetaData[meshIndex]->material);
+                this->setMeshMaterial(meshIndex, otherModel.cullingEntry->meshMetaData[meshIndex]->material);
             }
         }
     }
@@ -1237,9 +1244,9 @@ void Model::updateSavedReferences(tinyxml2::XMLElement *objectNode, const ModelA
 std::vector<Model::MeshMaterialOverride> Model::getNewMeshMaterials() const{
     std::vector<MeshMaterialOverride> meshMaterialList;
 
-    for (size_t meshIndex = 0; meshIndex < meshMetaData.size(); ++meshIndex) {
-        const MeshMeta* thisMeshMaterial = meshMetaData[meshIndex];
-        std::shared_ptr<Material> material = this->modelAsset->getMeshMaterial(thisMeshMaterial->mesh);
+    for (size_t meshIndex = 0; meshIndex < cullingEntry->meshMetaData.size(); ++meshIndex) {
+        const MeshMeta* thisMeshMaterial = cullingEntry->meshMetaData[meshIndex];
+        std::shared_ptr<Material> material = cullingEntry->modelAsset->getMeshMaterial(thisMeshMaterial->mesh);
         if (material == nullptr) {
             std::cerr << "Model has a mesh that is not part of asset. This should not happen. " << std::endl;
             continue;
@@ -1254,7 +1261,7 @@ std::vector<Model::MeshMaterialOverride> Model::getNewMeshMaterials() const{
             MeshMaterialOverride meshOverride;
             meshOverride.meshName = thisMeshMaterial->mesh->getName();
             meshOverride.baseMaterialHash = material->getHash();
-            meshOverride.ordinal = modelAsset->getMeshOrdinal(meshIndex);//meshMetaData follows the asset's mesh order
+            meshOverride.ordinal = cullingEntry->modelAsset->getMeshOrdinal(meshIndex);//cullingEntry->meshMetaData follows the asset's mesh order
             meshOverride.material = thisMeshMaterial->material;
             meshOverride.materialKey = thisMeshMaterial->material->getSaveKey();
             meshMaterialList.push_back(meshOverride);
@@ -1264,7 +1271,7 @@ std::vector<Model::MeshMaterialOverride> Model::getNewMeshMaterials() const{
 }
 
 void Model::releaseOwnedMeshMaterial(size_t meshIndex) {
-    MeshMeta* meshMeta = meshMetaData[meshIndex];
+    MeshMeta* meshMeta = cullingEntry->meshMetaData[meshIndex];
     if (meshMeta->material == nullptr) {
         return;
     }
@@ -1272,24 +1279,24 @@ void Model::releaseOwnedMeshMaterial(size_t meshIndex) {
         assetManager->getMaterialRegistry().unloadMaterial(meshMeta->material);
     }
     //the asset's own is borrowed, ~ModelAsset releases it
-    if (meshMeta->material != modelAsset->getMeshMaterial(meshMeta->mesh)) {
+    if (meshMeta->material != cullingEntry->modelAsset->getMeshMaterial(meshMeta->mesh)) {
         assetManager->getMaterialRegistry().unregisterMaterial(meshMeta->material);
     }
     meshMeta->material = nullptr;
 }
 
 std::shared_ptr<const Material> Model::setMeshMaterial(size_t meshIndex, std::shared_ptr<const Material> material) {
-    if (meshIndex >= meshMetaData.size()) {
+    if (meshIndex >= cullingEntry->meshMetaData.size()) {
         std::cerr << "Mesh index " << meshIndex << " is out of range for model " << this->name << std::endl;
         return nullptr;
     }
-    MeshMeta* meshMeta = meshMetaData[meshIndex];
+    MeshMeta* meshMeta = cullingEntry->meshMetaData[meshIndex];
     if (meshMeta->material == material) {
         return material;
     }
 
     std::shared_ptr<const Material> materialToUse = material;
-    if (material != nullptr && material != modelAsset->getMeshMaterial(meshMeta->mesh)) {
+    if (material != nullptr && material != cullingEntry->modelAsset->getMeshMaterial(meshMeta->mesh)) {
         //const_pointer_cast because registering may rename. Install what comes back, not what
         //we asked for, dedup can hand us a different instance
         materialToUse = assetManager->getMaterialRegistry().registerMaterial(std::const_pointer_cast<Material>(material));
@@ -1310,7 +1317,7 @@ std::vector<std::shared_ptr<const Material>> Model::loadMaterials() {
         return meshMaterials;
     }
     materialsLoaded = true;
-    for (const MeshMeta *meshMeta : meshMetaData) {
+    for (const MeshMeta *meshMeta : cullingEntry->meshMetaData) {
         if (meshMeta->material != nullptr) {
             meshMaterials.push_back(meshMeta->material);//one per mesh, releaseOwnedMeshMaterial gives back one per mesh
         }
@@ -1323,12 +1330,12 @@ void Model::finishLoadingMaterials() {
 }
 
 std::shared_ptr<Material> Model::getAssetMeshMaterial(size_t meshIndex) const {
-    return modelAsset->getMeshMaterial(meshMetaData[meshIndex]->mesh);
+    return cullingEntry->modelAsset->getMeshMaterial(cullingEntry->meshMetaData[meshIndex]->mesh);
 }
 
 void Model::loadOverriddenMeshMaterial(const std::vector<MeshMaterialOverride> &customisedMeshMaterialList) {
     for (const MeshMaterialOverride& thisMeshMaterial:customisedMeshMaterialList) {
-        std::vector<size_t> meshIndices = modelAsset->findMeshesOfOverride(thisMeshMaterial.meshName, thisMeshMaterial.baseMaterialHash, thisMeshMaterial.ordinal);
+        std::vector<size_t> meshIndices = cullingEntry->modelAsset->findMeshesOfOverride(thisMeshMaterial.meshName, thisMeshMaterial.baseMaterialHash, thisMeshMaterial.ordinal);
         for (size_t meshIndex : meshIndices) {
             setMeshMaterial(meshIndex, thisMeshMaterial.material);
         }
@@ -1352,7 +1359,7 @@ void Model::reloadWithFlip(const std::string &newFlipAxes) {
         return;
     }
 
-    std::string oldKey = modelAsset->getAssetName();
+    std::string oldKey = cullingEntry->modelAsset->getAssetName();
     std::string newKey = newFlipAxes.empty() ? name : name + "?flip" + newFlipAxes;
     flipAxes = newFlipAxes;
 
@@ -1371,16 +1378,16 @@ void Model::reloadWithFlip(const std::string &newFlipAxes) {
     if (materialsLoaded) {
         assetManager->getMaterialRegistry().loadMaterial(newMeshMaterials);
     }
-    //release before modelAsset is swapped below, after that we can't tell which of these we registered
-    for (size_t i = 0; i < meshMetaData.size(); ++i) {
+    //release before cullingEntry->modelAsset is swapped below, after that we can't tell which of these we registered
+    for (size_t i = 0; i < cullingEntry->meshMetaData.size(); ++i) {
         releaseOwnedMeshMaterial(i);
-        delete meshMetaData[i];
+        delete cullingEntry->meshMetaData[i];
     }
-    meshMetaData = newMeshMetaData;
-    modelAsset = newModelAsset;
+    cullingEntry->meshMetaData = newMeshMetaData;
+    cullingEntry->modelAsset = newModelAsset;
     assetManager->freeAsset({oldKey});
 
-    this->centerOffset = modelAsset->getCenterOffset();
+    this->centerOffset = cullingEntry->modelAsset->getCenterOffset();
     this->centerOffsetMatrix = glm::translate(glm::mat4(1.0f), centerOffset);
     this->transformation.markDirty();
 
@@ -1396,7 +1403,7 @@ void Model::reloadPhysicsShape() {
     childrenPhysicsShapes.clear();
     boneIdCompoundChildMap.clear();
 
-    compoundShape = modelAsset->getCompoundShapeForMass(this->mass, this->boneIdCompoundChildMap, childrenPhysicsShapes);
+    compoundShape = cullingEntry->modelAsset->getCompoundShapeForMass(this->mass, this->boneIdCompoundChildMap, childrenPhysicsShapes);
     rigidBody->setCollisionShape(compoundShape);
     glm::vec3 currentScale = transformation.getScale();
     rigidBody->getCollisionShape()->setLocalScaling(btVector3(currentScale.x, currentScale.y, currentScale.z));
@@ -1431,7 +1438,7 @@ bool Model::isTransparent() const {
     if (isAnimated()) {
         return false;//no stage renders animated transparent models
     }
-    for (const MeshMeta* meshMeta : meshMetaData) {
+    for (const MeshMeta* meshMeta : cullingEntry->meshMetaData) {
         const std::shared_ptr<const Material> &material = meshMeta->material;
         if (material == nullptr) {
             continue;
@@ -1496,7 +1503,7 @@ void Model::convertAssetToLimon(std::set<std::vector<std::string>> &convertedMod
     }
     newName += ".limonmodel";
     bool written = convertedModels.find(nameVector) != convertedModels.end();
-    if (!written && modelAsset->writeBinary(newName)) {
+    if (!written && cullingEntry->modelAsset->writeBinary(newName)) {
         convertedModels.insert(nameVector);
         written = true;
     }
