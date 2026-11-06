@@ -394,10 +394,11 @@ private:
 
     void updateWorldAABB(glm::vec3 aabbMin, glm::vec3 aabbMax);
 
-    bool addModelToWorld(Model *xmlModel);
-    //every model built for this world takes its entry from here, and gives it back when it leaves
+    void addModelToWorld(Model *xmlModel);
+    //every model built for this world takes its entry from here. deleteModel is the only way such a model goes,
+    //its entry lives as long as it does
     CullingEntry* allocateCullingEntry();
-    void releaseCullingEntry(Model *model);
+    void deleteModel(Model *model);
     void applyChangedTransforms();
 
     void untrackRigidBody(const btRigidBody *body);

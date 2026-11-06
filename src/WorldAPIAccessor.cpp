@@ -761,19 +761,35 @@ bool WorldAPIAccessor::changeModelMass(uint32_t objectID, float newMass) {
 }
 
 
+//the same models clearWorldRefsBeforeAttachment walks, deepest first
+void WorldAPIAccessor::collectModelsChildrenFirst(Model* model, std::vector<Model*>& models) {
+    for(Attachable* child : model->getChildren()) {
+        Model* childModel = dynamic_cast<Model*>(child);
+        if(childModel != nullptr) {
+            collectModelsChildrenFirst(childModel, models);
+        }
+    }
+    models.push_back(model);
+}
+
 bool WorldAPIAccessor::removeObject(uint32_t objectID, const bool &removeChildren) {
     Model* modelToRemove = world->findModelByID(objectID);
     if(modelToRemove == nullptr) {
         return false;
     }
-    world->clearWorldRefsBeforeAttachment(modelToRemove, removeChildren, true);
+    //children first, so each one still has its parent to leave
+    std::vector<Model*> modelsToDelete;
     std::vector<Attachable*> survivingChildren;
     if(removeChildren) {
-        // clearWorldRefsBeforeAttachment already handles child removal recursively
+        collectModelsChildrenFirst(modelToRemove, modelsToDelete);
     } else {
         survivingChildren = modelToRemove->getChildren();
+        modelsToDelete.push_back(modelToRemove);
     }
-    delete modelToRemove;
+    world->clearWorldRefsBeforeAttachment(modelToRemove, removeChildren, true);
+    for(Model* model : modelsToDelete) {
+        world->deleteModel(model);
+    }
     //the destructor cut them loose, a group they reached through the removed model is no longer theirs
     for(Attachable* child : survivingChildren) {
         refreshNearestModelGroup(child);

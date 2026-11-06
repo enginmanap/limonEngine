@@ -1308,7 +1308,7 @@ CullingEntry* World::allocateCullingEntry() {
     return &cullingEntries.back();
 }
 
-void World::releaseCullingEntry(Model *model) {
+void World::deleteModel(Model *model) {
     CullingEntry* entry = model->getCullingEntry();
     if (cullingEntries.empty() || entry < cullingEntries.data() || entry > &cullingEntries.back() || entry->model != model) {
         std::cerr << "Culling entry of model " << model->getWorldObjectID() << " is not in this world's list, this should never happen" << std::endl;
@@ -1317,19 +1317,20 @@ void World::releaseCullingEntry(Model *model) {
     if (entry->nearestModelGroup != nullptr) {
         entry->nearestModelGroup->markAabbStale();//the model is leaving the world, its box must leave the group's
     }
+    delete model;//before the entry goes, the destructor still reads it
     if (entry != &cullingEntries.back()) {
         *entry = cullingEntries.back();
         entry->model->setCullingEntry(entry);
     }
     cullingEntries.pop_back();
-    model->setCullingEntry(nullptr);
 }
 
-bool World::addModelToWorld(Model *xmlModel) {
+void World::addModelToWorld(Model *xmlModel) {
     if(objects.find(xmlModel->getWorldObjectID()) != objects.end()) {
-        //the object is already registered. fail
-        releaseCullingEntry(xmlModel);
-        return false;
+        //ids come from getNextObjectID everywhere except map files, so only a map can get here
+        std::cerr << "Map " << name << " has two objects with ID " << xmlModel->getWorldObjectID() << ", the second is "
+                  << xmlModel->getName() << ". IDs must be unique, fix the map." << std::endl;
+        std::exit(-1);
     }
     objects[xmlModel->getWorldObjectID()] = xmlModel;
     xmlModel->setPendingTransformUploads(&pendingTransformUploads);
@@ -1359,8 +1360,6 @@ bool World::addModelToWorld(Model *xmlModel) {
     xmlModel->getRigidBody()->getAabb(aabbMin, aabbMax);
 
     updateWorldAABB(GLMConverter::BltToGLM(aabbMin), GLMConverter::BltToGLM(aabbMax));
-    return true;
-
 }
 
 bool World::connectModelToPhysics(Model *model) {
@@ -2181,7 +2180,6 @@ void World::fillPlayerBlock(UniformBlockData &playerBlock, const glm::vec3 &came
            }
            //clear object itself
            objects.erase(modelToClear->getWorldObjectID());
-           releaseCullingEntry(modelToClear);
            pendingTransformUploads.erase(modelToClear);
            modelToClear->setPendingTransformUploads(nullptr);
            physicsSimulationActiveModels.erase(modelToClear->getWorldObjectID());//the ID is reused, the request must not carry over

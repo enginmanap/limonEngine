@@ -381,10 +381,7 @@ void WorldLoader::loadPlayerAttachmentV1(tinyxml2::XMLElement* attachmentNode, W
             std::cerr << "There was an AI attached to player model, this shouldn't happen. Ignoring" << std::endl;
             delete info->modelActor;
         }
-        if(!world->addModelToWorld(info->model)) {
-            std::cerr << "Player attachment " << info->model->getName() << " ID " << info->model->getWorldObjectID()
-                      << " collides with a world object, it is not loaded." << std::endl;
-        }
+        world->addModelToWorld(info->model);
     }
     Model* attachmentRoot = objectInfos.back()->model;//we know the root of the list is the last element
     //V1 saved the player's look rotation as the orientation, only the translate was the offset
@@ -677,8 +674,7 @@ WorldLoader::loadObject(World *world, std::shared_ptr<AssetManager> assetManager
     objectAttribute =  objectNode->FirstChildElement("Transformation");
     if(objectAttribute == nullptr) {
             std::cerr << "Object does not have transformation. Can't be loaded" << std::endl;
-            world->releaseCullingEntry(loadedObjectInformation->model);
-            delete loadedObjectInformation->model;
+            world->deleteModel(loadedObjectInformation->model);
         return loadedObjects;
     }
     loadedObjectInformation->model->getTransformation()->deserialize(objectAttribute);
@@ -846,8 +842,7 @@ WorldLoader::loadObjectV2(World *world, std::shared_ptr<AssetManager> assetManag
     objectAttribute = objectNode->FirstChildElement("Transformation");
     if(objectAttribute == nullptr) {
         std::cerr << "Object does not have transformation. Can't be loaded" << std::endl;
-        world->releaseCullingEntry(loadedObjectInformation->model);
-        delete loadedObjectInformation->model;
+        world->deleteModel(loadedObjectInformation->model);
         return loadedObjects;
     }
     loadedObjectInformation->model->getTransformation()->deserialize(objectAttribute);

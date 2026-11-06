@@ -32,6 +32,7 @@ class WorldAPIAccessor {
     //attachments are ordinary objects, these tags are the only thing that lets a stage render the player's own parts apart
     void refreshPlayerAttachmentTags(Attachable *subtreeRoot, bool underPlayer);
     void setPlayerAttachmentTag(Model *model, const std::string &kindTag, const std::string &playerTag, bool underPlayer);
+    static void collectModelsChildrenFirst(Model* model, std::vector<Model*>& models);
 public:
     WorldAPIAccessor(World* world, LimonAPI* limonAPI);
 

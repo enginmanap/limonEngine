@@ -1054,7 +1054,7 @@ void Model::setAabb(const glm::vec3 &newAabbMin, const glm::vec3 &newAabbMax) {
 }
 
 Model::~Model() {
-    //leaving the parent below notifies the owner, this model's culling entry is already released by then
+    //leaving the parent below would run the transform update, which only matters for a model that lives on
     transformation.setUpdateCallback([]() noexcept {});
     if(this->transformation.getParentTransform() != nullptr) {
         this->transformation.removeParentTransform();

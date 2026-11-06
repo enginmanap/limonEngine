@@ -34,7 +34,7 @@ private:
     uint32_t objectID;
     uint32_t rigID = 0; //initialize as 0, because thats the value for non animated.
     std::unordered_set<Model*>* pendingTransformUploads = nullptr;//only set while a world holds this model
-    CullingEntry* cullingEntry;//a world's entry, or a standalone one for models drawn outside a world. Null once released
+    CullingEntry* cullingEntry;//a world's entry, or a standalone one for models drawn outside a world. Valid for the model's whole life
 
     ActorInterface *AIActor = nullptr;
     std::shared_ptr<AssetManager> assetManager;
