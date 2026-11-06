@@ -89,7 +89,6 @@ public:
         bool running = true; //non atomic because only used in between latch/barrier. But, must be checked before doing anything (because false means dangling pointers to camera and objects)
         bool cameraIsDirty = true; // cached by main thread before each signal; avoids Python GIL call from background thread
         bool playerDead = false; // same reason, isDead() reaches the player and we cannot touch that from here
-        bool renderListsCleared = false; // set where the clear happens, removals against a cleared list can't find anything
 
         VisibilityRequest(Camera* camera, const std::vector<CullingEntry>* cullingEntries, const Attachable* playerObject, std::unordered_map<std::vector<uint64_t>, RenderList, uint64_vector_hasher> * visibility, const glm::vec3& playerPosition, const OptionsUtil::Options* options, SDL2MultiThreading::Barrier* frameBarrier, const std::string& cameraName) :
                 visibilityLatch(cameraName), frameBarrier(frameBarrier), camera(camera), playerPosition(playerPosition), options(options),

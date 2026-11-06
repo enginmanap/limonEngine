@@ -395,13 +395,10 @@ void World::applyAudioVolumeOptionsIfChanged() {
              tempRenderedObjectsSet.clear();//models whose pose is already evaluated this tick
              for (const auto &visibility: visibilityManager->getCullingResults()) {
                  for (auto &visibleTags: *visibility.second){
-                     for (auto it = visibleTags.second.getIterator(); !it.isEnd(); ++it) {
-                         if (!it.get().needsPose) {
-                             continue;
-                         }
-                         for (glm::uvec4 meshRenderInfo:it.get().indices) {
-                             evaluatePoseOnce(meshRenderInfo.x);
-                         }
+                     tempModelsNeedingPose.clear();
+                     visibleTags.second.collectModelsNeedingPose(tempModelsNeedingPose);
+                     for (uint32_t modelID : tempModelsNeedingPose) {
+                         evaluatePoseOnce(modelID);
                      }
                  }
              }
@@ -1072,7 +1069,7 @@ void World::ImGuiFrameSetup(std::shared_ptr<GraphicsProgram> graphicsProgram, co
        //not in the world, so we write its slot ourselves. It goes up with the next frame's uploadFrameData
        frameData.setModelTransform(playerPlaceHolder->getWorldObjectID(), playerPlaceHolder->getTransformation()->getWorldTransform());
        graphicsProgram->setUniform("renderModelIMGUI", 1);
-       playerPlaceHolder->convertToRenderList(0,0).render(graphicsWrapper, graphicsProgram);
+       playerPlaceHolder->convertSingleModelToRenderList(0,0).render(graphicsWrapper, graphicsProgram);
        graphicsProgram->setUniform("renderModelIMGUI", 0);
    }
    editor->renderEditor(graphicsProgram);
@@ -2170,12 +2167,8 @@ void World::fillPlayerBlock(UniformBlockData &playerBlock, const glm::vec3 &came
            }
            onLoadAnimations.erase(modelToClear);
 
-           //of course we need to remove from the tag visibility lists too
-           for (auto &perCameraVisibility: visibilityManager->getCullingResults()) {
-               for (auto perTagVisibilityIt = perCameraVisibility.second->begin(); perTagVisibilityIt != perCameraVisibility.second->end(); ++perTagVisibilityIt) {
-                   perTagVisibilityIt->second.removeModelFromAll(modelToClear->getWorldObjectID());
-               }
-           }
+           //the lists may still hold it until the next tick rebuilds them
+           visibilityManager->clearAllRenderLists();
            //remove its children
            if (removeChildren) {
                std::vector<Attachable*> children(modelToClear->getChildren());
@@ -2369,23 +2362,10 @@ bool World::verifyIDs() {
 
    }
 
-void World::onModelMaterialChanged(uint32_t modelID) {
-    for (auto &perCameraVisibility: visibilityManager->getCullingResults()) {
-        for (auto perTagVisibilityIt = perCameraVisibility.second->begin(); perTagVisibilityIt != perCameraVisibility.second->end(); ++perTagVisibilityIt) {
-            perTagVisibilityIt->second.removeModelFromAll(modelID);
-            perTagVisibilityIt->second.cleanUpEmptyRenderLists();
-        }
-    }
+void World::onModelMaterialChanged(uint32_t modelID [[gnu::unused]]) {
+    visibilityManager->clearAllRenderLists();//the old material's textures may be gone before the next tick rebuilds the lists
 }
 
-void World::onModelMaterialChanged(const std::vector<uint32_t> &modelIDs) {
-    for (auto &perCameraVisibility: visibilityManager->getCullingResults()) {
-        for (auto perTagVisibilityIt = perCameraVisibility.second->begin(); perTagVisibilityIt != perCameraVisibility.second->end(); ++perTagVisibilityIt) {
-            for (uint32_t modelID : modelIDs) {
-                perTagVisibilityIt->second.removeModelFromAll(modelID);
-            }
-            //frames between ticks render without prepareFrame, the emptied entries would be drawn until the next one
-            perTagVisibilityIt->second.cleanUpEmptyRenderLists();
-        }
-    }
+void World::onModelMaterialChanged(const std::vector<uint32_t> &modelIDs [[gnu::unused]]) {
+    visibilityManager->clearAllRenderLists();
 }

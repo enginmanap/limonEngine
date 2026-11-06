@@ -190,6 +190,11 @@ void MeshAsset::weldIdenticalVertices() {
 
 
 void MeshAsset::loadGPUPart(AssetManager *assetManager) {
+    if (renderListId != NO_RENDER_LIST_ID) {
+        std::cerr << "Mesh " << name << " loads its GPU part twice!" << std::endl;
+        exit(-1);
+    }
+    renderListId = assetManager->acquireRenderListMeshId();
     /*** things should be set by serialize */
     //triangleCount
     //vertexCount
@@ -495,6 +500,14 @@ void MeshAsset::fillBoneMap(std::shared_ptr<const BoneNode> boneNode) {
         fillBoneMap(boneNode->children[i]);
     }
 }
+void MeshAsset::releaseRenderListId(AssetManager *assetManager) {
+    if (renderListId == NO_RENDER_LIST_ID) {
+        return;//never reached the GPU, the packer loads skip it
+    }
+    assetManager->releaseRenderListMeshId(renderListId);
+    renderListId = NO_RENDER_LIST_ID;
+}
+
 void MeshAsset::reuploadGeometryBuffers(AssetManager *assetManager) {
     if (bufferObjects.empty()) {
         return;//never reached the GPU, the next loadGPUPart will upload whatever is current

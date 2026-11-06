@@ -8,6 +8,7 @@
 #include <vector>
 #include <map>
 #include <string>
+#include <limits>
 #include <assimp/scene.h>
 #include <BulletCollision/CollisionShapes/btConvexHullShape.h>
 #include <BulletCollision/CollisionShapes/btShapeHull.h>
@@ -30,10 +31,12 @@
 class MeshAsset {
 public:
     //a ceiling for anything that needs a bound, the level count itself comes from the options and is per model
-    static constexpr uint32_t LOD_MAX_LEVEL_COUNT = 16;
+    static constexpr uint32_t LOD_MAX_LEVEL_COUNT = 16;//RenderList packs the level into its keys, raising this past what fits stops the build in RenderListData.h
+    static constexpr uint32_t NO_RENDER_LIST_ID = std::numeric_limits<uint32_t>::max();
 private:
     uint32_t vao, ebo;
     uint32_t vertexCount;
+    uint32_t renderListId = NO_RENDER_LIST_ID;//AssetManager hands it out with the GPU part, never serialized
     //index 0 is the original mesh and always exists, the rest are index ranges appended into faces
     std::vector<uint32_t> triangleCount;
     std::vector<uint32_t> offsets;
@@ -87,6 +90,9 @@ private:
 public:
     MeshAsset(const aiMesh *currentMesh, std::string name, std::shared_ptr<const BoneNode> meshSkeleton,
               const glm::mat4 &parentTransform, const bool isPartOfAnimated, bool reverseWinding = false);
+    //AssetManager keeps one of each, a copy would share the render list id
+    MeshAsset(const MeshAsset&) = delete;
+    MeshAsset& operator=(const MeshAsset&) = delete;
 
     /**
      * Builds the index ranges for the levels ModelAsset calibrated. Separate from the constructor because the
@@ -189,6 +195,13 @@ public:
     const glm::vec4& getAabbMax() const {
         return maxAABB;
     }
+
+    //NO_RENDER_LIST_ID until the GPU part loads, and again after AssetManager frees the model
+    uint32_t getRenderListId() const {
+        return renderListId;
+    }
+
+    void releaseRenderListId(AssetManager *assetManager);
 
     ~MeshAsset() {
         for (unsigned int i = 0; i < shapeCopies.size(); ++i) {

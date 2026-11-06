@@ -343,7 +343,7 @@ void PreviewRenderer::renderSelectedObject(Model* model, std::shared_ptr<Graphic
     //preview models are not in the world, so we write their slot ourselves. It goes up with the next frame's
     //uploadFrameData, so the first frame of a new preview has no transform and draws nothing
     world->frameData.setModelTransform(model->getWorldObjectID(), model->getTransformation()->getWorldTransform());
-    model->convertToRenderList(0, 0).render(world->graphicsWrapper, graphicsProgram, true);
+    model->convertSingleModelToRenderList(0, 0).render(world->graphicsWrapper, graphicsProgram, true);
 
     endPreviewCamera();
 }
@@ -539,7 +539,7 @@ void PreviewRenderer::renderModelIntoTarget(Model* model, uint32_t lodLevel, Gra
     beginPreviewCamera(playerBlockBuffer, previewCameraPosition, outCameraMatrix, outProjectionMatrix);
     beginOffscreenModelPreview(targetStage, graphicsProgram);
     // We want animation, so we should not force Not animated, unlike the add object preview
-    model->convertToRenderList(lodLevel, 0, rigIdOverride).render(world->graphicsWrapper, graphicsProgram, false);
+    model->convertSingleModelToRenderList(lodLevel, 0, rigIdOverride).render(world->graphicsWrapper, graphicsProgram, false);
     //the overlay projects with the matrices handed back, so the world's block can go back now
     endPreviewCamera();
 }

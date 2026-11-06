@@ -167,6 +167,36 @@ void AssetManager::exitUnlessGPUContextThread(const char *operation) const {
     }
 }
 
+uint32_t AssetManager::acquireRenderListMeshId() {
+    exitUnlessGPUContextThread("Render list mesh id assignment");
+    if (!freeRenderListMeshIds.empty()) {
+        const uint32_t renderListMeshId = freeRenderListMeshIds.back();
+        freeRenderListMeshIds.pop_back();
+        return renderListMeshId;
+    }
+    if (nextRenderListMeshId == MeshAsset::NO_RENDER_LIST_ID) {
+        std::cerr << "More than " << MeshAsset::NO_RENDER_LIST_ID << " meshes loaded to GPU, render list ids ran out!" << std::endl;
+        exit(-1);
+    }
+    return nextRenderListMeshId++;
+}
+
+void AssetManager::releaseRenderListMeshId(uint32_t renderListMeshId) {
+    exitUnlessGPUContextThread("Render list mesh id release");
+    freeRenderListMeshIds.push_back(renderListMeshId);
+}
+
+void AssetManager::releaseRenderListMeshIdsOf(const std::shared_ptr<Asset> &asset) {
+    const std::shared_ptr<ModelAsset> modelAsset = std::dynamic_pointer_cast<ModelAsset>(asset);
+    if (modelAsset == nullptr) {
+        return;
+    }
+    //a mesh that never loaded its GPU part has nothing to give back, so the packer thread freeing its models doesn't reach the thread check
+    for (const std::shared_ptr<MeshAsset> &mesh : modelAsset->getMeshes()) {
+        mesh->releaseRenderListId(this);
+    }
+}
+
 void AssetManager::startPendingRequestsInternal(LoadRequester &requester) {
     while (!requester.pending.empty() && (requester.maxInFlight == 0 || requester.inFlight.size() + requester.finished.size() < requester.maxInFlight)) {
         LoadRequester::PendingRequest request = requester.pending.front();

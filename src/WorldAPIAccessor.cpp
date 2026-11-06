@@ -741,13 +741,8 @@ bool WorldAPIAccessor::changeModelMass(uint32_t objectID, float newMass) {
 
     model->setMassValue(newMass);
 
-    //switching static<->dynamic moves the model between render/visibility tag buckets; drop its stale membership
-    //so the next culling pass re-buckets it from the freshly updated tags.
-    for (auto &perCameraVisibility : world->visibilityManager->getCullingResults()) {
-        for (auto perTagVisibilityIt = perCameraVisibility.second->begin(); perTagVisibilityIt != perCameraVisibility.second->end(); ++perTagVisibilityIt) {
-            perTagVisibilityIt->second.removeModelFromAll(objectID);
-        }
-    }
+    //switching static<->dynamic moves the model between tag buckets, the lists still have it in the old one until the next tick
+    world->visibilityManager->clearAllRenderLists();
 
     //Bullet requires the body to be out of the world while its collision shape and mass props change.
     bool connected = !model->isDisconnected();

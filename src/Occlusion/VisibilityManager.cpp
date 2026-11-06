@@ -129,6 +129,17 @@ const RenderList* VisibilityManager::getDebugOverlayRenderList() const {
     return nullptr;
 }
 
+void VisibilityManager::clearAllRenderLists() {
+    //main thread only, the culling threads are parked between ticks
+    for (const auto &item: visibilityThreadPool) {
+        VisibilityRequest* request = item.first;
+        for (auto& renderEntries: *request->visibility) {
+            renderEntries.second.clear();
+        }
+        request->debugOverlayRenderList.clear();
+    }
+}
+
 void VisibilityManager::removeCameras(const std::vector<Camera*>& cameras) {
     for (Camera* camera : cameras) {
         removeCamera(camera);
@@ -136,19 +147,13 @@ void VisibilityManager::removeCameras(const std::vector<Camera*>& cameras) {
 }
 
 void VisibilityManager::fillVisibleObjectsUsingTags() {
-    //first clear up dirty cameras, and the player camera, because the player camera writes the occlusion
-    //culling depth map and re-evaluates all objects every frame (keyed on the player role, not projection
-    //type, so an orthographic player camera is handled the same as a perspective one).
-    static const uint64_t playerCameraTag = HashUtil::hashString(HardCodedTags::CAMERA_PLAYER);
+    //every camera rebuilds its lists each tick, a list is filled and finalized, never patched
     for (const auto &item: visibilityThreadPool) {
         VisibilityRequest* request = item.first;
-        request->renderListsCleared = request->camera->isDirty() || request->camera->hasTag(playerCameraTag);
-        if (request->renderListsCleared) {
-            for(auto& renderEntries:*request->visibility) {
-                renderEntries.second.clear();
-            }
-            request->debugOverlayRenderList.clear();
+        for(auto& renderEntries:*request->visibility) {
+            renderEntries.second.clear();
         }
+        request->debugOverlayRenderList.clear();
     }
     if(multiThreadedCulling) {
         // The start() method now handles the initial thread creation.
@@ -191,11 +196,6 @@ void VisibilityManager::fillVisibleObjectsUsingTags() {
     //all cameras calculated, clear dirty for object
     for (CullingEntry& cullingEntry : world->cullingEntries) {
         cullingEntry.dirtyForFrustum = false;
-    }
-    for (auto &it: cullingResults) {
-        for (auto& it2:*it.second) {
-            it2.second.cleanUpEmptyRenderLists();
-        }
     }
 }
 
@@ -359,16 +359,10 @@ void VisibilityManager::fillVisibleObjectPerCamera(const VisibilityRequest* visi
             }
             isHiddenPlayerAttachment = hierarchyRoot == visibilityRequest->playerObject;
         }
-        //a dead player's attachments stop moving, so the dirty skip would leave them in the light cameras
-        if(!visibilityRequest->cameraIsDirty && !cullingEntry.dirtyForFrustum && skipOcclusionCulling && !isHiddenPlayerAttachment) {
-            continue; //if neither object nor camera dirty, no need to recalculate
-        }
         bool isVisible = !isHiddenPlayerAttachment && visibilityRequest->camera->isVisible(cullingEntry.aabbMin, cullingEntry.aabbMax);
         if (!isVisible) {
             frustumCulledCount++;//counts models, not meshes. The split mesh path is going away, it doesn't need its own count
-            if (visibilityRequest->renderListsCleared) {
-                continue;//nothing to remove from a cleared list, so a culled object needs nothing from its model
-            }
+            continue;
         }
         Model *currentModel = cullingEntry.model;
         //the whole model path below depends on the object and the camera, never on the tag set, so it runs once
@@ -421,11 +415,6 @@ void VisibilityManager::fillVisibleObjectPerCamera(const VisibilityRequest* visi
                             }
                         } else {
                             lodSkipCounter++;
-                            if (!visibilityRequest->renderListsCleared) {
-                                for (auto& meshMeta : meshMetas) {
-                                    visibilityEntry.second.removeMeshMaterial(meshMeta->material, meshMeta->mesh, currentModel->getWorldObjectID());
-                                }
-                            }
                         }
                     } else {
                         //for models with more than 10 meshes, we don't wanna add all of them to renderlist, need to re check visibility
@@ -462,9 +451,6 @@ void VisibilityManager::fillVisibleObjectPerCamera(const VisibilityRequest* visi
                                     }
                                 } else {
                                     lodSkipCounter++;
-                                    if (!visibilityRequest->renderListsCleared) {
-                                        visibilityEntry.second.removeMeshMaterial(meshMeta->material, meshMeta->mesh, currentModel->getWorldObjectID());
-                                    }
                                 }
                             }
                         }
@@ -473,19 +459,6 @@ void VisibilityManager::fillVisibleObjectPerCamera(const VisibilityRequest* visi
                     if (currentModel->isAnimated()) {
                         visibilityRequest->changedBoneTransforms[currentModel->getRigId()] = currentModel->getBoneTransforms();
                     }
-                } else { //if not visible
-                    const std::vector<Model::MeshMeta *> &meshMetas =currentModel->getMeshMetaData();
-                    if (!visibilityRequest->renderListsCleared) {
-                        for (auto& meshMeta:meshMetas) {
-                            visibilityEntry.second.removeMeshMaterial(meshMeta->material, meshMeta->mesh, currentModel->getWorldObjectID());
-                        }
-                    }
-                }
-            } else if (!visibilityRequest->renderListsCleared) {
-                //what if we are not matching a tag, but we at some point did?
-                const std::vector<Model::MeshMeta *> &meshMetas =currentModel->getMeshMetaData();
-                for (auto& meshMeta:meshMetas) {
-                    visibilityEntry.second.removeMeshMaterial(meshMeta->material, meshMeta->mesh, currentModel->getWorldObjectID());
                 }
             }
         }
@@ -540,10 +513,15 @@ void VisibilityManager::fillVisibleObjectPerCamera(const VisibilityRequest* visi
             frameCount = 0;
         }
     }
+    {
+        PROFILE_VISIBILITY("Culling::Finalize");
+        for (auto& visibilityEntry: *visibilityRequest->visibility) {
+            visibilityEntry.second.finalize();
+        }
+        visibilityRequest->debugOverlayRenderList.finalize();
+    }
 #ifdef TRACY_ENABLE
-    // If we did not process, because camera is not changed, values are partial, don't update.
-    const bool fullProcessingPass = !skipOcclusionCulling || visibilityRequest->cameraIsDirty;
-    if (ProfilerState::isTracingVisibility() && fullProcessingPass) {
+    if (ProfilerState::isTracingVisibility()) {
         // Tracy requires static names for plot. Multithreading requires thread_local
         thread_local static std::unordered_map<std::string, std::string> plotNameCache;
         // Directional light has single name, multiple cameras, because of CSM

@@ -223,12 +223,13 @@ void Model::renderWithProgram(std::shared_ptr<GraphicsProgram> program, uint32_t
     }
 }
 
-RenderList Model::convertToRenderList(uint32_t lodLevel, float depth, int32_t rigIdOverride) const {
+RenderList Model::convertSingleModelToRenderList(uint32_t lodLevel, float depth, int32_t rigIdOverride) const {
     RenderList renderList;
 
     for (auto iter = meshMetaData.begin(); iter != meshMetaData.end(); ++iter) {
         renderList.addMeshMaterial((*iter)->material, (*iter)->mesh, this, lodLevel, depth, rigIdOverride);
     }
+    renderList.finalize();
     return renderList;
 }
 

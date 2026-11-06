@@ -156,7 +156,12 @@ private:
 
     std::map<std::vector<std::string>, TextureColorSpace> chosenTextureColorSpaces;//what the map chose, main thread only
 
+    //render list ids of the meshes that loaded their GPU part. Only the GPU context thread touches these, so no lock
+    std::vector<uint32_t> freeRenderListMeshIds;
+    uint32_t nextRenderListMeshId = 0;
+
     void reloadTexture(const std::vector<std::string> &files);
+    void releaseRenderListMeshIdsOf(const std::shared_ptr<Asset> &asset);
 
     //its own object because it shares no state with asset caching, neither touches the other's members
     MaterialRegistry materialRegistry;
@@ -440,6 +445,7 @@ public:
                 std::cerr << "trying to delete a partially loaded object" + files[0] + ", probably a bug" << std::endl;
             }
             //std::cerr << "deleting asset as all references are removed" << std::endl;
+            releaseRenderListMeshIdsOf(assets[files].first);
             assets.erase(files);
             if (files.size() == 1) {
                 //flip variants share the images of their file, freeing either one drops them
@@ -510,6 +516,9 @@ public:
     MaterialRegistry& getMaterialRegistry() {
         return materialRegistry;
     }
+
+    uint32_t acquireRenderListMeshId();
+    void releaseRenderListMeshId(uint32_t renderListMeshId);
 
     const MaterialRegistry& getMaterialRegistry() const {
         return materialRegistry;

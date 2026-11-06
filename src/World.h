@@ -250,6 +250,7 @@ private:
     std::vector<CullingEntry> cullingEntries;//reserved once, models point into it. Removal moves the last entry into the hole
     CullingEntry playerPlaceHolderCullingEntry;//the placeholder is drawn but isn't a world model, culling must not see it
     std::unordered_set<uint32_t> tempRenderedObjectsSet;
+    std::vector<uint32_t> tempModelsNeedingPose;//pose pass scratch, kept so it doesn't allocate every tick
     std::vector<uint32_t> physicsActivatedModels;//refilled every tick, kept to reuse the allocation
     std::unordered_set<uint32_t> physicsSimulationActiveModels;//requested through LimonAPI, usually by AI
     std::set<uint32_t> disconnectedModels;

@@ -232,7 +232,7 @@ public:
 
     void renderWithProgram(std::shared_ptr<GraphicsProgram> program, uint32_t lodLevel) override;
 
-    RenderList convertToRenderList(uint32_t lodLevel, float depth, int32_t rigIdOverride = -1) const;
+    RenderList convertSingleModelToRenderList(uint32_t lodLevel, float depth, int32_t rigIdOverride = -1) const;
     void renderWithProgramInstanced(const std::vector<glm::uvec4> & modelIndices, GraphicsProgram &program, uint32_t lodLevel);
 
     bool isAnimated() const { return cullingEntry->animated;}

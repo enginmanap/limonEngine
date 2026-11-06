@@ -2009,11 +2009,7 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
                     }
                     if (objectEditorResult.flipChanged) {
                         Model *selectedObject = static_cast<Model *>(this->pickedObject);
-                        for (auto &perCameraVisibility: world->visibilityManager->getCullingResults()) {
-                            for (auto perTagVisibilityIt = perCameraVisibility.second->begin(); perTagVisibilityIt != perCameraVisibility.second->end(); ++perTagVisibilityIt) {
-                                perTagVisibilityIt->second.removeModelFromAll(selectedObject->getWorldObjectID());
-                            }
-                        }
+                        world->visibilityManager->clearAllRenderLists();//the reload replaces its meshes, the lists still hold the old ones
                         selectedObject->reloadWithFlip(objectEditorResult.newFlipAxes);
                         world->apiAccessor->refreshBroadphaseAabbs(selectedObject);//the shape changed while the body stayed in the world
                     }

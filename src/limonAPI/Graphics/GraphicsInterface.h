@@ -19,7 +19,7 @@
 #define MODEL_TRANSFORM_TEXTURE_WIDTH 1024
 #define MODEL_TRANSFORM_TEXTURE_HEIGHT ((8 * NR_MAX_MODELS) / MODEL_TRANSFORM_TEXTURE_WIDTH)
 #define NR_MAX_MODEL_INDEX_BATCH 4096
-#define NR_MAX_MATERIALS 200
+#define NR_MAX_MATERIALS 200//RenderList packs the slot into its keys, raising this past what fits stops the build in RenderListData.h
 #define NR_BONE 128
 
 #include "limonAPI/Options.h"

@@ -20,6 +20,8 @@ if(TRACY_SERVER_ENABLED)
     add_definitions(-DTRACY_SERVER_ENABLED)
 endif()
 
+option(RENDER_LIST_BAND_MAP "Render lists use the old band map structure instead of the sorted flat arrays, for comparing the two" OFF)
+
 
 #set(CMAKE_VERBOSE_MAKEFILE ON)
 
@@ -142,6 +144,9 @@ file(GLOB_RECURSE SOURCE_FILES src/*.cpp)
 list(FILTER SOURCE_FILES EXCLUDE REGEX "ProfilerSystem\\.cpp$")
 
 add_executable(LimonEngine ${SOURCE_FILES})
+if(RENDER_LIST_BAND_MAP)
+    target_compile_definitions(LimonEngine PRIVATE RENDER_LIST_BAND_MAP)#engine only, so switching it doesn't rebuild the libs
+endif()
 
 INCLUDE(FindPkgConfig)
 
