@@ -31,6 +31,7 @@ Model::Model(uint32_t objectID,  std::shared_ptr<AssetManager> assetManager, con
     boneTransforms.resize(128);
     std::string assetKey = flipAxes.empty() ? modelFile : modelFile + "?flip" + flipAxes;
     cullingEntry->modelAsset = assetManager->loadAsset<ModelAsset>({assetKey});
+    collectUnskinnedBoneIDs();//before the first setupForTime below
     //set up the rigid body
     this->triangleCount = 0;
     this->vao = 0;
@@ -155,6 +156,15 @@ void Model::advanceAnimationClock(uint32_t time) {
     lastSetupTime = time;
 }
 
+void Model::collectUnskinnedBoneIDs() {
+    unskinnedBoneIDs.clear();
+    for (uint32_t boneID : cullingEntry->modelAsset->getUnskinnedBoneIDs()) {
+        if (boneID < boneTransforms.size()) {
+            unskinnedBoneIDs.push_back(boneID);
+        }
+    }
+}
+
 void Model::evaluatePose() {
     // we might need to evaluate a pose, if an attachment to a bone exists. In that case, parent pose needs to be updated for child to actually follow
     Model* boneParentModel = parentBoneID != -1 ? dynamic_cast<Model*>(parentObject) : nullptr;
@@ -184,6 +194,9 @@ void Model::evaluatePose() {
                 boneTransforms[i] = centerOffsetMatrix * boneTransforms[i];
             }
         }
+        for (uint32_t boneID : unskinnedBoneIDs) {
+            boneTransforms[boneID] = centerOffsetMatrix * boneTransforms[boneID];//like the hull bones above, or a bone attachment pivots off by centerOffset
+        }
         if(isScaled) {
             this->getRigidBody()->getCollisionShape()->setLocalScaling(scale);
         }
@@ -199,7 +212,12 @@ void Model::evaluatePose() {
         glm::vec3 translate, scale;
         glm::quat orientation;
 
-        glm::decompose(this->transformation.getWorldTransform() * boneTransforms[boneIterator->first] * glm::inverse(cullingEntry->modelAsset->getBoneBindOffset(boneIterator->first)), scale, orientation, translate, temp1, temp2);//the bone's own frame, see getAttachmentTransform
+        bool decomposed [[gnu::unused]] = glm::decompose(this->transformation.getWorldTransform() * boneTransforms[boneIterator->first] * glm::inverse(cullingEntry->modelAsset->getBoneBindOffset(boneIterator->first)), scale, orientation, translate, temp1, temp2);//the bone's own frame, see getAttachmentTransform
+#ifndef NDEBUG
+        if (!decomposed) {
+            std::cerr << "Bone " << boneIterator->first << " of " << name << " has a singular frame, anything attached to it gets NaN." << std::endl;
+        }
+#endif
         exposedBoneTransforms[boneIterator->first]->setTransformations(translate,scale, orientation);
     }
 }
@@ -1386,6 +1404,7 @@ void Model::reloadWithFlip(const std::string &newFlipAxes) {
     cullingEntry->meshMetaData = newMeshMetaData;
     cullingEntry->modelAsset = newModelAsset;
     assetManager->freeAsset({oldKey});
+    collectUnskinnedBoneIDs();
 
     this->centerOffset = cullingEntry->modelAsset->getCenterOffset();
     this->centerOffsetMatrix = glm::translate(glm::mat4(1.0f), centerOffset);

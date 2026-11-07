@@ -145,6 +145,9 @@ private:
     void traverseAndSetBindPoseJointTransform(std::shared_ptr<const BoneNode> boneNode, const glm::mat4 &parentTransform,
                                               std::vector<glm::mat4> &outJointTransforms) const;
 
+    void traverseAndSetUnskinnedBindPoseTransform(std::shared_ptr<const BoneNode> boneNode, const glm::mat4 &parentTransform,
+                                                  std::vector<glm::mat4> &transforms) const;
+
     void traverseAndSetTransformBlended(std::shared_ptr<const BoneNode> boneNode, const glm::mat4 &parentTransform,
                                         std::shared_ptr<const AnimationInterface> animationOld,
                                         float timeInTicksOld,
@@ -165,6 +168,8 @@ private:
     int32_t buildEditorBoneTreeRecursive(std::shared_ptr<BoneNode> boneNode, int32_t selectedBoneNodeID, bool followSelection);
 
     void collectBoneHierarchyEdgesRecursive(const std::shared_ptr<BoneNode> &boneNode, std::vector<std::pair<uint32_t, uint32_t>> &edges) const;
+
+    void collectUnskinnedBoneIDsRecursive(const std::shared_ptr<BoneNode> &boneNode, std::vector<uint32_t> &boneIDs) const;
 
     int32_t findBoneIDByNameRecursive(const std::shared_ptr<BoneNode> &boneNode, const std::string &boneName) const;
 
@@ -371,6 +376,13 @@ public:
         std::vector<std::pair<uint32_t, uint32_t>> edges;
         collectBoneHierarchyEdgesRecursive(rootNode, edges);
         return edges;
+    }
+
+    //nodes no vertex is weighted to, the pose writes their node frame instead of a skinning matrix
+    std::vector<uint32_t> getUnskinnedBoneIDs() const {
+        std::vector<uint32_t> boneIDs;
+        collectUnskinnedBoneIDsRecursive(rootNode, boneIDs);
+        return boneIDs;
     }
 #ifdef CEREAL_SUPPORT
     template<class Archive>

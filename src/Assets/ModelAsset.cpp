@@ -777,6 +777,7 @@ bool ModelAsset::getTransformBlended(std::string animationNameOld, float timeOld
                 //parent above means parent transform of the mesh node, not the parent of bone.
             }
         }
+        traverseAndSetUnskinnedBindPoseTransform(rootNode, glm::mat4(1.0f), transformMatrix);
         //std::cout << "bind pose returned. for animation name [" << animationNameOld << "]"<< std::endl;
         return true;
     }
@@ -890,6 +891,7 @@ bool ModelAsset::getTransform(float time, bool looped, std::string animationName
                 //parent above means parent transform of the mesh node, not the parent of bone.
             }
         }
+        traverseAndSetUnskinnedBindPoseTransform(rootNode, glm::mat4(1.0f), transformMatrix);
         //std::cout << "bind pose returned. for animation name [" << animationName << "]"<< std::endl;
         return true;
     }
@@ -1012,6 +1014,8 @@ void ModelAsset::traverseAndSetTransformBlended(std::shared_ptr<const BoneNode> 
         transforms[boneNode->boneID] =
                 boneInformationMap.at(boneNode->name).globalMeshInverse * boneInformationMap.at(boneNode->name).parentOffset * nodeTransform * boneInformationMap.at(boneNode->name).offset;
         //parent above means parent transform of the mesh node, not the parent of bone.
+    } else if (boneNode->boneID < transforms.size()) {
+        transforms[boneNode->boneID] = nodeTransform;//no vertex uses an unskinned slot, it holds the node frame so bone attachment works (zero otherwise, NaN on attach)
     }
 
     //Call children even if parent does not have animation attached.
@@ -1041,6 +1045,8 @@ void ModelAsset::traverseAndSetTransform( std::shared_ptr<const BoneNode> boneNo
         transforms[boneNode->boneID] =
                 boneInformationMap.at(boneNode->name).globalMeshInverse * boneInformationMap.at(boneNode->name).parentOffset * nodeTransform * boneInformationMap.at(boneNode->name).offset;
         //parent above means parent transform of the mesh node, not the parent of bone.
+    } else if (boneNode->boneID < transforms.size()) {
+        transforms[boneNode->boneID] = nodeTransform;//no vertex uses an unskinned slot, it holds the node frame so bone attachment works (zero otherwise, NaN on attach)
     }
 
     //Call children even if parent does not have animation attached.
@@ -1080,6 +1086,20 @@ void ModelAsset::traverseAndSetBindPoseJointTransform(std::shared_ptr<const Bone
     }
     for (size_t i = 0; i < boneNode->children.size(); ++i) {
         traverseAndSetBindPoseJointTransform(boneNode->children[i], nodeTransform, outJointTransforms);
+    }
+}
+
+void ModelAsset::traverseAndSetUnskinnedBindPoseTransform(std::shared_ptr<const BoneNode> boneNode, const glm::mat4 &parentTransform,
+                                                          std::vector<glm::mat4> &transforms) const {
+    if (boneNode == nullptr) {
+        return;
+    }
+    glm::mat4 nodeTransform = parentTransform * boneNode->transformation;
+    if (boneInformationMap.find(boneNode->name) == boneInformationMap.end() && boneNode->boneID < transforms.size()) {
+        transforms[boneNode->boneID] = nodeTransform;//skinned slots are set by the bind pose loop, see traverseAndSetTransform
+    }
+    for (size_t i = 0; i < boneNode->children.size(); ++i) {
+        traverseAndSetUnskinnedBindPoseTransform(boneNode->children[i], nodeTransform, transforms);
     }
 }
 
@@ -1329,6 +1349,18 @@ void ModelAsset::collectBoneHierarchyEdgesRecursive(const std::shared_ptr<BoneNo
     for (size_t i = 0; i < boneNode->children.size(); ++i) {
         edges.emplace_back(boneNode->children[i]->boneID, boneNode->boneID);
         collectBoneHierarchyEdgesRecursive(boneNode->children[i], edges);
+    }
+}
+
+void ModelAsset::collectUnskinnedBoneIDsRecursive(const std::shared_ptr<BoneNode> &boneNode, std::vector<uint32_t> &boneIDs) const {
+    if (boneNode == nullptr) {
+        return;
+    }
+    if (boneInformationMap.find(boneNode->name) == boneInformationMap.end()) {
+        boneIDs.push_back(boneNode->boneID);
+    }
+    for (size_t i = 0; i < boneNode->children.size(); ++i) {
+        collectUnskinnedBoneIDsRecursive(boneNode->children[i], boneIDs);
     }
 }
 

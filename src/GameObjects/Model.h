@@ -65,6 +65,7 @@ private:
     std::string lastSelectedAIName;
     std::vector<glm::mat4> boneTransforms;
     std::map<uint32_t, uint32_t> boneIdCompoundChildMap;
+    std::vector<uint32_t> unskinnedBoneIDs;
 
 
     //asset materials are registered by the asset, so we only release the ones we swapped in ourselves
@@ -90,6 +91,8 @@ private:
                           std::vector<std::array<float, 6>> &editedStepSettings);
     //the context the engine would use for this object, so the panel and selection cannot drift apart
     float getLodObjectScale() const;
+
+    void collectUnskinnedBoneIDs();
 
 public:
 
@@ -376,7 +379,12 @@ public:
             glm::vec3 translate, scale;
             glm::quat orientation;
 
-            glm::decompose(this->transformation.getWorldTransform() * boneTransforms[selectedBoneID] * glm::inverse(cullingEntry->modelAsset->getBoneBindOffset(selectedBoneID)), scale, orientation, translate, temp1, temp2);//the bone's own frame, not its skinning matrix, so an offset of zero is the joint
+            bool decomposed [[gnu::unused]] = glm::decompose(this->transformation.getWorldTransform() * boneTransforms[selectedBoneID] * glm::inverse(cullingEntry->modelAsset->getBoneBindOffset(selectedBoneID)), scale, orientation, translate, temp1, temp2);//the bone's own frame, not its skinning matrix, so an offset of zero is the joint
+#ifndef NDEBUG
+            if (!decomposed) {
+                std::cerr << "Bone " << selectedBoneID << " of " << name << " has a singular frame, anything attached to it gets NaN." << std::endl;
+            }
+#endif
 
             exposedBoneTransforms[selectedBoneID]->setTranslate(translate);
             exposedBoneTransforms[selectedBoneID]->setScale(scale);
