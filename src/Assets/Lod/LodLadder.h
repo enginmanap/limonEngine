@@ -32,7 +32,8 @@ enum class LodLimitKind : uint8_t {
     OUTLINE,
     HOLES,
     TEXTURE,
-    NORMAL
+    NORMAL,
+    FILLED
 };
 
 //the five ways a level can differ from the original, in screen pixels at the level's own distance. As limits a
@@ -41,17 +42,18 @@ struct LodPixels {
     float surface = 0.0f;   //how far the visible surface moved, a uv slide included
     float outline = 0.0f;   //how far the silhouette moved, in the worst view
     float holes = 0.0f;     //widest place where something behind shows through, lost coverage included
+    float filled = 0.0f;    //widest place drawn over where something behind showed through, a closed window or gained coverage
     float texture = 0.0f;   //widest place where the uv jumped to another part of the texture
     float normal = 0.0f;    //widest place whose shading changed past LOD_normalDeviation
 
     bool operator==(const LodPixels &other) const {
-        return surface == other.surface && outline == other.outline && holes == other.holes &&
+        return surface == other.surface && outline == other.outline && holes == other.holes && filled == other.filled &&
                texture == other.texture && normal == other.normal;
     }
 #ifdef CEREAL_SUPPORT
     template<class Archive>
     void serialize(Archive &archive) {
-        archive(surface, outline, holes, texture, normal);
+        archive(surface, outline, holes, filled, texture, normal);
     }
 #endif
 };

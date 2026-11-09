@@ -12,7 +12,7 @@
 #include <SDL3/SDL_filesystem.h>
 #include "../../LimonFileSystem.h"
 
-static const uint32_t LOD_METADATA_SCHEMA_VERSION = 12;
+static const uint32_t LOD_METADATA_SCHEMA_VERSION = 13;
 //two flip variants of one model load in parallel and share this file, and the animation sections live in it too
 static std::mutex lodMetadataWriteMutex;
 
@@ -146,6 +146,7 @@ static void writePixels(tinyxml2::XMLElement *node, const std::string &prefix, c
     setFloatAttribute(node, prefix + "Surface", pixels.surface);
     setFloatAttribute(node, prefix + "Outline", pixels.outline);
     setFloatAttribute(node, prefix + "Holes", pixels.holes);
+    setFloatAttribute(node, prefix + "Filled", pixels.filled);
     setFloatAttribute(node, prefix + "Texture", pixels.texture);
     setFloatAttribute(node, prefix + "Normal", pixels.normal);
 }
@@ -154,6 +155,7 @@ static void readPixels(const tinyxml2::XMLElement *node, const std::string &pref
     pixels.surface = node->FloatAttribute((prefix + "Surface").c_str());
     pixels.outline = node->FloatAttribute((prefix + "Outline").c_str());
     pixels.holes = node->FloatAttribute((prefix + "Holes").c_str());
+    pixels.filled = node->FloatAttribute((prefix + "Filled").c_str());
     pixels.texture = node->FloatAttribute((prefix + "Texture").c_str());
     pixels.normal = node->FloatAttribute((prefix + "Normal").c_str());
 }

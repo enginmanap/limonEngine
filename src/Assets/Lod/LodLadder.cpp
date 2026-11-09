@@ -17,7 +17,7 @@
 #include "limonAPI/util/HashUtil.h"
 
 //bumped by hand whenever the scorer, the search or a generator changes what it produces
-static const uint32_t LOD_CALIBRATOR_VERSION = 13;
+static const uint32_t LOD_CALIBRATOR_VERSION = 14;
 
 //the tuned defaults: maps keep about 80, 60 and 40 percent of their triangles at these distances
 static const uint32_t LOD_DEFAULT_STEP_COUNT = 3;
@@ -26,6 +26,7 @@ static const float LOD_DEFAULT_TRIANGLE_TARGETS[LOD_DEFAULT_STEP_COUNT] = {80.0f
 static const float LOD_DEFAULT_SURFACE_PIXELS[LOD_DEFAULT_STEP_COUNT] = {4.0f, 3.0f, 4.0f};
 static const float LOD_DEFAULT_OUTLINE_PIXELS[LOD_DEFAULT_STEP_COUNT] = {4.0f, 3.0f, 4.0f};
 static const float LOD_DEFAULT_HOLE_PIXELS[LOD_DEFAULT_STEP_COUNT] = {2.0f, 6.0f, 8.0f};
+static const float LOD_DEFAULT_FILLED_PIXELS[LOD_DEFAULT_STEP_COUNT] = {2.0f, 6.0f, 8.0f};
 static const float LOD_DEFAULT_TEXTURE_PIXELS[LOD_DEFAULT_STEP_COUNT] = {8.0f, 12.0f, 16.0f};
 static const float LOD_DEFAULT_NORMAL_PIXELS[LOD_DEFAULT_STEP_COUNT] = {8.0f, 12.0f, 16.0f};
 static const uint32_t LOD_MAX_STEPS_FROM_OPTIONS = 7;//LOD0 plus this many, kept under the mesh side ceiling
@@ -64,6 +65,7 @@ void LodLadder::appendDefaultSteps() {
         entry.limits.surface = LOD_DEFAULT_SURFACE_PIXELS[step];
         entry.limits.outline = LOD_DEFAULT_OUTLINE_PIXELS[step];
         entry.limits.holes = LOD_DEFAULT_HOLE_PIXELS[step];
+        entry.limits.filled = LOD_DEFAULT_FILLED_PIXELS[step];
         entry.limits.texture = LOD_DEFAULT_TEXTURE_PIXELS[step];
         entry.limits.normal = LOD_DEFAULT_NORMAL_PIXELS[step];
         steps.push_back(entry);
@@ -108,10 +110,12 @@ void LodLadder::readStepsFromOptions(OptionsUtil::Options *options) {
     if (distances.empty()) {
         return;
     }
-    const char *listNames[6] = {"LOD_levelTriangleTargets", "LOD_levelSurfacePixels", "LOD_levelOutlinePixels",
-                                "LOD_levelHolePixels", "LOD_levelTexturePixels", "LOD_levelNormalPixels"};
-    std::vector<float> lists[6];
-    for (uint32_t list = 0; list < 6; ++list) {
+    const uint32_t LIST_COUNT = 7;
+    const char *listNames[LIST_COUNT] = {"LOD_levelTriangleTargets", "LOD_levelSurfacePixels", "LOD_levelOutlinePixels",
+                                         "LOD_levelHolePixels", "LOD_levelTexturePixels", "LOD_levelNormalPixels",
+                                         "LOD_levelFilledPixels"};
+    std::vector<float> lists[LIST_COUNT];
+    for (uint32_t list = 0; list < LIST_COUNT; ++list) {
         OptionsUtil::Options::Option<std::vector<float>> option =
                 options->getOption<std::vector<float>>(hash(listNames[list], strlen(listNames[list])));
         if (option.isUsable()) {
@@ -138,6 +142,7 @@ void LodLadder::readStepsFromOptions(OptionsUtil::Options *options) {
         entry.limits.holes = lists[3][step];
         entry.limits.texture = lists[4][step];
         entry.limits.normal = lists[5][step];
+        entry.limits.filled = lists[6][step];
         steps.push_back(entry);
     }
 }
@@ -877,6 +882,7 @@ bool LodLadder::measureCandidate(const std::vector<MeshGeometry> &meshes, float 
     RasterTarget reference;
     RasterTarget simplified;
     std::vector<uint8_t> holeMask;
+    std::vector<uint8_t> filledMask;
     std::vector<uint8_t> textureMask;
     std::vector<uint8_t> normalMask;
     std::vector<float> movements;//screen pixels
@@ -889,6 +895,7 @@ bool LodLadder::measureCandidate(const std::vector<MeshGeometry> &meshes, float 
         rasterize(meshes, nullptr, views[viewIndex], center, scale, resolution, meshPositionPerUv, reference);
         rasterize(meshes, &candidate, views[viewIndex], center, scale, resolution, meshPositionPerUv, simplified);
         holeMask.assign(reference.depth.size(), 0);
+        filledMask.assign(reference.depth.size(), 0);
         textureMask.assign(reference.depth.size(), 0);
         normalMask.assign(reference.depth.size(), 0);
         for (size_t pixel = 0; pixel < reference.depth.size(); ++pixel) {
@@ -910,6 +917,8 @@ bool LodLadder::measureCandidate(const std::vector<MeshGeometry> &meshes, float 
                 mismatched++;//the outline moved, in or out
                 if (referenceCovered) {
                     holeMask[pixel] = 1;//lost coverage shows what is behind, a shadow or an occluder loses it entirely
+                } else {
+                    filledMask[pixel] = 1;//a closed opening, it hides what is behind and an occluder culls it
                 }
                 continue;
             }
@@ -918,8 +927,12 @@ bool LodLadder::measureCandidate(const std::vector<MeshGeometry> &meshes, float 
             }
             float movement = std::fabs(reference.depth[pixel] - simplified.depth[pixel]);
             if (movement > LOD_SCORER_SURFACE_JUMP_PIXELS * perScreenPixel) {
-                //not the same surface displaced, something behind it showing through
-                holeMask[pixel] = 1;
+                //not the same surface displaced: farther shows something behind through, nearer draws over it
+                if (simplified.depth[pixel] > reference.depth[pixel]) {
+                    holeMask[pixel] = 1;
+                } else {
+                    filledMask[pixel] = 1;
+                }
                 continue;
             }
             //a welded level keeps whichever copy's uv and normal it landed on, and only depth cameras draw it
@@ -949,6 +962,7 @@ bool LodLadder::measureCandidate(const std::vector<MeshGeometry> &meshes, float 
             movements.push_back(movement / perScreenPixel);
         }
         candidate.measured.holes = std::max(candidate.measured.holes, largestRegionWidth(holeMask, resolution) / perScreenPixel);
+        candidate.measured.filled = std::max(candidate.measured.filled, largestRegionWidth(filledMask, resolution) / perScreenPixel);
         candidate.measured.texture = std::max(candidate.measured.texture, largestRegionWidth(textureMask, resolution) / perScreenPixel);
         candidate.measured.normal = std::max(candidate.measured.normal, largestRegionWidth(normalMask, resolution) / perScreenPixel);
         //the mismatched pixels form a band along the outline, so its width is the band over the outline length
@@ -972,6 +986,10 @@ bool LodLadder::measureCandidate(const std::vector<MeshGeometry> &meshes, float 
     }
     if (limits.holes >= 0.0f && measured.holes > limits.holes) {
         candidate.failedBy = LodLimitKind::HOLES;
+        return false;
+    }
+    if (limits.filled >= 0.0f && measured.filled > limits.filled) {
+        candidate.failedBy = LodLimitKind::FILLED;
         return false;
     }
     if (candidate.silhouetteOnly) {

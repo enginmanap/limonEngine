@@ -224,6 +224,15 @@
     </Parameter>
     <Parameter>
         <RequestType>FreeNumber</RequestType>
+        <Description>LOD_levelFilledPixels</Description>
+        <!--How wide the widest filled opening may be at the level's distance, where the level draws over something that showed through, like a closed window, in pixels of the reference screen. Negative switches the check off-->
+        <Value>4, 2, 6, 8</Value>
+        <valueType>FloatArray</valueType>
+        <IsSet>True</IsSet>
+        <Index>114</Index>
+    </Parameter>
+    <Parameter>
+        <RequestType>FreeNumber</RequestType>
         <Description>LOD_levelTexturePixels</Description>
         <!--How wide the widest patch may be where the uv jumped to another part of the texture, at the level's distance, in pixels of the reference screen. Negative switches the check off-->
         <Value>4, 8, 12, 16</Value>
