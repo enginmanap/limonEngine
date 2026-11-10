@@ -681,6 +681,19 @@ WorldLoader::loadObject(World *world, std::shared_ptr<AssetManager> assetManager
     if(parentObject != nullptr) {
         Model* parentModel = dynamic_cast<Model*>(parentObject);
         if(parentModel != nullptr) {
+            if(parentBoneID != -1) {
+                //version 1 offsets are against the skinning matrix, 96a5237c moved bone attachments to the bone's own frame
+                Transformation* childTransformation = loadedObjectInformation->model->getTransformation();
+                glm::mat4 legacyLocal = glm::translate(glm::mat4(1.0f), childTransformation->getTranslate()) *
+                                        glm::mat4_cast(childTransformation->getOrientation()) *
+                                        glm::scale(glm::mat4(1.0f), childTransformation->getScale());
+                glm::mat4 boneLocal = parentModel->getModelAsset()->getBoneBindOffset(parentBoneID) * legacyLocal;
+                glm::vec3 translate, scale, skew;
+                glm::quat orientation;
+                glm::vec4 perspective;
+                glm::decompose(boneLocal, scale, orientation, translate, skew, perspective);
+                childTransformation->setTransformations(translate, scale, orientation);
+            }
             loadedObjectInformation->model->getTransformation()->setParentTransform(
                     parentModel->getAttachmentTransformForKnownBone(parentBoneID));
         } else {
