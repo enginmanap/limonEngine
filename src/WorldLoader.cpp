@@ -224,6 +224,9 @@ World * WorldLoader::loadMapFromXML(const std::string &worldFileName, LimonAPI *
     if(saveVersion < 2 && worldStartPlayer != nullptr) {
         //V2 saves attachments as ordinary objects parented to the player
         tinyxml2::XMLElement* playerAttachmentNode = worldStartPlayer->FirstChildElement("Attachment");
+        if(playerAttachmentNode == nullptr) {
+            playerAttachmentNode = worldStartPlayer->FirstChildElement("Attachement");//maps saved before 5806295d
+        }
         if(playerAttachmentNode != nullptr) {
             loadPlayerAttachmentV1(playerAttachmentNode, world, limonAPI);
         }
