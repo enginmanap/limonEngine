@@ -281,6 +281,11 @@ void bindLimonAPI(pybind11::module_& m) {
             .def("get_object_transformation_matrix", &LimonAPI::getObjectTransformationMatrix,
                  "Get an object's transformation matrix. Prefer this over get_object_transformation for physical objects",
                  pybind11::arg("object_id"))
+            .def("get_object_aabb", &LimonAPI::getObjectAABB,
+                 "Get an object's world space aabb as [min, max], empty if not found",
+                 pybind11::arg("object_id"))
+            .def("get_ai_grid_floating_height", &LimonAPI::getAIGridFloatingHeight,
+                 "How high above the ground AI route nodes sit")
 
             // Sound
             .def("play_sound", &LimonAPI::playSound,

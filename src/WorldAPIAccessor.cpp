@@ -85,6 +85,8 @@ WorldAPIAccessor::WorldAPIAccessor(World* world, LimonAPI* limonAPI) : world(wor
     limonAPI->worldRayCast                        = std::bind(&WorldAPIAccessor::rayCastAPI,                         this, std::placeholders::_1, std::placeholders::_2);
     limonAPI->worldGetObjectTransformation        = std::bind(&WorldAPIAccessor::getObjectTransformationAPI,         this, std::placeholders::_1);
     limonAPI->worldGetObjectTransformationMatrix  = std::bind(&WorldAPIAccessor::getObjectTransformationMatrixAPI,   this, std::placeholders::_1);
+    limonAPI->worldGetObjectAABB                  = std::bind(&WorldAPIAccessor::getObjectAABBAPI,                   this, std::placeholders::_1);
+    limonAPI->worldGetAIGridFloatingHeight        = std::bind(&WorldAPIAccessor::getAIGridFloatingHeightAPI,         this);
     limonAPI->worldSetObjectTranslate             = std::bind(&WorldAPIAccessor::setObjectTranslateAPI,              this, std::placeholders::_1, std::placeholders::_2);
     limonAPI->worldSetObjectMass                  = std::bind(&WorldAPIAccessor::setObjectMassAPI,                   this, std::placeholders::_1, std::placeholders::_2);
     limonAPI->worldSetObjectScale                 = std::bind(&WorldAPIAccessor::setObjectScaleAPI,                  this, std::placeholders::_1, std::placeholders::_2);
@@ -1122,6 +1124,30 @@ std::vector<LimonTypes::GenericParameter> WorldAPIAccessor::getObjectTransformat
 
     result.push_back(transform);
     return result;
+}
+
+std::vector<LimonTypes::GenericParameter> WorldAPIAccessor::getObjectAABBAPI(uint32_t objectID) const {
+    std::vector<LimonTypes::GenericParameter> result;
+    Model* model = world->findModelByID(objectID);
+    if(model == nullptr) {
+        return result;
+    }
+
+    LimonTypes::GenericParameter aabbMin;
+    aabbMin.valueType = LimonTypes::GenericParameter::ValueTypes::VEC4;
+    aabbMin.value.vectorValue = GLMConverter::GLMToLimon(model->getAabbMin());
+    result.push_back(aabbMin);
+
+    LimonTypes::GenericParameter aabbMax;
+    aabbMax.valueType = LimonTypes::GenericParameter::ValueTypes::VEC4;
+    aabbMax.value.vectorValue = GLMConverter::GLMToLimon(model->getAabbMax());
+    result.push_back(aabbMax);
+
+    return result;
+}
+
+float WorldAPIAccessor::getAIGridFloatingHeightAPI() const {
+    return world->getAIGridFloatingHeight();
 }
 
 bool WorldAPIAccessor::setObjectTranslateAPI(uint32_t objectID, const LimonTypes::Vec4 &position) {

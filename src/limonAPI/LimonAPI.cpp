@@ -272,6 +272,14 @@ std::vector<LimonTypes::GenericParameter> LimonAPI::getObjectTransformationMatri
     return worldGetObjectTransformationMatrix(objectID);
 }
 
+std::vector<LimonTypes::GenericParameter> LimonAPI::getObjectAABB(uint32_t objectID) {
+    return worldGetObjectAABB(objectID);
+}
+
+float LimonAPI::getAIGridFloatingHeight() {
+    return worldGetAIGridFloatingHeight();
+}
+
 LimonTypes::Vec4 LimonAPI::getObjectPosition(uint32_t objectID) {
     std::vector<LimonTypes::GenericParameter> transformation = getObjectTransformation(objectID);
     if (transformation.size() >= 1) {

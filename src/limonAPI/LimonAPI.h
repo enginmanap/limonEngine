@@ -154,6 +154,18 @@ public:
 
     LimonTypes::Vec4 getObjectPosition(uint32_t objectID);
     LimonTypes::Vec4 getObjectFrontVector(uint32_t objectID);
+    /**
+     * World space, follows the object's physics body. If object not found, returns empty vector
+     *
+     * Returns these values:
+     * 1) aabb min
+     * 2) aabb max
+     */
+    std::vector<LimonTypes::GenericParameter> getObjectAABB(uint32_t objectID);
+    /**
+     * AI route nodes sit this high above the ground the grid was built on.
+     */
+    float getAIGridFloatingHeight();
     bool setObjectTranslate(uint32_t objectID, const LimonTypes::Vec4& position);
     bool setObjectScale(uint32_t objectID, const LimonTypes::Vec4& scale);
     /**
@@ -360,6 +372,8 @@ private:
     std::function<bool(uint32_t, bool)> worldSetPhysicsSimulationActive;
     std::function<bool (uint32_t, bool)> worldRemoveObject;
     std::function<std::vector<LimonTypes::GenericParameter>(uint32_t)> worldGetObjectTransformation;
+    std::function<std::vector<LimonTypes::GenericParameter>(uint32_t)> worldGetObjectAABB;
+    std::function<float()> worldGetAIGridFloatingHeight;
     std::function<bool (uint32_t, const LimonTypes::Vec4&)> worldSetObjectTranslate;
     std::function<bool (uint32_t, float)> worldSetObjectMass;
     std::function<bool (uint32_t, const LimonTypes::Vec4&)> worldSetObjectScale;

@@ -129,6 +129,8 @@ public:
     // Object transform
     std::vector<LimonTypes::GenericParameter> getObjectTransformationAPI(uint32_t objectID) const;
     std::vector<LimonTypes::GenericParameter> getObjectTransformationMatrixAPI(uint32_t objectID) const;
+    std::vector<LimonTypes::GenericParameter> getObjectAABBAPI(uint32_t objectID) const;
+    float getAIGridFloatingHeightAPI() const;
     bool setObjectTranslateAPI(uint32_t objectID, const LimonTypes::Vec4& position);
     bool setObjectMassAPI(uint32_t objectID, float mass);
     bool setObjectScaleAPI(uint32_t objectID, const LimonTypes::Vec4& scale);
