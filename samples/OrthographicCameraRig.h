@@ -36,7 +36,7 @@ class OrthographicCameraRig : public CameraExtensionInterface {
     bool dirty = true;
 public:
     glm::vec3 offset                 = glm::vec3(0.0f, 20.0f, 20.0f);
-    float     orthographicHalfHeight = 15.0f;
+    float     orthographicHalfHeight = 6.0f;
     float     nearPlane              = -20.0f;
     float     farPlane               = 1000.0f;
 

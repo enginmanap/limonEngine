@@ -85,18 +85,18 @@ void ShooterPlayerExtension::processInput(const InputStates &inputState, const P
                     limonAPI->interactWithAI(rayResult[3].value.longValue, prList);
 
                     //How about some particles?
-                    uint32_t particleEmitterID = limonAPI->addParticleEmitter("HitEmitter", "./Data/Textures/BloodParticle.png", rayResult[1].value.vectorValue, LimonTypes::Vec4(0.01, 0.01, 0.01, 0),
+                    uint32_t particleEmitterID = limonAPI->addParticleEmitter("HitEmitter", "./Data/Textures/BloodParticle.png", rayResult[1].value.vectorValue, LimonTypes::Vec4(0.02, 0.02, 0.02, 0),
                                                                               LimonTypes::Vec2(0.05, 0.05), 50, 2000, 2000, false);
                     //For speed we want to use the normal, first parameter is multiplier for random, second is applied to all.
-                    LimonTypes::Vec4 randomStartMultiplier = LimonTypes::Vec4(0.05, 0.05, 0.05, 0.05);
-                    LimonTypes::Vec4 offset = rayResult[2].value.vectorValue * 0.05;
+                    LimonTypes::Vec4 randomStartMultiplier = LimonTypes::Vec4(1, 1, 1, 1);
+                    LimonTypes::Vec4 offset = rayResult[2].value.vectorValue * 1.0;
                     std::cout << "creating particles with " << offset.x << ", " << offset.y << ", " << offset.z << ", " << offset.w << " ." << std::endl;
                     limonAPI->setEmitterParticleSpeed(particleEmitterID, randomStartMultiplier, offset);
-                    limonAPI->setEmitterParticleGravity(particleEmitterID, LimonTypes::Vec4(0,-1, 0));
+                    limonAPI->setEmitterParticleGravity(particleEmitterID, LimonTypes::Vec4(0, -9.8, 0));
                 } else {
                     std::cout << "hit non AI" << std::endl;
                     //means we hit something that doesn't have AI, put a hole
-                    glm::vec3 scale(0.2f, 0.2f, 0.2f);
+                    glm::vec3 scale(0.08f, 0.08f, 0.08f);
                     glm::vec3 hitPos(rayResult[1].value.vectorValue.x, rayResult[1].value.vectorValue.y, rayResult[1].value.vectorValue.z);
                     glm::vec3 hitNormal(rayResult[2].value.vectorValue.x, rayResult[2].value.vectorValue.y, rayResult[2].value.vectorValue.z);
 
@@ -163,14 +163,14 @@ void ShooterPlayerExtension::processInput(const InputStates &inputState, const P
 
                     }
                     //How about some particles?
-                    uint32_t particleEmitterID = limonAPI->addParticleEmitter("HitEmitter", "./Data/Textures/BaseParticle.png", rayResult[1].value.vectorValue, LimonTypes::Vec4(0.01, 0.01, 0.01, 0),
-                                                 LimonTypes::Vec2(0.05, 0.05), 50, 2000, 2000, false);
+                    uint32_t particleEmitterID = limonAPI->addParticleEmitter("HitEmitter", "./Data/Textures/BaseParticle.png", rayResult[1].value.vectorValue, LimonTypes::Vec4(0.004, 0.004, 0.004, 0),
+                                                 LimonTypes::Vec2(0.02, 0.02), 50, 2000, 2000, false);
                     //For speed we want to use the normal, first parameter is multiplier for random, second is applied to all.
-                    LimonTypes::Vec4 randomStartMultiplier = LimonTypes::Vec4(0.1, 0.1, 0.1, 0.1);
-                    LimonTypes::Vec4 offset = rayResult[2].value.vectorValue * 0.2;
+                    LimonTypes::Vec4 randomStartMultiplier = LimonTypes::Vec4(2.5, 2.5, 2.5, 2.5);
+                    LimonTypes::Vec4 offset = rayResult[2].value.vectorValue * 5.0;
                     std::cout << "creating particles with " << offset.x << ", " << offset.y << ", " << offset.z << ", " << offset.w << " ." << std::endl;
                     limonAPI->setEmitterParticleSpeed(particleEmitterID, randomStartMultiplier, offset);
-                    limonAPI->setEmitterParticleGravity(particleEmitterID, LimonTypes::Vec4(0,-1, 0));
+                    limonAPI->setEmitterParticleGravity(particleEmitterID, LimonTypes::Vec4(0, -9.8, 0));
 
                 }
 
@@ -180,7 +180,7 @@ void ShooterPlayerExtension::processInput(const InputStates &inputState, const P
         }
     } else {
         if (inputState.getInputEvents(InputActions::MOUSE_BUTTON_RIGHT)) {
-            glm::vec3 aimOffset(0.075f, 0.03f, -0.045f);
+            glm::vec3 aimOffset(0.03f, 0.012f, -0.018f);
             if(inputState.getInputStatus(InputActions::MOUSE_BUTTON_RIGHT)) {
                 limonAPI->setModelAnimationWithBlend(playerAttachedBodyID, "AimPose", true);
             } else {

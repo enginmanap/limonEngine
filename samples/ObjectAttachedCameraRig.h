@@ -23,7 +23,7 @@ class ObjectAttachedCameraRig : public CameraExtensionInterface {
     glm::quat targetOrientation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
     bool dirty = true;
 public:
-    glm::vec3 localOffset     = glm::vec3(0.0f, 40.0f, 8.0f);
+    glm::vec3 localOffset     = glm::vec3(0.0f, 16.0f, 3.0f);
 
     explicit ObjectAttachedCameraRig(LimonAPI* limonAPI) : CameraExtensionInterface(limonAPI) {}
 

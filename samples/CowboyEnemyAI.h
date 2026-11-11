@@ -60,9 +60,9 @@ class CowboyEnemyAI : public ActorInterface {
     uint32_t routeGetTime = 0;
     bool currentAnimationFinished;
 
-    const float DETECTION_DISTANCE = 100;//too little because of testing
-    const float MELEE_DISTANCE = 6;
-    const float RUN_DISTANCE = 25;
+    const float DETECTION_DISTANCE = 40.0f;//too little because of testing
+    const float MELEE_DISTANCE = 2.5f;
+    const float RUN_DISTANCE = 10.0f;
 
     uint32_t lastSetupTime;
     uint32_t lastShootTime = 0;
@@ -88,6 +88,11 @@ class CowboyEnemyAI : public ActorInterface {
     ActorInterface::ActorInformation latestInformation;
     std::string playZoneName;
     std::string interactionZoneName;
+
+    static constexpr float CHEST_HEIGHT_RATIO = 0.75f;//of the body height, measured from the feet
+
+    glm::vec3 getRouteHeightPosition() const;
+    glm::vec3 getChestPosition() const;
 public:
     static std::vector<std::string> getPackFileAccessList() {
         return {"./Data/Sounds/guns/pistol.wav",

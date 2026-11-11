@@ -11,6 +11,7 @@ from actor_interface import ActorInterface
 from generic_parameter import GenericParameter, RequestParameterType, ValueType
 from vec3 import Vec3
 
+CHEST_HEIGHT_RATIO = 0.75  # of the body height, measured from the feet
 
 class State(Enum):
     DEAD = 0
@@ -50,9 +51,9 @@ class PythonCowboyEnemy(ActorInterface):
     """
 
     # Constants (mirror the C++ const members)
-    DETECTION_DISTANCE = 100  # too little because of testing
-    MELEE_DISTANCE = 6
-    RUN_DISTANCE = 25
+    DETECTION_DISTANCE = 40.0  # too little because of testing
+    MELEE_DISTANCE = 2.5
+    RUN_DISTANCE = 10.0
 
     @classmethod
     def get_pack_file_access_list(cls):
@@ -114,6 +115,24 @@ class PythonCowboyEnemy(ActorInterface):
     def _vec4(vec3: Vec3, w: float = 0.0):
         return limon.Vec4(vec3.x, vec3.y, vec3.z, w)
 
+    def _route_height_position(self) -> Vec3:
+        position = self.get_position()
+        aabb = self.limon_api.get_object_aabb(self.model_id)
+        if len(aabb) < 2:
+            return position
+        # route nodes float above the ground our feet are on
+        feet_height = aabb[0].value[1]
+        return Vec3(position.x, feet_height + self.limon_api.get_ai_grid_floating_height(), position.z)
+
+    def _chest_position(self) -> Vec3:
+        position = self.get_position()
+        aabb = self.limon_api.get_object_aabb(self.model_id)
+        if len(aabb) < 2:
+            return position
+        feet_height = aabb[0].value[1]
+        body_height = aabb[1].value[1] - feet_height
+        return Vec3(position.x, feet_height + CHEST_HEIGHT_RATIO * body_height, position.z)
+
     # ------------------------------------------------------------------ main update
     def play(self, time: int, information) -> None:
         with self.limon_api.profile_scope(self._play_zone_name):
@@ -123,7 +142,7 @@ class PythonCowboyEnemy(ActorInterface):
             if information.route_ready:
                 self.route_to_request = [self._to_vec3(node) for node in information.route_to_request]
                 if information.route_found and self.route_to_request:
-                    self.last_walk_direction = self.route_to_request[0] - self.get_position() - Vec3(0.0, 2.0, 0.0)
+                    self.last_walk_direction = self.route_to_request[0] - self._route_height_position()
                 self.route_get_time = time
                 self.route_requested = False
 
@@ -396,11 +415,11 @@ class PythonCowboyEnemy(ActorInterface):
                     self.limon_api.set_model_animation_with_blend(self.model_id, "Pistol Walk|")
                 else:
                     self.limon_api.set_model_animation_with_blend(self.model_id, "Rifle Walk|")
-            distance_to_route_node = (self.get_position() + Vec3(0.0, 2.0, 0.0) - self.route_to_request[0]).length_squared()
-            if distance_to_route_node < 0.1:  # if reached first element
+            distance_to_route_node = (self._route_height_position() - self.route_to_request[0]).length_squared()
+            if distance_to_route_node < 0.125 * 0.125:  # if reached first element, squared
                 self.route_to_request.pop(0)
                 if self.route_to_request:
-                    self.last_walk_direction = self.route_to_request[0] - self.get_position() - Vec3(0.0, 2.0, 0.0)
+                    self.last_walk_direction = self.route_to_request[0] - self._route_height_position()
                 else:
                     self.last_walk_direction = Vec3(0.0, 0.0, 0.0)
             move_direction = self.last_walk_direction * self.walk_speed
@@ -423,11 +442,11 @@ class PythonCowboyEnemy(ActorInterface):
             self.route_requested = True
         # now we are walking, move along the route
         if self.route_to_request:
-            distance_to_route_node = (self.get_position() + Vec3(0.0, 2.0, 0.0) - self.route_to_request[0]).length_squared()
-            if distance_to_route_node < 0.1:  # if reached first element
+            distance_to_route_node = (self._route_height_position() - self.route_to_request[0]).length_squared()
+            if distance_to_route_node < 0.125 * 0.125:  # if reached first element, squared
                 self.route_to_request.pop(0)
                 if self.route_to_request:
-                    self.last_walk_direction = self.route_to_request[0] - self.get_position() - Vec3(0.0, 2.0, 0.0)
+                    self.last_walk_direction = self.route_to_request[0] - self._route_height_position()
                 else:
                     self.last_walk_direction = Vec3(0.0, 0.0, 0.0)
             move_direction = self.last_walk_direction * self.run_speed
@@ -512,15 +531,14 @@ class PythonCowboyEnemy(ActorInterface):
             return
 
         # add missing based on distance.
-        if player_distance > 100.0:
+        if player_distance > 40.0:
             return  # miss for certain
-        if random.random() < (player_distance / 100.0):
+        if random.random() < (player_distance / 40.0):
             return  # miss
 
         shoot = GenericParameter(value_type=ValueType.STRING, value="SHOOT_PLAYER", is_set=True)
         damage_param = GenericParameter(value_type=ValueType.LONG, value=int(self.gun_damage), is_set=True)
-        # 2 is the offset of model. 3d modeller should give this.
-        source_position = self.get_position() + Vec3(0.0, 2.0, 0.0)
+        source_position = self._chest_position()
         position_param = GenericParameter(value_type=ValueType.VEC4,
                                           value=[source_position.x, source_position.y, source_position.z, 0.0],
                                           is_set=True)

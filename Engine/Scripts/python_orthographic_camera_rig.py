@@ -18,7 +18,7 @@ class PythonOrthographicCameraRig(CameraExtensionInterface):
     def __init__(self, limon_api):
         super().__init__(limon_api)
         self.offset = Vec3(0.0, 20.0, 20.0)
-        self.half_height = 15.0
+        self.half_height = 6.0
         self.near_plane = 0.1
         self.far_plane = 1000.0
 

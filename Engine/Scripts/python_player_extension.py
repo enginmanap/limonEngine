@@ -91,7 +91,7 @@ class PythonPlayerExtension(PlayerExtensionInterface):
                     parameters=param_vector
                 )
                 # Add muzzle flash light at player position
-                light_position = limon.Vec4(0.0, 2.0, 0.0, 0.0)
+                light_position = limon.Vec4(0.0, 0.8, 0.0, 0.0)
                 if self.playerAttachedBodyID != 0:
                     transform = self._limon_api.get_object_transformation(self.playerAttachedBodyID)
                     if transform and len(transform) > 0:

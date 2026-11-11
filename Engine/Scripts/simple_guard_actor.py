@@ -144,7 +144,7 @@ class SimpleGuardActor(ActorInterface):
         # Determine behavior based on distance
         distance = actor_information.player_distance
         
-        if distance < 5.0:
+        if distance < 2.0:
             self._state = "chase"
             print(f"{self.get_name()}: Player spotted at close range ({distance:.1f} units)! CHASING!")
             
@@ -159,7 +159,7 @@ class SimpleGuardActor(ActorInterface):
             # This would interact with nearby objects/players
             # self.limon_api.interact_with_ai(self.model_id, interaction_params)
             
-        elif distance < 15.0:
+        elif distance < 6.0:
             self._state = "alert"
             print(f"{self.get_name()}: Player detected at medium range ({distance:.1f} units)! On alert!")
             

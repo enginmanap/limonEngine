@@ -31,6 +31,10 @@ class HumanEnemy: public ActorInterface {
     bool simulationActive = false;
 
     void updateSimulationActive(bool shouldSimulate);
+    static constexpr float CHEST_HEIGHT_RATIO = 0.75f;//of the body height, measured from the feet
+
+    glm::vec3 getRouteHeightPosition() const;
+    glm::vec3 getChestPosition() const;
 
 public:
     static std::vector<std::string> getPackFileAccessList() {

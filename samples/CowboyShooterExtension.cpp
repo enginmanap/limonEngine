@@ -239,7 +239,7 @@ void CowboyShooterExtension::shootingTransition() {
         } else { // we hit something, but it doesn't have AI, just put bullet hole
 
 
-            glm::vec3 scale(0.2f, 0.2f, 0.2f);
+            glm::vec3 scale(0.08f, 0.08f, 0.08f);
             glm::vec3 hitPos(rayResult[1].value.vectorValue.x, rayResult[1].value.vectorValue.y, rayResult[1].value.vectorValue.z);//hit position is returned in parameter 1
             glm::vec3 hitNormal(rayResult[2].value.vectorValue.x, rayResult[2].value.vectorValue.y, rayResult[2].value.vectorValue.z);//hit normal is returned in parameter 2
 

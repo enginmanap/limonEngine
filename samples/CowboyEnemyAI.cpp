@@ -64,7 +64,7 @@ void CowboyEnemyAI::play(uint32_t time, ActorInterface::ActorInformation &inform
     if(information.routeReady) {
         this->routeToRequest = information.routeToRequest;
         if(information.routeFound) {
-            lastWalkDirection = routeToRequest[0] - getPosition() - glm::vec3(0, 2.0f, 0);
+            lastWalkDirection = routeToRequest[0] - getRouteHeightPosition();
         }
         routeGetTime = time;
         routeRequested = false;
@@ -445,11 +445,11 @@ void CowboyEnemyAI::transitionToWalk(const ActorInformation &information) {
                 limonAPI->setModelAnimationWithBlend(modelID, "Rifle Walk|");
             }
         }
-        float distanceToRouteNode = glm::length2(getPosition() + glm::vec3(0, 2.0f, 0) - routeToRequest[0]);
-        if (distanceToRouteNode < 0.1f) {//if reached first element
+        float distanceToRouteNode = glm::length2(getRouteHeightPosition() - routeToRequest[0]);
+        if (distanceToRouteNode < 0.125f * 0.125f) {//if reached first element, squared
             routeToRequest.erase(routeToRequest.begin());
             if (!routeToRequest.empty() ) {
-                lastWalkDirection = routeToRequest[0] - getPosition() - glm::vec3(0, 2.0f, 0);
+                lastWalkDirection = routeToRequest[0] - getRouteHeightPosition();
             } else {
                 lastWalkDirection = glm::vec3(0, 0, 0);
             }
@@ -484,11 +484,11 @@ void CowboyEnemyAI::transitionToRun(const ActorInformation &information) {
     }
     //now we are walking, move along the route
     if(!routeToRequest.empty()) {
-        float distanceToRouteNode = glm::length2(getPosition() + glm::vec3(0, 2.0f, 0) - routeToRequest[0]);
-        if (distanceToRouteNode < 0.1f) {//if reached first element
+        float distanceToRouteNode = glm::length2(getRouteHeightPosition() - routeToRequest[0]);
+        if (distanceToRouteNode < 0.125f * 0.125f) {//if reached first element, squared
             routeToRequest.erase(routeToRequest.begin());
             if (!routeToRequest.empty() ) {
-                lastWalkDirection = routeToRequest[0] - getPosition() - glm::vec3(0, 2.0f, 0);
+                lastWalkDirection = routeToRequest[0] - getRouteHeightPosition();
             } else {
                 lastWalkDirection = glm::vec3(0, 0, 0);
             }
@@ -660,12 +660,12 @@ void CowboyEnemyAI::shootPlayer(float playerDistance) {
     }
 
     //now add misisng based on distance.
-    if(playerDistance > 100.0f) {
+    if(playerDistance > 40.0f) {
         //miss for certain. Break
         return;
     }
     float missNumber = randomFloats(generator);
-    if( missNumber < (playerDistance / 100.0f)) {
+    if( missNumber < (playerDistance / 40.0f)) {
         return; // miss
     }
 
@@ -682,7 +682,7 @@ void CowboyEnemyAI::shootPlayer(float playerDistance) {
 
     LimonTypes::GenericParameter pr3;
     pr3.valueType = pr.VEC4;
-    pr3.value.vectorValue= LimonConverter::GLMToLimon(this->getPosition() + glm::vec3(0,2,0));//2 is the offset of model. 3d modeller should give this.
+    pr3.value.vectorValue= LimonConverter::GLMToLimon(getChestPosition());
     prList.push_back(pr3);
 
     limonAPI->interactWithPlayer(prList);
@@ -821,4 +821,26 @@ void CowboyEnemyAI::transitionToDead() {
                 break;
         }
     }
+}
+
+glm::vec3 CowboyEnemyAI::getRouteHeightPosition() const {
+    glm::vec3 position = getPosition();
+    std::vector<LimonTypes::GenericParameter> aabb = limonAPI->getObjectAABB(modelID);
+    if (aabb.size() < 2) {
+        return position;
+    }
+    position.y = aabb[0].value.vectorValue.y + limonAPI->getAIGridFloatingHeight();//route nodes float above the ground our feet are on
+    return position;
+}
+
+glm::vec3 CowboyEnemyAI::getChestPosition() const {
+    glm::vec3 position = getPosition();
+    std::vector<LimonTypes::GenericParameter> aabb = limonAPI->getObjectAABB(modelID);
+    if (aabb.size() < 2) {
+        return position;
+    }
+    float feetHeight = aabb[0].value.vectorValue.y;
+    float bodyHeight = aabb[1].value.vectorValue.y - feetHeight;
+    position.y = feetHeight + CHEST_HEIGHT_RATIO * bodyHeight;
+    return position;
 }

@@ -12,7 +12,7 @@ void HumanEnemy::play(uint32_t time, ActorInterface::ActorInformation &informati
     if(information.routeReady) {
         this->routeToRequest = information.routeToRequest;
         if(information.routeFound) {
-            lastWalkDirection = routeToRequest[0] - getPosition() - glm::vec3(0, 2.0f, 0);
+            lastWalkDirection = routeToRequest[0] - getRouteHeightPosition();
         }
         routeGetTime = time;
         routeRequested = false;
@@ -68,7 +68,7 @@ void HumanEnemy::play(uint32_t time, ActorInterface::ActorInformation &informati
                 prList.push_back(pr);
                 limonAPI->interactWithPlayer(prList);
                 shootPlayerTimer = time;
-                limonAPI->playSound("./Data/Sounds/shotgun.wav", this->getPosition() + glm::vec3(0, 2, 0), false, false);
+                limonAPI->playSound("./Data/Sounds/shotgun.wav", getChestPosition(), false, false);
             }
         }
     }
@@ -104,11 +104,11 @@ void HumanEnemy::play(uint32_t time, ActorInterface::ActorInformation &informati
             hitAnimationStartTime = 0;
         }
         if(!routeToRequest.empty()) {
-            float distanceToRouteNode = glm::length2(getPosition() + glm::vec3(0, 2.0f, 0) - routeToRequest[0]);
-            if (distanceToRouteNode < 0.1f) {//if reached first element
+            float distanceToRouteNode = glm::length2(getRouteHeightPosition() - routeToRequest[0]);
+            if (distanceToRouteNode < 0.125f * 0.125f) {//if reached first element, squared
                 routeToRequest.erase(routeToRequest.begin());
                 if (!routeToRequest.empty() ) {
-                    lastWalkDirection = routeToRequest[0] - getPosition() - glm::vec3(0, 2.0f, 0);
+                    lastWalkDirection = routeToRequest[0] - getRouteHeightPosition();
                 } else {
                     lastWalkDirection = glm::vec3(0, 0, 0);
                 }
@@ -191,4 +191,26 @@ void HumanEnemy::setParameters(std::vector<LimonTypes::GenericParameter> paramet
 extern "C" void registerActorTypes(std::map<std::string, ActorInterface::Registration>* actorMap) {
     (*actorMap)["ENEMY_AI_SWAT"] = ActorInterface::registration<HumanEnemy>();
     (*actorMap)["Cowboy Enemy"] = ActorInterface::registration<CowboyEnemyAI>();
+}
+
+glm::vec3 HumanEnemy::getRouteHeightPosition() const {
+    glm::vec3 position = getPosition();
+    std::vector<LimonTypes::GenericParameter> aabb = limonAPI->getObjectAABB(modelID);
+    if (aabb.size() < 2) {
+        return position;
+    }
+    position.y = aabb[0].value.vectorValue.y + limonAPI->getAIGridFloatingHeight();//route nodes float above the ground our feet are on
+    return position;
+}
+
+glm::vec3 HumanEnemy::getChestPosition() const {
+    glm::vec3 position = getPosition();
+    std::vector<LimonTypes::GenericParameter> aabb = limonAPI->getObjectAABB(modelID);
+    if (aabb.size() < 2) {
+        return position;
+    }
+    float feetHeight = aabb[0].value.vectorValue.y;
+    float bodyHeight = aabb[1].value.vectorValue.y - feetHeight;
+    position.y = feetHeight + CHEST_HEIGHT_RATIO * bodyHeight;
+    return position;
 }
