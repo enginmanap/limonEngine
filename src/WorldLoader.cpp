@@ -497,8 +497,7 @@ WorldLoader::loadObjectV2(World *world, std::shared_ptr<AssetManager> assetManag
     objectAttribute = objectNode->FirstChildElement("Actor");
     if (objectAttribute != nullptr) {
         ActorInterface* actor = APISerializer::deserializeActorInterface(objectAttribute, limonAPI, loadedObjectInformation->model->getWorldObjectID());
-        loadedObjectInformation->aiGridStartPoint = GLMConverter::BltToGLM(loadedObjectInformation->model->getRigidBody()->getCenterOfMassPosition()) +
-                                                    glm::vec3(0, 2.0f, 0);
+        loadedObjectInformation->aiGridStartPoint = GLMConverter::BltToGLM(loadedObjectInformation->model->getRigidBody()->getCenterOfMassPosition());
         loadedObjectInformation->isAIGridStartPointSet = true;
         if(actor != nullptr) {
             loadedObjectInformation->modelActor = actor;

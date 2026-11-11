@@ -53,10 +53,11 @@ class PhysicalPlayer : public Player {
     static const float CAPSULE_HEIGHT;
     static const float CAPSULE_RADIUS;
     static const float STANDING_HEIGHT;
+    static const float EYE_HEIGHT;//above the capsule center, ownControl takes it back off
 
 public:
     glm::vec3 getPosition() const override {
-        return GLMConverter::BltToGLM(player->getCenterOfMassPosition()) + glm::vec3(0.0f, 1.0f, 0.0f);
+        return GLMConverter::BltToGLM(player->getCenterOfMassPosition()) + glm::vec3(0.0f, EYE_HEIGHT, 0.0f);
     }
 
     void move(moveDirections) override;
@@ -77,7 +78,7 @@ public:
 
     void getRenderProperties(std::string& assetPath, glm::vec3& scale) {
         assetPath = "./Engine/Models/Capsule/Capsule2.obj"; //since this file is required by the engine itself.
-        scale = glm::vec3(1,1,1);
+        scale = glm::vec3(CAPSULE_RADIUS, CAPSULE_RADIUS, CAPSULE_RADIUS);//the file is the old 2.54 times bigger player
     }
 
     void registerToPhysicalWorld(btDiscreteDynamicsWorld *world, int collisionGroup, int collisionMaskForSelf,
@@ -95,7 +96,7 @@ public:
 
     void fillCameraPose(glm::vec3& position, glm::vec3 &center, glm::vec3& up, glm::vec3& right) override {
         position = GLMConverter::BltToGLM(this->getRigidBody()->getWorldTransform().getOrigin());
-        position.y += 1.0f;//for putting the camera up portion of capsule
+        position.y += EYE_HEIGHT;//for putting the camera up portion of capsule
         center = this->center;
         up = this->up;
         right = this->right;

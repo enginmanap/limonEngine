@@ -686,7 +686,7 @@ ActorInterface::ActorInformation World::fillActorInformation(ActorInterface *act
     Model* actorModel = objects[actor->getModelID()];
     if(actorModel != nullptr) {
         information.canSeePlayerDirectly = checkPlayerVisibility(
-                actor->getPosition() + glm::vec3(0, getAIGridFloatingHeight()+1.0f, 0),
+                actor->getPosition() + glm::vec3(0, getAIGridFloatingHeight() + 0.3937f, 0),
                 actorModel->getName());
         if (currentPlayer->isDead()) {
             information.playerDead = true;
@@ -1439,7 +1439,8 @@ void World::createGridFrom(const glm::vec3 &aiGridStartPoint, bool isAIGridStart
 
             std::vector<AIMovementGrid::StartCandidate> startCandidates;
             if (isAIGridStartPointSet) {
-                startCandidates.push_back({aiGridStartPoint, "the position of an AI actor"});
+                //lifted to node height, the cast down to the ground starts there
+                startCandidates.push_back({aiGridStartPoint + glm::vec3(0.0f, getAIGridFloatingHeight(), 0.0f), "the position of an AI actor"});
             }
             if (currentPlayer != nullptr) {
                 startCandidates.push_back({currentPlayer->getPosition(), "the player position"});

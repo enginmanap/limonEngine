@@ -23,8 +23,8 @@ public:
     struct ProjectionParameters {
         ProjectionType type = ProjectionType::PERSPECTIVE;
         float verticalFieldOfView   = 1.0471975512f; ///< radians, PERSPECTIVE only (PI/3)
-        float orthographicHalfHeight = 50.0f;         ///< world units, ORTHOGRAPHIC only (half-width = halfHeight * aspect)
-        float nearPlane = 0.01f;
+        float orthographicHalfHeight = 20.0f;       ///< world units, ORTHOGRAPHIC only (half-width = halfHeight * aspect)
+        float nearPlane = 0.1f;
         float farPlane  = 10000.0f;
 
         bool operator==(const ProjectionParameters& other) const {

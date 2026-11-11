@@ -13,9 +13,14 @@
 #include <BulletDynamics/Dynamics/btDynamicsWorld.h>
 
 
-const float PhysicalPlayer::CAPSULE_HEIGHT = 1.0f;
-const float PhysicalPlayer::CAPSULE_RADIUS = 1.0f;
-const float PhysicalPlayer::STANDING_HEIGHT = 2.0f;
+//sizes are meters, but the spring stiffness and damping below were tuned for a player 2.54 times bigger
+const float PhysicalPlayer::CAPSULE_HEIGHT = 0.3937f;
+const float PhysicalPlayer::CAPSULE_RADIUS = 0.3937f;
+const float PhysicalPlayer::STANDING_HEIGHT = 0.7874f;
+const float PhysicalPlayer::EYE_HEIGHT = 0.3937f;
+static const float GROUND_RAY_GAP = 0.03937f;//below the capsule, so the ground rays never hit it
+static const float STEPPING_TEST_HALF_WIDTH = 0.19685f;
+static const float SPRING_SLACK = 0.3937f;
 
 PhysicalPlayer::PhysicalPlayer(OptionsUtil::Options *options, GUIRenderable *cursor, const glm::vec3 &position,
                                const glm::vec3 &lookDirection, uint32_t worldObjectID) :
@@ -40,8 +45,8 @@ PhysicalPlayer::PhysicalPlayer(OptionsUtil::Options *options, GUIRenderable *cur
     for (int i = 0; i < STEPPING_TEST_COUNT; ++i) {
         for (int j = 0; j < STEPPING_TEST_COUNT; ++j) {
             rayCallbackArray.push_back(btCollisionWorld::ClosestRayResultCallback(
-                    GLMConverter::GLMToBlt(position + glm::vec3(0, -1 * (CAPSULE_HEIGHT + 0.1f), 0)),
-                    GLMConverter::GLMToBlt(position + glm::vec3(0, -1 * (CAPSULE_HEIGHT + 0.1f + STANDING_HEIGHT), 0))));
+                    GLMConverter::GLMToBlt(position + glm::vec3(0, -1 * (CAPSULE_HEIGHT + GROUND_RAY_GAP), 0)),
+                    GLMConverter::GLMToBlt(position + glm::vec3(0, -1 * (CAPSULE_HEIGHT + GROUND_RAY_GAP + STANDING_HEIGHT), 0))));
         }
     }
 
@@ -76,7 +81,7 @@ void PhysicalPlayer::move(moveDirections direction) {
         if(inputMovementSpeed.getY() > 0 ){
             inputMovementSpeed.setY(0);//don't force slowdown on Y axis if jumping
         }
-        if(player->getLinearVelocity().length2() < 0.1 && !movementSpeedFull) {
+        if(player->getLinearVelocity().length2() < 0.0155 && !movementSpeedFull) {
             movementSpeedFactor *= 2;
             movementSpeedFull = true;
         }
@@ -263,7 +268,7 @@ void PhysicalPlayer::processPhysicsWorld(const btDiscreteDynamicsWorld *world) {
 
     if(!dead) { //if dead, no need to check on air. This data is used for 2 things: 1) Spring adjustment, 2) step sound
         //we will test for STEPPING_TEST_COUNT^2 times
-        float requiredDelta = 1.0f / (STEPPING_TEST_COUNT - 1);
+        float requiredDelta = 2.0f * STEPPING_TEST_HALF_WIDTH / (STEPPING_TEST_COUNT - 1);
 
         for (int i = 0; i < STEPPING_TEST_COUNT; ++i) {
             for (int j = 0; j < STEPPING_TEST_COUNT; ++j) {
@@ -273,8 +278,8 @@ void PhysicalPlayer::processPhysicsWorld(const btDiscreteDynamicsWorld *world) {
                 rayCallback->m_closestHitFraction = 1;
                 rayCallback->m_collisionObject = nullptr;
                 rayCallback->m_rayFromWorld = worldTransformHolder.getOrigin() +
-                                              btVector3(-0.5f + i * requiredDelta, -1.1f,
-                                                        -0.5f + j *
+                                              btVector3(-STEPPING_TEST_HALF_WIDTH + i * requiredDelta, -(CAPSULE_HEIGHT + GROUND_RAY_GAP),
+                                                        -STEPPING_TEST_HALF_WIDTH + j *
                                                                 requiredDelta);//the second vector is preventing hitting player capsule
                 rayCallback->m_rayToWorld = rayCallback->m_rayFromWorld + btVector3(0, -1 * STANDING_HEIGHT, 0);
                 world->rayTest(rayCallback->m_rayFromWorld, rayCallback->m_rayToWorld, *rayCallback);
@@ -307,7 +312,7 @@ void PhysicalPlayer::processPhysicsWorld(const btDiscreteDynamicsWorld *world) {
         if (!onAir) {
             whileJump = false;
             springStandPoint = highestPoint + STANDING_HEIGHT - startingHeight;
-            spring->setLimit(1, springStandPoint + 1.0f, springStandPoint + 1.0f + STANDING_HEIGHT);
+            spring->setLimit(1, springStandPoint + SPRING_SLACK, springStandPoint + SPRING_SLACK + STANDING_HEIGHT);
             spring->setEnabled(true);
 
             Model *model = dynamic_cast<Model *>(hitObject);
@@ -348,7 +353,7 @@ void PhysicalPlayer::processPhysicsWorld(const btDiscreteDynamicsWorld *world) {
                  */
                 btVector3 totalSpeed = inputMovementSpeed + groundFrictionMovementSpeed;
                 if(hitNormal.getY() < MINIMUM_CLIMP_NORMAL_Y && totalSpeed.length2() > 0.01) {
-                    btVector3 playerCapsuleBottom = player->getCenterOfMassPosition() - btVector3(0, CAPSULE_HEIGHT / 2 + CAPSULE_RADIUS + 0.1, 0);
+                    btVector3 playerCapsuleBottom = player->getCenterOfMassPosition() - btVector3(0, CAPSULE_HEIGHT / 2 + CAPSULE_RADIUS + GROUND_RAY_GAP, 0);
                     horizontalRayCallback.m_rayFromWorld = playerCapsuleBottom;
                     btVector3 checkDistance;
                     if(totalSpeed.length2() >= 1) {
@@ -419,7 +424,7 @@ btGeneric6DofSpring2Constraint * PhysicalPlayer::getSpring(float minY) {
     spring->setLinearLowerLimit(btVector3(1.0f, 1.0f, 1.0f));
     spring->setLinearUpperLimit(btVector3(0.0f, 0.0f, 0.0f));
     //spring->setEquilibriumPoint(1,  std::numeric_limits<float>::lowest());// if this is used, spring does not act as it should
-    spring->setEquilibriumPoint(1,  minY - 1);//1 lower then minY
+    spring->setEquilibriumPoint(1,  minY - SPRING_SLACK);//lower then minY
     spring->setParam(BT_CONSTRAINT_STOP_CFM, 1.0e-5f, 5);
     spring->setEnabled(false);//don't enable until player is not on air
     return spring;
@@ -496,7 +501,7 @@ void PhysicalPlayer::ownControl(const glm::vec3& position, const glm::vec3 &look
     this->right = glm::normalize(glm::cross(center, up));
 
     btTransform transform = this->player->getCenterOfMassTransform();
-    transform.setOrigin(btVector3(position.x, position.y - 1.0f, position.z));
+    transform.setOrigin(btVector3(position.x, position.y - EYE_HEIGHT, position.z));
     this->player->setWorldTransform(transform);
     this->player->getMotionState()->setWorldTransform(transform);
     this->player->activate();

@@ -316,8 +316,7 @@ LegacyWorldLoaderV1::loadObject(World *world, std::shared_ptr<AssetManager> asse
     } else {
         ActorInterface* actor = APISerializer::deserializeActorInterface(objectAttribute, limonAPI, loadedObjectInformation->model->getWorldObjectID());
 
-        loadedObjectInformation->aiGridStartPoint = GLMConverter::BltToGLM(loadedObjectInformation->model->getRigidBody()->getCenterOfMassPosition()) +
-                           glm::vec3(0, 2.0f, 0);
+        loadedObjectInformation->aiGridStartPoint = GLMConverter::BltToGLM(loadedObjectInformation->model->getRigidBody()->getCenterOfMassPosition());
         loadedObjectInformation->isAIGridStartPointSet = true;
         if(actor != nullptr) {//most likely shared library not found, but in general possible.
             loadedObjectInformation->modelActor = actor;
