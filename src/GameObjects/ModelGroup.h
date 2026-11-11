@@ -11,6 +11,8 @@
 
 
 class ModelGroup : public PhysicalRenderable, public GameObject {
+    friend class LegacyWorldLoaderV1;//version 1 groups fill children while loading
+
     uint32_t worldObjectID;
     std::string name;
     //union of the models whose nearest group this is, nested groups keep their own
@@ -98,13 +100,6 @@ public:
     // and reattached from their <ParentID>. parentIDOut is set to this group's parent ID, or 0 if root.
     static ModelGroup *deserialize(GraphicsInterface* graphicsWrapper, tinyxml2::XMLElement *ModelGroupsNode,
                                    uint32_t &parentIDOut);
-
-    // Legacy V1 loader: children nested inside <Children>. Kept for old world files only.
-    static ModelGroup *deserializeV1(World *world, GraphicsInterface* graphicsWrapper, std::shared_ptr<AssetManager> assetManager, tinyxml2::XMLElement *ModelGroupsNode,
-                                   std::unordered_map<std::string, std::shared_ptr<Sound>> &requiredSounds,
-                                   std::map<uint32_t, ModelGroup *> &childGroups,
-                                   std::vector<std::unique_ptr<WorldLoader::ObjectInformation>> &childObjects, LimonAPI *limonAPI,
-                                   ModelGroup *parentGroup = nullptr);
 
     void setupForTime(uint32_t time) override;
 

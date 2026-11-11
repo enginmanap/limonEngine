@@ -27,6 +27,7 @@ class InputHandler;
 class Model;
 class Attachable;
 class FrameTimeTracker;
+class AnimationCustom;
 struct FrameResourceHandles;
 
 struct PackagingCallbacks;
@@ -50,7 +51,7 @@ public:
 private:
     // bone parent goes through setParentObject/addChild/setParentTransform (bone transforms are
     // identity at load, attachTo's world->local math would be wrong), everything else uses attachTo.
-    // no ModelGroup branch here, only loadObjectsFromXMLV2 needs that.
+    // no ModelGroup branch here, only loadObjectsFromXML needs that.
     static void resolvePendingAttachments(World *world, const std::vector<PendingAttachment> &pending);
 
     //objects name their override materials by key in the world's <Materials>, so it is indexed before they load
@@ -60,23 +61,9 @@ private:
     static std::shared_ptr<Material> resolveSavedMaterial(World *world, const std::string &key);
     static std::vector<Model::MeshMaterialOverride> readMeshMaterialOverrides(World *world, tinyxml2::XMLElement *objectNode);
 
-    OptionsUtil::Options *options;
-    GraphicsInterface* graphicsWrapper;
-    ALHelper *alHelper;
-    std::shared_ptr<AssetManager> assetManager;
-    InputHandler* inputHandler;
-    ProfilerSystem* profilerSystem;
-    FrameTimeTracker* frameTimeTracker;
-    const FrameResourceHandles* frameResourceHandles;
-    const PackagingCallbacks *packagingCallbacks;
-
-    World *loadMapFromXML(const std::string &worldFileName, LimonAPI *limonAPI) const;
-    bool loadObjectGroupsFromXMLV1(tinyxml2::XMLNode *worldNode, World *world, LimonAPI *limonAPI,
-            std::vector<Model*> &notStaticObjects, bool &isAIGridStartPointSet, glm::vec3 &aiGridStartPoint) const;
+    //the document is the save version's, loadWorld picked the loader for it
+    World *loadMapFromXML(tinyxml2::XMLDocument &xmlDoc, LimonAPI *limonAPI) const;
     bool loadObjectGroupsFromXMLV2(tinyxml2::XMLNode *worldNode, World *world) const;
-    bool loadObjectsFromXML(tinyxml2::XMLNode *objectsNode, World *world, LimonAPI *limonAPI, int saveVersion) const;
-    bool loadObjectsFromXMLV2(tinyxml2::XMLNode *objectsNode, World *world, LimonAPI *limonAPI) const;
-    void loadPlayerAttachmentV1(tinyxml2::XMLElement* attachmentNode, World* world, LimonAPI* limonAPI) const;
     bool loadSkymap(tinyxml2::XMLNode *skymapNode, World* world) const;
     bool loadLights(tinyxml2::XMLNode *lightsNode, World* world) const;
     bool loadSounds(tinyxml2::XMLNode *worldNode, World* world) const;
@@ -90,7 +77,26 @@ private:
     bool loadGUILayersAndElements(tinyxml2::XMLNode *worldNode, World *world) const;
     bool loadMaterials(tinyxml2::XMLNode *worldNode, World *world) const;
 
+protected:
+    OptionsUtil::Options *options;
+    GraphicsInterface* graphicsWrapper;
+    ALHelper *alHelper;
+    std::shared_ptr<AssetManager> assetManager;
+    InputHandler* inputHandler;
+    ProfilerSystem* profilerSystem;
+    FrameTimeTracker* frameTimeTracker;
+    const FrameResourceHandles* frameResourceHandles;
+    const PackagingCallbacks *packagingCallbacks;
+
+    //where older save versions differ, LegacyWorldLoaderV1 overrides these
+    virtual void prepareDocument(tinyxml2::XMLNode *worldNode [[gnu::unused]]) const {}
+    virtual bool loadObjectsFromXML(tinyxml2::XMLNode *worldNode, World *world, LimonAPI *limonAPI) const;
+    virtual void loadPlayerAttachment(tinyxml2::XMLElement *playerNode [[gnu::unused]], World *world [[gnu::unused]], LimonAPI *limonAPI [[gnu::unused]]) const {}//saved as objects parented to the player
+    virtual void adjustLoadedAnimation(AnimationCustom &animation [[gnu::unused]]) const {}
+
 public:
+    virtual ~WorldLoader() = default;
+
     WorldLoader(std::shared_ptr<AssetManager> assetManager, InputHandler *inputHandler, OptionsUtil::Options *options, ProfilerSystem* profilerSystem, FrameTimeTracker* frameTimeTracker, const FrameResourceHandles* frameResourceHandles,
                 const PackagingCallbacks *packagingCallbacks);
 
@@ -98,9 +104,6 @@ public:
 
     World *loadWorld(const std::string &worldFile, LimonAPI *limonAPI) const;
 
-    static std::vector<std::unique_ptr<ObjectInformation>> loadObject(World *world, std::shared_ptr<AssetManager> assetManager, tinyxml2::XMLElement *objectNode,
-                                                                       std::unordered_map<std::string, std::shared_ptr<Sound>> &requiredSounds, LimonAPI *limonAPI,
-                                                                       PhysicalRenderable *parentObject);
     static std::vector<std::unique_ptr<ObjectInformation>> loadObjectV2(World *world, std::shared_ptr<AssetManager> assetManager, tinyxml2::XMLElement *objectNode,
                                                                         std::unordered_map<std::string, std::shared_ptr<Sound>> &requiredSounds, LimonAPI *limonAPI);
     static void loadObjectTags(tinyxml2::XMLElement *objectNode, Model *model);

@@ -213,6 +213,7 @@ private:
     enum class ModelTypes { NON_ANIMATED_OPAQUE, ANIMATED, TRANSPARENT };
 
     friend class WorldLoader;
+    friend class LegacyWorldLoaderV1;
     friend class WorldSaver; //Those classes require direct access to some of the internal data
     friend class WorldAPIAccessor;
 
