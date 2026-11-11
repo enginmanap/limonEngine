@@ -431,9 +431,9 @@
         <RequestType>Coordinate</RequestType>
         <Description>player_freeMovementSpeed</Description>
         <Value>
-            <X>0.5</X>
-            <Y>0.5</Y>
-            <Z>0.5</Z>
+            <X>0.2</X>
+            <Y>0.2</Y>
+            <Z>0.2</Z>
         </Value>
         <valueType>Vec4</valueType>
         <IsSet>True</IsSet>
@@ -442,7 +442,7 @@
     <Parameter>
         <RequestType>FreeNumber</RequestType>
         <Description>player_jumpFactor</Description>
-        <Value>7.0</Value>
+        <Value>4.5</Value>
         <valueType>Double</valueType>
         <IsSet>True</IsSet>
         <Index>26</Index>
@@ -459,9 +459,9 @@
         <RequestType>Coordinate</RequestType>
         <Description>player_moveSpeed</Description>
         <Value>
-            <X>8</X>
+            <X>3.0</X>
             <Y>0</Y>
-            <Z>8</Z>
+            <Z>3.0</Z>
         </Value>
         <valueType>Vec4</valueType>
         <IsSet>True</IsSet>
@@ -471,9 +471,9 @@
         <RequestType>Coordinate</RequestType>
         <Description>player_runSpeed</Description>
         <Value>
-            <X>12</X>
+            <X>5</X>
             <Y>0</Y>
-            <Z>12</Z>
+            <Z>5</Z>
         </Value>
         <valueType>Vec4</valueType>
         <IsSet>True</IsSet>
@@ -483,9 +483,9 @@
         <RequestType>Coordinate</RequestType>
         <Description>player_walkSpeed</Description>
         <Value>
-            <X>8</X>
+            <X>3.0</X>
             <Y>0</Y>
-            <Z>8</Z>
+            <Z>3.0</Z>
         </Value>
         <valueType>Vec4</valueType>
         <IsSet>True</IsSet>
@@ -494,7 +494,7 @@
     <Parameter>
         <RequestType>FreeText</RequestType>
         <Description>profiler_enableServer</Description>
-        <Value>True</Value>
+        <Value>False</Value>
         <valueType>Boolean</valueType>
         <IsSet>True</IsSet>
         <Index>31</Index>
@@ -777,7 +777,7 @@
         <RequestType>FreeNumber</RequestType>
         <Description>ai_gridSpacing</Description>
         <!--Distance between neighbour nodes of the AI walk grid in meters. The grid is saved with it, change it and generate the grid again. The probe has to be at least this wide-->
-        <Value>1.0</Value>
+        <Value>0.3937</Value>
         <valueType>Double</valueType>
         <IsSet>True</IsSet>
         <Index>94</Index>
@@ -786,7 +786,7 @@
         <RequestType>FreeNumber</RequestType>
         <Description>ai_gridFloatingHeight</Description>
         <!--How high above the ground an AI walk grid node sits, also where actors look for their node. Saved with the grid. The probe bottom has to clear the ground, so it has to be taller than the probe half height-->
-        <Value>2.0</Value>
+        <Value>0.7874</Value>
         <valueType>Double</valueType>
         <IsSet>True</IsSet>
         <Index>95</Index>
@@ -795,7 +795,7 @@
         <RequestType>FreeNumber</RequestType>
         <Description>ai_gridStepHeight</Description>
         <!--How much the ground height can differ between two neighbour nodes of the AI walk grid for them to link, in meters. Same for going up and down, a link has no direction. Saved with the grid-->
-        <Value>1.0</Value>
+        <Value>0.3937</Value>
         <valueType>Double</valueType>
         <IsSet>True</IsSet>
         <Index>96</Index>
@@ -804,7 +804,7 @@
         <RequestType>FreeNumber</RequestType>
         <Description>ai_gridBoxHalfExtentXZ</Description>
         <!--Half width of the box that has to fit at every AI walk grid node, used when ai_gridProbeShape is box. Not round on purpose, a surface exactly on a face is a coin flip-->
-        <Value>0.5137</Value>
+        <Value>0.2022</Value>
         <valueType>Double</valueType>
         <IsSet>True</IsSet>
         <Index>98</Index>
@@ -813,7 +813,7 @@
         <RequestType>FreeNumber</RequestType>
         <Description>ai_gridBoxHalfHeight</Description>
         <!--Half height of the box that has to fit at every AI walk grid node, used when ai_gridProbeShape is box-->
-        <Value>1.0513</Value>
+        <Value>0.4139</Value>
         <valueType>Double</valueType>
         <IsSet>True</IsSet>
         <Index>99</Index>
@@ -822,7 +822,7 @@
         <RequestType>FreeNumber</RequestType>
         <Description>ai_gridCapsuleRadius</Description>
         <!--Radius of the capsule that has to fit at every AI walk grid node, used when ai_gridProbeShape is capsule-->
-        <Value>0.71</Value>
+        <Value>0.2795</Value>
         <valueType>Double</valueType>
         <IsSet>True</IsSet>
         <Index>100</Index>
@@ -831,7 +831,7 @@
         <RequestType>FreeNumber</RequestType>
         <Description>ai_gridCapsuleHeight</Description>
         <!--Height of the cylinder part of the capsule, used when ai_gridProbeShape is capsule-->
-        <Value>1.4</Value>
+        <Value>0.5512</Value>
         <valueType>Double</valueType>
         <IsSet>True</IsSet>
         <Index>101</Index>
@@ -858,7 +858,7 @@
         <RequestType>FreeNumber</RequestType>
         <Description>ssao_radius</Description>
         <!--Sample radius in view space units at the camera, shrinks with distance. Used by SSAO and GTAO. Needs a restart, it is baked into the shader-->
-        <Value>0.3</Value>
+        <Value>0.1181</Value>
         <valueType>Double</valueType>
         <IsSet>True</IsSet>
         <Index>104</Index>
