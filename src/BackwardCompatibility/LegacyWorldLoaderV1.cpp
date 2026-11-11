@@ -14,10 +14,6 @@ void LegacyWorldLoaderV1::prepareDocument(tinyxml2::XMLNode *worldNode) const {
     V1UnitScale::convertWorld(worldNode);//before anything reads a position
 }
 
-void LegacyWorldLoaderV1::adjustLoadedAnimation(AnimationCustom &animation) const {
-    V1UnitScale::convertAnimation(animation);
-}
-
 // Groups save children nested in <Children>. loadModelGroup loads them and returns inner models here so they can be added to the world.
 bool LegacyWorldLoaderV1::loadObjectGroups(tinyxml2::XMLNode *worldNode, World *world, LimonAPI *limonAPI,
         std::vector<Model*> &notStaticObjects, bool &isAIGridStartPointSet, glm::vec3 &aiGridStartPoint) const {

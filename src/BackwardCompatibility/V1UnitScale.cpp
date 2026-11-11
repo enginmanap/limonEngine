@@ -7,7 +7,6 @@
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
-#include "../Assets/Animations/AnimationCustom.h"
 
 static const float CENTIMETERS_PER_INCH = 2.54f;
 
@@ -204,11 +203,4 @@ void V1UnitScale::convertWorld(tinyxml2::XMLNode *worldNode) {
     convertEmitters(worldNode, "GPUEmitters", "GPUEmitter");
     convertTriggers(worldNode);
     convertCameraRigs(worldNode);
-}
-
-//translations are offsets from where the object stands, scales multiply and rotations have no unit
-void V1UnitScale::convertAnimation(AnimationCustom &animation) {
-    for (glm::vec3 &translate : animation.animationNode->translates) {
-        translate /= CENTIMETERS_PER_INCH;
-    }
 }

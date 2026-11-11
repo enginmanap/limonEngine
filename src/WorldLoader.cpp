@@ -858,7 +858,6 @@ bool WorldLoader::loadAnimations(tinyxml2::XMLNode *worldNode, World *world) con
             return false;
         } else {
             std::cout << "Animation " << name << " loaded" << std::endl;
-            adjustLoadedAnimation(*animation);
             world->loadedAnimations.insert(world->loadedAnimations.begin() + index, *animation);
             delete animation;
         }

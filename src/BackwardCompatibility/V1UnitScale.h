@@ -7,8 +7,6 @@
 
 #include <tinyxml2.h>
 
-class AnimationCustom;
-
 //save version 1 worlds are 2.54 times real size. Trigger, actor, rig and extension parameters are not converted, nothing says which are distances
 class V1UnitScale {
     static void toMeters(tinyxml2::XMLElement *element);//the X, Y and Z children, or the element's own text for a single number
@@ -28,9 +26,8 @@ class V1UnitScale {
     static void convertCameraRigs(tinyxml2::XMLNode *worldNode);
 
 public:
+    //custom animations stay as they are, they play in the object's local space and its converted scale already shrinks them
     static void convertWorld(tinyxml2::XMLNode *worldNode);
-    //custom animations live in their own files, a version 1 world converts what it loads
-    static void convertAnimation(AnimationCustom &animation);
 };
 
 #endif //LIMONENGINE_V1UNITSCALE_H

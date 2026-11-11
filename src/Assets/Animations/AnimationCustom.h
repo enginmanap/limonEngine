@@ -16,7 +16,6 @@
 
 class AnimationCustom : public AnimationInterface {
     friend class AnimationLoader;
-    friend class V1UnitScale;
     friend struct AnimationSequenceInterface;
 
     float ticksPerSecond;

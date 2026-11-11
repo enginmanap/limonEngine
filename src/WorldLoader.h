@@ -27,7 +27,6 @@ class InputHandler;
 class Model;
 class Attachable;
 class FrameTimeTracker;
-class AnimationCustom;
 struct FrameResourceHandles;
 
 struct PackagingCallbacks;
@@ -92,7 +91,6 @@ protected:
     virtual void prepareDocument(tinyxml2::XMLNode *worldNode [[gnu::unused]]) const {}
     virtual bool loadObjectsFromXML(tinyxml2::XMLNode *worldNode, World *world, LimonAPI *limonAPI) const;
     virtual void loadPlayerAttachment(tinyxml2::XMLElement *playerNode [[gnu::unused]], World *world [[gnu::unused]], LimonAPI *limonAPI [[gnu::unused]]) const {}//saved as objects parented to the player
-    virtual void adjustLoadedAnimation(AnimationCustom &animation [[gnu::unused]]) const {}
 
 public:
     virtual ~WorldLoader() = default;

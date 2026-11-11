@@ -15,7 +15,6 @@ class LegacyWorldLoaderV1 : public WorldLoader {
     void prepareDocument(tinyxml2::XMLNode *worldNode) const override;
     bool loadObjectsFromXML(tinyxml2::XMLNode *worldNode, World *world, LimonAPI *limonAPI) const override;
     void loadPlayerAttachment(tinyxml2::XMLElement *playerNode, World *world, LimonAPI *limonAPI) const override;
-    void adjustLoadedAnimation(AnimationCustom &animation) const override;
 
     bool loadObjectGroups(tinyxml2::XMLNode *worldNode, World *world, LimonAPI *limonAPI,
                           std::vector<Model*> &notStaticObjects, bool &isAIGridStartPointSet, glm::vec3 &aiGridStartPoint) const;
