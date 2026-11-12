@@ -11,6 +11,7 @@
 #include "../../libs/meshoptimizer/src/meshoptimizer.h"
 #include "Lod/LodGenerator.h"
 #include <algorithm>
+#include <cmath>
 #include <cstring>
 #include <iostream>
 #include <limits>
@@ -60,16 +61,11 @@ MeshAsset::MeshAsset(const aiMesh *currentMesh, std::string name, std::shared_pt
              * Assimp has a bone array with weight lists for vertices,
              * we need a vertex array with weight list for bones.
              * This loop should generate that
-             *
-             * ADDITION
-             * I want to split BulletCollision meshes to move them with real mesh, for that
-             * I will use this information
              */
             for (uint32_t k = 0; k < currentMesh->mBones[j]->mNumWeights; ++k) {
                 if(currentMesh->mBones[j]->mWeights[k].mWeight > 0.0f) {
                     addWeightToVertex(boneID, currentMesh->mBones[j]->mWeights[k].mVertexId,
                                       currentMesh->mBones[j]->mWeights[k].mWeight);
-                    boneAttachedMeshes[boneID].push_back(currentMesh->mBones[j]->mWeights[k].mVertexId);
                 }
             }
 
@@ -96,14 +92,9 @@ MeshAsset::MeshAsset(const aiMesh *currentMesh, std::string name, std::shared_pt
              * Assimp has a bone array with weight lists for vertices,
              * we need a vertex array with weight list for bones.
              * This loop should generate that
-             *
-             * ADDITION
-             * I want to split BulletCollision meshes to move them with real mesh, for that
-             * I will use this information
              */
             for (uint32_t k = 0; k < currentMesh->mNumVertices; ++k) {
                 addWeightToVertex(boneID, k, 1.0f);
-                boneAttachedMeshes[boneID].push_back(k);
             }
 
             //std::cout << "Animation added for mesh" << std::endl;
@@ -112,7 +103,6 @@ MeshAsset::MeshAsset(const aiMesh *currentMesh, std::string name, std::shared_pt
         }
     }
     weldIdenticalVertices();//after bones, weights are indexed by assimp's vertex ids until here
-    buildBulletMesh();
 }
 
 void MeshAsset::weldIdenticalVertices() {
@@ -170,21 +160,6 @@ void MeshAsset::weldIdenticalVertices() {
     for (size_t face = 0; face < faces.size(); ++face) {
         faces[face] = glm::u16vec3(remap[faces[face].x], remap[faces[face].y], remap[faces[face].z]);
     }
-    //a vertex no face uses has no slot any more, and welded copies would add the same hull point twice
-    for (std::map<uint32_t, std::vector<uint32_t>>::iterator boneEntry = boneAttachedMeshes.begin();
-         boneEntry != boneAttachedMeshes.end(); ++boneEntry) {
-        std::vector<uint32_t> remapped;
-        remapped.reserve(boneEntry->second.size());
-        for (size_t index = 0; index < boneEntry->second.size(); ++index) {
-            uint32_t welded = remap[boneEntry->second[index]];
-            if (welded != ~0u) {
-                remapped.push_back(welded);
-            }
-        }
-        std::sort(remapped.begin(), remapped.end());
-        remapped.erase(std::unique(remapped.begin(), remapped.end()), remapped.end());
-        boneEntry->second = remapped;
-    }
     vertexCount = (uint32_t) weldedCount;
 }
 
@@ -207,7 +182,6 @@ void MeshAsset::loadGPUPart(AssetManager *assetManager) {
     //skeleton
     // boneIDs
     // boneWeights
-    // boneAttachedMeshes;
     // boneIDMap
 
 
@@ -422,73 +396,17 @@ bool MeshAsset::addWeightToVertex(uint32_t boneID, unsigned int vertex, float we
     return false;
 }
 
-/**
- * this should return either a map of boneid<->hull or if no animation btTriangleMesh.
- * this way, we can use animation transforms to move the individual hulls with the bones.
- * @param compoundShape
- * @return
- */
-btTriangleMesh *MeshAsset::getBulletMesh(std::map<uint32_t, btConvexHullShape *> *hullMap,
-                                         std::map<uint32_t, btTransform> *parentTransformMap) {
-    //Turns out bullet shapes does not copy meshes, so we should return a copy, not the original;
-    btTriangleMesh *copyMesh = nullptr;
-    if(!isPartOfAnimated) {
-        copyMesh = new btTriangleMesh(bulletMesh);
-        shapeCopies.push_back(copyMesh);
-    } else {
-        //in this case, we don't use faces directly, instead we use per bone vertex information.
-        std::map<uint32_t, std::vector<uint32_t>>::iterator it;
-        for (it = boneAttachedMeshes.begin(); it != boneAttachedMeshes.end(); it++) {
-            (*hullMap)[it->first] = bulletHullMap[it->first];
-            (*parentTransformMap)[it->first] = bulletParentTransformMap[it->first];
-        }
-
-    }
-    return copyMesh;
-}
-
-/**
- * this should return either a map of boneid<->hull or if no animation btTriangleMesh.
- * this way, we can use animation transforms to move the individual hulls with the bones.
- * @param compoundShape
- * @return
- */
-void MeshAsset::buildBulletMesh() {
-    if(!isPartOfAnimated) {
-        //if not part of an animation, than we don't need to split based on bones
-        //faces holds every LOD's index range after LOD0, collision only wants the original
-        for (unsigned int j = 0; j < triangleCount[0]; ++j) {
-            bulletMesh.addTriangle(GLMConverter::GLMToBlt(vertices[faces[j][0]]),
-                                   GLMConverter::GLMToBlt(vertices[faces[j][1]]),
-                                   GLMConverter::GLMToBlt(vertices[faces[j][2]]));
-        }
-        //shapeCopies.push_back(copyMesh);
-    } else {
-        //in this case, we don't use faces directly, instead we use per bone vertex information.
-        std::map<uint32_t, std::vector<uint32_t>>::iterator it;
-        for (it = boneAttachedMeshes.begin(); it != boneAttachedMeshes.end(); it++) {
-            btConvexHullShape *hullshape = new btConvexHullShape();
-            for (unsigned int index = 0; index < it->second.size(); index++) {
-                hullshape->addPoint(GLMConverter::GLMToBlt(vertices[it->second[index]]));
-            }
-            bulletHull = new btShapeHull(hullshape);
-            btScalar margin = hullshape->getMargin();
-            bulletHull->buildHull(margin);
-            delete hullshape;
-            hullshape = nullptr;
-
-            hullshape = new btConvexHullShape((const btScalar *) bulletHull->getVertexPointer(),
-                                              bulletHull->numVertices());
-            //FIXME clear memory leak here, no one deletes this shapes.
-            bulletHullMap[it->first] = hullshape;
-            bulletParentTransformMap[it->first].setFromOpenGLMatrix(glm::value_ptr(parentTransform));
-        }
-
-    }
-}
-
 bool MeshAsset::hasBones() const {
     return bones;
+}
+
+bool MeshAsset::hasNonFiniteVertex() const {
+    for (const glm::vec3 &vertex : vertices) {
+        if (!std::isfinite(vertex.x) || !std::isfinite(vertex.y) || !std::isfinite(vertex.z)) {
+            return true;
+        }
+    }
+    return false;
 }
 
 void MeshAsset::fillBoneMap(std::shared_ptr<const BoneNode> boneNode) {

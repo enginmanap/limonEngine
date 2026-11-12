@@ -10,9 +10,6 @@
 #include <string>
 #include <limits>
 #include <assimp/scene.h>
-#include <BulletCollision/CollisionShapes/btConvexHullShape.h>
-#include <BulletCollision/CollisionShapes/btShapeHull.h>
-#include <BulletCollision/CollisionShapes/btTriangleMesh.h>
 #include <glm/glm.hpp>
 
 #include "../Material.h"
@@ -51,8 +48,6 @@ private:
     std::vector<glm::vec2> textureCoordinates;
     std::string name;
 
-    std::map<uint32_t, std::vector<uint32_t>> boneAttachedMeshes;
-
     std::shared_ptr<const BoneNode> skeleton;
     std::map<std::string, uint32_t> boneIdMap;
 
@@ -65,11 +60,6 @@ private:
     glm::mat4 parentTransform;
     bool isPartOfAnimated;
 
-    btTriangleMesh bulletMesh;
-    btShapeHull *bulletHull;
-    std::map<uint32_t, btConvexHullShape *> bulletHullMap;
-    std::map<uint32_t, btTransform> bulletParentTransformMap;
-    std::vector<btTriangleMesh *> shapeCopies;
 
     bool reverseWinding = false;
 
@@ -104,7 +94,6 @@ public:
     bool hasLodsFor(const std::vector<LodLadder::LevelPlan> &plan) const;
     void bakeOccluderLod(uint32_t lodLevel);
     void bakeAllOccluderLods();
-    void buildBulletMesh();
     /**
      * This method sets GPU side of the deserialization, and uses AssetManager to access GPU with getGraphicsWrapper
      *
@@ -181,12 +170,13 @@ public:
 
     uint32_t getEbo() const { return ebo; }
 
-    btTriangleMesh *getBulletMesh(std::map<uint32_t, btConvexHullShape *> *hullMap,
-                                  std::map<uint32_t, btTransform> *parentTransformMap);
 
     bool addWeightToVertex(uint32_t boneID, unsigned int vertex, float weight);
 
     bool hasBones() const;
+
+    //a NaN or infinite position breaks everything the mesh feeds: rendering, LODs, occluders and physics
+    bool hasNonFiniteVertex() const;
 
     const glm::vec4& getAabbMin() const {
         return minAABB;
@@ -204,13 +194,6 @@ public:
     void releaseRenderListId(AssetManager *assetManager);
 
     ~MeshAsset() {
-        for (unsigned int i = 0; i < shapeCopies.size(); ++i) {
-            delete shapeCopies[i];
-        }
-
-        for (auto it = bulletHullMap.begin(); it != bulletHullMap.end(); ++it) {
-            delete it->second;
-        }
         //FIXME buffer objects are not freed!
     }
 
@@ -223,7 +206,7 @@ public:
     //a change here changes the .limonmodel layout, bump ModelAsset::LIMONMODEL_VERSION
     template<class Archive>
     void serialize(Archive & archive){
-        archive( vertices, normals, textureCoordinates, faces, vertexCount, triangleCount, offsets, builtPlan, bakedOccluders, skeleton, bones, boneIDs, boneWeights, boneAttachedMeshes, boneIdMap, name, isPartOfAnimated, parentTransform, minAABB, maxAABB);
+        archive( vertices, normals, textureCoordinates, faces, vertexCount, triangleCount, offsets, builtPlan, bakedOccluders, skeleton, bones, boneIDs, boneWeights, boneIdMap, name, isPartOfAnimated, parentTransform, minAABB, maxAABB);
     }
 #endif
 };

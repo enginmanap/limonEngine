@@ -689,6 +689,10 @@ void ModelAsset::createMeshes(const aiScene *scene, const aiNode *node, glm::mat
         std::shared_ptr<MeshAsset> mesh;
         mesh = std::make_shared<MeshAsset>(currentMesh, node->mName.C_Str(), rootNode,
                                            parentTransform, hasAnimation, reverseWinding);
+        if (mesh->hasNonFiniteVertex()) {
+            AssetManager::failLoad("Model " + name + " mesh " + mesh->getName() + " has a vertex position that is not a finite number.");
+            return;
+        }
         meshMaterialMap[mesh] = meshMaterial;
         if((*mesh->getTriangleCount()) == 0) {
             continue;
@@ -1399,6 +1403,66 @@ bool ModelAsset::findBoneBindOffsetRecursive(const std::shared_ptr<BoneNode> &bo
     return false;
 }
 
+bool ModelAsset::isHullInsidePoints(const btShapeHull *hull, const glm::vec3 &pointsMin, const glm::vec3 &pointsMax, float margin) const {
+    glm::vec3 pointsExtent = pointsMax - pointsMin;
+    float tolerance = 0.001f * std::max(pointsExtent.x, std::max(pointsExtent.y, pointsExtent.z)) + margin;
+    for (int hullPointIndex = 0; hullPointIndex < hull->numVertices(); ++hullPointIndex) {
+        glm::vec3 hullPoint = GLMConverter::BltToGLM(hull->getVertexPointer()[hullPointIndex]);
+        if (glm::any(glm::lessThan(hullPoint, pointsMin - tolerance)) ||
+            glm::any(glm::greaterThan(hullPoint, pointsMax + tolerance))) {
+            return false;
+        }
+    }
+    return true;
+}
+
+btConvexHullShape *ModelAsset::buildConvexHull(const std::vector<glm::vec3> &points, const std::string &partName) const {
+    if (points.empty()) {
+        return nullptr;
+    }
+    glm::vec3 pointsMin(std::numeric_limits<float>::max());
+    glm::vec3 pointsMax(-std::numeric_limits<float>::max());
+    for (size_t pointIndex = 0; pointIndex < points.size(); ++pointIndex) {
+        pointsMin = glm::min(pointsMin, points[pointIndex]);
+        pointsMax = glm::max(pointsMax, points[pointIndex]);
+    }
+    //far from the origin a float can't hold the 0.001 margin below, so the hull is built around the points' own center
+    glm::vec3 pointsCenter = (pointsMin + pointsMax) * 0.5f;
+    btConvexHullShape *sourceShape = new btConvexHullShape();
+    for (size_t pointIndex = 0; pointIndex < points.size(); ++pointIndex) {
+        sourceShape->addPoint(GLMConverter::GLMToBlt(points[pointIndex] - pointsCenter), false);
+    }
+    sourceShape->recalcLocalAabb();
+    glm::vec3 localMin = pointsMin - pointsCenter;
+    glm::vec3 localMax = pointsMax - pointsCenter;
+
+    sourceShape->setMargin(0.0f);//btShapeHull samples with margin included, the hull shape adds its own on top
+    btShapeHull *hull = new btShapeHull(sourceShape);
+    //with no margin every hull point is a source point, so one outside their box is the cube
+    //HullLibrary::CleanupVertices puts in place of flat input, twice the points' size
+    bool hullBuilt = hull->buildHull(sourceShape->getMargin()) && isHullInsidePoints(hull, localMin, localMax, 0.0f);
+    if (!hullBuilt) {
+        //sampling with a margin gives flat input thickness, so bullet builds a real hull
+        sourceShape->setMargin(0.001f);
+        hullBuilt = hull->buildHull(sourceShape->getMargin()) && isHullInsidePoints(hull, localMin, localMax, sourceShape->getMargin());
+    }
+    btConvexHullShape *hullShape;
+    if (hullBuilt) {
+        hullShape = new btConvexHullShape();
+        for (int hullPointIndex = 0; hullPointIndex < hull->numVertices(); ++hullPointIndex) {
+            hullShape->addPoint(hull->getVertexPointer()[hullPointIndex] + GLMConverter::GLMToBlt(pointsCenter), false);
+        }
+        hullShape->recalcLocalAabb();
+    } else {
+        std::cerr << "convex hull of " << name << " " << partName << " can't be simplified, using all " << points.size()
+                  << " points, every collision test walks them" << std::endl;
+        hullShape = new btConvexHullShape(reinterpret_cast<const btScalar *>(points.data()), (int) points.size(), sizeof(glm::vec3));
+    }
+    delete hull;
+    delete sourceShape;
+    return hullShape;
+}
+
 void ModelAsset::buildPhysicsMeshes() {
     baseTransform.setIdentity();
     baseTransform.setOrigin(GLMConverter::GLMToBlt(-1.0f * centerOffset));
@@ -1412,90 +1476,98 @@ void ModelAsset::buildPhysicsMeshes() {
 
     for(auto iter = physicalMeshes.begin(); iter != physicalMeshes.end(); ++iter) {
 
-        btTriangleMesh *rawCollisionMesh = (*iter)->getBulletMesh(&bulletHullMap, &bulletTransformMap);
-        if (rawCollisionMesh != nullptr) {
-            if (!this->isAnimated() ) {
-                //btTriangleIndexVertexArray *indexArray = new btTriangleIndexVertexArray(rawCollisionMesh->getIndexedMeshArray()[0];
-                btBvhTriangleMeshShape* bvhTriangleMeshShape = new btBvhTriangleMeshShape(rawCollisionMesh, true, true);
-                meshCollisionShapesForTriangle.emplace_back(bvhTriangleMeshShape);
-
-                //btConvexTriangleMeshShape only points at the striding mesh, and setLocalScaling writes the scale into
-                //that mesh, so every shape sharing it (including the bvh one above) ends up with the last writer's
-                //scale. Both branches below build a shape that owns its own points instead.
-                //measured off the points themselves. getAabbMin/Max box the transformed source box, which a rotating
-                //node transform makes larger than the mesh
-                const std::vector<glm::vec3> &collisionPoints = (*iter)->getVertices();
-                glm::vec3 meshMin(std::numeric_limits<float>::max());
-                glm::vec3 meshMax(-std::numeric_limits<float>::max());
-                for (size_t pointIndex = 0; pointIndex < collisionPoints.size(); ++pointIndex) {
-                    meshMin = glm::min(meshMin, collisionPoints[pointIndex]);
-                    meshMax = glm::max(meshMax, collisionPoints[pointIndex]);
-                }
-                btCollisionShape *meshCollisionShape;
-                if (rawCollisionMesh->getNumTriangles() > 24) {
-                    btConvexTriangleMeshShape *convexTriangleMeshShape = new btConvexTriangleMeshShape(rawCollisionMesh);
-                    convexTriangleMeshShape->setMargin(0.0f);//btShapeHull samples with margin included, the hull shape adds its own on top
-                    btShapeHull *hull = new btShapeHull(convexTriangleMeshShape);
-                    bool hullBuilt = hull->buildHull(convexTriangleMeshShape->getMargin());
-                    //with no margin every hull point is a mesh vertex, so one outside the mesh box is the cube
-                    //HullLibrary::CleanupVertices puts in place of flat input, twice the mesh size
-                    glm::vec3 meshExtent = meshMax - meshMin;
-                    float hullTolerance = 0.001f * std::max(meshExtent.x, std::max(meshExtent.y, meshExtent.z));
-                    bool hullOutsideMesh = false;
-                    for (int hullPointIndex = 0; hullBuilt && hullPointIndex < hull->numVertices(); ++hullPointIndex) {
-                        glm::vec3 hullPoint = GLMConverter::BltToGLM(hull->getVertexPointer()[hullPointIndex]);
-                        if (glm::any(glm::lessThan(hullPoint, meshMin - hullTolerance)) ||
-                            glm::any(glm::greaterThan(hullPoint, meshMax + hullTolerance))) {
-                            hullOutsideMesh = true;
-                            break;
-                        }
-                    }
-                    if (!hullBuilt || hullOutsideMesh) {
-                        //sampling with a margin gives flat input thickness, so bullet builds a real hull
-                        convexTriangleMeshShape->setMargin(0.001f);
-                        hullBuilt = hull->buildHull(convexTriangleMeshShape->getMargin());
-                        if (!hullBuilt) {
-                            std::cerr << "convex hull of " << name << " mesh " << (*iter)->getName()
-                                      << " can't be built even with a margin" << std::endl;
-                        }
-                    }
-                    meshCollisionShape = new btConvexHullShape(reinterpret_cast<const btScalar *>(hull->getVertexPointer()),
-                                                               hull->numVertices());
-                    delete hull;
-                    delete convexTriangleMeshShape;
-                } else {
-                    //few enough points for the support function to walk them all, so we skip building a hull
-                    const std::vector<glm::vec3> &meshVertices = (*iter)->getVertices();
-                    meshCollisionShape = new btConvexHullShape(reinterpret_cast<const btScalar *>(meshVertices.data()),
-                                                               (int) meshVertices.size(), sizeof(glm::vec3));
-                }
-                //a convex shape can not be bigger than the points it was built from, so if it is, the wrong points went in
-                btVector3 shapeMin, shapeMax;
-                meshCollisionShape->getAabb(btTransform::getIdentity(), shapeMin, shapeMax);
-                //getAabb counts the margin twice for the broadphase, the shape itself only has it once
-                btVector3 shapeSize = shapeMax - shapeMin - btVector3(2.0f, 2.0f, 2.0f) * meshCollisionShape->getMargin();
-                glm::vec3 meshSize = collisionPoints.empty() ? glm::vec3(0.0f) : meshMax - meshMin;
-                float allowed = 1.2f;//margins and the hull's own padding make an exact match unreasonable
-                if (shapeSize.x() > meshSize.x * allowed + 0.2f || shapeSize.y() > meshSize.y * allowed + 0.2f ||
-                    shapeSize.z() > meshSize.z * allowed + 0.2f) {
-                    std::cerr << "collision shape of " << name << " mesh " << (*iter)->getName()
-                              << " is " << shapeSize.x() << "x" << shapeSize.y() << "x" << shapeSize.z()
-                              << " while the mesh is " << meshSize.x << "x" << meshSize.y << "x" << meshSize.z
-                              << ", triangles " << rawCollisionMesh->getNumTriangles() << std::endl;
-                }
-                compoundShapeForConvex->addChildShape(baseTransform, meshCollisionShape);
-                reusableMeshes.emplace_back(meshCollisionShape);
-            }
+        if (this->isAnimated() || (*iter)->isAnimatedPart()) {
+            continue;//collides through the per bone hulls below
         }
+        btTriangleMesh *rawCollisionMesh = new btTriangleMesh();
+        collisionTriangleMeshes.push_back(rawCollisionMesh);
+        const std::vector<glm::vec3> &meshVertices = (*iter)->getVertices();
+        const std::vector<glm::u16vec3> &meshFaces = (*iter)->getFaces();
+        //faces holds every LOD's index range after LOD0, collision only wants the original
+        for (uint32_t faceIndex = 0; faceIndex < (*iter)->getTriangleCount()[0]; ++faceIndex) {
+            rawCollisionMesh->addTriangle(GLMConverter::GLMToBlt(meshVertices[meshFaces[faceIndex][0]]),
+                                          GLMConverter::GLMToBlt(meshVertices[meshFaces[faceIndex][1]]),
+                                          GLMConverter::GLMToBlt(meshVertices[meshFaces[faceIndex][2]]));
+        }
+        //btTriangleIndexVertexArray *indexArray = new btTriangleIndexVertexArray(rawCollisionMesh->getIndexedMeshArray()[0];
+        btBvhTriangleMeshShape* bvhTriangleMeshShape = new btBvhTriangleMeshShape(rawCollisionMesh, true, true);
+        meshCollisionShapesForTriangle.emplace_back(bvhTriangleMeshShape);
+
+        //btConvexTriangleMeshShape only points at the striding mesh, and setLocalScaling writes the scale into
+        //that mesh, so every shape sharing it (including the bvh one above) ends up with the last writer's
+        //scale. Both branches below build a shape that owns its own points instead.
+        //measured off the points themselves. getAabbMin/Max box the transformed source box, which a rotating
+        //node transform makes larger than the mesh
+        glm::vec3 meshMin(std::numeric_limits<float>::max());
+        glm::vec3 meshMax(-std::numeric_limits<float>::max());
+        for (size_t pointIndex = 0; pointIndex < meshVertices.size(); ++pointIndex) {
+            meshMin = glm::min(meshMin, meshVertices[pointIndex]);
+            meshMax = glm::max(meshMax, meshVertices[pointIndex]);
+        }
+        btCollisionShape *meshCollisionShape;
+        if (rawCollisionMesh->getNumTriangles() > 24) {
+            meshCollisionShape = buildConvexHull(meshVertices, "mesh " + (*iter)->getName());
+            if (meshCollisionShape == nullptr) {
+                continue;
+            }
+        } else {
+            //few enough points for the support function to walk them all, so we skip building a hull
+            meshCollisionShape = new btConvexHullShape(reinterpret_cast<const btScalar *>(meshVertices.data()),
+                                                       (int) meshVertices.size(), sizeof(glm::vec3));
+        }
+        //a convex shape can not be bigger than the points it was built from, so if it is, the wrong points went in
+        btVector3 shapeMin, shapeMax;
+        meshCollisionShape->getAabb(btTransform::getIdentity(), shapeMin, shapeMax);
+        //getAabb counts the margin twice for the broadphase, the shape itself only has it once
+        btVector3 shapeSize = shapeMax - shapeMin - btVector3(2.0f, 2.0f, 2.0f) * meshCollisionShape->getMargin();
+        glm::vec3 meshSize = meshVertices.empty() ? glm::vec3(0.0f) : meshMax - meshMin;
+        float allowed = 1.2f;//margins and the hull's own padding make an exact match unreasonable
+        if (shapeSize.x() > meshSize.x * allowed + 0.2f || shapeSize.y() > meshSize.y * allowed + 0.2f ||
+            shapeSize.z() > meshSize.z * allowed + 0.2f) {
+            std::cerr << "collision shape of " << name << " mesh " << (*iter)->getName()
+                      << " is " << shapeSize.x() << "x" << shapeSize.y() << "x" << shapeSize.z()
+                      << " while the mesh is " << meshSize.x << "x" << meshSize.y << "x" << meshSize.z
+                      << ", triangles " << rawCollisionMesh->getNumTriangles() << std::endl;
+        }
+        compoundShapeForConvex->addChildShape(baseTransform, meshCollisionShape);
+        reusableMeshes.emplace_back(meshCollisionShape);
     }
 
     if (this->isAnimated()) {
-        std::map<uint32_t, btConvexHullShape *>::iterator it;
-        for (unsigned int i = 0;i < 128; i++) {//FIXME 128 is the number of bones supported. It should be an option or an constant
-            if (bulletTransformMap.find(i) != bulletTransformMap.end() && bulletHullMap.find(i) != bulletHullMap.end()) {
-                boneIdCompoundChildMap[i] = compoundShapeForConvex->getNumChildShapes();//get numchild actually increase with each new child add below
-                compoundShapeForConvex->addChildShape(bulletTransformMap[i], bulletHullMap[i]);//this add the mesh to collision shape, in order
+        //collected over every mesh first, a bone several meshes share would otherwise keep only the last mesh's part
+        std::map<uint32_t, std::vector<glm::vec3>> bonePoints;
+        for (std::vector<std::shared_ptr<MeshAsset>>::iterator meshIterator = physicalMeshes.begin(); meshIterator != physicalMeshes.end(); ++meshIterator) {
+            if (!(*meshIterator)->isAnimatedPart()) {
+                continue;
             }
+            const std::vector<glm::vec3> &meshVertices = (*meshIterator)->getVertices();
+            const std::vector<glm::lowp_uvec4> &vertexBoneIDs = (*meshIterator)->getBoneIDs();
+            const std::vector<glm::vec4> &vertexBoneWeights = (*meshIterator)->getBoneWeights();
+            size_t weightedVertexCount = std::min(meshVertices.size(), std::min(vertexBoneIDs.size(), vertexBoneWeights.size()));
+            for (size_t vertexIndex = 0; vertexIndex < weightedVertexCount; ++vertexIndex) {
+                float largestWeight = vertexBoneWeights[vertexIndex][0];//addWeightToVertex keeps them largest first
+                for (int slot = 0; slot < 4; ++slot) {
+                    float weight = vertexBoneWeights[vertexIndex][slot];
+                    //a joint vertex goes to both bones, so the hulls overlap instead of leaving a gap
+                    if (weight > 0.0f && weight >= 0.5f * largestWeight) {
+                        uint32_t boneID = vertexBoneIDs[vertexIndex][slot];
+                        bonePoints[boneID].push_back(meshVertices[vertexIndex]);
+                        if (bulletTransformMap.find(boneID) == bulletTransformMap.end()) {
+                            bulletTransformMap[boneID].setFromOpenGLMatrix(glm::value_ptr((*meshIterator)->getParentTransform()));
+                        }
+                    }
+                }
+            }
+        }
+        for (std::map<uint32_t, std::vector<glm::vec3>>::iterator boneIterator = bonePoints.begin(); boneIterator != bonePoints.end(); ++boneIterator) {
+            btConvexHullShape *boneHull = buildConvexHull(boneIterator->second, "bone " + std::to_string(boneIterator->first));
+            if (boneHull == nullptr) {
+                continue;
+            }
+            bulletHullMap[boneIterator->first] = boneHull;
+            reusableMeshes.emplace_back(boneHull);
+            boneIdCompoundChildMap[boneIterator->first] = compoundShapeForConvex->getNumChildShapes();//get numchild actually increase with each new child add below
+            compoundShapeForConvex->addChildShape(bulletTransformMap[boneIterator->first], boneHull);
         }
     }
 }
@@ -1597,6 +1669,10 @@ ModelAsset::~ModelAsset() {
 
     for (btBvhTriangleMeshShape* shape:meshCollisionShapesForTriangle) {
         delete shape;
+    }
+
+    for (btTriangleMesh *triangleMesh : collisionTriangleMeshes) {
+        delete triangleMesh;
     }
     //FIXME GPU side is not freed
 }

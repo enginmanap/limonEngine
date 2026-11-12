@@ -44,6 +44,10 @@ std::unique_ptr<ModelAsset> ModelAssetBuilder::buildPiece(AssetManager *assetMan
         std::cerr << "Mesh " << meshIndex << " of " << sourcePath << " has no triangles, piece " << piecePath << " is empty." << std::endl;
         exit(-1);
     }
+    if (mesh->hasNonFiniteVertex()) {
+        std::cerr << "Mesh " << meshIndex << " of " << sourcePath << " has a vertex position that is not a finite number, piece " << piecePath << " can't be built." << std::endl;
+        exit(-1);
+    }
     if (meshMaterial->hasOpacityMap()) {
         asset->transparentMaterialUsed = true;
     }

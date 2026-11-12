@@ -99,6 +99,7 @@ private:
     btTransform baseTransform;
     std::map<uint32_t, uint32_t> boneIdCompoundChildMap;
     std::vector<btBvhTriangleMeshShape *>meshCollisionShapesForTriangle;
+    std::vector<btTriangleMesh *> collisionTriangleMeshes;//the shapes above only point at these
     std::vector<btCollisionShape *> reusableMeshes;
     bool hasAnimation;
     LodLadder lodLadder;//this model LOD steps: what was asked, what came out, where each one is used
@@ -239,7 +240,7 @@ public:
     //written before the archive and checked before it is read, so a file in another layout is refused instead of parsed.
     //Any change to what the file stores bumps the version, in any class it holds: MeshAsset, LodLadder, LevelPlan...
     static constexpr uint32_t LIMONMODEL_MAGIC = 0x4C444D4C;//"LMDL" in file order
-    static constexpr uint32_t LIMONMODEL_VERSION = 5;//2: embedded textures belong to the file itself, 4: materials keep the texture path the asset asked for, never the file a lookup found, 5: LOD steps judge filled openings
+    static constexpr uint32_t LIMONMODEL_VERSION = 6;//2: embedded textures belong to the file itself, 4: materials keep the texture path the asset asked for, never the file a lookup found, 5: LOD steps judge filled openings, 6: bone hulls come from the vertex weights, the per bone vertex lists are gone
 
     //true for an asset loaded from a limonmodel, where the file itself is the store rather than a sidecar
     bool isConvertedAsset() const;
@@ -429,14 +430,21 @@ public:
             materialMap.clear();//not registered yet, the destructor would unregister them
             return;//everything is read by now, so cereal has nothing left to continue with
         }
+        for (const std::shared_ptr<MeshAsset> &mesh : meshes) {
+            if (mesh->hasNonFiniteVertex()) {
+                AssetManager::failLoad(name + " mesh " + mesh->getName() + " has a vertex position that is not a finite number. Re-export it from its source model.");
+                materialMap.clear();//not registered yet, the destructor would unregister them
+                return;
+            }
+        }
+        for (const std::pair<const std::string, std::shared_ptr<MeshAsset>> &simplifiedMesh : simplifiedMeshes) {
+            if (simplifiedMesh.second->hasNonFiniteVertex()) {
+                AssetManager::failLoad(name + " mesh " + simplifiedMesh.first + " has a vertex position that is not a finite number. Re-export it from its source model.");
+                materialMap.clear();//not registered yet, the destructor would unregister them
+                return;
+            }
+        }
         //now update embedded textures to assetManager
-        for (size_t i = 0; i < meshes.size(); ++i) {
-            meshes[i]->buildBulletMesh();
-        }
-        for (auto& simpleMesh:simplifiedMeshes) {
-            simpleMesh.second->buildBulletMesh();
-        }
-
         for (size_t meshIndex = 0; meshIndex < meshes.size(); ++meshIndex) {
             meshMaterialMap[meshes[meshIndex]] = meshMaterials[meshIndex];
         }
@@ -468,6 +476,10 @@ public:
 #endif
 
     void buildPhysicsMeshes();
+private:
+    //nullptr for no points
+    btConvexHullShape *buildConvexHull(const std::vector<glm::vec3> &points, const std::string &partName) const;
+    bool isHullInsidePoints(const btShapeHull *hull, const glm::vec3 &pointsMin, const glm::vec3 &pointsMax, float margin) const;
 };
 
 
