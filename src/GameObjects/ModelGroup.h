@@ -69,6 +69,8 @@ public:
         if(pr) addChild(pr);
     }
     void addChild(PhysicalRenderable *renderable);
+    //recentring walks every child, so a loader adding thousands calls recenterOnChildren once at the end instead
+    void addChildWithoutRecentering(PhysicalRenderable *renderable);
 
 
     // This function is used to recenter the gizmo position of the group. If a child is moved,

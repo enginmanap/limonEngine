@@ -63,6 +63,7 @@ private:
     //the document is the save version's, loadWorld picked the loader for it
     World *loadMapFromXML(tinyxml2::XMLDocument &xmlDoc, LimonAPI *limonAPI) const;
     bool loadObjectGroupsFromXMLV2(tinyxml2::XMLNode *worldNode, World *world) const;
+    static void recenterModelGroups(World *world);
     bool loadSkymap(tinyxml2::XMLNode *skymapNode, World* world) const;
     bool loadLights(tinyxml2::XMLNode *lightsNode, World* world) const;
     bool loadSounds(tinyxml2::XMLNode *worldNode, World* world) const;

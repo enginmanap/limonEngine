@@ -466,7 +466,7 @@ bool WorldAPIAccessor::attachObjectToObject(uint32_t objectID, uint32_t objectTo
         //a bone attachment composes against the bone transform, which never carries the model's center offset
         objectToAttach->getTransformation()->addTranslate(-1.0f * physicalParent->getCenterOffset());
     }
-    attach(objectToAttach, objectToAttachTo, boneID, false);
+    attach(objectToAttach, objectToAttachTo, boneID, false, true);
     return true;
 }
 
@@ -491,7 +491,7 @@ bool WorldAPIAccessor::attachObjectToObjectAtWorldPosition(uint32_t objectID, ui
     }
 
     // Child is at its world position; derive local offset from parent's world transform.
-    attach(objectToAttach, objectToAttachTo, boneID, true);
+    attach(objectToAttach, objectToAttachTo, boneID, true, true);
     return true;
 }
 
@@ -532,7 +532,7 @@ std::vector<std::string> WorldAPIAccessor::getObjectTagsAPI(uint32_t objectID) c
     return tags;
 }
 
-void WorldAPIAccessor::attach(Attachable *child, Attachable *parent, int32_t boneID, bool keepWorldPosition) {
+void WorldAPIAccessor::attach(Attachable *child, Attachable *parent, int32_t boneID, bool keepWorldPosition, bool recenterGroup) {
     if(child->getParentObject() != nullptr) {
         //attachTo doesn't leave the old parent, its children list would keep a stale entry
         const glm::vec3 localTranslate = child->getTransformation()->getTranslateSingle();
@@ -546,7 +546,11 @@ void WorldAPIAccessor::attach(Attachable *child, Attachable *parent, int32_t bon
     ModelGroup* parentGroup = dynamic_cast<ModelGroup*>(parent);
     PhysicalRenderable* childRenderable = dynamic_cast<PhysicalRenderable*>(child);
     if(parentGroup != nullptr && childRenderable != nullptr) {
-        parentGroup->addChild(childRenderable);//averaging re-centers the group gizmo on its children's centroid; child world positions are preserved
+        if(recenterGroup) {
+            parentGroup->addChild(childRenderable);//averaging re-centers the group gizmo on its children's centroid; child world positions are preserved
+        } else {
+            parentGroup->addChildWithoutRecentering(childRenderable);
+        }
     } else if(keepWorldPosition) {
         child->attachTo(parent, boneID);
     } else {
@@ -561,7 +565,11 @@ void WorldAPIAccessor::attach(Attachable *child, Attachable *parent, int32_t bon
         root = root->getParentObject();
     }
     GameObject* rootObject = dynamic_cast<GameObject*>(root);
-    setHierarchyRootIndex(root, rootObject != nullptr ? static_cast<int>(rootObject->getWorldObjectID()) : -1);
+    int rootIndex = rootObject != nullptr ? static_cast<int>(rootObject->getWorldObjectID()) : -1;
+    //the rest of root's tree already carries rootIndex, walking all of it per attach made loading quadratic.
+    //A root getting its first child still holds -1
+    setOwnHierarchyRootIndex(root, rootIndex);
+    setHierarchyRootIndex(child, rootIndex);
     refreshPlayerAttachmentTags(child, root == world->getStartingPlayer());
     refreshBroadphaseAabbs(child);//attaching at a local offset moves the child, and a static parent doesn't re-add it
     refreshNearestModelGroup(child);
@@ -686,7 +694,14 @@ void WorldAPIAccessor::refreshBroadphaseAabbs(Attachable *moved) {
 }
 
 void WorldAPIAccessor::setHierarchyRootIndex(Attachable *subtreeRoot, int rootIndex) {
-    Model* model = dynamic_cast<Model*>(subtreeRoot);
+    setOwnHierarchyRootIndex(subtreeRoot, rootIndex);
+    for(Attachable* child : subtreeRoot->getChildren()) {
+        setHierarchyRootIndex(child, rootIndex);
+    }
+}
+
+void WorldAPIAccessor::setOwnHierarchyRootIndex(Attachable *node, int rootIndex) {
+    Model* model = dynamic_cast<Model*>(node);
     if(model != nullptr && model->getRigidBody()->getUserIndex() != rootIndex) {
         model->getRigidBody()->setUserIndex(rootIndex);
         //existing pairs never pass through the filter again, re-adding the body is what re-evaluates them
@@ -694,9 +709,6 @@ void WorldAPIAccessor::setHierarchyRootIndex(Attachable *subtreeRoot, int rootIn
             model->disconnectFromPhysicsWorld(world->dynamicsWorld);
             world->connectModelToPhysics(model);
         }
-    }
-    for(Attachable* child : subtreeRoot->getChildren()) {
-        setHierarchyRootIndex(child, rootIndex);
     }
 }
 

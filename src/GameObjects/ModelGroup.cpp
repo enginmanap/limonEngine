@@ -191,6 +191,11 @@ void ModelGroup::recenterOnChildren() {
 
 //through world matrices, a children's translate average is only right while the group has no rotation or scale
 void ModelGroup::addChild(PhysicalRenderable *renderable) {
+    addChildWithoutRecentering(renderable);
+    recenterOnChildren();
+}
+
+void ModelGroup::addChildWithoutRecentering(PhysicalRenderable *renderable) {
     //offset free world, getWorldTransform would bring the centerOffset along, see recenterOnChildren
     Transformation* childTransform = renderable->getTransformation();
     childTransform->getWorldTransform();//refresh world members
@@ -212,6 +217,4 @@ void ModelGroup::addChild(PhysicalRenderable *renderable) {
     childTransform->setParentTransform(&this->transformation);
     renderable->setParentObject(this);
     children.push_back(renderable);
-
-    recenterOnChildren();
 }

@@ -93,7 +93,7 @@ void LegacyWorldLoaderV1::loadPlayerAttachment(tinyxml2::XMLElement *playerNode,
     Model* attachmentRoot = objectInfos.back()->model;//we know the root of the list is the last element
     //V1 saved the player's look rotation as the orientation, only the translate was the offset
     attachmentRoot->getTransformation()->setOrientation(glm::quat(1.0f, 0.0f, 0.0f, 0.0f));
-    world->apiAccessor->attach(attachmentRoot, world->getStartingPlayer(), -1, false);
+    world->apiAccessor->attach(attachmentRoot, world->getStartingPlayer(), -1, false, true);
 }
 
 bool LegacyWorldLoaderV1::loadObjectsFromXML(tinyxml2::XMLNode *worldNode, World *world, LimonAPI *limonAPI) const {

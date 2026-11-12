@@ -981,7 +981,7 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
                         if(pickedModel != nullptr) {
                             pickedModel->getAttachmentTransform(attachedBoneID);
                         }
-                        world->apiAccessor->attach(this->objectToAttach, pickedAttachable, attachedBoneID, true);
+                        world->apiAccessor->attach(this->objectToAttach, pickedAttachable, attachedBoneID, true, true);
                         this->objectToAttach = nullptr;
                     }
                     ImGui::SameLine();
@@ -1019,7 +1019,7 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
                 //now prevent adding to self
 
                 if(ImGui::Button("Add model to group")) {
-                    world->apiAccessor->attach(pickedPhysicalRenderable, world->modelGroups[selectedModelGroup], -1, true);
+                    world->apiAccessor->attach(pickedPhysicalRenderable, world->modelGroups[selectedModelGroup], -1, true, true);
                 }
             } else {
                 ImGui::Button("Add model to group");
@@ -2366,7 +2366,7 @@ Attachable* Editor::copyAttachableRecursive(Attachable* source, Attachable* newP
     if (newParent != nullptr) {
         //newObj currently sits at source's world position (from clone()); attachTo derives the local
         //offset from that, keeping the same world position under newParent.
-        world->apiAccessor->attach(newObj, newParent, source->getParentBoneID(), true);
+        world->apiAccessor->attach(newObj, newParent, source->getParentBoneID(), true, true);
     }
 
     if (recursive) {

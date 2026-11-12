@@ -3,6 +3,7 @@
 //
 
 #include <algorithm>
+#include <functional>
 
 #include "WorldLoader.h"
 #include "LimonFileSystem.h"
@@ -56,7 +57,7 @@ void WorldLoader::resolvePendingAttachments(World *world, const std::vector<Pend
         Attachable* parent = world->findAttachableByID(pa.parentID);
         if(parent != nullptr) {
             //bone attachments are saved local, boneTransforms are identity at load so world would be wrong
-            world->apiAccessor->attach(pa.child, parent, pa.parentBoneID, pa.parentBoneID == -1);
+            world->apiAccessor->attach(pa.child, parent, pa.parentBoneID, pa.parentBoneID == -1, true);
         } else {
             std::cerr << pa.childTypeName << " parent ID " << pa.parentID << " not found, attachment skipped." << std::endl;
         }
@@ -222,6 +223,7 @@ World * WorldLoader::loadMapFromXML(tinyxml2::XMLDocument &xmlDoc, LimonAPI *lim
         delete world;
         return nullptr;
     }
+    recenterModelGroups(world);//group and object attaches above skip it
 
     //after the objects, an override may use a texture embedded in one of their models, which only their load registers
     if (!loadMaterials(worldNode, world)) {
@@ -312,10 +314,26 @@ bool WorldLoader::loadObjectGroupsFromXMLV2(tinyxml2::XMLNode *worldNode, World 
                       << pendingGroupAttachment.parentID << " not found, attachment skipped." << std::endl;
             continue;
         }
-        world->apiAccessor->attach(pendingGroupAttachment.group, parent, -1, true);
+        world->apiAccessor->attach(pendingGroupAttachment.group, parent, -1, true, false);
     }
 
     return true;
+}
+
+void WorldLoader::recenterModelGroups(World *world) {
+    std::vector<std::pair<uint32_t, ModelGroup *>> groupsByDepth;
+    for (std::map<uint32_t, ModelGroup *>::iterator groupIt = world->modelGroups.begin(); groupIt != world->modelGroups.end(); ++groupIt) {
+        uint32_t depth = 0;
+        for (Attachable *ancestor = groupIt->second->getParentObject(); ancestor != nullptr; ancestor = ancestor->getParentObject()) {
+            ++depth;
+        }
+        groupsByDepth.emplace_back(depth, groupIt->second);
+    }
+    //deepest first, a parent's centroid reads its child groups' positions
+    std::stable_sort(groupsByDepth.begin(), groupsByDepth.end(), std::greater<std::pair<uint32_t, ModelGroup *>>());
+    for (size_t groupIndex = 0; groupIndex < groupsByDepth.size(); ++groupIndex) {
+        groupsByDepth[groupIndex].second->recenterOnChildren();
+    }
 }
 
 void WorldLoader::loadTextureColorSpaces(tinyxml2::XMLNode *worldNode, World *world) {
@@ -620,7 +638,7 @@ bool WorldLoader::loadObjectsFromXML(tinyxml2::XMLNode *objectsNode, World *worl
     for(auto& pa : pendingAttachments) {
         Attachable* parent = world->findAttachableByID(pa.parentID);
         if(parent != nullptr) {
-            world->apiAccessor->attach(pa.child, parent, pa.parentBoneID, dynamic_cast<ModelGroup*>(parent) != nullptr);
+            world->apiAccessor->attach(pa.child, parent, pa.parentBoneID, dynamic_cast<ModelGroup*>(parent) != nullptr, false);
         } else {
             std::cerr << "Object " << pa.child->getWorldObjectID() << " parent " << pa.parentID << " not found, attachment skipped." << std::endl;
         }

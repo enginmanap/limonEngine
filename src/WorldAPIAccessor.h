@@ -74,7 +74,8 @@ public:
      * and its collision pairs depend on its parent, and nothing else would update them. Editor and WorldLoader
      * come in here instead of the ID taking calls above, their bone is an index they already hold.
      */
-    void attach(Attachable *child, Attachable *parent, int32_t boneID, bool keepWorldPosition);
+    //recenterGroup false leaves a group parent off its children's centroid, the caller recenters it later
+    void attach(Attachable *child, Attachable *parent, int32_t boneID, bool keepWorldPosition, bool recenterGroup);
     void detach(Attachable *child);
 
     BodyTypes calculateBodyType(const Model *model) const;
@@ -85,6 +86,7 @@ public:
     void refreshBroadphaseAabbs(Attachable *moved);
     //writes the user index World's HierarchyFilterCallback reads, so one hierarchy doesn't collide with itself
     void setHierarchyRootIndex(Attachable *subtreeRoot, int rootIndex);
+    void setOwnHierarchyRootIndex(Attachable *node, int rootIndex);
     //re-resolves CullingEntry::nearestModelGroup for a node whose parent changed and every model below it
     void refreshNearestModelGroup(Attachable *subtreeRoot);
     void assignNearestModelGroup(Attachable *node, ModelGroup *group);
