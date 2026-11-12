@@ -145,12 +145,13 @@ void WorldReferenceScanner::addDataPath(const std::string &path, References &ref
     if (normalizedPath.compare(0, 5, "Data/") != 0) {
         return;//numbers, names and everything else in the XML stop here, before touching the file system
     }
+    if (references.files.count(normalizedPath) != 0) {
+        return;//before the file system, every object naming its model file asked it again
+    }
     if (LimonFileSystem::isDirectory(normalizedPath)) {
         return;//the sky's ImagesPath, its faces are built references
     }
-    if (!references.files.insert(normalizedPath).second) {
-        return;
-    }
+    references.files.insert(normalizedPath);
     if (isWorldFile(normalizedPath)) {
         references.worlds.insert(normalizedPath);
     }
