@@ -1422,12 +1422,43 @@ void ModelAsset::buildPhysicsMeshes() {
                 //btConvexTriangleMeshShape only points at the striding mesh, and setLocalScaling writes the scale into
                 //that mesh, so every shape sharing it (including the bvh one above) ends up with the last writer's
                 //scale. Both branches below build a shape that owns its own points instead.
+                //measured off the points themselves. getAabbMin/Max box the transformed source box, which a rotating
+                //node transform makes larger than the mesh
+                const std::vector<glm::vec3> &collisionPoints = (*iter)->getVertices();
+                glm::vec3 meshMin(std::numeric_limits<float>::max());
+                glm::vec3 meshMax(-std::numeric_limits<float>::max());
+                for (size_t pointIndex = 0; pointIndex < collisionPoints.size(); ++pointIndex) {
+                    meshMin = glm::min(meshMin, collisionPoints[pointIndex]);
+                    meshMax = glm::max(meshMax, collisionPoints[pointIndex]);
+                }
                 btCollisionShape *meshCollisionShape;
                 if (rawCollisionMesh->getNumTriangles() > 24) {
                     btConvexTriangleMeshShape *convexTriangleMeshShape = new btConvexTriangleMeshShape(rawCollisionMesh);
                     convexTriangleMeshShape->setMargin(0.0f);//btShapeHull samples with margin included, the hull shape adds its own on top
                     btShapeHull *hull = new btShapeHull(convexTriangleMeshShape);
-                    hull->buildHull(convexTriangleMeshShape->getMargin());
+                    bool hullBuilt = hull->buildHull(convexTriangleMeshShape->getMargin());
+                    //with no margin every hull point is a mesh vertex, so one outside the mesh box is the cube
+                    //HullLibrary::CleanupVertices puts in place of flat input, twice the mesh size
+                    glm::vec3 meshExtent = meshMax - meshMin;
+                    float hullTolerance = 0.001f * std::max(meshExtent.x, std::max(meshExtent.y, meshExtent.z));
+                    bool hullOutsideMesh = false;
+                    for (int hullPointIndex = 0; hullBuilt && hullPointIndex < hull->numVertices(); ++hullPointIndex) {
+                        glm::vec3 hullPoint = GLMConverter::BltToGLM(hull->getVertexPointer()[hullPointIndex]);
+                        if (glm::any(glm::lessThan(hullPoint, meshMin - hullTolerance)) ||
+                            glm::any(glm::greaterThan(hullPoint, meshMax + hullTolerance))) {
+                            hullOutsideMesh = true;
+                            break;
+                        }
+                    }
+                    if (!hullBuilt || hullOutsideMesh) {
+                        //sampling with a margin gives flat input thickness, so bullet builds a real hull
+                        convexTriangleMeshShape->setMargin(0.001f);
+                        hullBuilt = hull->buildHull(convexTriangleMeshShape->getMargin());
+                        if (!hullBuilt) {
+                            std::cerr << "convex hull of " << name << " mesh " << (*iter)->getName()
+                                      << " can't be built even with a margin" << std::endl;
+                        }
+                    }
                     meshCollisionShape = new btConvexHullShape(reinterpret_cast<const btScalar *>(hull->getVertexPointer()),
                                                                hull->numVertices());
                     delete hull;
@@ -1441,15 +1472,6 @@ void ModelAsset::buildPhysicsMeshes() {
                 //a convex shape can not be bigger than the points it was built from, so if it is, the wrong points went in
                 btVector3 shapeMin, shapeMax;
                 meshCollisionShape->getAabb(btTransform::getIdentity(), shapeMin, shapeMax);
-                //measured off the points themselves. getAabbMin/Max box the transformed source box, which a rotating
-                //node transform makes larger than the mesh
-                const std::vector<glm::vec3> &collisionPoints = (*iter)->getVertices();
-                glm::vec3 meshMin(std::numeric_limits<float>::max());
-                glm::vec3 meshMax(-std::numeric_limits<float>::max());
-                for (size_t pointIndex = 0; pointIndex < collisionPoints.size(); ++pointIndex) {
-                    meshMin = glm::min(meshMin, collisionPoints[pointIndex]);
-                    meshMax = glm::max(meshMax, collisionPoints[pointIndex]);
-                }
                 //getAabb counts the margin twice for the broadphase, the shape itself only has it once
                 btVector3 shapeSize = shapeMax - shapeMin - btVector3(2.0f, 2.0f, 2.0f) * meshCollisionShape->getMargin();
                 glm::vec3 meshSize = collisionPoints.empty() ? glm::vec3(0.0f) : meshMax - meshMin;
