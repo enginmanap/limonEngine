@@ -306,6 +306,7 @@ void World::applyAudioVolumeOptionsIfChanged() {
  void World::play(InputHandler &inputHandler, uint32_t wallTimeMs) {
     // we need to apply the defferred aseet changes, like convertion to limonmodel, or LOD overrides.
     // If we put it after the editor update, quit request would have skipped the limonModel conversion, so in the beginning.
+    editor->applyPendingCommands();
     editor->applyDeferredAssetChanges();
     PROFILE_SIMULATION("World::play");
      {
@@ -2185,6 +2186,7 @@ void World::fillPlayerBlock(UniformBlockData &playerBlock, const glm::vec3 &came
            modelToClear->setPendingTransformUploads(nullptr);
            physicsSimulationActiveModels.erase(modelToClear->getWorldObjectID());//the ID is reused, the request must not carry over
            if (forRemoval) {
+               visibilityManager->resetPreviousLodLevel(modelToClear->getWorldObjectID());//or whoever reuses the id starts from its hysteresis
                unusedIDs.push(modelToClear->getWorldObjectID());
            }
        }
@@ -2360,11 +2362,3 @@ bool World::verifyIDs() {
        }
 
    }
-
-void World::onModelMaterialChanged(uint32_t modelID [[gnu::unused]]) {
-    visibilityManager->clearAllRenderLists();//the old material's textures may be gone before the next tick rebuilds the lists
-}
-
-void World::onModelMaterialChanged(const std::vector<uint32_t> &modelIDs [[gnu::unused]]) {
-    visibilityManager->clearAllRenderLists();
-}

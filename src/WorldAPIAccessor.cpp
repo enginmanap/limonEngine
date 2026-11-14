@@ -755,9 +755,6 @@ bool WorldAPIAccessor::changeModelMass(uint32_t objectID, float newMass) {
 
     model->setMassValue(newMass);
 
-    //switching static<->dynamic moves the model between tag buckets, the lists still have it in the old one until the next tick
-    world->visibilityManager->clearAllRenderLists();
-
     //Bullet requires the body to be out of the world while its collision shape and mass props change.
     bool connected = !model->isDisconnected();
     if (connected) {

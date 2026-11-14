@@ -113,7 +113,7 @@ public:
         }
 
         //last level this camera chose per object, so a model sitting on a switch point does not flip every frame.
-        //Owned by this camera's culling thread, so it needs no locking. A removed object's level stays, a reused id inherits it
+        //Owned by this camera's culling thread, so it needs no locking. Removal resets it, so a reused id doesn't inherit it
         uint32_t getPreviousLodLevel(uint32_t objectId) const {
             return previousLodLevels[objectId];
         }

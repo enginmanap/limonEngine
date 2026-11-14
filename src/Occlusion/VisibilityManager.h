@@ -67,8 +67,10 @@ public:
     std::unordered_map<Camera*, std::unordered_map<std::vector<uint64_t>, RenderList, VisibilityRequest::uint64_vector_hasher>*>& getCullingResults();
     //what occlusion_debugReverse left out of the normal lists for the player camera, null if there is no player camera request
     const RenderList* getDebugOverlayRenderList() const;
-    //for a change made outside a tick, until world changes wait for the tick boundary. The scene draws nothing until the next tick rebuilds the lists
+    //for an API change made mid tick, the pose pass still reads the lists. The scene draws nothing until the next tick rebuilds them
     void clearAllRenderLists();
+    //main thread only, between culling passes
+    void resetPreviousLodLevel(uint32_t objectID);
     void addCamera(Camera* camera);
     void removeCamera(Camera* camera);
     void removeCameras(const std::vector<Camera*>& cameras);

@@ -1022,10 +1022,7 @@ ImGuiResult Model::addImGuiEditorElements(const ImGuiRequest &request) {
                 ImGui::BeginDisabled();
             }
             if (ImGui::Button("Switch material")) {
-                //this model now holds a reference of its own, released when the mesh is reseated again or the model dies
-                this->setMeshMaterial(selectedIndex, request.materialSelectedInList);
-                result.materialChanged = true;
-                setDirtyForFrustum();
+                result.switchMaterialForMeshIndex = selectedIndex;
             }
             if (request.materialSelectedInList == nullptr) {
                 ImGui::EndDisabled();

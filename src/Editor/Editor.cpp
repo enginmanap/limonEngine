@@ -523,7 +523,6 @@ void Editor::beginAlteredMaterialEdit(Model* model, int32_t meshIndex) {
     //point the global pane at the copy too, so both panes edit the same material rather than this one and
     //the material it was copied from. Also commits whatever the global pane was holding
     selectedMeshMaterial = copiedMaterial;
-    world->onModelMaterialChanged(model->getWorldObjectID());
 }
 
 /*
@@ -541,7 +540,6 @@ void Editor::revertAlteredMaterialEdit() {
         Model* model = world->findModelByID(alteredMaterialEdit.objectID);
         if (model != nullptr) {
             model->setMeshMaterial(alteredMaterialEdit.meshIndex, sourceMaterial);
-            world->onModelMaterialChanged(alteredMaterialEdit.objectID);
         }
     }
     releaseAlteredMaterialEdit();
@@ -576,7 +574,6 @@ void Editor::resetModelMaterials(Model* model) {
         releaseAlteredMaterialEdit();//before the reset, or the copy stays registered
     }
     world->resetModelMaterials(model);
-    world->onModelMaterialChanged(model->getWorldObjectID());
     if (alteredMeshIndex >= 0) {
         //the list is on the copy that just went away
         selectedRegistrationID = model->getMeshMetaData()[alteredMeshIndex]->material->getRegistrationID();
@@ -675,23 +672,15 @@ void Editor::showMaterialRows(const std::vector<std::pair<uint32_t, std::shared_
 
 //points every mesh in this world that uses baseMaterial at overrideMaterial
 void Editor::reseatWorldMeshes(const std::shared_ptr<const Material> &baseMaterial, const std::shared_ptr<Material> &overrideMaterial) {
-    std::vector<uint32_t> changedModelIDs;
     for (std::unordered_map<uint32_t, Model *>::iterator objectIt = world->objects.begin(); objectIt != world->objects.end(); ++objectIt) {
         Model *model = objectIt->second;
         const std::vector<Model::MeshMeta *> &meshMetas = model->getMeshMetaData();
-        bool anyMeshChanged = false;
         for (size_t meshIndex = 0; meshIndex < meshMetas.size(); ++meshIndex) {
             if (meshMetas[meshIndex]->material == baseMaterial) {
                 model->setMeshMaterial(meshIndex, overrideMaterial);
-                anyMeshChanged = true;
             }
         }
-        if (anyMeshChanged) {
-            changedModelIDs.push_back(model->getWorldObjectID());
-        }
     }
-    //culling entries are keyed by the material pointer, the ones under the base can't be removed anymore. Strip per model, not per mesh
-    world->onModelMaterialChanged(changedModelIDs);
 }
 
 //a texture edit can make the material start or stop being transparent, every model on it has to follow
@@ -731,7 +720,11 @@ std::shared_ptr<Material> Editor::ensureWorldOwnedMaterial(const std::shared_ptr
     std::shared_ptr<Material> overrideMaterial = world->assetManager->getMaterialRegistry().splitOffOverride(material, selectedMaterialSnapshot);
     //not the override's originalHash, if it deduped into another base's override that one names the other base
     world->addMaterialOverride(selectedMaterialSnapshot->getHash(), overrideMaterial);
-    reseatWorldMeshes(material, overrideMaterial);
+    //the meshes stay on the base until the next tick, reseating may unload its textures
+    EditorCommand reseatCommand(EditorCommand::Kind::RESEAT_WORLD_MESHES);
+    reseatCommand.baseMaterial = material;
+    reseatCommand.material = overrideMaterial;
+    pendingCommands.push_back(reseatCommand);
     return overrideMaterial;
 }
 
@@ -1879,14 +1872,31 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
                 //the list is drawn before this, so it picks this up next frame
                 selectedMeshMaterial = objectEditorResult.selectedMeshMaterial;
             }
-            if (objectEditorResult.revertAlteredMaterial) {
-                revertAlteredMaterialEdit();
+            if (objectEditorResult.revertAlteredMaterial && alteredMaterialEdit.material != nullptr) {
+                EditorCommand revertCommand(EditorCommand::Kind::REVERT_ALTERED_MATERIAL);
+                revertCommand.objectID = alteredMaterialEdit.objectID;
+                revertCommand.meshIndex = alteredMaterialEdit.meshIndex;
+                revertCommand.material = alteredMaterialEdit.material;
+                revertCommand.sourceMaterial = alteredMaterialEdit.sourceMaterial;
+                pendingCommands.push_back(revertCommand);
             }
             if (objectEditorResult.alterMaterialForMeshIndex >= 0) {
-                beginAlteredMaterialEdit(dynamic_cast<Model*>(this->pickedObject), objectEditorResult.alterMaterialForMeshIndex);
+                EditorCommand alterCommand(EditorCommand::Kind::ALTER_MESH_MATERIAL);
+                alterCommand.objectID = this->pickedObject->getWorldObjectID();
+                alterCommand.meshIndex = objectEditorResult.alterMaterialForMeshIndex;
+                pendingCommands.push_back(alterCommand);
             }
             if (objectEditorResult.resetModelMaterials) {
-                resetModelMaterials(dynamic_cast<Model*>(this->pickedObject));
+                EditorCommand resetCommand(EditorCommand::Kind::RESET_MODEL_MATERIALS);
+                resetCommand.objectID = this->pickedObject->getWorldObjectID();
+                pendingCommands.push_back(resetCommand);
+            }
+            if (objectEditorResult.switchMaterialForMeshIndex >= 0 && materialSelectedInList != nullptr) {
+                EditorCommand switchCommand(EditorCommand::Kind::SWITCH_MESH_MATERIAL);
+                switchCommand.objectID = this->pickedObject->getWorldObjectID();
+                switchCommand.meshIndex = objectEditorResult.switchMaterialForMeshIndex;
+                switchCommand.material = materialSelectedInList;
+                pendingCommands.push_back(switchCommand);
             }
             //the player owns its camera, so the active camera rig's parameters are tuned here, under the player.
             //the rig is CHOSEN in the "Camera Extension" panel; this edits the live, already-active instance in place.
@@ -1912,9 +1922,6 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
                     this->generateEditorElementsForParameters(rigParameters, 300);
                     selectedRig->getHeldAttachment()->setParameters(rigParameters);
                 }
-            }
-            if (objectEditorResult.materialChanged) {
-                world->onModelMaterialChanged(this->pickedObjectID);
             }
             if (objectEditorResult.modelPreview.clicked && this->pickedObject->getTypeID() == GameObject::ObjectTypes::MODEL) {
                 //previewRenderer's bone screen positions were refreshed this frame by the renderModelPreview() call
@@ -2008,10 +2015,10 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
                         }
                     }
                     if (objectEditorResult.flipChanged) {
-                        Model *selectedObject = static_cast<Model *>(this->pickedObject);
-                        world->visibilityManager->clearAllRenderLists();//the reload replaces its meshes, the lists still hold the old ones
-                        selectedObject->reloadWithFlip(objectEditorResult.newFlipAxes);
-                        world->apiAccessor->refreshBroadphaseAabbs(selectedObject);//the shape changed while the body stayed in the world
+                        EditorCommand flipCommand(EditorCommand::Kind::FLIP_MODEL);
+                        flipCommand.objectID = this->pickedObject->getWorldObjectID();
+                        flipCommand.flipAxes = objectEditorResult.newFlipAxes;
+                        pendingCommands.push_back(flipCommand);
                     }
                     if (objectEditorResult.massChanged) {
                         //the widget already stored the new value on the model; world reloads the shape and re-registers
@@ -2116,8 +2123,10 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
                     }
 
                     if (ImGui::Button("Remove This Object")) {
-                        world->apiAccessor->removeObject(this->pickedObject->getWorldObjectID());
-                        this->pickedObject = nullptr;
+                        EditorCommand removeCommand(EditorCommand::Kind::REMOVE_MODEL);
+                        removeCommand.objectID = this->pickedObject->getWorldObjectID();
+                        pendingCommands.push_back(removeCommand);
+                        this->pickedObject = nullptr;//the panel closes now, the model stays until the tick
                     }
                 }
                     break;
@@ -2917,6 +2926,94 @@ void Editor::drawExportWindow() {
         }
     }
     ImGui::End();
+}
+
+void Editor::applyPendingCommands() {
+    if (pendingCommands.empty()) {
+        return;
+    }
+    std::vector<EditorCommand> commandsToApply;
+    commandsToApply.swap(pendingCommands);//reseat can be queued while applying
+    for (const EditorCommand &command : commandsToApply) {
+        switch (command.kind) {
+            case EditorCommand::Kind::REMOVE_MODEL:
+                applyRemoveModel(command);
+                break;
+            case EditorCommand::Kind::ALTER_MESH_MATERIAL:
+                if (alteredMaterialEdit.material != nullptr && alteredMaterialEdit.objectID == command.objectID &&
+                    alteredMaterialEdit.meshIndex == command.meshIndex) {
+                    break;//clicked twice before the tick, a second copy would be a copy of the first
+                }
+                beginAlteredMaterialEdit(world->findModelByID(command.objectID), command.meshIndex);
+                break;
+            case EditorCommand::Kind::REVERT_ALTERED_MATERIAL:
+                applyRevertAlteredMaterial(command);
+                break;
+            case EditorCommand::Kind::RESET_MODEL_MATERIALS:
+                resetModelMaterials(world->findModelByID(command.objectID));
+                break;
+            case EditorCommand::Kind::SWITCH_MESH_MATERIAL: {
+                Model *model = world->findModelByID(command.objectID);
+                if (model != nullptr) {
+                    //this model now holds a reference of its own, released when the mesh is reseated again or the model dies
+                    model->setMeshMaterial(command.meshIndex, command.material);
+                    model->setDirtyForFrustum();
+                }
+            }
+                break;
+            case EditorCommand::Kind::RESEAT_WORLD_MESHES:
+                reseatWorldMeshes(command.baseMaterial, command.material);
+                break;
+            case EditorCommand::Kind::FLIP_MODEL: {
+                Model *model = world->findModelByID(command.objectID);
+                if (model != nullptr) {
+                    model->reloadWithFlip(command.flipAxes);
+                    world->apiAccessor->refreshBroadphaseAabbs(model);//the shape changed while the body stayed in the world
+                }
+            }
+                break;
+        }
+    }
+}
+
+void Editor::applyRemoveModel(const EditorCommand &command) {
+    Model *model = world->findModelByID(command.objectID);
+    if (model == nullptr) {
+        return;
+    }
+    forgetRemovedModelTree(model);
+    world->apiAccessor->removeObject(command.objectID);
+}
+
+void Editor::applyRevertAlteredMaterial(const EditorCommand &command) {
+    if (alteredMaterialEdit.material == command.material) {
+        revertAlteredMaterialEdit();
+        return;
+    }
+    //the panel let go of the copy between the click and the tick, the mesh may still be on it
+    Model *model = world->findModelByID(command.objectID);
+    if (model != nullptr && command.meshIndex >= 0 && static_cast<size_t>(command.meshIndex) < model->getMeshMetaData().size() &&
+        model->getMeshMetaData()[command.meshIndex]->material == command.material) {
+        model->setMeshMaterial(command.meshIndex, command.sourceMaterial);
+    }
+}
+
+//removeObject takes the model children along, the editor must not keep pointers to any of them
+void Editor::forgetRemovedModelTree(Model *model) {
+    //picked again between the click and the tick
+    if (this->pickedObject != nullptr && this->pickedObject->getWorldObjectID() == model->getWorldObjectID()) {
+        this->pickedObject = nullptr;
+    }
+    GameObject *objectToAttachAsGameObject = dynamic_cast<GameObject *>(this->objectToAttach);
+    if (objectToAttachAsGameObject != nullptr && objectToAttachAsGameObject->getWorldObjectID() == model->getWorldObjectID()) {
+        this->objectToAttach = nullptr;
+    }
+    for (Attachable *child : model->getChildren()) {
+        Model *childModel = dynamic_cast<Model *>(child);
+        if (childModel != nullptr) {
+            forgetRemovedModelTree(childModel);
+        }
+    }
 }
 
 void Editor::applyDeferredAssetChanges() {

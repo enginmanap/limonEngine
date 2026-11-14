@@ -142,6 +142,12 @@ void VisibilityManager::clearAllRenderLists() {
     }
 }
 
+void VisibilityManager::resetPreviousLodLevel(uint32_t objectID) {
+    for (const std::pair<VisibilityRequest *const, SDL2MultiThreading::InternalThread *> &item: visibilityThreadPool) {
+        item.first->setPreviousLodLevel(objectID, 0);
+    }
+}
+
 void VisibilityManager::removeCameras(const std::vector<Camera*>& cameras) {
     for (Camera* camera : cameras) {
         removeCamera(camera);

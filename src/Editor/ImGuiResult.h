@@ -20,7 +20,7 @@ struct ImGuiResult {
     bool removeAI = false;
     bool updated = false;
     bool remove = false; //If removal requested
-    bool materialChanged = false;
+    int32_t switchMaterialForMeshIndex = -1;//user pressed "Switch material", the list's selection goes on this mesh
     //a material editor widget changed a value this frame. The pane uses it to split an asset owned material
     //off into a world owned one before the edit can reach anybody else
     bool materialDirty = false;

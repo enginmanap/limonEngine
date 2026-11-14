@@ -16,6 +16,7 @@
 #include <glm/glm.hpp>
 #include "Assets/Lod/LodLadder.h"
 #include "Editor/ImGuiRequest.h"
+#include "Editor/EditorCommand.h"
 #include "limonAPI/LimonTypes.h"
 #include "limonAPI/Options.h"
 
@@ -133,6 +134,11 @@ class Editor {
     // If selected object has line visualization, we this method will render it
     void renderSelectedObjectLineVisualization();
 
+    std::vector<EditorCommand> pendingCommands;//in the order they were asked for
+    void applyRemoveModel(const EditorCommand &command);
+    void applyRevertAlteredMaterial(const EditorCommand &command);
+    void forgetRemovedModelTree(Model *model);
+
 public:
     bool showNodeGraph = false;
     PipelineExtension *pipelineExtension = nullptr;
@@ -223,7 +229,8 @@ public:
         modelConversionRequested = true;
     }
 
-    //World calls this between the render and the next culling pass, which is the only safe point for any of it
+    //World calls these at the start of every tick, before anything reads the world. Commands first, a save in the same frame must see them
+    void applyPendingCommands();
     void applyDeferredAssetChanges();
     ImGuiImageWrapper* renderModelPreview(Model* model, int32_t forcedLodLevel, uint32_t width, uint32_t height, ModelPreviewPlayback &playback, std::shared_ptr<GraphicsProgram> graphicsProgram);
     LodComparisonImages renderLodComparison(Model* model, int32_t forcedLodLevel, uint32_t designSizePixels, std::shared_ptr<GraphicsProgram> graphicsProgram);
