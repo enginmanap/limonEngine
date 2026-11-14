@@ -31,7 +31,7 @@ class OrthographicCamera : public Camera {
     OptionsUtil::Options::Option<long> shadowMapSizeOption = options->getOption<long>(HASH("shadow_mapDirectionalSize"));
     std::vector<glm::vec4> playerFrustumPlanes;
     //only the planes a shadow can't reach by travelling along the light, the rest can never reject a caster
-    glm::vec4 casterPlanes[6];
+    glm::vec4 casterPlanes[6 + 12];//faces away from the light, plus one silhouette plane per frustum edge at most
     uint32_t casterPlaneCount = 0;
 
     //these mirror DirectionalShadow.frag, receivers sample this far from themselves so casters there must survive culling
@@ -271,13 +271,70 @@ public:
                             + (PCF_BASE_RADIUS + PCF_RADIUS_PER_CASCADE * cascadeIndex) * texelSize;//poisson disk radius is below 1
 
         casterPlaneCount = 0;
-        for (const glm::vec4& plane : playerFrustumPlanes) {
-            if (glm::dot(glm::vec3(plane), position) < 0.0f) {//position is the direction light travels
+        bool facesAwayFromLight[6];
+        for (size_t i = 0; i < 6; ++i) {
+            const glm::vec4& plane = playerFrustumPlanes[i];
+            facesAwayFromLight[i] = glm::dot(glm::vec3(plane), position) < 0.0f;//position is the direction light travels
+            if (facesAwayFromLight[i]) {
                 casterPlanes[casterPlaneCount] = plane;
                 casterPlanes[casterPlaneCount].w += padding;
                 casterPlaneCount++;
             }
         }
+
+        //without the silhouette planes the volume is open toward the light, everything between the player and a far slice passes
+        glm::vec3 corners[8];//index bits are the sides, LEFT 4, TOP 2, FRONT 1
+        uint32_t cornerIndex = 0;
+        for (int xSide : {RIGHT, LEFT}) {
+            for (int ySide : {BOTTOM, TOP}) {
+                for (int zSide : {BACK, FRONT}) {
+                    corners[cornerIndex++] = intersectPlanes(playerFrustumPlanes[xSide], playerFrustumPlanes[ySide], playerFrustumPlanes[zSide]);
+                }
+            }
+        }
+        glm::vec3 sliceCenter(0.0f);
+        for (const glm::vec3& corner : corners) {
+            sliceCenter += corner;
+        }
+        sliceCenter /= 8.0f;
+        const glm::vec3 lightDirection = glm::normalize(position);
+        //each edge is two planes of different pairs, it runs between the two corners that differ only in the third pair
+        static const int PLANE_PAIRS[3][2] = {{RIGHT, LEFT}, {BOTTOM, TOP}, {BACK, FRONT}};
+        for (int firstPair = 0; firstPair < 3; ++firstPair) {
+            for (int secondPair = firstPair + 1; secondPair < 3; ++secondPair) {
+                const int thirdPair = 3 - firstPair - secondPair;
+                for (int firstPlane : PLANE_PAIRS[firstPair]) {
+                    for (int secondPlane : PLANE_PAIRS[secondPair]) {
+                        if (facesAwayFromLight[firstPlane] == facesAwayFromLight[secondPlane]) {
+                            continue;
+                        }
+                        const int edgeStartIndex = (firstPlane & 1) * (4 >> firstPair) + (secondPlane & 1) * (4 >> secondPair);//odd enum values are the LEFT, TOP, FRONT sides
+                        const glm::vec3& edgePoint = corners[edgeStartIndex];
+                        const glm::vec3 edgeDirection = corners[edgeStartIndex + (4 >> thirdPair)] - edgePoint;
+                        glm::vec3 normal = glm::cross(edgeDirection, lightDirection);
+                        const float normalLength = glm::length(normal);
+                        if (normalLength < 1e-6f * glm::length(edgeDirection)) {
+                            continue;//edge runs along the light, its faces already bound it
+                        }
+                        normal /= normalLength;
+                        if (glm::dot(normal, sliceCenter - edgePoint) < 0.0f) {
+                            normal = -normal;
+                        }
+                        casterPlanes[casterPlaneCount] = glm::vec4(normal, -glm::dot(normal, edgePoint) + padding);
+                        casterPlaneCount++;
+                    }
+                }
+            }
+        }
+    }
+
+    static glm::vec3 intersectPlanes(const glm::vec4& firstPlane, const glm::vec4& secondPlane, const glm::vec4& thirdPlane) {
+        const glm::vec3 firstNormal(firstPlane);
+        const glm::vec3 secondNormal(secondPlane);
+        const glm::vec3 thirdNormal(thirdPlane);
+        const glm::vec3 secondCrossThird = glm::cross(secondNormal, thirdNormal);
+        return -(firstPlane.w * secondCrossThird + secondPlane.w * glm::cross(thirdNormal, firstNormal) + thirdPlane.w * glm::cross(firstNormal, secondNormal))
+               / glm::dot(firstNormal, secondCrossThird);
     }
 
     void debugDrawFrustum(const std::vector<glm::vec4> &frustumCorners, const glm::vec3 &color, uint32_t &drawLineBufferId, long frameCounter) {
