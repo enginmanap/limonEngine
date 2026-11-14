@@ -38,6 +38,7 @@ struct ImGuiImageWrapper {
 class ImGuiHelper {
 public:
     enum class PreviewMode { NoPreview, Preview };
+    enum class SelectOn { ClickOrFocus, Click };//Click for pickers that act on selection: focus comes back to the last item when the scrollbar or empty space is clicked
     enum class Icon { ERROR_SIGN, WARNING_SIGN, COUNT };
 
 private:
@@ -110,7 +111,7 @@ private:
 
     void buildTreeFromAssetsRecursive(const AssetTreeManager::AvailableAssetsNode* assetsNode, AssetTreeManager::AssetTypes typeToShow,
                                              const std::string &customPrefix, const AssetTreeManager::AvailableAssetsNode **selectedNode,
-                                             PreviewMode showPreview = PreviewMode::NoPreview) {
+                                             PreviewMode showPreview = PreviewMode::NoPreview, SelectOn selectOn = SelectOn::ClickOrFocus) {
         if(assetsNode->assetType == AssetTreeManager::Asset_type_UNKNOWN) {
             return;
         }
@@ -125,14 +126,14 @@ private:
                         }
                     }
                     for (size_t i = 0; i < assetsNode->children.size(); ++i) {
-                        buildTreeFromAssetsRecursive(assetsNode->children[i], typeToShow, customPrefix, selectedNode, showPreview);
+                        buildTreeFromAssetsRecursive(assetsNode->children[i], typeToShow, customPrefix, selectedNode, showPreview, selectOn);
                     }
                     ImGui::TreePop();
                 }
             } else {
                 if (ImGui::TreeNode((assetsNode->name + "##" + customPrefix + assetsNode->fullPath).c_str())) {
                     for (size_t i = 0; i < assetsNode->children.size(); ++i) {
-                        buildTreeFromAssetsRecursive(assetsNode->children[i], typeToShow, customPrefix, selectedNode, showPreview);
+                        buildTreeFromAssetsRecursive(assetsNode->children[i], typeToShow, customPrefix, selectedNode, showPreview, selectOn);
                     }
                     ImGui::TreePop();
                 }
@@ -140,7 +141,7 @@ private:
         } else if(assetsNode->assetType == typeToShow) {
             node_flags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
             ImGui::TreeNodeEx((assetsNode->name + "## " + assetsNode->fullPath).c_str(), node_flags);
-            if(ImGui::IsItemClicked() || ImGui::IsItemFocused()) {
+            if(ImGui::IsItemClicked() || (selectOn == SelectOn::ClickOrFocus && ImGui::IsItemFocused())) {
                 if(*selectedNode == nullptr || (*selectedNode)->fullPath != assetsNode->fullPath) {
                     *selectedNode = assetsNode;
                 }
@@ -175,11 +176,11 @@ public:
      */
     void buildTreeFromAssets(const AssetTreeManager::AvailableAssetsNode* assetsNode, AssetTreeManager::AssetTypes typeToShow,
                                              const std::string &customPrefix, const AssetTreeManager::AvailableAssetsNode **selectedNode,
-                                             PreviewMode showPreview = PreviewMode::NoPreview) {
+                                             PreviewMode showPreview = PreviewMode::NoPreview, SelectOn selectOn = SelectOn::ClickOrFocus) {
         ImGui::Separator();
         ImGui::BeginChild(("Asset Selector##" + customPrefix).c_str(), ImVec2(0, 300), true, ImGuiWindowFlags_HorizontalScrollbar);
         if(assetsNode != nullptr) {//possible because of filtering
-            buildTreeFromAssetsRecursive(assetsNode, typeToShow, customPrefix, selectedNode, showPreview);
+            buildTreeFromAssetsRecursive(assetsNode, typeToShow, customPrefix, selectedNode, showPreview, selectOn);
         }
         ImGui::EndChild();
         ImGui::Separator();

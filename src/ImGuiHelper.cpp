@@ -456,7 +456,7 @@ std::string ImGuiHelper::pickTexture(const std::string &idSuffix) {
     ImGui::SetNextWindowSize(ImVec2(400.0f, 400.0f));
     if (ImGui::BeginPopup(popupName.c_str(), ImGuiWindowFlags_AlwaysAutoResize)) {
         buildTreeFromAssets(assetManager->getTree()->getAvailableAssetsTreeFiltered(AssetTreeManager::Asset_type_TEXTURE, ""),
-                            AssetTreeManager::Asset_type_TEXTURE, "TexturePicker" + idSuffix, &pickedTextureAsset, PreviewMode::Preview);
+                            AssetTreeManager::Asset_type_TEXTURE, "TexturePicker" + idSuffix, &pickedTextureAsset, PreviewMode::Preview, SelectOn::Click);
         if (pickedTextureAsset != nullptr) {
             pickedPath = pickedTextureAsset->fullPath;
             pickedTextureAsset = nullptr;
