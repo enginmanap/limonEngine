@@ -13,7 +13,7 @@
 #include "ModelAsset.h"
 #include "../Utils/GLMConverter.h"
 
-std::unique_ptr<ModelAsset> ModelAssetBuilder::buildPiece(AssetManager *assetManager, const aiScene *scene, uint32_t meshIndex, bool mirrorX,
+std::unique_ptr<ModelAsset> ModelAssetBuilder::buildPiece(AssetManager *assetManager, const aiScene *scene, const std::vector<uint32_t> &meshIndices, bool mirrorX,
                                                           const std::string &sourcePath, const std::string &piecePath, const std::string &meshName,
                                                           const aiNode *skeletonRoot, const std::set<const aiNode *> &skeletonNodes,
                                                           const glm::mat4 &skeletonPlacement,
@@ -33,30 +33,41 @@ std::unique_ptr<ModelAsset> ModelAssetBuilder::buildPiece(AssetManager *assetMan
         asset->rootNode->transformation = glm::mat4(1.0f);
     }
 
-    const aiMesh *sourceMesh = scene->mMeshes[meshIndex];
-    std::shared_ptr<Material> meshMaterial = asset->loadMaterials(scene, sourceMesh->mMaterialIndex);
-    asset->missingTextureStandIns = nullptr;
-    //no node transform on purpose, every node using this mesh places it through its own object transform
+    //no node transform on purpose, every node using these meshes places them through its own object transform
     glm::mat4 mirrorTransform = mirrorX ? glm::scale(glm::mat4(1.0f), glm::vec3(-1.0f, 1.0f, 1.0f)) : glm::mat4(1.0f);
-    std::shared_ptr<MeshAsset> mesh = std::make_shared<MeshAsset>(sourceMesh, meshName, asset->rootNode, mirrorTransform, false, asset->reverseWinding);
-    asset->meshMaterialMap[mesh] = meshMaterial;
-    if ((*mesh->getTriangleCount()) == 0) {
-        std::cerr << "Mesh " << meshIndex << " of " << sourcePath << " has no triangles, piece " << piecePath << " is empty." << std::endl;
-        exit(-1);
+    std::vector<std::shared_ptr<MeshAsset>> transparentMeshes;//after the opaque ones, like a model load orders them
+    for (uint32_t meshIndex : meshIndices) {
+        const aiMesh *sourceMesh = scene->mMeshes[meshIndex];
+        std::shared_ptr<Material> meshMaterial = asset->loadMaterials(scene, sourceMesh->mMaterialIndex);
+        std::shared_ptr<MeshAsset> mesh = std::make_shared<MeshAsset>(sourceMesh, meshName, asset->rootNode, mirrorTransform, false, asset->reverseWinding);
+        asset->meshMaterialMap[mesh] = meshMaterial;
+        if ((*mesh->getTriangleCount()) == 0) {
+            std::cerr << "Mesh " << meshIndex << " of " << sourcePath << " has no triangles, piece " << piecePath << " can't be built." << std::endl;
+            exit(-1);
+        }
+        if (mesh->hasNonFiniteVertex()) {
+            std::cerr << "Mesh " << meshIndex << " of " << sourcePath << " has a vertex position that is not a finite number, piece " << piecePath << " can't be built." << std::endl;
+            exit(-1);
+        }
+        if (meshMaterial->hasOpacityMap()) {
+            asset->transparentMaterialUsed = true;
+            transparentMeshes.push_back(mesh);
+        } else {
+            asset->meshes.push_back(mesh);
+        }
     }
-    if (mesh->hasNonFiniteVertex()) {
-        std::cerr << "Mesh " << meshIndex << " of " << sourcePath << " has a vertex position that is not a finite number, piece " << piecePath << " can't be built." << std::endl;
-        exit(-1);
-    }
-    if (meshMaterial->hasOpacityMap()) {
-        asset->transparentMaterialUsed = true;
-    }
-    asset->meshes.push_back(mesh);
+    asset->meshes.insert(asset->meshes.end(), transparentMeshes.begin(), transparentMeshes.end());
+    asset->missingTextureStandIns = nullptr;
     if (skeletonRoot != nullptr) {
         //the piece's own space is the mesh frame, a mirrored piece's vertices are mirrored before the offsets see them
         std::map<std::string, glm::mat4> restGlobals;
         collectRestGlobals(asset->rootNode, glm::mat4(1.0f), restGlobals);
-        rebindToRestPose(*asset, sourceMesh, glm::mat4(1.0f), mirrorTransform, restGlobals);
+        for (uint32_t meshIndex : meshIndices) {
+            const aiMesh *sourceMesh = scene->mMeshes[meshIndex];
+            if (sourceMesh->mNumBones != 0) {
+                rebindToRestPose(*asset, sourceMesh, glm::mat4(1.0f), mirrorTransform, restGlobals);
+            }
+        }
     }
 
     asset->buildLodLevels(LodLadder::BuildMode::NORMAL);

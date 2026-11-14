@@ -37,9 +37,9 @@ class ModelAssetBuilder {
                                          const std::set<std::pair<const aiNode *, uint32_t>> &includedMeshes);
 
 public:
-    //skeletonRoot is null for a mesh without bones. A skinned one keeps its bones although nothing animates them, with
-    //skeletonPlacement putting the skeleton root's parent into the piece's own space
-    static std::unique_ptr<ModelAsset> buildPiece(AssetManager *assetManager, const aiScene *scene, uint32_t meshIndex, bool mirrorX,
+    //the meshes of one node. skeletonRoot is null when none of them has bones. A skinned one keeps its bones although nothing
+    //animates them, with skeletonPlacement putting the skeleton root's parent into the piece's own space
+    static std::unique_ptr<ModelAsset> buildPiece(AssetManager *assetManager, const aiScene *scene, const std::vector<uint32_t> &meshIndices, bool mirrorX,
                                                   const std::string &sourcePath, const std::string &piecePath, const std::string &meshName,
                                                   const aiNode *skeletonRoot, const std::set<const aiNode *> &skeletonNodes,
                                                   const glm::mat4 &skeletonPlacement,

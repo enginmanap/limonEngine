@@ -5,6 +5,7 @@
 #include "ModelToWorldConverter.h"
 
 #include <algorithm>
+#include <cctype>
 #include <cmath>
 #include <cstring>
 #include <filesystem>
@@ -48,30 +49,100 @@ bool ModelToWorldConverter::hasTriangles(const aiMesh *mesh) {
     return false;
 }
 
-std::string ModelToWorldConverter::sanitizeForFileName(const std::string &name) {
-    std::string sanitized;
+std::string ModelToWorldConverter::replaceDisallowedCharacters(const std::string &name) {
+    std::string replaced;
     for (char character : name) {
         bool allowed = (character >= 'a' && character <= 'z') || (character >= 'A' && character <= 'Z') ||
                        (character >= '0' && character <= '9') || character == '_' || character == '-';
-        sanitized += allowed ? character : '_';
-        if (sanitized.size() >= 64) {
-            break;
-        }
+        replaced += allowed ? character : '_';
     }
-    return sanitized;
+    return replaced;
 }
 
-//the mesh index alone keeps it unique, the node name is only there for whoever browses the folder
-std::string ModelToWorldConverter::buildPieceFilePath(const PieceKey &key, const std::string &nodeName) const {
-    std::string fileName = sourceStem + "_" + std::to_string(key.meshIndex);
-    std::string readableName = sanitizeForFileName(nodeName);
-    if (!readableName.empty()) {
-        fileName += "_" + readableName;
+std::string ModelToWorldConverter::sanitizeForFileName(const std::string &name) {
+    return replaceDisallowedCharacters(name).substr(0, 64);
+}
+
+//Unity's duplicate counter, "Wall_01 (4)" exported as Wall_01__4_, plus whatever the exporter counts after it
+std::string ModelToWorldConverter::removeInstanceSuffix(const std::string &sanitizedName) {
+    for (size_t position = 0; position + 3 < sanitizedName.size(); ++position) {
+        if (sanitizedName[position] != '_' || sanitizedName[position + 1] != '_') {
+            continue;
+        }
+        size_t digitEnd = position + 2;
+        while (digitEnd < sanitizedName.size() && std::isdigit((unsigned char) sanitizedName[digitEnd])) {
+            ++digitEnd;
+        }
+        if (digitEnd == position + 2 || digitEnd >= sanitizedName.size() || sanitizedName[digitEnd] != '_') {
+            continue;
+        }
+        bool onlyCountersAfter = true;
+        for (size_t rest = digitEnd; rest < sanitizedName.size(); ++rest) {
+            if (sanitizedName[rest] != '_' && !std::isdigit((unsigned char) sanitizedName[rest])) {
+                onlyCountersAfter = false;
+                break;
+            }
+        }
+        if (onlyCountersAfter) {
+            return sanitizedName.substr(0, position);
+        }
     }
-    if (key.mirrored) {
-        fileName += "_mirror";
+    return sanitizedName;
+}
+
+//names are handed out in source order, so converting the same source again gives every file the same name
+std::string ModelToWorldConverter::buildFilePath(const std::string &nodeName, bool mirrored) {
+    std::string baseName = removeInstanceSuffix(replaceDisallowedCharacters(nodeName)).substr(0, 64);
+    if (baseName.empty()) {
+        baseName = sourceStem;
+    }
+    if (mirrored) {
+        baseName += "_mirror";
+    }
+    std::string fileName = baseName;
+    for (uint32_t collisionNumber = 2; ; ++collisionNumber) {
+        std::string lowercaseName;
+        for (char character : fileName) {
+            lowercaseName += (char) std::tolower((unsigned char) character);
+        }
+        if (usedFileNames.insert(lowercaseName).second) {
+            break;
+        }
+        fileName = baseName + "-" + std::to_string(collisionNumber);
     }
     return outputDirectory + "/" + fileName + ".limonmodel";
+}
+
+//instances are in source order and the first one of a piece is the node that made it. A node that is only a material
+//split of its parent is named after the parent, Unreal calls every car's SkeletalMeshComponent0
+void ModelToWorldConverter::namePieceFiles() {
+    for (const Instance &instance : instances) {
+        Piece &piece = pieces.at(instance.key);
+        if (!piece.filePath.empty()) {
+            continue;
+        }
+        const aiNode *namingNode = piece.firstNode;
+        const aiNode *parent = parentNodes.at(namingNode);
+        if (piece.sourceMeshIndices.size() >= 2 && contributingChildren.at(namingNode) == 0 && parent != nullptr &&
+            parentNodes.at(parent) != nullptr && modelGroupOfNode.count(parent) == 0) {
+            namingNode = parent;
+        }
+        piece.filePath = buildFilePath(namingNode->mName.C_Str(), instance.key.mirrored);
+    }
+}
+
+//a copy takes its file's name only after findSharedGroups, otherwise every copy would use up a number
+void ModelToWorldConverter::nameGroupFiles() {
+    for (AnimationGroup &group : animationGroups) {
+        if (group.convertible && group.sharedGroup == -1) {
+            group.filePath = buildFilePath(group.root->mName.C_Str(), false);
+        }
+    }
+    for (AnimationGroup &group : animationGroups) {
+        if (group.convertible && group.sharedGroup != -1) {
+            group.filePath = animationGroups[group.sharedGroup].filePath;
+        }
+    }
 }
 
 //false when the matrix has shear, which Transformation can't hold. A non uniform scale above a rotated child composes into it
@@ -482,17 +553,16 @@ bool ModelToWorldConverter::areGroupsEquivalent(const aiScene *scene, const Anim
 void ModelToWorldConverter::findSharedGroups(const aiScene *scene) {
     for (uint32_t groupIndex = 0; groupIndex < animationGroups.size(); ++groupIndex) {
         AnimationGroup &group = animationGroups[groupIndex];
-        if (group.filePath.empty()) {
+        if (!group.convertible) {
             continue;
         }
         for (uint32_t candidateIndex = 0; candidateIndex < groupIndex; ++candidateIndex) {
             const AnimationGroup &candidate = animationGroups[candidateIndex];
-            if (candidate.filePath.empty() || candidate.sharedGroup != -1) {
+            if (!candidate.convertible || candidate.sharedGroup != -1) {
                 continue;
             }
             if (areGroupsEquivalent(scene, candidate, group)) {
                 group.sharedGroup = (int32_t) candidateIndex;
-                group.filePath = candidate.filePath;
                 break;
             }
         }
@@ -601,7 +671,7 @@ void ModelToWorldConverter::buildGroupClips(const aiScene *scene) {
     std::vector<std::vector<ClipCandidate>> distinctClips(animationGroups.size());
     for (uint32_t groupIndex = 0; groupIndex < animationGroups.size(); ++groupIndex) {
         const AnimationGroup &group = animationGroups[groupIndex];
-        if (group.filePath.empty()) {
+        if (!group.convertible) {
             continue;
         }
         uint32_t fileGroupIndex = group.sharedGroup == -1 ? groupIndex : (uint32_t) group.sharedGroup;
@@ -733,11 +803,11 @@ void ModelToWorldConverter::findModelGroups(const aiScene *scene) {
         objectsAtNode[instance.node]++;
     }
     for (const AnimationGroup &group : animationGroups) {
-        if (!group.filePath.empty()) {
+        if (group.convertible) {
             objectsAtNode[group.root]++;
         }
     }
-    std::map<const aiNode *, uint32_t> contributingChildren;
+    contributingChildren.clear();
     std::set<const aiNode *> groupNodes;
     markModelGroupNodes(scene->mRootNode, objectsAtNode, contributingChildren, groupNodes);
     orderModelGroups(scene->mRootNode, groupNodes, objectsAtNode, contributingChildren, -1);
@@ -745,7 +815,7 @@ void ModelToWorldConverter::findModelGroups(const aiScene *scene) {
         instance.modelGroup = findEnclosingModelGroup(instance.node);
     }
     for (AnimationGroup &group : animationGroups) {
-        if (!group.filePath.empty()) {
+        if (group.convertible) {
             group.modelGroup = findEnclosingModelGroup(group.root);
         }
     }
@@ -935,9 +1005,7 @@ bool ModelToWorldConverter::prepareAnimationGroup(const aiScene *scene, uint32_t
                   << " dropped, its placement has shear." << std::endl;
         return false;
     }
-    std::string readableName = sanitizeForFileName(group.root->mName.C_Str());
-    group.filePath = outputDirectory + "/" + sourceStem + "_animated" + std::to_string(groupIndex) +
-                     (readableName.empty() ? "" : "_" + readableName) + ".limonmodel";
+    group.convertible = true;
     return true;
 }
 
@@ -947,6 +1015,7 @@ void ModelToWorldConverter::collectInstances(const aiScene *scene, const aiNode 
     std::string nodeName = node->mName.C_Str();
     std::string nodePath = parentPath + "/" + nodeName;
 
+    std::vector<uint32_t> staticMeshIndices;
     for (uint32_t i = 0; i < node->mNumMeshes; ++i) {
         uint32_t meshIndex = node->mMeshes[i];
         const aiMesh *mesh = scene->mMeshes[meshIndex];
@@ -967,52 +1036,68 @@ void ModelToWorldConverter::collectInstances(const aiScene *scene, const aiNode 
         if (animatedMeshReferences.count(std::make_pair(node, meshIndex)) != 0) {
             continue;//its animation group places it
         }
+        staticMeshIndices.push_back(meshIndex);
+    }
 
-        //mirrored pieces carry the flip in their vertices, so what is left for the object is a proper rotation
-        bool mirrored = glm::determinant(glm::mat3(nodeTransform)) < 0.0f;
-        glm::mat4 placement = mirrored ? nodeTransform * glm::scale(glm::mat4(1.0f), glm::vec3(-1.0f, 1.0f, 1.0f)) : nodeTransform;
-
-        glm::vec3 scale, translate;
-        glm::quat orientation;
-        if (!decomposeWithoutShear(placement, translate, orientation, scale)) {
-            rejectedNodes.push_back(nodePath + ": transform has shear, which is not supported");
-            continue;
-        }
-
-        PieceKey key{canonicalMeshIndices[meshIndex], mirrored};
-        if (pieces.find(key) == pieces.end()) {
-            Piece piece;
-            piece.filePath = buildPieceFilePath(key, nodeName);
-            piece.firstNodeName = nodeName;
-            piece.sourceMeshIndex = meshIndex;
-            if (mesh->HasBones()) {
-                std::set<const aiNode *> boneNodes;
-                if (!collectBoneNodes(mesh, node, false, boneNodes)) {//all of them, kept for retargeting
-                    rejectedNodes.push_back(nodePath + ": a bone of mesh " + std::to_string(meshIndex) + " is not in the node tree");
-                    continue;
-                }
-                piece.skeletonRoot = findLowestCommonAncestor(boneNodes);
-                for (const aiNode *boneNode : boneNodes) {
-                    addPathToAncestor(boneNode, piece.skeletonRoot, piece.skeletonNodes);
-                }
-                const aiNode *skeletonParent = parentNodes.at(piece.skeletonRoot);
-                glm::mat4 skeletonParentGlobal = skeletonParent == nullptr ? rootTransform : buildGlobalTransform(skeletonParent, rootTransform);
-                piece.skeletonPlacement = glm::inverse(placement) * skeletonParentGlobal;
-            }
-            pieces[key] = piece;
-        }
-        Instance instance;
-        instance.key = key;
-        instance.node = node;
-        instance.translate = translate;
-        instance.orientation = orientation;
-        instance.scale = scale;
-        instances.push_back(instance);
+    if (!staticMeshIndices.empty()) {
+        addNodeInstance(scene, node, nodeTransform, nodePath, staticMeshIndices);
     }
 
     for (uint32_t i = 0; i < node->mNumChildren; ++i) {
         collectInstances(scene, node->mChildren[i], nodeTransform, nodePath);
     }
+}
+
+void ModelToWorldConverter::addNodeInstance(const aiScene *scene, const aiNode *node, const glm::mat4 &nodeTransform,
+                                            const std::string &nodePath, const std::vector<uint32_t> &meshIndices) {
+    //mirrored pieces carry the flip in their vertices, so what is left for the object is a proper rotation
+    bool mirrored = glm::determinant(glm::mat3(nodeTransform)) < 0.0f;
+    glm::mat4 placement = mirrored ? nodeTransform * glm::scale(glm::mat4(1.0f), glm::vec3(-1.0f, 1.0f, 1.0f)) : nodeTransform;
+
+    glm::vec3 scale, translate;
+    glm::quat orientation;
+    if (!decomposeWithoutShear(placement, translate, orientation, scale)) {
+        rejectedNodes.push_back(nodePath + ": transform has shear, which is not supported");
+        return;
+    }
+
+    PieceKey key;
+    key.mirrored = mirrored;
+    for (uint32_t meshIndex : meshIndices) {
+        key.meshIndices.push_back(canonicalMeshIndices[meshIndex]);
+    }
+    if (pieces.find(key) == pieces.end()) {
+        Piece piece;
+        piece.firstNodeName = node->mName.C_Str();
+        piece.sourceMeshIndices = meshIndices;
+        //one skeleton for every skinned mesh of the node, the unskinned ones ignore it
+        std::set<const aiNode *> boneNodes;
+        for (uint32_t meshIndex : meshIndices) {
+            const aiMesh *mesh = scene->mMeshes[meshIndex];
+            if (mesh->HasBones() && !collectBoneNodes(mesh, node, false, boneNodes)) {//all of them, kept for retargeting
+                rejectedNodes.push_back(nodePath + ": a bone of mesh " + std::to_string(meshIndex) + " is not in the node tree");
+                return;
+            }
+        }
+        if (!boneNodes.empty()) {
+            piece.skeletonRoot = findLowestCommonAncestor(boneNodes);
+            for (const aiNode *boneNode : boneNodes) {
+                addPathToAncestor(boneNode, piece.skeletonRoot, piece.skeletonNodes);
+            }
+            const aiNode *skeletonParent = parentNodes.at(piece.skeletonRoot);
+            glm::mat4 skeletonParentGlobal = skeletonParent == nullptr ? rootTransform : buildGlobalTransform(skeletonParent, rootTransform);
+            piece.skeletonPlacement = glm::inverse(placement) * skeletonParentGlobal;
+        }
+        piece.firstNode = node;
+        pieces[key] = piece;
+    }
+    Instance instance;
+    instance.key = key;
+    instance.node = node;
+    instance.translate = translate;
+    instance.orientation = orientation;
+    instance.scale = scale;
+    instances.push_back(instance);
 }
 
 //differently named materials are different materials, but registering merges the ones with the same content
@@ -1078,6 +1163,7 @@ bool ModelToWorldConverter::convert() {
         }
     }
     findSharedGroups(scene);
+    nameGroupFiles();
     buildGroupClips(scene);
     collectInstances(scene, scene->mRootNode, rootTransform, "");
     if (!rejectedNodes.empty()) {
@@ -1092,6 +1178,7 @@ bool ModelToWorldConverter::convert() {
         return false;
     }
     findModelGroups(scene);
+    namePieceFiles();
     //one more for the light. An object at or above NR_MAX_MODELS gets no transform and silently doesn't render
     uint64_t lastID = FIRST_OBJECT_ID + instances.size() + usableGroupCount + modelGroups.size();
     if (lastID >= NR_MAX_MODELS) {
@@ -1114,7 +1201,7 @@ bool ModelToWorldConverter::convert() {
 
     uint32_t groupFileCount = 0;
     for (const AnimationGroup &group : animationGroups) {
-        if (!group.filePath.empty() && group.sharedGroup == -1) {
+        if (group.convertible && group.sharedGroup == -1) {
             ++groupFileCount;
         }
     }
@@ -1143,7 +1230,7 @@ bool ModelToWorldConverter::convert() {
     //few of these, so no workers
     for (uint32_t groupIndex = 0; groupIndex < animationGroups.size() && !anyPieceFailed; ++groupIndex) {
         const AnimationGroup &group = animationGroups[groupIndex];
-        if (group.filePath.empty() || group.sharedGroup != -1) {
+        if (!group.convertible || group.sharedGroup != -1) {
             continue;
         }
         std::vector<aiAnimation *> clips;
@@ -1185,7 +1272,7 @@ void ModelToWorldConverter::buildPieces(const aiScene *scene, const std::vector<
             return;
         }
         std::map<PieceKey, Piece>::iterator pieceIterator = pieceQueue[pieceIndex];
-        std::unique_ptr<ModelAsset> pieceAsset = ModelAssetBuilder::buildPiece(assetManager.get(), scene, pieceIterator->second.sourceMeshIndex,
+        std::unique_ptr<ModelAsset> pieceAsset = ModelAssetBuilder::buildPiece(assetManager.get(), scene, pieceIterator->second.sourceMeshIndices,
                                                                                pieceIterator->first.mirrored, sourcePath,
                                                                                pieceIterator->second.filePath,
                                                                                pieceIterator->second.firstNodeName,
@@ -1219,7 +1306,7 @@ bool ModelToWorldConverter::writeWorld(const std::string &worldPath) const {
     //groups take the IDs after every object, so an object can name its group before the group is written
     uint32_t animatedObjectCount = 0;
     for (const AnimationGroup &group : animationGroups) {
-        if (!group.filePath.empty()) {
+        if (group.convertible) {
             ++animatedObjectCount;
         }
     }
@@ -1247,7 +1334,7 @@ bool ModelToWorldConverter::writeWorld(const std::string &worldPath) const {
         ++objectID;
     }
     for (const AnimationGroup &group : animationGroups) {
-        if (group.filePath.empty()) {
+        if (!group.convertible) {
             continue;
         }
         tinyxml2::XMLElement *objectNode = document.NewElement("Object");

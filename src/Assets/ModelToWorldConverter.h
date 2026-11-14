@@ -22,17 +22,18 @@ class LoadRequester;
 class ModelAsset;
 
 /**
- * Turns a model that is really a whole map into one limonmodel per unique mesh, plus a world that places every
+ * Turns a model that is really a whole map into one limonmodel per unique node's meshes, plus a world that places every
  * node using them as its own object. Static models only.
  */
 class ModelToWorldConverter {
+    //one piece per node, assimp gives a node one mesh per material
     struct PieceKey {
-        uint32_t meshIndex;
+        std::vector<uint32_t> meshIndices;
         bool mirrored;
 
         bool operator<(const PieceKey &other) const {
-            if (meshIndex != other.meshIndex) {
-                return meshIndex < other.meshIndex;
+            if (meshIndices != other.meshIndices) {
+                return meshIndices < other.meshIndices;
             }
             return mirrored < other.mirrored;
         }
@@ -40,8 +41,9 @@ class ModelToWorldConverter {
 
     struct Piece {
         std::string filePath;
+        const aiNode *firstNode = nullptr;
         std::string firstNodeName;
-        uint32_t sourceMeshIndex = 0;//the first copy's mesh, its offsets belong to the skeleton below
+        std::vector<uint32_t> sourceMeshIndices;//the first copy's meshes, their offsets belong to the skeleton below
         const aiNode *skeletonRoot = nullptr;//only a skinned mesh has one
         std::set<const aiNode *> skeletonNodes;
         glm::mat4 skeletonPlacement = glm::mat4(1.0f);//skeleton root's parent, in the first copy's piece space
@@ -57,7 +59,8 @@ class ModelToWorldConverter {
         std::vector<const aiNode *> orderedNodes;//rig order, copies are compared and their channels renamed position by position
         int32_t sharedGroup = -1;//a copy uses that group's file instead of writing its own
         int32_t modelGroup = -1;
-        std::string filePath;//empty when the group can't be converted
+        bool convertible = false;
+        std::string filePath;//set by nameGroupFiles, after the copies found the file they share
         glm::vec3 translate = glm::vec3(0.0f);//no centerOffset to put back, animated models carry it in the bones
         glm::quat orientation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
         glm::vec3 scale = glm::vec3(1.0f);
@@ -113,8 +116,10 @@ class ModelToWorldConverter {
     std::vector<std::vector<std::unique_ptr<aiAnimation>>> groupClips;//per file writing group, every copy's clips renamed to its tree
     std::vector<ModelGroupNode> modelGroups;//parents before children, so a group's parent is always written first
     std::map<const aiNode *, uint32_t> modelGroupOfNode;
+    std::map<const aiNode *, uint32_t> contributingChildren;//children with an object somewhere below them
 
     std::map<std::string, std::string> missingTextureStandIns;//material name to the made up texture path it gets
+    std::set<std::string> usedFileNames;//lowercase, Windows sees Wall and wall as one file
 
     void findIdenticalMaterials(const aiScene *scene);
     void indexNodes(const aiNode *node, const aiNode *parent);
@@ -156,14 +161,20 @@ class ModelToWorldConverter {
     static bool decomposeWithoutShear(const glm::mat4 &placement, glm::vec3 &translate, glm::quat &orientation, glm::vec3 &scale);
 
     void collectInstances(const aiScene *scene, const aiNode *node, const glm::mat4 &parentTransform, const std::string &parentPath);
-    std::string buildPieceFilePath(const PieceKey &key, const std::string &nodeName) const;
+    void addNodeInstance(const aiScene *scene, const aiNode *node, const glm::mat4 &nodeTransform, const std::string &nodePath,
+                         const std::vector<uint32_t> &meshIndices);
+    std::string buildFilePath(const std::string &nodeName, bool mirrored);
+    void nameGroupFiles();
+    void namePieceFiles();
     void buildPieces(const aiScene *scene, const std::vector<std::map<PieceKey, Piece>::iterator> &pieceQueue,
                      std::vector<std::unique_ptr<ModelAsset>> &builtPieces, std::atomic<size_t> &nextPiece,
                      std::atomic<size_t> &finishedPieceCount, std::atomic<bool> &anyPieceFailed, LoadRequester &requester);
     bool writeWorld(const std::string &worldPath) const;
 
     static bool hasTriangles(const aiMesh *mesh);
+    static std::string replaceDisallowedCharacters(const std::string &name);
     static std::string sanitizeForFileName(const std::string &name);
+    static std::string removeInstanceSuffix(const std::string &sanitizedName);
 
 public:
     //an empty outputDirectory means a folder named after the source, next to it. The scale only moves and sizes the
