@@ -51,7 +51,7 @@ class Editor {
 
     //points every mesh in this world that uses baseMaterial at overrideMaterial
     void reseatWorldMeshes(const std::shared_ptr<const Material> &baseMaterial, const std::shared_ptr<Material> &overrideMaterial);
-    void refreshTransparencyTagsOfMaterialUsers(const std::shared_ptr<const Material> &material);
+    void refreshTagsOfMaterialUsers(const std::shared_ptr<const Material> &material);
 
     //splits an asset owned material off into a world owned one carrying the edit, on the first dirty frame
     std::shared_ptr<Material> ensureWorldOwnedMaterial(const std::shared_ptr<Material> &material);
@@ -175,6 +175,10 @@ public:
     std::string pendingWorldSaveName;//copied at the click, the name box can change before the save runs
     bool modelConversionRequested = false;
 
+    //suggestions for the tag inputs, filled at the first editor frame. Only grows, so a tag nobody uses any more stays until restart
+    std::set<std::string> knownTags;
+    bool knownTagsCollected = false;
+
     //the packer lives in GameEngine, and only while it runs
     PackageBuilder *activePackage = nullptr;
     bool exportRequested = false;//starts once the world save it waits for is done
@@ -256,7 +260,12 @@ public:
     //called by World::switchPlayer when leaving editor mode
     void onEditorDisabled();
 
+    //both do nothing before the editor was first shown
+    void addKnownTag(const std::string &tag);
+    void addKnownTagsOfPipeline(const GraphicsPipeline &pipeline);
+
 private:
+    void collectKnownTags();
     // Allows copying asseet trees (if recursive), uses clone method from attachable
     // Would fail if clone is not implemented, returns nullptr
     Attachable* copyAttachable(Attachable* source, bool recursive);

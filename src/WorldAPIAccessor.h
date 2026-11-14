@@ -30,8 +30,7 @@ class WorldAPIAccessor {
     //an empty name means the object itself, a name that is not a bone of this parent fails the attachment
     bool resolveAttachmentBone(const Attachable *parent, const std::string &boneName, int32_t &boneID) const;
     //attachments are ordinary objects, these tags are the only thing that lets a stage render the player's own parts apart
-    void refreshPlayerAttachmentTags(Attachable *subtreeRoot, bool underPlayer);
-    void setPlayerAttachmentTag(Model *model, const std::string &kindTag, const std::string &playerTag, bool underPlayer);
+    void refreshPlayerAttachmentTags(Attachable *subtreeRoot);
     static void collectModelsChildrenFirst(Model* model, std::vector<Model*>& models);
 public:
     WorldAPIAccessor(World* world, LimonAPI* limonAPI);

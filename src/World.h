@@ -232,6 +232,9 @@ private:
     //false while loading, afterLoadFinished loads those models' materials in one batch
     bool materialsReady = false;
 
+    //saved <Tags> by object id, WorldLoader fills it, afterLoadFinished converts them once the texels are known and empties it
+    std::unordered_map<uint32_t, std::vector<std::string>> savedTagsToConvert;
+
     //the saved <Materials> entries by key, and the ones objects already asked for. Only WorldLoader fills these, while
     //objects load, and it empties them once <Materials> is done. Objects load on one thread, so no lock
     std::unordered_map<std::string, tinyxml2::XMLElement *> savedMaterialNodes;

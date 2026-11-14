@@ -85,6 +85,10 @@ public:
         std::cerr << "Tag removal fail because tag is not found " << text  << std::endl;
         return false;
     }
+protected:
+    void replaceTags(std::vector<HashUtil::HashedString> &newTags) {
+        tags.swap(newTags);
+    }
 private:
     std::vector<HashUtil::HashedString> tags;//culling matches against this for every object, a list made each check a cache miss per tag
 

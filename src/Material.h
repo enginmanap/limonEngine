@@ -25,6 +25,7 @@
 #include "Editor/ImGuiResult.h"
 #include "Editor/EditorRenderable.h"
 #include "limonAPI/Graphics/GraphicsInterface.h"
+#include "Utils/TagEdits.h"
 
 class GraphicsProgram;
 
@@ -161,6 +162,12 @@ private:
     void putTextureColorSpace(const TextureSlot &slot, size_t slotIndex);
 
     std::string colorSpaceNotice;//editor only, what the last pick changed
+    //content, part of the hash. Asset materials never have any, so their hashes and every OriginalHash naming them stay put
+    std::vector<TagEdit> tagEdits;
+    bool putTagEditsInGui(std::set<std::string> *knownTags);
+    static bool compareTagEditText(const TagEdit *left, const TagEdit *right) {
+        return left->text < right->text;
+    }
 
     //only MaterialRegistry calls these, they make GL calls
     void collectTextureFiles(std::vector<size_t> &slotIndices, std::vector<std::vector<std::string>> &textureFiles) const;
@@ -225,6 +232,7 @@ public:
 
         this->materialIndex = 0;
         this->originalHash = other.originalHash;
+        this->tagEdits = other.tagEdits;
     }
 
     /*
@@ -414,6 +422,11 @@ public:
     }
 
     uint64_t getHash() const;
+
+    //applied over the tags the engine derives for the meshes using this material
+    const std::vector<TagEdit> &getTagEdits() const {
+        return tagEdits;
+    }
 
     //the base we globally override, 0 if none. Set once when a world overrides that base, or read
     //from XML, never recomputed from current content

@@ -16,6 +16,8 @@
 #include <Editor/Editor.h>
 #include <Occlusion/RenderList.h>
 #include "ModelGroup.h"
+#include "Players/Player.h"
+#include "Editor/Widgets/TagInput.h"
 
 #ifdef CEREAL_SUPPORT
 #include <cereal/archives/binary.hpp>
@@ -82,53 +84,198 @@ Model::Model(uint32_t objectID,  std::shared_ptr<AssetManager> assetManager, con
         this->setupForTime(0);
     }
 
-    addDefaultTags();
+    refreshTags();
 }
 
-//FIXME temporarily set the tags as hard coded
-void Model::addDefaultTags() {
-    bool hasAmbientMapInAnyMesh = false;
-    for (const MeshMeta* meshMeta:cullingEntry->meshMetaData) {
-        if (meshMeta->material->hasAmbientMap()) {
-            hasAmbientMapInAnyMesh = true;
-            break;
-        }
+void Model::addDerivedTags(std::vector<TagEdit> &tags, bool animated, bool ambient, bool transparent) {
+    if (animated && !ambient) {
+        TagEdits::addUnique(tags, HardCodedTags::OBJECT_MODEL_ANIMATED);
     }
-    if(isAnimated() && !hasAmbientMapInAnyMesh) {
-        this->addTag(HardCodedTags::OBJECT_MODEL_ANIMATED);
+    if (transparent) {
+        TagEdits::addUnique(tags, HardCodedTags::OBJECT_MODEL_TRANSPARENT);
+        TagEdits::addUnique(tags, HardCodedTags::OBJECT_MODEL_NON_OCCLUDER);
     }
-    if(this->isTransparent()) {
-        this->addTag(HardCodedTags::OBJECT_MODEL_TRANSPARENT);
-        this->addTag(HardCodedTags::OBJECT_MODEL_NON_OCCLUDER);
+    if (!animated && !transparent && !ambient) {
+        TagEdits::addUnique(tags, HardCodedTags::OBJECT_MODEL_BASIC);
     }
-    if(!isAnimated() && !this->isTransparent() && !hasAmbientMapInAnyMesh) {
-        this->addTag(HardCodedTags::OBJECT_MODEL_BASIC);
-    }
-    if(hasAmbientMapInAnyMesh) {
-        this->addTag(HardCodedTags::OBJECT_MODEL_AMBIENT);
-    }
-    if(this->mass > 0) {
-        this->addTag(HardCodedTags::OBJECT_MODEL_PHYSICAL);
-    } else {
-        this->addTag(HardCodedTags::OBJECT_MODEL_STATIC);
+    if (ambient) {
+        TagEdits::addUnique(tags, HardCodedTags::OBJECT_MODEL_AMBIENT);
     }
 }
 
-void Model::setTags(const std::vector<std::string> &tagList) {
-    std::vector<HashUtil::HashedString> previousTags = this->getTags();//first get a copy of old tags
-    //If we don't add before clean up, the automatic fall back will add defaults
-    for (const std::string& tagToSet:tagList) {
-        this->addTag(tagToSet);
-    }
-    for (const HashUtil::HashedString& previousTag:previousTags) {
-        if (previousTag.text == HardCodedTags::PICKED_OBJECT) {
-            continue;//editor selection state, nobody sets it through a tag list
+bool Model::isPlayerAttachmentTag(uint64_t tagHash) {
+    static const uint64_t playerBasicTag = HashUtil::hashString(HardCodedTags::OBJECT_PLAYER_BASIC);
+    static const uint64_t playerAnimatedTag = HashUtil::hashString(HardCodedTags::OBJECT_PLAYER_ANIMATED);
+    static const uint64_t playerTransparentTag = HashUtil::hashString(HardCodedTags::OBJECT_PLAYER_TRANSPARENT);
+    return tagHash == playerBasicTag || tagHash == playerAnimatedTag || tagHash == playerTransparentTag;
+}
+
+void Model::refreshTags() {
+    const bool animated = isAnimated();
+    std::vector<TagEdit> resolvedTags;
+    bool hasUntouchedMesh = false;
+    bool hasEditedMesh = false;
+    bool untouchedAmbient = false;
+    bool untouchedTransparent = false;
+    for (const MeshMeta *meshMeta : cullingEntry->meshMetaData) {
+        if (meshMeta->material == nullptr) {
+            continue;
         }
-        if (std::find(tagList.begin(), tagList.end(), previousTag.text) == tagList.end()) {
-            this->removeTag(previousTag.text);
+        const Material &material = *meshMeta->material;
+        const bool meshTransparent = isMaterialTransparent(material, animated);
+        if (material.getTagEdits().empty()) {
+            hasUntouchedMesh = true;
+            untouchedAmbient = untouchedAmbient || material.hasAmbientMap();
+            untouchedTransparent = untouchedTransparent || meshTransparent;
+            continue;
+        }
+        //an edited material keeps its own kind even if the other meshes say another, the object's edits settle it
+        hasEditedMesh = true;
+        std::vector<TagEdit> meshTags;
+        addDerivedTags(meshTags, animated, material.hasAmbientMap(), meshTransparent);
+        TagEdits::apply(material.getTagEdits(), meshTags);
+        for (const TagEdit &meshTag : meshTags) {
+            TagEdits::addUnique(resolvedTags, meshTag.text, meshTag.hash);
         }
     }
-    setDirtyForFrustum();// incase we did not remove any tags
+    //untouched ones decide together, one transparent mesh makes the whole object transparent
+    if (hasUntouchedMesh || !hasEditedMesh) {
+        addDerivedTags(resolvedTags, animated, untouchedAmbient, untouchedTransparent);
+    }
+    TagEdits::addUnique(resolvedTags, this->mass > 0 ? HardCodedTags::OBJECT_MODEL_PHYSICAL : HardCodedTags::OBJECT_MODEL_STATIC);
+    TagEdits::apply(tagEdits, resolvedTags);
+    const Attachable *root = this;
+    while (root->getParentObject() != nullptr) {
+        root = root->getParentObject();
+    }
+    //attaching only ever finds the starting player, so any player root is that one
+    if (dynamic_cast<const Player *>(root) != nullptr) {
+        //mirrors the kind tag, so removing basic_model_object opts the model out of basic_player_attachment too
+        if (TagEdits::contains(resolvedTags, HashUtil::hashString(HardCodedTags::OBJECT_MODEL_BASIC))) {
+            TagEdits::addUnique(resolvedTags, HardCodedTags::OBJECT_PLAYER_BASIC);
+        }
+        if (TagEdits::contains(resolvedTags, HashUtil::hashString(HardCodedTags::OBJECT_MODEL_ANIMATED))) {
+            TagEdits::addUnique(resolvedTags, HardCodedTags::OBJECT_PLAYER_ANIMATED);
+        }
+        if (TagEdits::contains(resolvedTags, HashUtil::hashString(HardCodedTags::OBJECT_MODEL_TRANSPARENT))) {
+            TagEdits::addUnique(resolvedTags, HardCodedTags::OBJECT_PLAYER_TRANSPARENT);
+        }
+        TagEdits::apply(tagEdits, resolvedTags);//again, a player tag the object removed stays removed
+    }
+    std::vector<HashUtil::HashedString> hashedTags;
+    hashedTags.reserve(resolvedTags.size());
+    for (const TagEdit &resolvedTag : resolvedTags) {
+        hashedTags.emplace_back(resolvedTag.text);
+    }
+    replaceTags(hashedTags);
+    copyTagsToCullingEntry();
+    setDirtyForFrustum();
+}
+
+void Model::convertSavedTags(const std::vector<std::string> &savedTags) {
+    tagEdits.clear();
+    refreshTags();
+    std::vector<TagEdit> derivedTags;
+    for (const HashUtil::HashedString &derivedTag : getTags()) {
+        derivedTags.push_back(TagEdit{derivedTag.text, derivedTag.hash, true});
+    }
+    std::vector<TagEdit> saved;
+    for (const std::string &savedTag : savedTags) {
+        TagEdits::addUnique(saved, savedTag);
+    }
+    /*
+     * The old loader moved basic<->transparent to what the materials say now, a removed one stayed removed.
+     * Same here before the diff, or a list saved before the asset changed would pin the old kind as an edit
+     */
+    const uint64_t basicTag = HashUtil::hashString(HardCodedTags::OBJECT_MODEL_BASIC);
+    const uint64_t transparentTag = HashUtil::hashString(HardCodedTags::OBJECT_MODEL_TRANSPARENT);
+    const uint64_t ambientTag = HashUtil::hashString(HardCodedTags::OBJECT_MODEL_AMBIENT);
+    const uint64_t nonOccluderTag = HashUtil::hashString(HardCodedTags::OBJECT_MODEL_NON_OCCLUDER);
+    const bool transparent = TagEdits::contains(derivedTags, transparentTag);
+    const bool savedBasic = TagEdits::contains(saved, basicTag);
+    const bool savedTransparent = TagEdits::contains(saved, transparentTag);
+    const bool savedAmbient = TagEdits::contains(saved, ambientTag);
+    if (transparent && !savedTransparent && (savedBasic || savedAmbient)) {
+        TagEdits::addUnique(saved, HardCodedTags::OBJECT_MODEL_TRANSPARENT);
+        TagEdits::addUnique(saved, HardCodedTags::OBJECT_MODEL_NON_OCCLUDER);
+        TagEdits::erase(saved, basicTag);
+    } else if (!transparent && savedTransparent) {
+        if (!savedAmbient) {
+            TagEdits::addUnique(saved, HardCodedTags::OBJECT_MODEL_BASIC);
+        }
+        TagEdits::erase(saved, transparentTag);
+        TagEdits::erase(saved, nonOccluderTag);
+    }
+    //player attachment tags were always rebuilt at attach, a saved one never stuck
+    for (const TagEdit &savedTag : saved) {
+        if (!isPlayerAttachmentTag(savedTag.hash) && !TagEdits::contains(derivedTags, savedTag.hash)) {
+            TagEdits::set(tagEdits, savedTag.text, true);
+        }
+    }
+    for (const TagEdit &derivedTag : derivedTags) {
+        if (!isPlayerAttachmentTag(derivedTag.hash) && !TagEdits::contains(saved, derivedTag.hash)) {
+            TagEdits::set(tagEdits, derivedTag.text, false);
+        }
+    }
+    refreshTags();
+}
+
+void Model::putTagsInGui(std::set<std::string> *knownTags) {
+    static const uint64_t pickedObjectTag = HashUtil::hashString(HardCodedTags::PICKED_OBJECT);//selection state, the next click sets it again anyway
+    ImGui::Text("Tags");
+    if (ImGui::IsItemHovered()) {
+        ImGui::BeginTooltip();
+        ImGui::Text("Render stages pick objects by these tags. Filled ones this object added, outlined ones come from");
+        ImGui::Text("the engine or the materials, struck through ones this object removed. An object with no tags renders nowhere.");
+        ImGui::EndTooltip();
+    }
+    std::vector<TagChip> chips;
+    for (const HashUtil::HashedString &currentTag : getTags()) {
+        if (currentTag.hash == pickedObjectTag) {
+            continue;
+        }
+        if (TagEdits::contains(tagEdits, currentTag.hash)) {
+            chips.push_back(TagChip{currentTag.text, TagChip::Kind::ADDED, "Added by this object"});
+            continue;
+        }
+        std::string source = "Set by the engine";
+        for (const MeshMeta *meshMeta : cullingEntry->meshMetaData) {
+            if (meshMeta->material != nullptr && TagEdits::contains(meshMeta->material->getTagEdits(), currentTag.hash)) {
+                source = "From material " + meshMeta->material->getName();
+                break;
+            }
+        }
+        chips.push_back(TagChip{currentTag.text, TagChip::Kind::INHERITED, source});
+    }
+    for (const TagEdit &tagEdit : tagEdits) {
+        if (!tagEdit.added && tagEdit.hash != pickedObjectTag) {
+            chips.push_back(TagChip{tagEdit.text, TagChip::Kind::REMOVED, "Removed by this object"});
+        }
+    }
+    TagInputResult result = TagInput::draw("##ModelTags", chips, knownTags);
+    if (result.action == TagInputResult::Action::NONE) {
+        return;
+    }
+    //drop the edit first, so the object only keeps one if what's below doesn't already give the wanted result
+    const uint64_t tagHash = HashUtil::hashString(result.tag);
+    TagEdits::erase(tagEdits, tagHash);
+    refreshTags();
+    if (result.action == TagInputResult::Action::ADD && !hasTag(tagHash)) {
+        addTag(result.tag);
+    } else if (result.action == TagInputResult::Action::REMOVE && hasTag(tagHash)) {
+        removeTag(result.tag);
+    }
+}
+
+void Model::copyTagEditsFrom(const Model &otherModel) {
+    static const uint64_t pickedObjectTag = HashUtil::hashString(HardCodedTags::PICKED_OBJECT);
+    tagEdits.clear();
+    for (const TagEdit &otherEdit : otherModel.tagEdits) {
+        if (otherEdit.hash != pickedObjectTag) {//the copy is not the selected object, the original is
+            tagEdits.push_back(otherEdit);
+        }
+    }
+    refreshTags();
 }
 
 void Model::setupForTime(uint32_t time) {
@@ -834,26 +981,7 @@ ImGuiResult Model::addImGuiEditorElements(const ImGuiRequest &request) {
         ImGui::EndTooltip();
     }
     ImGui::NewLine();
-    static char tagsBuffer[512] = {0};
-    std::vector<std::string> editableTags;
-    for (const HashUtil::HashedString& currentTag : this->getTags()) {
-        if (currentTag.text != HardCodedTags::PICKED_OBJECT) {//selection state, the next click sets it again anyway
-            editableTags.emplace_back(currentTag.text);
-        }
-    }
-    std::string joinedTags = StringUtils::join(editableTags, ",");
-    strncpy(tagsBuffer, joinedTags.c_str(), std::min(joinedTags.length(), sizeof(tagsBuffer) - 1));
-    tagsBuffer[std::min(joinedTags.length(), sizeof(tagsBuffer) - 1)] = 0;
-
-    ImGui::InputText("Tags##ForModelObject", tagsBuffer, sizeof(tagsBuffer), ImGuiInputTextFlags_CharsNoBlank);
-    if(ImGui::IsItemHovered()) {
-        ImGui::BeginTooltip();
-        ImGui::Text("Render stages pick objects by these tags. The engine set ones can be removed,");
-        ImGui::Text("but clearing all of them puts them back, an object with no tags renders nowhere.");
-        ImGui::EndTooltip();
-    }
-    joinedTags = tagsBuffer;
-    this->setTags(StringUtils::split(joinedTags, ","));
+    putTagsInGui(request.knownTags);
 
     if (isAnimated()) {
         ImGui::TextDisabled("Mass: animated objects are kinematic");
@@ -1045,7 +1173,7 @@ ImGuiResult Model::addImGuiEditorElements(const ImGuiRequest &request) {
             }
             if (request.alteredMaterial != nullptr) {
                 if (request.alteredMaterial->addImGuiEditorElements(request).materialDirty) {
-                    refreshTransparencyTags();
+                    refreshTags();
                 }
                 if (ImGui::Button("Revert##materialAlterInModel")) {
                     result.revertAlteredMaterial = true;
@@ -1143,13 +1271,7 @@ Model::Model(const Model &otherModel, uint32_t objectID, CullingEntry* cullingEn
         this->setPlayerStepOnSound(std::make_shared<Sound>(0, assetManager, otherModel.stepOnSound->getName()));
     }
 
-    std::vector<std::string> otherTags;
-    for (const HashUtil::HashedString& otherTag : otherModel.getTags()) {
-        if (otherTag.text != HardCodedTags::PICKED_OBJECT) {//the copy is not the selected object, the original is
-            otherTags.emplace_back(otherTag.text);
-        }
-    }
-    this->setTags(otherTags);//setTags, so a default tag the original had removed stays removed on the copy
+    this->copyTagEditsFrom(otherModel);
 
     //same asset means same mesh order, so the index is exact. Names are not unique
     if (cullingEntry->meshMetaData.size() != otherModel.cullingEntry->meshMetaData.size()) {
@@ -1326,7 +1448,7 @@ std::shared_ptr<const Material> Model::setMeshMaterial(size_t meshIndex, std::sh
     }
     releaseOwnedMeshMaterial(meshIndex);
     meshMeta->material = materialToUse;
-    refreshTransparencyTags();
+    refreshTags();
     return materialToUse;
 }
 
@@ -1345,7 +1467,7 @@ std::vector<std::shared_ptr<const Material>> Model::loadMaterials() {
 }
 
 void Model::finishLoadingMaterials() {
-    refreshTransparencyTags();//the texels are loaded now
+    refreshTags();//the texels are loaded now
 }
 
 std::shared_ptr<Material> Model::getAssetMeshMaterial(size_t meshIndex) const {
@@ -1441,75 +1563,18 @@ void Model::reloadPhysicsShape() {
     rigidBody->updateInertiaTensor();
     rigidBody->activate();
 
-    // We want to keep the physics tags match the physics state, but if user removed them, we don't object
-    const bool hasPhysicalTag = this->hasTag(HashUtil::hashString(HardCodedTags::OBJECT_MODEL_PHYSICAL));
-    const bool hasStaticTag = this->hasTag(HashUtil::hashString(HardCodedTags::OBJECT_MODEL_STATIC));
-    if (this->mass > 0 && hasStaticTag) {
-        //add before remove, removing the last tag would refill the list with the defaults
-        this->addTag(HardCodedTags::OBJECT_MODEL_PHYSICAL);
-        this->removeTag(HardCodedTags::OBJECT_MODEL_STATIC);
-    } else if (this->mass <= 0 && hasPhysicalTag) {
-        this->addTag(HardCodedTags::OBJECT_MODEL_STATIC);
-        this->removeTag(HardCodedTags::OBJECT_MODEL_PHYSICAL);
-    }
+    refreshTags();//static<->physical follow the mass
 }
 
-bool Model::isTransparent() const {
-    if (isAnimated()) {
+bool Model::isMaterialTransparent(const Material &material, bool animated) {
+    if (animated) {
         return false;//no stage renders animated transparent models
     }
-    for (const MeshMeta* meshMeta : cullingEntry->meshMetaData) {
-        const std::shared_ptr<const Material> &material = meshMeta->material;
-        if (material == nullptr) {
-            continue;
-        }
-        if (material->hasOpacityMap()) {
-            return true;
-        }
-        //no texels before admission, finishLoadingMaterials refreshes again
-        if (material->hasDiffuseMap() && material->isLoaded() && material->getDiffuseTexture()->hasTransparentTexels()) {
-            return true;
-        }
+    if (material.hasOpacityMap()) {
+        return true;
     }
-    return false;
-}
-
-void Model::refreshTransparencyTags() {
-    const bool transparent = this->isTransparent();
-    const bool hasBasicTag = this->hasTag(HashUtil::hashString(HardCodedTags::OBJECT_MODEL_BASIC));
-    const bool hasTransparentTag = this->hasTag(HashUtil::hashString(HardCodedTags::OBJECT_MODEL_TRANSPARENT));
-    const bool hasAmbientTag = this->hasTag(HashUtil::hashString(HardCodedTags::OBJECT_MODEL_AMBIENT));
-    const bool underPlayer = this->hasTag(HashUtil::hashString(HardCodedTags::OBJECT_PLAYER_BASIC)) ||
-                             this->hasTag(HashUtil::hashString(HardCodedTags::OBJECT_PLAYER_ANIMATED)) ||
-                             this->hasTag(HashUtil::hashString(HardCodedTags::OBJECT_PLAYER_TRANSPARENT));
-    //add before remove, removing the last tag would refill the list with the defaults
-    if (transparent && !hasTransparentTag && (hasBasicTag || hasAmbientTag)) {
-        this->addTag(HardCodedTags::OBJECT_MODEL_TRANSPARENT);
-        this->addTag(HardCodedTags::OBJECT_MODEL_NON_OCCLUDER);
-        if (underPlayer) {
-            this->addTag(HardCodedTags::OBJECT_PLAYER_TRANSPARENT);
-        }
-        if (hasBasicTag) {
-            this->removeTag(HardCodedTags::OBJECT_MODEL_BASIC);
-            if (this->hasTag(HashUtil::hashString(HardCodedTags::OBJECT_PLAYER_BASIC))) {
-                this->removeTag(HardCodedTags::OBJECT_PLAYER_BASIC);
-            }
-        }
-    } else if (!transparent && hasTransparentTag) {
-        if (!hasAmbientTag) {//an ambient model renders in the ambient stage, basic too would draw it twice
-            this->addTag(HardCodedTags::OBJECT_MODEL_BASIC);
-            if (underPlayer) {
-                this->addTag(HardCodedTags::OBJECT_PLAYER_BASIC);
-            }
-        }
-        this->removeTag(HardCodedTags::OBJECT_MODEL_TRANSPARENT);
-        if (this->hasTag(HashUtil::hashString(HardCodedTags::OBJECT_MODEL_NON_OCCLUDER))) {//a removed one stays removed, so it may be gone already
-            this->removeTag(HardCodedTags::OBJECT_MODEL_NON_OCCLUDER);
-        }
-        if (this->hasTag(HashUtil::hashString(HardCodedTags::OBJECT_PLAYER_TRANSPARENT))) {
-            this->removeTag(HardCodedTags::OBJECT_PLAYER_TRANSPARENT);
-        }
-    }
+    //no texels before admission, finishLoadingMaterials refreshes again
+    return material.hasDiffuseMap() && material.isLoaded() && material.getDiffuseTexture()->hasTransparentTexels();
 }
 
 void Model::convertAssetToLimon(std::set<std::vector<std::string>> &convertedModels [[gnu::unused]]) {

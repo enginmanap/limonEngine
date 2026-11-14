@@ -66,7 +66,10 @@ private:
     std::vector<glm::mat4> boneTransforms;
     std::map<uint32_t, uint32_t> boneIdCompoundChildMap;
     std::vector<uint32_t> unskinnedBoneIDs;
+    std::vector<TagEdit> tagEdits;
 
+    static bool isPlayerAttachmentTag(uint64_t tagHash);
+    void putTagsInGui(std::set<std::string> *knownTags);
 
     //asset materials are registered by the asset, so we only release the ones we swapped in ourselves
     void releaseOwnedMeshMaterial(size_t meshIndex);
@@ -283,10 +286,19 @@ public:
         Model::animationTimeScale = animationTimeScale;
     }
 
-    bool isTransparent() const;
+    //rebuilds the tag list from the asset, mass, materials and this object's own edits. Whoever changes one of them calls it
+    void refreshTags();
 
-    //BASIC<->TRANSPARENT follow the current materials, a removed one stays removed like STATIC<->PHYSICAL
-    void refreshTransparencyTags();
+    //public for the material panel, which shows what a material gives on its own
+    static bool isMaterialTransparent(const Material &material, bool animated);
+    static void addDerivedTags(std::vector<TagEdit> &tags, bool animated, bool ambient, bool transparent);
+
+    //a map saved before tag edits holds the whole list, what differs from the derived one becomes this object's edits.
+    //Only after finishLoadingMaterials, before it texel transparency is unknown and would turn into an edit
+    void convertSavedTags(const std::vector<std::string> &savedTags);
+
+    //picked_object stays with the original
+    void copyTagEditsFrom(const Model &otherModel);
 
     ~Model() override;
 
@@ -464,32 +476,23 @@ public:
         this->cullingEntry = newCullingEntry;
     }
 
+    //an edit of this object, it stays over whatever the materials or the engine say later
     bool addTag(const std::string& text) override {
-        setDirtyForFrustum();
-        bool added = GameObject::addTag(text);
-        copyTagsToCullingEntry();
-        return added;
+        TagEdits::set(tagEdits, text, true);
+        refreshTags();
+        return true;
     }
 
+    //recorded even when nothing gives the tag yet, so a material that brings it later doesn't put it back
     bool removeTag(const std::string& text) override {
-        setDirtyForFrustum();
-        bool removed = GameObject::removeTag(text);
-        if(getTags().empty()) {
-            addDefaultTags();//a model with no tags matches no render stage at all, it would be invisible everywhere
-        }
-        copyTagsToCullingEntry();
-        return removed;
+        TagEdits::set(tagEdits, text, false);
+        refreshTags();
+        return true;
     }
 
-    /**
-     * Rehashes the whole list, don't call per frame from game code. An empty list leaves the default tags in place.
-     */
-    void setTags(const std::vector<std::string>& tagList);
-
-    /**
-     * The tags Model derives from its asset and mass. Also used to refill an emptied tag list.
-     */
-    void addDefaultTags();
+    const std::vector<TagEdit> &getTagEdits() const {
+        return tagEdits;
+    }
 };
 
 #endif //LIMONENGINE_MODEL_H

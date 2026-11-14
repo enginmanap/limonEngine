@@ -361,7 +361,7 @@ LegacyWorldLoaderV1::loadObject(World *world, std::shared_ptr<AssetManager> asse
         }
     }
     //version 1 mesh materials have no MaterialKey, nothing can resolve them
-    loadObjectTags(objectNode, loadedObjectInformation->model);
+    loadObjectTags(world, objectNode, loadedObjectInformation->model);
 
 
     loadedObjects.push_back(std::move(loadedObjectInformation));

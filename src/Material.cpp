@@ -6,11 +6,14 @@
 #include "Assets/AssetTreeManager.h"
 #include "Material.h"
 #include <sstream>
+#include <algorithm>
 #include "Utils/HashUtil.h"
 
 #include <ImGuiHelper.h>
 #include "XMLHelper.h"
 #include "LimonFileSystem.h"
+#include "GameObjects/Model.h"
+#include "Editor/Widgets/TagInput.h"
 
 #include "limonAPI/Graphics/GraphicsInterface.h"
 #include "limonAPI/Graphics/GraphicsProgram.h"
@@ -198,6 +201,7 @@ void Material::restoreValuesFrom(const Material &other) {
     this->refractionIndex = other.refractionIndex;
 
     this->maps = other.maps;
+    this->tagEdits = other.tagEdits;
 
     std::vector<std::vector<std::string>> otherNames(TEXTURE_SLOT_COUNT);
     for (size_t slotIndex = 0; slotIndex < TEXTURE_SLOT_COUNT; ++slotIndex) {
@@ -292,6 +296,7 @@ ImGuiResult Material::addImGuiEditorElements(const ImGuiRequest &request) {
         dirty = putRemoveTextureButton(slot) || dirty;
         putTextureColorSpace(slot, slotIndex);
     }
+    dirty = putTagEditsInGui(request.knownTags) || dirty;
     if (!colorSpaceNotice.empty()) {
         ImGui::TextWrapped("%s", colorSpaceNotice.c_str());
     }
@@ -302,6 +307,58 @@ ImGuiResult Material::addImGuiEditorElements(const ImGuiRequest &request) {
         result.materialDirty = true;//the pane needs to know before this edit can reach anything shared
     }
     return result;
+}
+
+bool Material::putTagEditsInGui(std::set<std::string> *knownTags) {
+    //what the material gives an unanimated object on its own, the model panel shows the result for its own case
+    std::vector<TagEdit> derivedTags;
+    Model::addDerivedTags(derivedTags, false, hasAmbientMap(), Model::isMaterialTransparent(*this, false));
+    std::vector<TagChip> chips;
+    for (const TagEdit &derivedTag : derivedTags) {
+        bool removed = false;
+        for (const TagEdit &tagEdit : tagEdits) {
+            if (tagEdit.hash == derivedTag.hash && !tagEdit.added) {
+                removed = true;
+            }
+        }
+        if (removed) {
+            chips.push_back(TagChip{derivedTag.text, TagChip::Kind::REMOVED, "Removed from every object using this material"});
+        } else {
+            chips.push_back(TagChip{derivedTag.text, TagChip::Kind::INHERITED, "Set by the engine from this material"});
+        }
+    }
+    for (const TagEdit &tagEdit : tagEdits) {
+        if (TagEdits::contains(derivedTags, tagEdit.hash)) {
+            continue;
+        }
+        if (tagEdit.added) {
+            chips.push_back(TagChip{tagEdit.text, TagChip::Kind::ADDED, "Added to every object using this material"});
+        } else {
+            chips.push_back(TagChip{tagEdit.text, TagChip::Kind::REMOVED, "Removed from every object using this material"});
+        }
+    }
+    ImGui::PushID(this);
+    ImGui::Text("Tags for the objects using this material");
+    if (ImGui::IsItemHovered()) {
+        ImGui::BeginTooltip();
+        ImGui::Text("Objects can still add or remove any of these for themselves.");
+        ImGui::EndTooltip();
+    }
+    TagInputResult result = TagInput::draw("##MaterialTags", chips, knownTags);
+    ImGui::PopID();
+    if (result.action == TagInputResult::Action::NONE) {
+        return false;
+    }
+    //only an edit that differs from what the material gives anyway, any edit changes the hash
+    const uint64_t tagHash = HashUtil::hashString(result.tag);
+    TagEdits::erase(tagEdits, tagHash);
+    const bool derived = TagEdits::contains(derivedTags, tagHash);
+    if (result.action == TagInputResult::Action::ADD && !derived) {
+        TagEdits::set(tagEdits, result.tag, true);
+    } else if (result.action == TagInputResult::Action::REMOVE && derived) {
+        TagEdits::set(tagEdits, result.tag, false);
+    }
+    return true;
 }
 
 void Material::assignTexture(const TextureSlot &slot, const std::shared_ptr<TextureAsset> &acquiredTexture) {
@@ -435,6 +492,16 @@ bool Material::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *
             materialTextureNode->SetText(StringUtils::join(textureName, ",").c_str());
             materialNode->InsertEndChild(materialTextureNode);
         }
+        if (!tagEdits.empty()) {
+            tinyxml2::XMLElement *tagEditsNode = document.NewElement("TagEdits");
+            for (const TagEdit &tagEdit : tagEdits) {
+                tinyxml2::XMLElement *tagEditNode = document.NewElement("TagEdit");
+                tagEditNode->SetAttribute("Added", tagEdit.added ? 1 : 0);
+                tagEditNode->SetText(tagEdit.text.c_str());
+                tagEditsNode->InsertEndChild(tagEditNode);
+            }
+            materialNode->InsertEndChild(tagEditsNode);
+        }
     return true;
 }
 
@@ -542,6 +609,15 @@ std::shared_ptr<Material> Material::deserialize(AssetManager* assetManager, tiny
         }
         material->originalHash = originalHash;
         material->setMaps(maps);
+        tinyxml2::XMLElement *tagEditsNode = materialNode->FirstChildElement("TagEdits");
+        if (tagEditsNode != nullptr) {
+            for (tinyxml2::XMLElement *tagEditNode = tagEditsNode->FirstChildElement("TagEdit"); tagEditNode != nullptr;
+                 tagEditNode = tagEditNode->NextSiblingElement("TagEdit")) {
+                if (tagEditNode->GetText() != nullptr) {
+                    TagEdits::set(material->tagEdits, tagEditNode->GetText(), tagEditNode->IntAttribute("Added", 1) != 0);
+                }
+            }
+        }
         return material;
 }
 
@@ -560,6 +636,20 @@ uint64_t Material::getHash() const {
         for (const std::string &namePart : textureName) {
             HashUtil::appendUint32(bytes, static_cast<uint32_t>(namePart.size()));
             bytes += namePart;
+        }
+    }
+    //only when there are any, every material saved before tags existed keeps its hash
+    if (!tagEdits.empty()) {
+        std::vector<const TagEdit *> sortedEdits;
+        for (const TagEdit &tagEdit : tagEdits) {
+            sortedEdits.push_back(&tagEdit);
+        }
+        std::sort(sortedEdits.begin(), sortedEdits.end(), compareTagEditText);
+        HashUtil::appendUint32(bytes, static_cast<uint32_t>(sortedEdits.size()));
+        for (const TagEdit *tagEdit : sortedEdits) {
+            HashUtil::appendUint32(bytes, tagEdit->added ? 1 : 0);
+            HashUtil::appendUint32(bytes, static_cast<uint32_t>(tagEdit->text.size()));
+            bytes += tagEdit->text;
         }
     }
     return hash(bytes);

@@ -42,6 +42,8 @@
 #include "NodeEditorExtensions/IterationExtension.h"
 #include "NodeEditorExtensions/PipelineStageExtension.h"
 #include "GameObjects/GUIText.h"
+#include "Utils/HardCodedTags.h"
+#include "Graphics/GraphicsPipeline.h"
 #include "GameObjects/GUIImage.h"
 #include "GameObjects/GUIButton.h"
 #include "GameObjects/GUIAnimation.h"
@@ -683,12 +685,12 @@ void Editor::reseatWorldMeshes(const std::shared_ptr<const Material> &baseMateri
     }
 }
 
-//a texture edit can make the material start or stop being transparent, every model on it has to follow
-void Editor::refreshTransparencyTagsOfMaterialUsers(const std::shared_ptr<const Material> &material) {
+//a texture or tag edit changes the tags of every model on the material
+void Editor::refreshTagsOfMaterialUsers(const std::shared_ptr<const Material> &material) {
     for (auto objectIt = world->objects.begin(); objectIt != world->objects.end(); ++objectIt) {
         for (const Model::MeshMeta *meshMeta : objectIt->second->getMeshMetaData()) {
             if (meshMeta->material == material) {
-                objectIt->second->refreshTransparencyTags();
+                objectIt->second->refreshTags();
                 break;
             }
         }
@@ -809,7 +811,10 @@ void Editor::renderOcclusionDebugOverlay(const std::shared_ptr<GraphicsProgram> 
 }
 
 void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
-
+    if (!knownTagsCollected) {
+        collectKnownTags();
+    }
+    request->knownTags = &knownTags;
     imgGuiHelper->NewFrame(graphicsProgram);
     drawExportWindow();
     if(this->showNodeGraph) {
@@ -1837,7 +1842,7 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
                     //only the frames that changed something can have moved the content, and the last of them
                     //indexes the settled value. Doing it unconditionally took the registry lock every frame
                     materialRegistry.refreshContentIndex(selectedMaterial);
-                    refreshTransparencyTagsOfMaterialUsers(selectedMaterial);
+                    refreshTagsOfMaterialUsers(selectedMaterial);
                 }
             }
             ImGui::Unindent();
@@ -3921,6 +3926,51 @@ void Editor::update(InputHandler &inputHandler) {
 void Editor::onEditorDisabled() {
     clearLightDebugBuffer();
     clearParticleEmitterDebugBuffer();
+}
+
+void Editor::collectKnownTags() {
+    knownTagsCollected = true;
+    for (const std::string &internalTag : HardCodedTags::ALL_INTERNAL_TAGS) {
+        //camera tags name cameras, not objects
+        if (internalTag != HardCodedTags::CAMERA_LIGHT_DIRECTIONAL && internalTag != HardCodedTags::CAMERA_LIGHT_POINT &&
+            internalTag != HardCodedTags::CAMERA_PLAYER && internalTag != HardCodedTags::PICKED_OBJECT) {
+            knownTags.insert(internalTag);
+        }
+    }
+    if (world->renderPipeline != nullptr) {
+        addKnownTagsOfPipeline(*world->renderPipeline);
+    }
+    for (std::unordered_map<uint32_t, Model *>::const_iterator objectIt = world->objects.begin(); objectIt != world->objects.end(); ++objectIt) {
+        for (const HashUtil::HashedString &tag : objectIt->second->getTags()) {
+            addKnownTag(tag.text);
+        }
+        for (const TagEdit &tagEdit : objectIt->second->getTagEdits()) {
+            addKnownTag(tagEdit.text);
+        }
+    }
+    std::vector<std::pair<uint32_t, std::shared_ptr<Material>>> materials;
+    world->assetManager->getMaterialRegistry().fillMaterialsSnapshot(materials);
+    for (const std::pair<uint32_t, std::shared_ptr<Material>> &material : materials) {
+        for (const TagEdit &tagEdit : material.second->getTagEdits()) {
+            addKnownTag(tagEdit.text);
+        }
+    }
+}
+
+void Editor::addKnownTag(const std::string &tag) {
+    if (knownTagsCollected && tag != HardCodedTags::PICKED_OBJECT) {
+        knownTags.insert(tag);
+    }
+}
+
+void Editor::addKnownTagsOfPipeline(const GraphicsPipeline &pipeline) {
+    for (const std::pair<const std::string, std::vector<std::set<std::string>>> &cameraEntry : pipeline.getCameraTagToRenderTagSetMap()) {
+        for (const std::set<std::string> &objectTagSet : cameraEntry.second) {
+            for (const std::string &objectTag : objectTagSet) {
+                addKnownTag(objectTag);
+            }
+        }
+    }
 }
 
 

@@ -1318,6 +1318,7 @@ void World::deleteModel(Model *model) {
     if (entry->nearestModelGroup != nullptr) {
         entry->nearestModelGroup->markAabbStale();//the model is leaving the world, its box must leave the group's
     }
+    savedTagsToConvert.erase(model->getWorldObjectID());//a model added later can get the same id
     delete model;//before the entry goes, the destructor still reads it
     if (entry != &cullingEntries.back()) {
         *entry = std::move(cullingEntries.back());
@@ -1550,6 +1551,13 @@ void World::afterLoadFinished() {
         for (Model *loadedModel : loadedModels) {
             loadedModel->finishLoadingMaterials();
         }
+        for (std::unordered_map<uint32_t, std::vector<std::string>>::iterator savedIt = savedTagsToConvert.begin(); savedIt != savedTagsToConvert.end(); ++savedIt) {
+            std::unordered_map<uint32_t, Model *>::iterator objectIt = objects.find(savedIt->first);
+            if (objectIt != objects.end()) {
+                objectIt->second->convertSavedTags(savedIt->second);
+            }
+        }
+        savedTagsToConvert.clear();
         materialsReady = true;
     }
 
@@ -1655,6 +1663,7 @@ void World::activateRenderPipeline(const std::shared_ptr<GraphicsPipeline> &pipe
     renderPipeline = pipeline;
     setupRenderForPipeline();
     visibilityManager->onPipelineChange();
+    editor->addKnownTagsOfPipeline(*pipeline);
 }
 
 void World::createEditorPlayerIfMissing(InputHandler &inputHandler) {

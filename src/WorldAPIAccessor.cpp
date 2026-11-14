@@ -23,6 +23,7 @@
 #include "GameObjects/CameraRig.h"
 #include "limonAPI/CameraExtensionInterface.h"
 #include "Utils/HardCodedTags.h"
+#include "Editor/Editor.h"
 
 #ifdef TRACY_ENABLE
 #include <cstring>
@@ -509,6 +510,7 @@ bool WorldAPIAccessor::addObjectTagAPI(uint32_t objectID, const std::string &tag
     if(model == nullptr) {
         return false;
     }
+    world->editor->addKnownTag(tag);
     return model->addTag(tag);
 }
 
@@ -517,6 +519,7 @@ bool WorldAPIAccessor::removeObjectTagAPI(uint32_t objectID, const std::string &
     if(model == nullptr) {
         return false;
     }
+    world->editor->addKnownTag(tag);
     return model->removeTag(tag);
 }
 
@@ -570,7 +573,7 @@ void WorldAPIAccessor::attach(Attachable *child, Attachable *parent, int32_t bon
     //A root getting its first child still holds -1
     setOwnHierarchyRootIndex(root, rootIndex);
     setHierarchyRootIndex(child, rootIndex);
-    refreshPlayerAttachmentTags(child, root == world->getStartingPlayer());
+    refreshPlayerAttachmentTags(child);
     refreshBroadphaseAabbs(child);//attaching at a local offset moves the child, and a static parent doesn't re-add it
     refreshNearestModelGroup(child);
 }
@@ -588,29 +591,17 @@ void WorldAPIAccessor::detach(Attachable *child) {
     }
     GameObject* childObject = dynamic_cast<GameObject*>(child);
     setHierarchyRootIndex(child, childObject != nullptr && child->hasChildren() ? static_cast<int>(childObject->getWorldObjectID()) : -1);
-    refreshPlayerAttachmentTags(child, false);
+    refreshPlayerAttachmentTags(child);
     refreshNearestModelGroup(child);
 }
 
-void WorldAPIAccessor::refreshPlayerAttachmentTags(Attachable *subtreeRoot, bool underPlayer) {
+void WorldAPIAccessor::refreshPlayerAttachmentTags(Attachable *subtreeRoot) {
     Model* model = dynamic_cast<Model*>(subtreeRoot);
     if(model != nullptr) {
-        setPlayerAttachmentTag(model, HardCodedTags::OBJECT_MODEL_BASIC, HardCodedTags::OBJECT_PLAYER_BASIC, underPlayer);
-        setPlayerAttachmentTag(model, HardCodedTags::OBJECT_MODEL_ANIMATED, HardCodedTags::OBJECT_PLAYER_ANIMATED, underPlayer);
-        setPlayerAttachmentTag(model, HardCodedTags::OBJECT_MODEL_TRANSPARENT, HardCodedTags::OBJECT_PLAYER_TRANSPARENT, underPlayer);
+        model->refreshTags();//the root changed for the whole subtree
     }
     for(Attachable* child : subtreeRoot->getChildren()) {
-        refreshPlayerAttachmentTags(child, underPlayer);
-    }
-}
-
-void WorldAPIAccessor::setPlayerAttachmentTag(Model *model, const std::string &kindTag, const std::string &playerTag, bool underPlayer) {
-    //mirrors the kind tag, so removing basic_model_object opts the model out of basic_player_attachment too
-    const bool shouldHaveTag = underPlayer && model->hasTag(HashUtil::hashString(kindTag));
-    if(shouldHaveTag) {
-        model->addTag(playerTag);
-    } else if(model->hasTag(HashUtil::hashString(playerTag))) {
-        model->removeTag(playerTag);
+        refreshPlayerAttachmentTags(child);
     }
 }
 

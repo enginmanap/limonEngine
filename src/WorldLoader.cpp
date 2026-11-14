@@ -423,7 +423,7 @@ std::vector<Model::MeshMaterialOverride> WorldLoader::readMeshMaterialOverrides(
     return meshMaterialOverrides;
 }
 
-void WorldLoader::loadObjectTags(tinyxml2::XMLElement *objectNode, Model *model) {
+void WorldLoader::loadObjectTags(World *world, tinyxml2::XMLElement *objectNode, Model *model) {
     tinyxml2::XMLElement* tagsNode = objectNode->FirstChildElement("Tags");
     if (tagsNode != nullptr) {
         std::vector<std::string> tags;
@@ -434,8 +434,8 @@ void WorldLoader::loadObjectTags(tinyxml2::XMLElement *objectNode, Model *model)
             }
             tagNode = tagNode->NextSiblingElement("Tag");
         }
-        model->setTags(tags);//the saved list is the whole truth, a default tag the map removed has to stay removed
-        model->refreshTransparencyTags();//saved basic/transparent may predate what the materials say now
+        //the whole resolved list, it can only be told apart from the derived one once the texels are known
+        world->savedTagsToConvert[model->getWorldObjectID()] = tags;
         return;
     }
     //maps saved before tags became one list carry only what Model does not derive itself, so these add on top
@@ -533,7 +533,7 @@ WorldLoader::loadObjectV2(World *world, std::shared_ptr<AssetManager> assetManag
         loadedObjectInformation->model->loadOverriddenMeshMaterial(custumizedMeshMaterialList);
     }
 
-    loadObjectTags(objectNode, loadedObjectInformation->model);
+    loadObjectTags(world, objectNode, loadedObjectInformation->model);
 
     loadedObjects.push_back(std::move(loadedObjectInformation));
     return loadedObjects;

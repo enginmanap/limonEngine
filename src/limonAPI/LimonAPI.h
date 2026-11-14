@@ -67,6 +67,8 @@ public:
     bool attachObjectToObject(uint32_t objectID, uint32_t objectToAttachToID, const std::string &boneName = "");
     bool attachObjectToObjectAtWorldPosition(uint32_t objectID, uint32_t objectToAttachToID, const std::string &boneName = "");
     bool detachObjectFromParent(uint32_t objectID);
+    //both stick over what the engine and the materials give the object, false only if there is no such model.
+    //A removal is kept even when the object doesn't have the tag yet
     bool addObjectTag(uint32_t objectID, const std::string& tag);
     bool removeObjectTag(uint32_t objectID, const std::string& tag);
     std::vector<std::string> getObjectTags(uint32_t objectID);

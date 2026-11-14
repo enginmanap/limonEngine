@@ -10,6 +10,8 @@
 #include <functional>
 #include <memory>
 #include <vector>
+#include <set>
+#include <string>
 #include <cstdint>
 #include "limonAPI/LimonTypes.h"
 class Camera;
@@ -67,6 +69,8 @@ struct ImGuiRequest {
     std::shared_ptr<Material> alteredMaterial = nullptr;
     //whatever is selected in the material list, for "Switch material" to apply. Not an edit, just a pick
     std::shared_ptr<Material> materialSelectedInList = nullptr;
+    //the editor's tag suggestions, tag inputs add what the user types
+    std::set<std::string> *knownTags = nullptr;
 
     ImGuiRequest(const glm::mat4 &perspectiveCameraMatrix, const glm::mat4 &perspectiveMatrix,
                  const glm::mat4 &orthogonalMatrix, const uint32_t &screenHeight, const uint32_t &screenWidth,
