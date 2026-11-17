@@ -35,6 +35,7 @@ set(NODEGRAPH_AS_LIBRARY "True")
 add_subdirectory("libs/nodeGraph")
 #include(libs/OpenAL-Soft/CmakeLists.txt)
 
+set(ALSOFT_ENABLE_MODULES OFF CACHE BOOL "Disable C++20 modules (broken with GCC/libstdc++ on MinGW)" FORCE)
 add_subdirectory("libs/OpenAL-Soft/")
 #target_include_directories(test PRIVATE "libs/OpenAL-Soft/CmakeLists.txt)
 
