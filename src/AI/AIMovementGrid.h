@@ -208,6 +208,29 @@ public:
         return floatingHeight;
     }
 
+    float getSpacing() const {
+        return spacing;
+    }
+
+    float getStepHeight() const {
+        return stepHeight;
+    }
+
+    size_t getNodeCount() const {
+        return doneNodes.empty() ? 0 : doneNodes.size() - 1;//0 is the placeholder
+    }
+
+    size_t getMovableNodeCount() const;
+
+    //movable nodes only, max below min when there are none
+    const glm::vec3 &getMin() const {
+        return min;
+    }
+
+    const glm::vec3 &getMax() const {
+        return max;
+    }
+
     //candidates are tried in order, the first one with ground and room for the probe is the start
     AIMovementGrid(const std::vector<StartCandidate> &startCandidates, btDiscreteDynamicsWorld *staticOnlyPhysicsWorld, glm::vec3 min,
                        glm::vec3 max, uint32_t collisionGroup, uint32_t collisionMask, OptionsUtil::Options *options);

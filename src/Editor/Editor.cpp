@@ -1303,6 +1303,10 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
         if(ImGui::CollapsingHeader("World properties")) {
             ImGui::Indent( 16.0f );
 
+            if (ImGui::CollapsingHeader("World statistics")) {
+                drawWorldStatistics();
+            }
+
             if (ImGui::CollapsingHeader("Add on load trigger")) {
                 static size_t onLoadTriggerIndex = 0;//maximum size
                 std::string selectedID = std::to_string(onLoadTriggerIndex);
@@ -2888,6 +2892,64 @@ void Editor::startExport() {
     activePackage = world->packagingCallbacks->start(exportPathBuffer, exportFromCurrentWorld ? world->name : std::string(), refusalReason);
     exportMessage = activePackage == nullptr ? refusalReason : "";
     showExportWindow = true;
+}
+
+void Editor::drawAabbText(const char *label, const glm::vec3 &aabbMin, const glm::vec3 &aabbMax) {
+    if (aabbMin.x > aabbMax.x) {
+        ImGui::Text("%s: empty", label);
+        return;
+    }
+    const glm::vec3 aabbSize = aabbMax - aabbMin;
+    ImGui::Text("%s min: %.2f, %.2f, %.2f", label, aabbMin.x, aabbMin.y, aabbMin.z);
+    ImGui::Text("%s max: %.2f, %.2f, %.2f", label, aabbMax.x, aabbMax.y, aabbMax.z);
+    ImGui::Text("%s size: %.2f, %.2f, %.2f", label, aabbSize.x, aabbSize.y, aabbSize.z);
+}
+
+void Editor::drawWorldStatistics() const {
+    size_t animatedCount = 0;
+    for (const std::pair<const uint32_t, Model *> &object : world->objects) {
+        if (object.second->isAnimated()) {
+            animatedCount++;
+        }
+    }
+    ImGui::Text("Objects: %lu (%lu animated, %lu static)", (unsigned long) world->objects.size(), (unsigned long) animatedCount,
+                (unsigned long) (world->objects.size() - animatedCount));
+    ImGui::Text("Model groups: %lu", (unsigned long) world->modelGroups.size());
+    ImGui::Text("Disconnected from physics: %lu", (unsigned long) world->disconnectedModels.size());
+
+    size_t directionalCount = 0;
+    size_t pointCount = 0;
+    for (const Light *light : world->lights) {
+        if (light->getLightType() == Light::LightTypes::DIRECTIONAL) {
+            directionalCount++;
+        } else if (light->getLightType() == Light::LightTypes::POINT) {
+            pointCount++;
+        }
+    }
+    ImGui::Text("Lights: %lu (%lu directional, %lu point)", (unsigned long) world->lights.size(), (unsigned long) directionalCount, (unsigned long) pointCount);
+    ImGui::Text("Active lights: %lu of %ld", (unsigned long) world->activeLights.size(), world->maxLightsOption.getOrDefault(4));
+
+    ImGui::Text("Triggers: %lu", (unsigned long) world->triggers.size());
+    ImGui::Text("Actors: %lu", (unsigned long) world->actors.size());
+    ImGui::Text("Sounds: %lu", (unsigned long) world->sounds.size());
+    ImGui::Text("GUI elements: %lu in %lu layers", (unsigned long) world->guiElements.size(), (unsigned long) world->guiLayers.size());
+    ImGui::Text("Particle emitters: %lu CPU, %lu GPU", (unsigned long) world->emitters.size(), (unsigned long) world->gpuParticleEmitters.size());
+    ImGui::Text("Camera rigs: %lu", (unsigned long) world->cameraRigs.size());
+    ImGui::Text("On load actions: %lu", (unsigned long) world->onLoadActions.size());
+    ImGui::Text("Custom animations: %lu", (unsigned long) world->loadedAnimations.size());
+
+    ImGui::Separator();
+    drawAabbText("World AABB", world->worldAABBMin, world->worldAABBMax);
+
+    ImGui::Separator();
+    if (world->grid == nullptr) {
+        ImGui::Text("AI walk grid: none");
+        return;
+    }
+    ImGui::Text("AI walk grid nodes: %lu (%lu movable)", (unsigned long) world->grid->getNodeCount(), (unsigned long) world->grid->getMovableNodeCount());
+    ImGui::Text("AI walk grid spacing: %.2f, step height: %.2f, floating height: %.2f",
+                world->grid->getSpacing(), world->grid->getStepHeight(), world->grid->getFloatingHeight());
+    drawAabbText("AI walk grid AABB", world->grid->getMin(), world->grid->getMax());
 }
 
 void Editor::drawExportWindow() {

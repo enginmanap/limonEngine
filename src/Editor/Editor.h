@@ -239,6 +239,9 @@ public:
 
     void drawExportWindow();
 
+    void drawWorldStatistics() const;
+    static void drawAabbText(const char *label, const glm::vec3 &aabbMin, const glm::vec3 &aabbMax);
+
     void requestModelConversionToBinary() {
         modelConversionRequested = true;
     }

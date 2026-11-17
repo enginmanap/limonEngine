@@ -627,6 +627,16 @@ AIMovementGrid::AIMovementGrid(const std::vector<StartCandidate> &startCandidate
     visitedCount = 0;
 }
 
+size_t AIMovementGrid::getMovableNodeCount() const {
+    size_t movableCount = 0;
+    for (size_t i = 1; i < doneNodes.size(); ++i) {//0 is the placeholder
+        if (doneNodes[i]->isIsMovable()) {
+            movableCount++;
+        }
+    }
+    return movableCount;
+}
+
 void AIMovementGrid::setStateAfterLoad() {
     if (root != nullptr) {
         gridOrigin = root->getPosition();//the build starts at the root, cell keys round relative to it
