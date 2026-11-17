@@ -86,7 +86,8 @@ void main(){
     float invRadius     = 1.0 / scaledRadius;          // precomputed for loop
 
     vec3 normal    = normalize(playerTransforms.transposeInverseCamera * worldSpaceNormal);
-    vec3 randomVec = texture(ssaoNoiseSampler, from_vs.textureCoordinates * playerTransforms.noiseScale).xyz;
+    // using noise scale was causing issues if ssao res and render res was different. & means last 2 bits, which is %4.
+    vec3 randomVec = texelFetch(ssaoNoiseSampler, ivec2(gl_FragCoord.xy) & 3, 0).xyz;
 
     vec3 tangent   = normalize(randomVec - normal * dot(randomVec, normal));
     vec3 bitangent = cross(normal, tangent);
