@@ -18,7 +18,9 @@
 
 #import <./Engine/Shaders/Shared/PlayerInformation.glsl>
 
-layout (location = 1) out float occlusion;
+//occlusion and linear view depth as packHalf2x16 halves of one R32F texel: the blur gets both from one gather, and
+//linear depth gives it a tolerance that scales with distance
+layout (location = 1) out float occlusionAndDepth;
 
 in VS_FS {
     vec2 textureCoordinates;
@@ -80,7 +82,7 @@ void main(){
     float distanceFade = 1.0 - smoothstep(FADE_START, FADE_END, viewDepth);
 
     if (distanceFade <= 0.0) {
-        occlusion = 0.0; // No occlusion needed beyond fade distance
+        occlusionAndDepth = uintBitsToFloat(packHalf2x16(vec2(0.0, viewDepth))); // No occlusion needed beyond fade distance
         return;
     }
 
@@ -91,8 +93,10 @@ void main(){
     float invRadius     = 1.0 / scaledRadius;          // precomputed for loop
 
     vec3 normal    = normalize(playerTransforms.transposeInverseCamera * worldSpaceNormal);
-    // using noise scale was causing issues if ssao res and render res was different. & means last 2 bits, which is %4.
-    vec3 randomVec = texelFetch(ssaoNoiseSampler, ivec2(gl_FragCoord.xy) & 3, 0).xyz;
+    //indexed by this target's own pixel, not by screen coordinates: below full resolution those put several noise texels
+    //in one AO texel, so the blur window would not line up with the tile and couldn't cancel it.
+    //tile size depends on AO resolution, see SSAOKernelRenderMethod::generateSSAONoiseTexture
+    vec3 randomVec = texelFetch(ssaoNoiseSampler, ivec2(gl_FragCoord.xy) % textureSize(ssaoNoiseSampler, 0), 0).xyz;
 
     vec3 tangent   = normalize(randomVec - normal * dot(randomVec, normal));
     vec3 bitangent = cross(normal, tangent);
@@ -108,9 +112,8 @@ void main(){
         vec3 samplePos = basePosition + sampleDir * scaledRadius;
 
         // Project sample to UV space for depth buffer lookup
-        vec4 offset = playerTransforms.projection * vec4(samplePos, 1.0);
-        offset.xy /= offset.w;
-        offset.xy  = offset.xy * 0.5 + 0.5;
+        //the player camera is a symmetric perspective, clip xy is the diagonal times view xy and w is -z
+        vec2 offset = vec2(playerTransforms.projection[0][0] * samplePos.x, playerTransforms.projection[1][1] * samplePos.y) / -samplePos.z * 0.5 + 0.5;
 
         float sampleDepth = texture(pre_depthMap, offset.xy).r;
 
@@ -139,5 +142,6 @@ void main(){
         }
     }
 
-    occlusion = pow(tempOcclusion / float(ssaoSampleCount), float(ssao_power)) * distanceFade;
+    float occlusion = pow(tempOcclusion / float(ssaoSampleCount), float(ssao_power)) * distanceFade;
+    occlusionAndDepth = uintBitsToFloat(packHalf2x16(vec2(occlusion, viewDepth)));
 }

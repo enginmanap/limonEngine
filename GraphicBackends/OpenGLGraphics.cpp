@@ -394,6 +394,7 @@ std::string OpenGLGraphics::getShaderHeader() const {
     return "#version 330\n"
            "#extension GL_ARB_texture_cube_map_array : enable\n"
            "#extension GL_ARB_shading_language_packing : enable\n"//unpackUnorm4x8 for 330, core from GLSL 4.00 and in ES 3.10
+           "#extension GL_ARB_texture_gather : enable\n"
            + std::string(linearColor ? "#define LIMON_LINEAR_COLOR\n" : "")
            + std::string(screenColorFormat == ScreenColorFormat::UNORM ? "#define LIMON_SCREEN_UNORM\n" : "")
            + std::string(colorTextureFormat == ColorTextureFormat::UNORM ? "#define LIMON_TEXTURES_UNORM\n" : "") +

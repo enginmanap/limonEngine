@@ -1286,10 +1286,6 @@
                         <Name>pre_ssaoResult</Name>
                         <Type>Texture</Type>
                     </ConnectionDesc>
-                    <ConnectionDesc>
-                        <Name>pre_depthMap</Name>
-                        <Type>Texture</Type>
-                    </ConnectionDesc>
                 </Inputs>
                 <Outputs>
                     <ConnectionDesc>

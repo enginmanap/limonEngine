@@ -21,13 +21,7 @@ public:
     explicit SSAOKernelRenderMethod(GraphicsInterface* graphicsInterface) : RenderMethodInterface(graphicsInterface) {}
 
     std::vector<LimonTypes::GenericParameter> getParameters() const override {
-        LimonTypes::GenericParameter sampleOverride;
-        sampleOverride.requestType = LimonTypes::GenericParameter::RequestParameterTypes::FREE_NUMBER;
-        sampleOverride.valueType = LimonTypes::GenericParameter::ValueTypes::LONG;
-        sampleOverride.description = "Sample count override";
-        sampleOverride.value.longValue = 0;
-        sampleOverride.isSet = true;//optional: editor allows saving with the default
-        return std::vector<LimonTypes::GenericParameter>{sampleOverride};
+        return std::vector<LimonTypes::GenericParameter>();
     }
 
     bool initRender(std::shared_ptr<GraphicsProgram> program, std::vector<LimonTypes::GenericParameter> parameters [[gnu::unused]]) override;

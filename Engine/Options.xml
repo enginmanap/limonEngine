@@ -683,14 +683,6 @@
     </Parameter>
     <Parameter>
         <RequestType>FreeNumber</RequestType>
-        <Description>ssao_blurRadius</Description>
-        <Value>1</Value>
-        <valueType>Long</valueType>
-        <IsSet>True</IsSet>
-        <Index>48</Index>
-    </Parameter>
-    <Parameter>
-        <RequestType>FreeNumber</RequestType>
         <Description>ssao_height</Description>
         <Value>1440</Value>
         <valueType>Long</valueType>

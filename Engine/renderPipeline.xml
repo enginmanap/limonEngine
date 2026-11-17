@@ -118,7 +118,7 @@
                     <TextureType>T2D</TextureType>
                     <InternalFormat>RED</InternalFormat>
                     <Format>RGB</Format>
-                    <DataType>FLOAT</DataType>
+                    <DataType>UNSIGNED_BYTE</DataType>
                     <Height>1080</Height>
                     <Width>1920</Width>
                     <HeightOption>ssao_height</HeightOption>
@@ -143,8 +143,8 @@
                 <Texture>
                     <Name>SSAOGenerationBuffer</Name>
                     <TextureType>T2D</TextureType>
-                    <InternalFormat>RED</InternalFormat>
-                    <Format>RGB</Format>
+                    <InternalFormat>R32F</InternalFormat>
+                    <Format>RED</Format>
                     <DataType>FLOAT</DataType>
                     <Height>1080</Height>
                     <Width>1920</Width>
@@ -160,7 +160,7 @@
                     </borderColor>
                     <BorderColorSet>True</BorderColorSet>
                     <TextureSerializeID>7</TextureSerializeID>
-                    <FilterMode>LINEAR</FilterMode>
+                    <FilterMode>NEAREST</FilterMode>
                     <WrapModes>
                         <S>NONE</S>
                         <T>NONE</T>
@@ -749,10 +749,6 @@
                 <CombineInputs>True</CombineInputs>
                 <Editable>False</Editable>
                 <Inputs>
-                    <ConnectionDesc>
-                        <Name>pre_depthMap</Name>
-                        <Type>Texture</Type>
-                    </ConnectionDesc>
                     <ConnectionDesc>
                         <Name>pre_ssaoResult</Name>
                         <Type>Texture</Type>
@@ -1677,21 +1673,6 @@
                         </Position>
                         <Inputs>
                             <Input ConnectionID="4" NodeId="15">occlusion</Input>
-                        </Inputs>
-                        <Outputs/>
-                    </Connection>
-                    <Connection>
-                        <ID>2</ID>
-                        <Name>pre_depthMap</Name>
-                        <Type>Texture</Type>
-                        <Direction>Input</Direction>
-                        <CombineInputs>True</CombineInputs>
-                        <Position>
-                            <X>0.000000</X>
-                            <Y>58.000000</Y>
-                        </Position>
-                        <Inputs>
-                            <Input ConnectionID="3" NodeId="22">Depth</Input>
                         </Inputs>
                         <Outputs/>
                     </Connection>
@@ -2718,7 +2699,7 @@
                 <TextureType>T2D</TextureType>
                 <InternalFormat>RED</InternalFormat>
                 <Format>RGB</Format>
-                <DataType>FLOAT</DataType>
+                <DataType>UNSIGNED_BYTE</DataType>
                 <Height>1080</Height>
                 <Width>1920</Width>
                 <HeightOption>ssao_height</HeightOption>
@@ -2743,8 +2724,8 @@
             <Texture>
                 <Name>SSAOGenerationBuffer</Name>
                 <TextureType>T2D</TextureType>
-                <InternalFormat>RED</InternalFormat>
-                <Format>RGB</Format>
+                <InternalFormat>R32F</InternalFormat>
+                <Format>RED</Format>
                 <DataType>FLOAT</DataType>
                 <Height>1080</Height>
                 <Width>1920</Width>
@@ -2760,7 +2741,7 @@
                 </borderColor>
                 <BorderColorSet>True</BorderColorSet>
                 <TextureSerializeID>7</TextureSerializeID>
-                <FilterMode>LINEAR</FilterMode>
+                <FilterMode>NEAREST</FilterMode>
                 <WrapModes>
                     <S>NONE</S>
                     <T>NONE</T>
@@ -3137,7 +3118,6 @@
                             <FragmentShader>./Engine/Shaders/SSAOBlur/fragment.glsl</FragmentShader>
                                                     <PresetValues>
                                 <Uniform Name="pre_ssaoResult">1</Uniform>
-                                <Uniform Name="pre_depthMap">2</Uniform>
                             </PresetValues>
                         </GraphicsProgram>
                     </Method>
@@ -3160,7 +3140,6 @@
                     <CullMode>BACK</CullMode>
                     <Inputs>
                         <Input Index="1" textureID="7"/>
-                        <Input Index="2" textureID="6"/>
                     </Inputs>
                     <Outputs>
                         <Output Attachment="COLOR1" textureID="9"/>

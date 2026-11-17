@@ -3,6 +3,7 @@
 //
 
 #include <random>
+#include <algorithm>
 #include "SSAOKernelRenderMethod.h"
 #include "WaterRenderMethod.h"
 
@@ -33,26 +34,14 @@ std::vector<glm::vec3> SSAOKernelRenderMethod::generateSSAOKernels(uint32_t kern
 }
 
 
-bool SSAOKernelRenderMethod::initRender(std::shared_ptr<GraphicsProgram> program, std::vector<LimonTypes::GenericParameter> parameters) {
+bool SSAOKernelRenderMethod::initRender(std::shared_ptr<GraphicsProgram> program, std::vector<LimonTypes::GenericParameter> parameters [[gnu::unused]]) {
     setupQuad();
-    long sampleCount;
-    long sampleOverride = 0;
-    if(!parameters.empty()) {
-        sampleOverride = parameters[0].value.longValue;
-    }
-    if(sampleOverride != 0) {
-        // a non-zero sampleOverride parameter takes precedence over the engine option
-        sampleCount = sampleOverride;
-    } else {
-        OptionsUtil::Options::Option<long> sampleCountOption = graphicsInterface->getOptions()->getOption<long>(graphicsInterface->getOptions()->getHash("ssao_sampleCount"));
-        sampleCount = sampleCountOption.getOrDefault(9);
-    }
+    // The shader loops over ssao_sampleCount at compile time, so the kernel has to come from the same option, a different count would read unset kernel entries
+    OptionsUtil::Options* options = graphicsInterface->getOptions();
+    long sampleCount = options->getOption<long>(options->getHash("ssao_sampleCount")).getOrDefault(9);
     std::vector<glm::vec3> kernels = generateSSAOKernels(sampleCount);
     if(!program->setUniform("ssaoKernel[0]", kernels)) {
         std::cerr << "uniform variable \"ssaoKernel\" couldn't be set" << std::endl;
-    }
-    if(!program->setUniform("ssaoSampleCount", (int32_t)kernels.size())) {
-        std::cerr << "uniform variable \"ssaoSampleCount\" couldn't be set" << std::endl;
     }
     generateSSAONoiseTexture();
     return false;
@@ -88,21 +77,27 @@ void SSAOKernelRenderMethod::setupQuad() {
 
 void
 SSAOKernelRenderMethod::generateSSAONoiseTexture() {
+    // Each AO texel rotates the kernel by its texel of this tile, and the blur averages exactly one tile to cancel the noise.
+    // The tile covers ~4x4 screen pixels at any AO resolution (4x4 texels at full, 2x2 at half): a fixed 4x4 at half
+    // resolution makes the blur span 8x8 screen pixels and visibly smears detail.
+    // Same formula as SSAO_ROTATION_TILE in the SSAOBlur fragment shader, change both
+    OptionsUtil::Options* options = graphicsInterface->getOptions();
+    long ssaoWidth = options->getOption<long>(options->getHash("ssao_width")).getOrDefault(960);
+    long displayWidth = options->getOption<long>(options->getHash("display_width")).getOrDefault(1920);
+    long tileSize = std::clamp((4 * ssaoWidth + displayWidth / 2) / std::max(displayWidth, 1L), 1L, 4L);
+
     std::uniform_real_distribution<float> randomFloats(0.0, 1.0); // generates random floats between 0.0 and 1.0
     std::default_random_engine generator;
-    // generate noise texture
-// ----------------------
     std::vector<glm::vec3> ssaoNoise;
-    for (unsigned int i = 0; i < 16; i++)
-    {
+    for (long i = 0; i < tileSize * tileSize; i++) {
         glm::vec3 noise(randomFloats(generator) * 2.0 - 1.0, randomFloats(generator) * 2.0 - 1.0, 0.0f); // rotate around z-axis (in tangent space)
         ssaoNoise.push_back(glm::normalize(noise));
     }
-    ssaoNoiseTexture = createTexture(4, 4, GraphicsInterface::TextureTypes::T2D, GraphicsInterface::InternalFormatTypes::RGB32F, GraphicsInterface::FormatTypes::RGB, GraphicsInterface::DataTypes::FLOAT, 0);
-    setFilterMode(ssaoNoiseTexture, GraphicsInterface::TextureTypes::T2D, GraphicsInterface::FilterModes::LINEAR);
+    ssaoNoiseTexture = createTexture(tileSize, tileSize, GraphicsInterface::TextureTypes::T2D, GraphicsInterface::InternalFormatTypes::RGB32F, GraphicsInterface::FormatTypes::RGB, GraphicsInterface::DataTypes::FLOAT, 0);
+    setFilterMode(ssaoNoiseTexture, GraphicsInterface::TextureTypes::T2D, GraphicsInterface::FilterModes::NEAREST);
     setWrapMode(ssaoNoiseTexture, GraphicsInterface::TextureTypes::T2D,
                 GraphicsInterface::TextureWrapModes::REPEAT, GraphicsInterface::TextureWrapModes::REPEAT, GraphicsInterface::TextureWrapModes::REPEAT);
-    loadTextureData(ssaoNoiseTexture, 4, 4, GraphicsInterface::TextureTypes::T2D, GraphicsInterface::InternalFormatTypes::RGB32F, GraphicsInterface::FormatTypes::RGB, GraphicsInterface::DataTypes::FLOAT, 0, ssaoNoise.data(),
+    loadTextureData(ssaoNoiseTexture, tileSize, tileSize, GraphicsInterface::TextureTypes::T2D, GraphicsInterface::InternalFormatTypes::RGB32F, GraphicsInterface::FormatTypes::RGB, GraphicsInterface::DataTypes::FLOAT, 0, ssaoNoise.data(),
                     nullptr, nullptr, nullptr, nullptr, nullptr);
     }
 
