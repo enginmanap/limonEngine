@@ -49,8 +49,12 @@ vec3 unpackNormal(vec2 pa) {
 }
 
 void main(){
-    vec3 worldSpaceNormal = unpackNormal(texture(pre_gNormalMap, from_vs.textureCoordinates).xy);
-    float depth = texture(pre_depthMap, from_vs.textureCoordinates).r;
+    // if user is using different resolution for ssao, than display resolution, the ssao sample gets filtered. We are trying
+    // to get depth and normal, if they are filtered, results are wrong. So we use texelFetch
+    ivec2 fullResPixel = ivec2(from_vs.textureCoordinates * vec2(textureSize(pre_depthMap, 0)));
+    vec2 pixelCoordinates = (vec2(fullResPixel) + 0.5) / vec2(textureSize(pre_depthMap, 0));
+    vec3 worldSpaceNormal = unpackNormal(texelFetch(pre_gNormalMap, fullResPixel, 0).xy);
+    float depth = texelFetch(pre_depthMap, fullResPixel, 0).r;
 
     // Precompute inverse projection scalars used for depth linearisation.
     // For a perspective camera invProj[2][2]=0, so z_view = ipZC / (ipZA*z_ndc + ipZB).
@@ -62,7 +66,7 @@ void main(){
     // Reconstruct base view-space position from depth
     float z_ndc = depth * 2.0 - 1.0;
     float inv_w  = 1.0 / (ipZA * z_ndc + ipZB);
-    vec2 ndc_xy  = from_vs.textureCoordinates * 2.0 - 1.0;
+    vec2 ndc_xy  = pixelCoordinates * 2.0 - 1.0;
     vec3 basePosition = vec3(
         playerTransforms.inverseProjection[0][0] * ndc_xy.x * inv_w,
         playerTransforms.inverseProjection[1][1] * ndc_xy.y * inv_w,
