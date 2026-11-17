@@ -62,6 +62,11 @@ void sumLights(vec3 fragPos, vec3 normal, float shininess, float viewDistance, f
         float fragDistance = lightDistance(i, fragPos, lightDirection);
         //recomputed in the lighting loop, keeping them per light costs registers during shadow sampling
         float diffuseRate = max(dot(normal, lightDirection), 0.0);
+        if (diffuseRate == 0.0) {
+            //facing away from the light
+            shadows[i] = 1.0;
+            continue;
+        }
         //radius test only inside the point branch, before it the test would mask directional work too
         if(lightType == 1) {
             // We can't calculate bias of directional light because we don't know which cascade is selected
