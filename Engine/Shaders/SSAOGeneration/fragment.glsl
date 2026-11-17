@@ -29,7 +29,8 @@ uniform sampler2D pre_depthMap;
 uniform sampler2D ssaoNoiseSampler;
 
 uniform vec3 ssaoKernel[128];
-uniform int ssaoSampleCount;
+#define_option ssao_sampleCount
+const int ssaoSampleCount = int(ssao_sampleCount);//compile time, so the loop unrolls
 const float uRadius = float(ssao_radius);
 
 vec3 unpackNormal(vec2 pa) {
