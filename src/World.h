@@ -305,8 +305,9 @@ private:
     uint32_t simulatedTicks = 0; //Only increases when simulation is on.
     uint32_t gameTime = 0;
     uint32_t wallTime = 0;
+    //only grows as models are added, deleting or moving them never shrinks it
     glm::vec3 worldAABBMin= glm::vec3(std::numeric_limits<float>::max());
-    glm::vec3 worldAABBMax = glm::vec3(std::numeric_limits<float>::min());
+    glm::vec3 worldAABBMax = glm::vec3(std::numeric_limits<float>::lowest());
 
     FontManager fontManager;
 
