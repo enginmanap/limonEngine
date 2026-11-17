@@ -1063,6 +1063,7 @@ void World::ImGuiFrameSetup(std::shared_ptr<GraphicsProgram> graphicsProgram, co
            playerPlaceHolder = new Model(getNextObjectID(), assetManager, 0, assetFile, true, &playerPlaceHolderCullingEntry);
            playerPlaceHolder->getTransformation()->setScale(scale);
            loadModelMaterials(playerPlaceHolder);//never joins the world, but it is drawn
+           editor->markMaterialListDirty();
        }
 
        playerPlaceHolder->getTransformation()->setTransformations(physicalPlayer->getPosition()
@@ -1253,9 +1254,24 @@ void World::applyMaterialOverrides(Model *model) {
         std::unordered_map<uint64_t, std::shared_ptr<Material>>::const_iterator overrideIt =
                 materialOverrides.find(meshMetas[meshIndex]->material->getHash());
         if (overrideIt != materialOverrides.end()) {
-            model->setMeshMaterial(meshIndex, overrideIt->second);
+            setModelMeshMaterial(model, meshIndex, overrideIt->second);
         }
     }
+}
+
+std::shared_ptr<const Material> World::setModelMeshMaterial(Model *model, size_t meshIndex, const std::shared_ptr<const Material> &material) {
+    editor->markMaterialListDirty();
+    return model->setMeshMaterial(meshIndex, material);
+}
+
+void World::loadOverriddenMeshMaterial(Model *model, const std::vector<Model::MeshMaterialOverride> &customisedMeshMaterialList) {
+    editor->markMaterialListDirty();
+    model->loadOverriddenMeshMaterial(customisedMeshMaterialList);
+}
+
+void World::reloadModelWithFlip(Model *model, const std::string &flipAxes) {
+    editor->markMaterialListDirty();//the flip variant's meshes start on the asset's materials
+    model->reloadWithFlip(flipAxes);
 }
 
 void World::addMaterialOverride(uint64_t baseMaterialHash, const std::shared_ptr<Material> &material) {
@@ -1267,6 +1283,7 @@ void World::addMaterialOverride(uint64_t baseMaterialHash, const std::shared_ptr
         assetManager->getMaterialRegistry().unregisterMaterial(existingIt->second);
     }
     materialOverrides[baseMaterialHash] = material;
+    editor->markMaterialListDirty();//the base is listed as base_ now
 }
 
 void World::loadModelMaterials(Model *model) {
@@ -1286,7 +1303,7 @@ void World::resetModelMaterials(Model *model) {
         if (overrideIt != materialOverrides.end()) {
             meshMaterial = overrideIt->second;
         }
-        model->setMeshMaterial(meshIndex, meshMaterial);
+        setModelMeshMaterial(model, meshIndex, meshMaterial);
     }
     model->setDirtyForFrustum();
 }
@@ -1335,6 +1352,7 @@ void World::addModelToWorld(Model *xmlModel) {
         std::exit(-1);
     }
     objects[xmlModel->getWorldObjectID()] = xmlModel;
+    editor->markMaterialListDirty();
     xmlModel->setPendingTransformUploads(&pendingTransformUploads);
     pendingTransformUploads.insert(xmlModel);//anything set before joining the world was never uploaded
     if (xmlModel->isAnimated() && xmlModel->getRigId() == 0) {
@@ -2191,6 +2209,7 @@ void World::fillPlayerBlock(UniformBlockData &playerBlock, const glm::vec3 &came
            }
            //clear object itself
            objects.erase(modelToClear->getWorldObjectID());
+           editor->markMaterialListDirty();
            pendingTransformUploads.erase(modelToClear);
            modelToClear->setPendingTransformUploads(nullptr);
            physicsSimulationActiveModels.erase(modelToClear->getWorldObjectID());//the ID is reused, the request must not carry over

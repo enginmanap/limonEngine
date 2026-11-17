@@ -436,6 +436,11 @@ private:
     //set once per mesh, resetting to the base first would load the textures of a base an override replaces
     void resetModelMaterials(Model *model);
 
+    //every mesh material change goes through these, calling the Model directly leaves the editor's material list stale
+    std::shared_ptr<const Material> setModelMeshMaterial(Model *model, size_t meshIndex, const std::shared_ptr<const Material> &material);
+    void loadOverriddenMeshMaterial(Model *model, const std::vector<Model::MeshMaterialOverride> &customisedMeshMaterialList);
+    void reloadModelWithFlip(Model *model, const std::string &flipAxes);
+
     bool isMaterialOverride(const std::shared_ptr<const Material> &material) const;
 
     //texture to what uses it. The map saves each one's color space, the editor lists them

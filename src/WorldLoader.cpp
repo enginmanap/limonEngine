@@ -530,7 +530,7 @@ WorldLoader::loadObjectV2(World *world, std::shared_ptr<AssetManager> assetManag
 
     std::vector<Model::MeshMaterialOverride> custumizedMeshMaterialList = readMeshMaterialOverrides(world, objectNode);
     if (!custumizedMeshMaterialList.empty()) {
-        loadedObjectInformation->model->loadOverriddenMeshMaterial(custumizedMeshMaterialList);
+        world->loadOverriddenMeshMaterial(loadedObjectInformation->model, custumizedMeshMaterialList);
     }
 
     loadObjectTags(world, objectNode, loadedObjectInformation->model);

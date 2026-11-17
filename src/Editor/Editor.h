@@ -91,15 +91,20 @@ class Editor {
     //the material list's own copy of the registry, rebuilt only when the registry's version moves
     std::vector<std::pair<uint32_t, std::shared_ptr<Material>>> materialsSnapshot;
     uint32_t materialsSnapshotVersion = 0;
-    //per registration ID, only materials with a problem are in it. Files appear and go without the registry noticing, so it also refreshes on a timer
-    static constexpr uint8_t TEXTURE_PROBLEM_MISSING = 1;
-    static constexpr uint8_t TEXTURE_PROBLEM_REPAIRED = 2;
-    std::unordered_map<uint32_t, uint8_t> materialTextureProblems;
-    double materialTextureProblemsTime = -10.0;
+    //per registration ID, only materials with a problem are in it. Checking stats the files, so the tooltip reads the lines kept here
+    struct MaterialTextureProblem {
+        std::vector<std::string> missingFiles;
+        std::vector<std::pair<std::string, std::string>> textureRepairs;//asked for, using
+    };
+    std::unordered_map<uint32_t, MaterialTextureProblem> materialTextureProblems;
+    //files on disk only change for us when the asset tree reloads
+    uint32_t materialsAssetListVersion = 0;
+    bool materialListDirty = true;
     //materialsSnapshot split by whether a mesh in the world shows it, rebuilt with the problems above, never kept in sync between rebuilds
     std::vector<std::pair<uint32_t, std::shared_ptr<Material>>> materialsInUseRows;
     std::vector<std::pair<uint32_t, std::shared_ptr<Material>>> materialsNotInUseRows;
     void collectMaterialsInUse(std::unordered_set<uint32_t> &registrationIDs) const;
+    static void drawMaterialRowIcon(ImDrawList *rowDrawList, ImGuiImageWrapper *iconWrapper, float &iconX, float rowY, float iconSize);
     //draws one list box of material rows. A row that is selected sets selectedMaterial
     void showMaterialRows(const std::vector<std::pair<uint32_t, std::shared_ptr<Material>>> &rows, const char *listBoxID,
                           std::shared_ptr<Material> &selectedMaterial);
@@ -192,6 +197,11 @@ public:
     static constexpr float EXPORT_WINDOW_WIDTH = 700.0f;
 
     GameObject* pickedObject = nullptr;
+    //World calls this for every change to which material a world mesh shows, the list has no other way to know
+    void markMaterialListDirty() {
+        materialListDirty = true;
+    }
+
     GameObject* pendingPickedObject = nullptr;
     bool hasPendingPick = false;
     uint32_t pickedObjectID = 0xFFFFFFFF;

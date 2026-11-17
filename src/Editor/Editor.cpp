@@ -516,7 +516,7 @@ void Editor::beginAlteredMaterialEdit(Model* model, int32_t meshIndex) {
      */
     std::shared_ptr<const Material> sourceMaterial = model->getMeshMetaData()[meshIndex]->material;
     std::shared_ptr<Material> copiedMaterial = world->assetManager->getMaterialRegistry().createScratchCopy(sourceMaterial);
-    model->setMeshMaterial(meshIndex, copiedMaterial);
+    world->setModelMeshMaterial(model, meshIndex, copiedMaterial);
 
     alteredMaterialEdit.objectID = model->getWorldObjectID();
     alteredMaterialEdit.meshIndex = meshIndex;
@@ -541,7 +541,7 @@ void Editor::revertAlteredMaterialEdit() {
         // world->object don't have player attachments, we need to use findModelByID
         Model* model = world->findModelByID(alteredMaterialEdit.objectID);
         if (model != nullptr) {
-            model->setMeshMaterial(alteredMaterialEdit.meshIndex, sourceMaterial);
+            world->setModelMeshMaterial(model, alteredMaterialEdit.meshIndex, sourceMaterial);
         }
     }
     releaseAlteredMaterialEdit();
@@ -613,6 +613,14 @@ void Editor::collectMaterialsInUse(std::unordered_set<uint32_t> &registrationIDs
     }
 }
 
+//moves iconX past what it drew, so the next icon goes beside it
+void Editor::drawMaterialRowIcon(ImDrawList *rowDrawList, ImGuiImageWrapper *iconWrapper, float &iconX, float rowY, float iconSize) {
+    if (iconWrapper != nullptr) {
+        rowDrawList->AddImage((ImTextureID)(intptr_t)iconWrapper, ImVec2(iconX, rowY), ImVec2(iconX + iconSize, rowY + iconSize));
+    }
+    iconX += iconSize + 2.0f;
+}
+
 void Editor::showMaterialRows(const std::vector<std::pair<uint32_t, std::shared_ptr<Material>>> &rows, const char *listBoxID,
                               std::shared_ptr<Material> &selectedMaterial) {
     if (!ImGui::BeginListBox(listBoxID)) {
@@ -626,8 +634,8 @@ void Editor::showMaterialRows(const std::vector<std::pair<uint32_t, std::shared_
         std::unordered_map<uint32_t, std::string>::const_iterator knownLabel = materialRowLabels.find(it->first);
         const std::string &rowLabel = knownLabel != materialRowLabels.end() ? knownLabel->second : it->second->getName();
         //the text is drawn by hand so the icons have a column, the ID after ### keeps the row's identity
-        std::unordered_map<uint32_t, uint8_t>::const_iterator textureProblem = materialTextureProblems.find(it->first);
-        uint8_t problemBits = textureProblem == materialTextureProblems.end() ? 0 : textureProblem->second;
+        std::unordered_map<uint32_t, MaterialTextureProblem>::const_iterator textureProblem = materialTextureProblems.find(it->first);
+        const bool hasTextureProblem = textureProblem != materialTextureProblems.end();
         const float iconSize = std::min(ImGui::GetTextLineHeight(), 16.0f);
         const float iconColumnWidth = materialTextureProblems.empty() ? 0.0f : 2.0f * (iconSize + 2.0f);
         if (ImGui::Selectable(("###" + std::to_string(it->first)).c_str(), isSelected)) {
@@ -638,28 +646,24 @@ void Editor::showMaterialRows(const std::vector<std::pair<uint32_t, std::shared_
         ImDrawList *rowDrawList = ImGui::GetWindowDrawList();
         rowDrawList->AddText(ImVec2(rowMin.x + iconColumnWidth, rowMin.y), ImGui::GetColorU32(ImGuiCol_Text),
                              (rowLabel + " -> " + std::to_string(it->first)).c_str());
-        float iconX = rowMin.x;
-        const std::pair<uint8_t, ImGuiHelper::Icon> rowIcons[2] = {{TEXTURE_PROBLEM_MISSING, ImGuiHelper::Icon::ERROR_SIGN},
-                                                                   {TEXTURE_PROBLEM_REPAIRED, ImGuiHelper::Icon::WARNING_SIGN}};
-        for (const std::pair<uint8_t, ImGuiHelper::Icon> &rowIcon : rowIcons) {
-            if ((problemBits & rowIcon.first) == 0) {
-                continue;
+        if (hasTextureProblem) {
+            float iconX = rowMin.x;
+            if (!textureProblem->second.missingFiles.empty()) {
+                drawMaterialRowIcon(rowDrawList, imgGuiHelper->getIcon(ImGuiHelper::Icon::ERROR_SIGN), iconX, rowMin.y, iconSize);
             }
-            ImGuiImageWrapper *iconWrapper = imgGuiHelper->getIcon(rowIcon.second);
-            if (iconWrapper != nullptr) {
-                rowDrawList->AddImage((ImTextureID)(intptr_t)iconWrapper, ImVec2(iconX, rowMin.y), ImVec2(iconX + iconSize, rowMin.y + iconSize));
+            if (!textureProblem->second.textureRepairs.empty()) {
+                drawMaterialRowIcon(rowDrawList, imgGuiHelper->getIcon(ImGuiHelper::Icon::WARNING_SIGN), iconX, rowMin.y, iconSize);
             }
-            iconX += iconSize + 2.0f;
-        }
-        if (problemBits != 0 && ImGui::IsItemHovered()) {
-            ImGui::BeginTooltip();
-            for (const std::string &missingFile : it->second->getMissingTextureFiles()) {
-                ImGui::Text("No file at %s, loads the not found texture", missingFile.c_str());
+            if (ImGui::IsItemHovered()) {
+                ImGui::BeginTooltip();
+                for (const std::string &missingFile : textureProblem->second.missingFiles) {
+                    ImGui::Text("No file at %s, loads the not found texture", missingFile.c_str());
+                }
+                for (const std::pair<std::string, std::string> &repair : textureProblem->second.textureRepairs) {
+                    ImGui::Text("Asked for %s, using %s", repair.first.c_str(), repair.second.c_str());
+                }
+                ImGui::EndTooltip();
             }
-            for (const std::pair<std::string, std::string> &repair : it->second->getTextureRepairs()) {
-                ImGui::Text("Asked for %s, using %s", repair.first.c_str(), repair.second.c_str());
-            }
-            ImGui::EndTooltip();
         }
         //a split or the model selection can pick a row that is scrolled out of view
         if (isSelected && lastScrolledRegistrationID != it->first) {
@@ -679,7 +683,7 @@ void Editor::reseatWorldMeshes(const std::shared_ptr<const Material> &baseMateri
         const std::vector<Model::MeshMeta *> &meshMetas = model->getMeshMetaData();
         for (size_t meshIndex = 0; meshIndex < meshMetas.size(); ++meshIndex) {
             if (meshMetas[meshIndex]->material == baseMaterial) {
-                model->setMeshMaterial(meshIndex, overrideMaterial);
+                world->setModelMeshMaterial(model, meshIndex, overrideMaterial);
             }
         }
     }
@@ -1759,22 +1763,19 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
                 materialRegistry.fillMaterialsSnapshot(materialsSnapshot);
                 materialsSnapshotRebuilt = true;
             }
-            if (materialsSnapshotRebuilt || ImGui::GetTime() - materialTextureProblemsTime > 1.0) {
-                materialTextureProblemsTime = ImGui::GetTime();
+            const uint32_t assetListVersion = world->assetManager->getTree()->getAssetListVersion();
+            if (materialsSnapshotRebuilt || materialListDirty || materialsAssetListVersion != assetListVersion) {
+                materialListDirty = false;
+                materialsAssetListVersion = assetListVersion;
                 materialTextureProblems.clear();
                 for (const std::pair<uint32_t, std::shared_ptr<Material>> &listedMaterial : materialsSnapshot) {
-                    uint8_t problemBits = 0;
-                    if (!listedMaterial.second->getMissingTextureFiles().empty()) {
-                        problemBits |= TEXTURE_PROBLEM_MISSING;
-                    }
-                    if (!listedMaterial.second->getTextureRepairs().empty()) {
-                        problemBits |= TEXTURE_PROBLEM_REPAIRED;
-                    }
-                    if (problemBits != 0) {
-                        materialTextureProblems[listedMaterial.first] = problemBits;
+                    MaterialTextureProblem textureProblem;
+                    textureProblem.missingFiles = listedMaterial.second->getMissingTextureFiles();
+                    textureProblem.textureRepairs = listedMaterial.second->getTextureRepairs();
+                    if (!textureProblem.missingFiles.empty() || !textureProblem.textureRepairs.empty()) {
+                        materialTextureProblems[listedMaterial.first] = std::move(textureProblem);
                     }
                 }
-                //a Switch material click changes what is shown without moving the registry, so this rides the timer too
                 std::unordered_set<uint32_t> materialsInUse;
                 collectMaterialsInUse(materialsInUse);
                 //sorted by what the row shows, case ignored. The id only breaks ties
@@ -1843,6 +1844,7 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
                     //indexes the settled value. Doing it unconditionally took the registry lock every frame
                     materialRegistry.refreshContentIndex(selectedMaterial);
                     refreshTagsOfMaterialUsers(selectedMaterial);
+                    materialListDirty = true;//name and textures are what the list shows
                 }
             }
             ImGui::Unindent();
@@ -1873,6 +1875,9 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
             ImGuiResult objectEditorResult = this->pickedObject->addImGuiEditorElements(*this->request);
             this->request->alteredMaterial = nullptr;
             this->request->materialSelectedInList = nullptr;
+            if (objectEditorResult.materialDirty) {
+                materialListDirty = true;//the altered material is edited in this pane too
+            }
             if (objectEditorResult.selectedMeshMaterial != nullptr) {
                 //the list is drawn before this, so it picks this up next frame
                 selectedMeshMaterial = objectEditorResult.selectedMeshMaterial;
@@ -2961,7 +2966,7 @@ void Editor::applyPendingCommands() {
                 Model *model = world->findModelByID(command.objectID);
                 if (model != nullptr) {
                     //this model now holds a reference of its own, released when the mesh is reseated again or the model dies
-                    model->setMeshMaterial(command.meshIndex, command.material);
+                    world->setModelMeshMaterial(model, command.meshIndex, command.material);
                     model->setDirtyForFrustum();
                 }
             }
@@ -2972,7 +2977,7 @@ void Editor::applyPendingCommands() {
             case EditorCommand::Kind::FLIP_MODEL: {
                 Model *model = world->findModelByID(command.objectID);
                 if (model != nullptr) {
-                    model->reloadWithFlip(command.flipAxes);
+                    world->reloadModelWithFlip(model, command.flipAxes);
                     world->apiAccessor->refreshBroadphaseAabbs(model);//the shape changed while the body stayed in the world
                 }
             }
@@ -2999,7 +3004,7 @@ void Editor::applyRevertAlteredMaterial(const EditorCommand &command) {
     Model *model = world->findModelByID(command.objectID);
     if (model != nullptr && command.meshIndex >= 0 && static_cast<size_t>(command.meshIndex) < model->getMeshMetaData().size() &&
         model->getMeshMetaData()[command.meshIndex]->material == command.material) {
-        model->setMeshMaterial(command.meshIndex, command.sourceMaterial);
+        world->setModelMeshMaterial(model, command.meshIndex, command.sourceMaterial);
     }
 }
 

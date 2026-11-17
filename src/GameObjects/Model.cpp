@@ -1174,6 +1174,7 @@ ImGuiResult Model::addImGuiEditorElements(const ImGuiRequest &request) {
             if (request.alteredMaterial != nullptr) {
                 if (request.alteredMaterial->addImGuiEditorElements(request).materialDirty) {
                     refreshTags();
+                    result.materialDirty = true;
                 }
                 if (ImGui::Button("Revert##materialAlterInModel")) {
                     result.revertAlteredMaterial = true;
