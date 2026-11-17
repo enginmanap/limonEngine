@@ -121,6 +121,7 @@ if (NOT LIBS_EXTERNAL_ASSIMP)
     option(ASSIMP_BUILD_TESTS "If the test suite for Assimp is built in addition to the library." OFF)
     option(ASSIMP_INSTALL "Disable this if you want to use assimp as a submodule." OFF)
     option(ASSIMP_NO_EXPORT "Disable Assimp's export functionality." ON)
+    option(ASSIMP_WARNINGS_AS_ERRORS "Treat assimp warnings as errors." OFF)
 endif()
 
 if (NOT LIBS_EXTERNAL_BULLET)
