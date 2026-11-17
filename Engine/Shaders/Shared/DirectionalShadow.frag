@@ -44,20 +44,15 @@ float _SampleCascadeShadow(int lightIndex, int layer, vec3 world_space_frag_pos,
     float currentDepth = projectedCoordinates.z;
     if (currentDepth >= 1.0) return 0.0;
 
-    float shadow = 0.0;
     vec2 texelSize = 1.0 / vec2(textureSize(pre_shadowDirectional, 0).xy);
     float filterRadius = 2.0 + float(layer) * 0.5;// mirrored in OrthographicCamera caster culling padding, change both
     float compareDepth = currentDepth;
+    vec2 tapScale = texelSize * filterRadius;
 
-    // Early-out: center sample is fully lit, skip full PCF loop
-    if(texture(pre_shadowDirectional, vec4(projectedCoordinates.xy, layer, compareDepth)) == 1.0) {
-        return 0.0;
-    }
-
-    for(int i = 0; i < shadow_directionalSampleCount; ++i){
-        vec2 offset = rot * _poissonDisk[i];
+    float shadow = 0.0;
+    for (int i = 0; i < shadow_directionalSampleCount; ++i) {
         // sampler2DArrayShadow returns 1.0 if not in shadow (compareDepth <= texture_depth), 0.0 if in shadow
-        float lit = texture(pre_shadowDirectional, vec4(projectedCoordinates.xy + offset * texelSize * filterRadius, layer, compareDepth));
+        float lit = texture(pre_shadowDirectional, vec4(projectedCoordinates.xy + (rot * _poissonDisk[i]) * tapScale, layer, compareDepth));
         shadow += (1.0 - lit);
     }
     return shadow / float(shadow_directionalSampleCount);
@@ -79,7 +74,7 @@ float ShadowCalculationDirectional(int lightIndex, vec3 world_space_frag_pos, ve
     // we calculate normal bias after cascade selection, so we can scale it based on the cascade.
     // The bias needed for first cascade is tiny, compared to last cascade. We would need to pass
     // texel size to calculate it correctly, this is an approxmate.
-    float baseNormalBias = mix(0.01, 0.100, diffuseRate);// max is mirrored in OrthographicCamera::MAX_NORMAL_BIAS, change both
+    float baseNormalBias = mix(0.1, 0.010, diffuseRate);// max is mirrored in OrthographicCamera::MAX_NORMAL_BIAS, change both
     vec3 biasedFragPos = world_space_frag_pos + worldNormal * (baseNormalBias * (cascadePlaneDistances[layer] / cascadePlaneDistances[0]));
 
     // Calculate rotation matrix once per directional light
