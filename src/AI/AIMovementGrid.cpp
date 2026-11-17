@@ -615,6 +615,28 @@ AIMovementGrid::AIMovementGrid(const std::vector<StartCandidate> &startCandidate
     std::cout << "Finished generating AI walk grid in " << SDL3Helper::getTicks() - generationStartTicks << " ms, with " << doneNodes.size() - 1 << " nodes and "
               << visitedCount << " unmovable edge nodes" << std::endl;
     std::cout << "AI grid queries that ran: " << groundQueryCount << " ground rays, " << collisionQueryCount << " collision tests" << std::endl;
+    //only the unmovable edge nodes are left in visited, doneNodes must own them before visited goes, a load leaves the same state
+    for (const std::pair<const uint64_t, std::vector<std::shared_ptr<AIMovementNode>>> &cell : visited) {
+        for (const std::shared_ptr<AIMovementNode> &visitedNode : cell.second) {
+            doneNodes.push_back(visitedNode);
+        }
+    }
+    //clear() would keep the buckets
+    std::unordered_map<uint64_t, std::vector<std::shared_ptr<AIMovementNode>>>().swap(visited);
+    std::unordered_map<uint64_t, std::vector<std::shared_ptr<AIMovementNode>>>().swap(doneCells);
+    visitedCount = 0;
+}
+
+void AIMovementGrid::setStateAfterLoad() {
+    if (root != nullptr) {
+        gridOrigin = root->getPosition();//the build starts at the root, cell keys round relative to it
+    }
+    for (size_t i = 1; i < doneNodes.size(); ++i) {//0 is the placeholder
+        if (doneNodes[i]->isIsMovable()) {//the build bounds only the nodes it finished
+            this->max = glm::max(this->max, doneNodes[i]->getPosition());
+            this->min = glm::min(this->min, doneNodes[i]->getPosition());
+        }
+    }
 }
 
 bool
@@ -678,11 +700,6 @@ bool AIMovementGrid::coursePath(const glm::vec3 &from, const glm::vec3 &to, uint
 void AIMovementGrid::buildDebugCells() const {
     for (size_t i = 1; i < doneNodes.size(); ++i) {//0 is the placeholder
         debugCells[getCellKey(doneNodes[i]->getPosition())].push_back(doneNodes[i].get());
-    }
-    for (const std::pair<const uint64_t, std::vector<std::shared_ptr<AIMovementNode>>> &cell : visited) {
-        for (const std::shared_ptr<AIMovementNode> &visitedNode : cell.second) {
-            debugCells[getCellKey(visitedNode->getPosition())].push_back(visitedNode.get());
-        }
     }
     isDebugCellsBuilt = true;
 }
@@ -763,12 +780,6 @@ bool AIMovementGrid::serializeXML(const std::string &fileName) {
 
     for (auto nodeIt = doneNodes.begin(); nodeIt != doneNodes.end(); ++nodeIt) {
         serializeNode(aiGridDocument, rootNode, *nodeIt);
-    }
-
-    for (const std::pair<const uint64_t, std::vector<std::shared_ptr<AIMovementNode>>> &cell : visited) {
-        for (const std::shared_ptr<AIMovementNode> &visitedNode : cell.second) {
-            serializeNode(aiGridDocument, rootNode, visitedNode);
-        }
     }
 
     rootNode->InsertEndChild(nodesElement);
@@ -982,6 +993,7 @@ AIMovementGrid *AIMovementGrid::deserialize(const std::string &fileName) {
 
         nodeElement =  nodeElement->NextSiblingElement("Node");
     }
+    grid->setStateAfterLoad();
     std::cout << "AI Walk grid read successful" << std::endl;
     return grid;
 }

@@ -141,6 +141,7 @@ private:
     void finishNode(const std::shared_ptr<AIMovementNode> &node);
     void printSearchSummary(btDiscreteDynamicsWorld *staticWorld) const;
     uint64_t calculateFingerprint() const;
+    void setStateAfterLoad();//what the build sets as it goes and a file doesn't store
     bool chooseStartPoint(const std::vector<StartCandidate> &startCandidates, btDiscreteDynamicsWorld *staticWorld, const glm::vec3 &min,
                           uint32_t collisionGroup, uint32_t collisionMask, glm::vec3 *startPoint);
     bool isBlockedAt(const glm::vec3 &position, btDiscreteDynamicsWorld *staticWorld, uint32_t collisionGroup, uint32_t collisionMask);
@@ -264,21 +265,6 @@ public:
             saveNodes[doneNodes[i]->getID()].neigbours[4] = doneNodes[i]->getID();//self ID at 4
         }
 
-        for (const std::pair<const uint64_t, std::vector<std::shared_ptr<AIMovementNode>>> &cell : visited) {
-            for (const std::shared_ptr<AIMovementNode> &visitedNode : cell.second) {
-                saveNodes[visitedNode->getID()].position = visitedNode->getPosition();
-                saveNodes[visitedNode->getID()].movable = visitedNode->isIsMovable();
-                for (int j = 0; j < 9; ++j) {
-                    if(visitedNode->getNeighbour(j) == nullptr) {
-                        saveNodes[visitedNode->getID()].neigbours[j] = 0;
-                    } else {
-                        saveNodes[visitedNode->getID()].neigbours[j] = visitedNode->getNeighbour(j)->getID();
-                    }
-                }
-                saveNodes[visitedNode->getID()].neigbours[4] = visitedNode->getID();//self ID at 4
-            }
-        }
-
         uint32_t magic = FILE_MAGIC;
         uint32_t version = FILE_VERSION;
         archive(magic, version, spacing, stepHeight, floatingHeight, nextPossibleIndex, saveNodes);
@@ -332,7 +318,7 @@ public:
         if(doneNodes.size() > 1) {
             root = doneNodes[1];
         }
-
+        setStateAfterLoad();
     }
 
     static AIMovementGrid* deserializeBinary(const std::string& fileName) {
