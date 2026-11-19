@@ -18,6 +18,7 @@ struct CullingEntry {
     glm::vec3 aabbMax = glm::vec3(0.0f);
     bool dirtyForFrustum = true;
     bool animated = false;//never changes after the model is constructed
+    bool meshTagsUniform = true;//set by Model::refreshTags. When false, culling checks each mesh's tags, not only the union below
     Model* model = nullptr;
     ModelGroup* nearestModelGroup = nullptr;//kept by WorldAPIAccessor::refreshNearestModelGroup on every parent change, culling never walks parents
     std::vector<MeshMeta*> meshMetaData;//the model owns the MeshMetas, it deletes them

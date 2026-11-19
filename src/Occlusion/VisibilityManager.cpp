@@ -406,14 +406,16 @@ void VisibilityManager::fillVisibleObjectPerCamera(const VisibilityRequest* visi
                             }
                             //an occluder can be hidden by another one too. Its own aabb is in front of its surface, so it can't hide itself
                             if (runOcclusion) {
-                                visibilityRequest->occlusionCuller.addOccludee(currentModel, cullingEntry.aabbMin, cullingEntry.aabbMax, modelLod, objectAverageDepth, &visibilityEntry.second);
+                                visibilityRequest->occlusionCuller.addOccludee(currentModel, cullingEntry.aabbMin, cullingEntry.aabbMax, modelLod, objectAverageDepth, &visibilityEntry.second, &visibilityEntry.first);
                             } else {
                                 for (const Model::MeshMeta* meshMeta : meshMetas) {
-                                    visibilityEntry.second.addMeshMaterial(meshMeta->material, meshMeta->mesh, currentModel, modelLod, objectAverageDepth);
+                                    if (cullingEntry.meshTagsUniform || VisibilityRequest::isAnyTagMatch(visibilityEntry.first, meshMeta->tagHashes)) {
+                                        visibilityEntry.second.addMeshMaterial(meshMeta->material, meshMeta->mesh, currentModel, modelLod, objectAverageDepth);
+                                    }
                                 }
                             }
                         } else {
-                            visibilityRequest->occlusionCuller.addOccludee(currentModel, cullingEntry.aabbMin, cullingEntry.aabbMax, modelLod, objectAverageDepth, &visibilityEntry.second);
+                            visibilityRequest->occlusionCuller.addOccludee(currentModel, cullingEntry.aabbMin, cullingEntry.aabbMax, modelLod, objectAverageDepth, &visibilityEntry.second, &visibilityEntry.first);
                         }
                     } else {
                         lodSkipCounter++;
@@ -545,8 +547,11 @@ bool VisibilityManager::passesOccluderSize(const ModelGroup* group, float ownScr
 
 uint32_t VisibilityManager::addOccludeeMeshes(const OcculudeeMetaData* occludee, RenderList* renderList) {
     const std::vector<Model::MeshMeta*>& meshMetas = occludee->model->getMeshMetaData();
+    const bool meshTagsUniform = occludee->model->getCullingEntry()->meshTagsUniform;
     for (const Model::MeshMeta* meshMeta : meshMetas) {
-        renderList->addMeshMaterial(meshMeta->material, meshMeta->mesh, occludee->model, occludee->lod, occludee->averageDepth);
+        if (meshTagsUniform || VisibilityRequest::isAnyTagMatch(*occludee->renderTags, meshMeta->tagHashes)) {
+            renderList->addMeshMaterial(meshMeta->material, meshMeta->mesh, occludee->model, occludee->lod, occludee->averageDepth);
+        }
     }
     return (uint32_t)meshMetas.size();
 }

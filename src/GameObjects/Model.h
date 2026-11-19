@@ -28,6 +28,7 @@ class RenderList;
 struct MeshMeta {
     std::shared_ptr<MeshAsset> mesh = nullptr;
     std::shared_ptr<const Material> material = nullptr;
+    std::vector<uint64_t> tagHashes;//written by Model::refreshTags, culling reads it only for models whose meshes differ
 };
 
 class Model : public PhysicalRenderable, public GameObject {
@@ -69,6 +70,8 @@ private:
     std::vector<TagEdit> tagEdits;
 
     static bool isPlayerAttachmentTag(uint64_t tagHash);
+    void resolveMeshTags(const Material *material, bool animated, bool underPlayer, std::vector<TagEdit> &meshTags) const;
+    void addModelLevelDerivedTags(std::vector<TagEdit> &derivedTags) const;
     void putTagsInGui(std::set<std::string> *knownTags);
 
     //asset materials are registered by the asset, so we only release the ones we swapped in ourselves
@@ -215,6 +218,7 @@ public:
     }
 
     //the world uploads the set in prepareFrame. A model outside a world is uploaded by whoever draws it
+    // FIXME: I hate that the model updates a component of the world, but creating a cache coherent memory layout required this. I could not think a better pattern
     void setPendingTransformUploads(std::unordered_set<Model*>* pendingUploads) {
         this->pendingTransformUploads = pendingUploads;
     }
@@ -286,7 +290,8 @@ public:
         Model::animationTimeScale = animationTimeScale;
     }
 
-    //rebuilds the tag list from the asset, mass, materials and this object's own edits. Whoever changes one of them calls it
+    //rebuilds each mesh's tags from the asset, mass, its material and this object's own edits, the object's list is their union.
+    //Whoever changes one of them calls it
     void refreshTags();
 
     //public for the material panel, which shows what a material gives on its own

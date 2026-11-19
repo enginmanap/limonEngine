@@ -110,9 +110,70 @@ bool Model::isPlayerAttachmentTag(uint64_t tagHash) {
     return tagHash == playerBasicTag || tagHash == playerAnimatedTag || tagHash == playerTransparentTag;
 }
 
+void Model::resolveMeshTags(const Material *material, bool animated, bool underPlayer, std::vector<TagEdit> &meshTags) const {
+    if (material != nullptr) {
+        addDerivedTags(meshTags, animated, material->hasAmbientMap(), isMaterialTransparent(*material, animated));
+        TagEdits::apply(material->getTagEdits(), meshTags);
+    } else {
+        addDerivedTags(meshTags, animated, false, false);
+    }
+    TagEdits::addUnique(meshTags, this->mass > 0 ? HardCodedTags::OBJECT_MODEL_PHYSICAL : HardCodedTags::OBJECT_MODEL_STATIC);
+    TagEdits::apply(tagEdits, meshTags);
+    if (underPlayer) {
+        //mirrors the kind tag, so removing basic_model_object opts the mesh out of basic_player_attachment too
+        if (TagEdits::contains(meshTags, HashUtil::hashString(HardCodedTags::OBJECT_MODEL_BASIC))) {
+            TagEdits::addUnique(meshTags, HardCodedTags::OBJECT_PLAYER_BASIC);
+        }
+        if (TagEdits::contains(meshTags, HashUtil::hashString(HardCodedTags::OBJECT_MODEL_ANIMATED))) {
+            TagEdits::addUnique(meshTags, HardCodedTags::OBJECT_PLAYER_ANIMATED);
+        }
+        if (TagEdits::contains(meshTags, HashUtil::hashString(HardCodedTags::OBJECT_MODEL_TRANSPARENT))) {
+            TagEdits::addUnique(meshTags, HardCodedTags::OBJECT_PLAYER_TRANSPARENT);
+        }
+        TagEdits::apply(tagEdits, meshTags);//again, a player tag the object removed stays removed
+    }
+}
+
 void Model::refreshTags() {
     const bool animated = isAnimated();
-    std::vector<TagEdit> resolvedTags;
+    const Attachable *root = this;
+    while (root->getParentObject() != nullptr) {
+        root = root->getParentObject();
+    }
+    //attaching only ever finds the starting player, so any player root is that one
+    const bool underPlayer = dynamic_cast<const Player *>(root) != nullptr;
+    std::vector<TagEdit> unionTags;
+    std::vector<TagEdit> meshTags;
+    cullingEntry->meshTagsUniform = true;
+    for (MeshMeta *meshMeta : cullingEntry->meshMetaData) {
+        meshTags.clear();
+        resolveMeshTags(meshMeta->material.get(), animated, underPlayer, meshTags);
+        meshMeta->tagHashes.clear();
+        for (const TagEdit &meshTag : meshTags) {
+            meshMeta->tagHashes.push_back(meshTag.hash);
+            TagEdits::addUnique(unionTags, meshTag.text, meshTag.hash);
+        }
+        //same tags in another order counts as differing, that only costs the per mesh check
+        if (meshMeta->tagHashes != cullingEntry->meshMetaData[0]->tagHashes) {
+            cullingEntry->meshTagsUniform = false;
+        }
+    }
+    if (cullingEntry->meshMetaData.empty()) {
+        resolveMeshTags(nullptr, animated, underPlayer, unionTags);//nothing to render, but the API still reads the tags
+    }
+    std::vector<HashUtil::HashedString> hashedTags;
+    hashedTags.reserve(unionTags.size());
+    for (const TagEdit &unionTag : unionTags) {
+        hashedTags.emplace_back(unionTag.text);
+    }
+    replaceTags(hashedTags);
+    copyTagsToCullingEntry();
+    setDirtyForFrustum();
+}
+
+void Model::addModelLevelDerivedTags(std::vector<TagEdit> &derivedTags) const {
+    //what the model level rules gave before routing went per mesh, only for reading maps saved with <Tags>
+    const bool animated = isAnimated();
     bool hasUntouchedMesh = false;
     bool hasEditedMesh = false;
     bool untouchedAmbient = false;
@@ -129,56 +190,25 @@ void Model::refreshTags() {
             untouchedTransparent = untouchedTransparent || meshTransparent;
             continue;
         }
-        //an edited material keeps its own kind even if the other meshes say another, the object's edits settle it
         hasEditedMesh = true;
         std::vector<TagEdit> meshTags;
         addDerivedTags(meshTags, animated, material.hasAmbientMap(), meshTransparent);
         TagEdits::apply(material.getTagEdits(), meshTags);
         for (const TagEdit &meshTag : meshTags) {
-            TagEdits::addUnique(resolvedTags, meshTag.text, meshTag.hash);
+            TagEdits::addUnique(derivedTags, meshTag.text, meshTag.hash);
         }
     }
-    //untouched ones decide together, one transparent mesh makes the whole object transparent
     if (hasUntouchedMesh || !hasEditedMesh) {
-        addDerivedTags(resolvedTags, animated, untouchedAmbient, untouchedTransparent);
+        addDerivedTags(derivedTags, animated, untouchedAmbient, untouchedTransparent);
     }
-    TagEdits::addUnique(resolvedTags, this->mass > 0 ? HardCodedTags::OBJECT_MODEL_PHYSICAL : HardCodedTags::OBJECT_MODEL_STATIC);
-    TagEdits::apply(tagEdits, resolvedTags);
-    const Attachable *root = this;
-    while (root->getParentObject() != nullptr) {
-        root = root->getParentObject();
-    }
-    //attaching only ever finds the starting player, so any player root is that one
-    if (dynamic_cast<const Player *>(root) != nullptr) {
-        //mirrors the kind tag, so removing basic_model_object opts the model out of basic_player_attachment too
-        if (TagEdits::contains(resolvedTags, HashUtil::hashString(HardCodedTags::OBJECT_MODEL_BASIC))) {
-            TagEdits::addUnique(resolvedTags, HardCodedTags::OBJECT_PLAYER_BASIC);
-        }
-        if (TagEdits::contains(resolvedTags, HashUtil::hashString(HardCodedTags::OBJECT_MODEL_ANIMATED))) {
-            TagEdits::addUnique(resolvedTags, HardCodedTags::OBJECT_PLAYER_ANIMATED);
-        }
-        if (TagEdits::contains(resolvedTags, HashUtil::hashString(HardCodedTags::OBJECT_MODEL_TRANSPARENT))) {
-            TagEdits::addUnique(resolvedTags, HardCodedTags::OBJECT_PLAYER_TRANSPARENT);
-        }
-        TagEdits::apply(tagEdits, resolvedTags);//again, a player tag the object removed stays removed
-    }
-    std::vector<HashUtil::HashedString> hashedTags;
-    hashedTags.reserve(resolvedTags.size());
-    for (const TagEdit &resolvedTag : resolvedTags) {
-        hashedTags.emplace_back(resolvedTag.text);
-    }
-    replaceTags(hashedTags);
-    copyTagsToCullingEntry();
-    setDirtyForFrustum();
+    TagEdits::addUnique(derivedTags, this->mass > 0 ? HardCodedTags::OBJECT_MODEL_PHYSICAL : HardCodedTags::OBJECT_MODEL_STATIC);
 }
 
 void Model::convertSavedTags(const std::vector<std::string> &savedTags) {
     tagEdits.clear();
-    refreshTags();
+    //against the old rules, the new per mesh union of a mixed model has basic, and the saved list doesn't
     std::vector<TagEdit> derivedTags;
-    for (const HashUtil::HashedString &derivedTag : getTags()) {
-        derivedTags.push_back(TagEdit{derivedTag.text, derivedTag.hash, true});
-    }
+    addModelLevelDerivedTags(derivedTags);
     std::vector<TagEdit> saved;
     for (const std::string &savedTag : savedTags) {
         TagEdits::addUnique(saved, savedTag);
@@ -491,24 +521,18 @@ bool Model::fillObjects(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *o
         }
     }
 
-    std::vector<std::string> tagsToSave;
-    for (const HashUtil::HashedString& currentTag:getTags()) {
-        if (currentTag.text != HardCodedTags::PICKED_OBJECT) {//editor selection, it is not part of the object
-            tagsToSave.emplace_back(currentTag.text);
+    //only the edits, a resolved list can't tell a tag added to every mesh from one most meshes already had.
+    //Written even when empty, an object without the element is read as an old map with <Tags>
+    tinyxml2::XMLElement *tagEditsNode = document.NewElement("TagEdits");
+    for (const TagEdit &tagEdit : tagEdits) {
+        if (tagEdit.text != HardCodedTags::PICKED_OBJECT) {//editor selection, it is not part of the object
+            tinyxml2::XMLElement *tagEditNode = document.NewElement("TagEdit");
+            tagEditNode->SetAttribute("Added", tagEdit.added ? 1 : 0);
+            tagEditNode->SetText(tagEdit.text.c_str());
+            tagEditsNode->InsertEndChild(tagEditNode);
         }
     }
-    if (!tagsToSave.empty()) {
-        tinyxml2::XMLElement *tagsNode = document.NewElement("Tags");
-        tinyxml2::XMLElement *tagsCountNode = document.NewElement("Count");
-        tagsCountNode->SetText(std::to_string(tagsToSave.size()).c_str());
-        tagsNode->InsertEndChild(tagsCountNode);
-        objectElement->InsertEndChild(tagsNode);
-        for (const std::string& tagToSave:tagsToSave) {
-            tinyxml2::XMLElement *tagNode = document.NewElement("Tag");
-            tagNode->SetText(tagToSave.c_str());
-            tagsNode->InsertEndChild(tagNode);
-        }
-    }
+    objectElement->InsertEndChild(tagEditsNode);
     return true;
 }
 

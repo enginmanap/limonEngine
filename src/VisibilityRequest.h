@@ -143,6 +143,17 @@ public:
             }
             return false;
         }
+
+    static bool isAnyTagMatch(const std::vector<uint64_t>& renderTags, const std::vector<uint64_t> & meshTags) {
+            for (uint64_t renderTag : renderTags) {
+                for (uint64_t meshTag : meshTags) {
+                    if (renderTag == meshTag) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
 };
 
 

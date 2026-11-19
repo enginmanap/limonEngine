@@ -206,6 +206,7 @@ if (NOT glm_FOUND)
 endif (NOT glm_FOUND)
 INCLUDE_DIRECTORIES(SYSTEM ${GLM_INCLUDE_DIRS})
 
+
 if (LIBS_EXTERNAL_ASSIMP)
     set(LIBS_ASSIMP_INCLUDE_DIR "" CACHE PATH "The main include path")
     set(LIBS_ASSIMP_CONFIG_DIR "" CACHE PATH "The include path with generated config.h")

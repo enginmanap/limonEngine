@@ -13,10 +13,11 @@ struct OcculudeeMetaData {
     uint32_t lod;
     float averageDepth;
     RenderList* renderList;
+    const std::vector<uint64_t>* renderTags;//renderList's key, a model with differing meshes only adds the ones matching it
 
     OcculudeeMetaData() = default;
 
-    OcculudeeMetaData(const Model * model, uint32_t lod, float averageDepth, RenderList* renderList) :
-    model(model), lod(lod), averageDepth(averageDepth), renderList(renderList) {};
+    OcculudeeMetaData(const Model * model, uint32_t lod, float averageDepth, RenderList* renderList, const std::vector<uint64_t>* renderTags) :
+    model(model), lod(lod), averageDepth(averageDepth), renderList(renderList), renderTags(renderTags) {};
 };
 #endif //LIMONENGINE_OCCLUDERMETADATA_H

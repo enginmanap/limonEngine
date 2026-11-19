@@ -424,6 +424,21 @@ std::vector<Model::MeshMaterialOverride> WorldLoader::readMeshMaterialOverrides(
 }
 
 void WorldLoader::loadObjectTags(World *world, tinyxml2::XMLElement *objectNode, Model *model) {
+    tinyxml2::XMLElement* tagEditsNode = objectNode->FirstChildElement("TagEdits");
+    if (tagEditsNode != nullptr) {
+        for (tinyxml2::XMLElement* tagEditNode = tagEditsNode->FirstChildElement("TagEdit"); tagEditNode != nullptr;
+             tagEditNode = tagEditNode->NextSiblingElement("TagEdit")) {
+            if (tagEditNode->GetText() == nullptr) {
+                continue;
+            }
+            if (tagEditNode->IntAttribute("Added", 1) != 0) {
+                model->addTag(tagEditNode->GetText());
+            } else {
+                model->removeTag(tagEditNode->GetText());
+            }
+        }
+        return;
+    }
     tinyxml2::XMLElement* tagsNode = objectNode->FirstChildElement("Tags");
     if (tagsNode != nullptr) {
         std::vector<std::string> tags;
