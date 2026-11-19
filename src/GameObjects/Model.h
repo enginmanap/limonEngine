@@ -72,7 +72,6 @@ private:
     static bool isPlayerAttachmentTag(uint64_t tagHash);
     void resolveMeshTags(const Material *material, bool animated, bool underPlayer, std::vector<TagEdit> &meshTags) const;
     void addModelLevelDerivedTags(std::vector<TagEdit> &derivedTags) const;
-    void putTagsInGui(std::set<std::string> *knownTags);
 
     //asset materials are registered by the asset, so we only release the ones we swapped in ourselves
     void releaseOwnedMeshMaterial(size_t meshIndex);

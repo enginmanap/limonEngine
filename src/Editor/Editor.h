@@ -17,6 +17,7 @@
 #include "Assets/Lod/LodLadder.h"
 #include "Editor/ImGuiRequest.h"
 #include "Editor/EditorCommand.h"
+#include "Editor/Widgets/StageCoverage.h"
 #include "limonAPI/LimonTypes.h"
 #include "limonAPI/Options.h"
 
@@ -183,6 +184,8 @@ public:
     //suggestions for the tag inputs, filled at the first editor frame. Only grows, so a tag nobody uses any more stays until restart
     std::set<std::string> knownTags;
     bool knownTagsCollected = false;
+    std::vector<PipelineStageTags> pipelineStageTags;
+    std::vector<std::string> suggestedTags;//player camera stage tags an object can add itself, no player attachment or picked_object
 
     //the packer lives in GameEngine, and only while it runs
     PackageBuilder *activePackage = nullptr;
@@ -275,7 +278,8 @@ public:
 
     //both do nothing before the editor was first shown
     void addKnownTag(const std::string &tag);
-    void addKnownTagsOfPipeline(const GraphicsPipeline &pipeline);
+    //World calls it for every pipeline it starts using, nothing after this sees the pipeline
+    void extractPipelineStages(GraphicsPipeline &pipeline);
 
 private:
     void collectKnownTags();

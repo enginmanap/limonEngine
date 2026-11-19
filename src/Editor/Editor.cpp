@@ -819,6 +819,8 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
         collectKnownTags();
     }
     request->knownTags = &knownTags;
+    request->pipelineStages = &pipelineStageTags;
+    request->suggestedTags = &suggestedTags;
     imgGuiHelper->NewFrame(graphicsProgram);
     drawExportWindow();
     if(this->showNodeGraph) {
@@ -4004,8 +4006,10 @@ void Editor::collectKnownTags() {
             knownTags.insert(internalTag);
         }
     }
-    if (world->renderPipeline != nullptr) {
-        addKnownTagsOfPipeline(*world->renderPipeline);
+    for (const PipelineStageTags &stage : pipelineStageTags) {
+        for (const HashUtil::HashedString &stageTag : stage.tags) {
+            addKnownTag(stageTag.text);
+        }
     }
     for (std::unordered_map<uint32_t, Model *>::const_iterator objectIt = world->objects.begin(); objectIt != world->objects.end(); ++objectIt) {
         for (const HashUtil::HashedString &tag : objectIt->second->getTags()) {
@@ -4024,21 +4028,66 @@ void Editor::collectKnownTags() {
     }
 }
 
+void Editor::extractPipelineStages(GraphicsPipeline &pipeline) {
+    pipelineStageTags.clear();
+    suggestedTags.clear();
+    const std::vector<GraphicsPipeline::StageInfo> &stages = pipeline.getStages();
+    for (size_t stageIndex = 0; stageIndex < stages.size(); ++stageIndex) {
+        const GraphicsPipeline::StageInfo &stageInfo = stages[stageIndex];
+        if (stageInfo.renderTags.empty()) {
+            continue;
+        }
+        PipelineStageTags stage;
+        //each stage has its own shader pair, the fragment shader's folder names it
+        for (const RenderMethods::RenderMethod &renderMethod : stageInfo.renderMethods) {
+            if (renderMethod.getGlslProgram() == nullptr) {
+                continue;
+            }
+            const std::string &programName = renderMethod.getGlslProgram()->getProgramName();
+            const size_t lastSeparator = programName.find_last_of('|');
+            const std::string lastShader = programName.substr(lastSeparator == std::string::npos ? 0 : lastSeparator + 1);
+            const size_t fileStart = lastShader.find_last_of('/');
+            if (fileStart != std::string::npos && fileStart > 0) {
+                const size_t folderSeparator = lastShader.find_last_of('/', fileStart - 1);
+                const size_t folderStart = folderSeparator == std::string::npos ? 0 : folderSeparator + 1;
+                stage.name = lastShader.substr(folderStart, fileStart - folderStart);
+                break;
+            }
+        }
+        if (stage.name.empty()) {
+            if (stageInfo.stage != nullptr && !stageInfo.stage->getFoundName().empty()) {
+                stage.name = stageInfo.stage->getFoundName();
+            } else {
+                stage.name = "stage " + std::to_string(stageIndex);
+            }
+        }
+        for (const std::string &objectTag : stageInfo.renderTags) {
+            stage.tags.emplace_back(objectTag);
+            addKnownTag(objectTag);
+        }
+        pipelineStageTags.push_back(stage);
+        if (std::find(stageInfo.cameraTags.begin(), stageInfo.cameraTags.end(), HardCodedTags::CAMERA_PLAYER) == stageInfo.cameraTags.end()) {
+            continue;
+        }
+        //player attachment tags come from attaching, an object can't take them on its own
+        for (const std::string &objectTag : stageInfo.renderTags) {
+            if (objectTag == HardCodedTags::OBJECT_PLAYER_BASIC || objectTag == HardCodedTags::OBJECT_PLAYER_ANIMATED ||
+                objectTag == HardCodedTags::OBJECT_PLAYER_TRANSPARENT || objectTag == HardCodedTags::PICKED_OBJECT) {
+                continue;
+            }
+            if (std::find(suggestedTags.begin(), suggestedTags.end(), objectTag) == suggestedTags.end()) {
+                suggestedTags.push_back(objectTag);
+            }
+        }
+    }
+}
+
 void Editor::addKnownTag(const std::string &tag) {
     if (knownTagsCollected && tag != HardCodedTags::PICKED_OBJECT) {
         knownTags.insert(tag);
     }
 }
 
-void Editor::addKnownTagsOfPipeline(const GraphicsPipeline &pipeline) {
-    for (const std::pair<const std::string, std::vector<std::set<std::string>>> &cameraEntry : pipeline.getCameraTagToRenderTagSetMap()) {
-        for (const std::set<std::string> &objectTagSet : cameraEntry.second) {
-            for (const std::string &objectTag : objectTagSet) {
-                addKnownTag(objectTag);
-            }
-        }
-    }
-}
 
 
 

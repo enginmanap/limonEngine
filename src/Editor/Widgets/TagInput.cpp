@@ -72,37 +72,58 @@ namespace {
 
 bool TagInput::isSuggestable(const std::string &knownTag, const std::string &typed, const std::vector<TagChip> &chips) {
     for (const TagChip &chip : chips) {
-        if (chip.kind != TagChip::Kind::REMOVED && chip.text == knownTag) {
+        //a partial one can still be typed, adding it goes to the rest of the meshes
+        if (chip.kind != TagChip::Kind::REMOVED && !chip.isPartial() && chip.text == knownTag) {
             return false;
         }
     }
     return typed.empty() || toLower(knownTag).find(toLower(typed)) != std::string::npos;
 }
 
+std::string TagInput::countText(const TagChip &chip) {
+    if (!chip.isPartial()) {
+        return std::string();
+    }
+    return " " + std::to_string(chip.meshCount) + "/" + std::to_string(chip.totalMeshCount);
+}
+
 float TagInput::chipWidth(const TagChip &chip) {
     const ImGuiStyle &style = ImGui::GetStyle();
-    float width = ImGui::CalcTextSize(chip.text.c_str()).x + style.FramePadding.x * 2.0f;
+    float width = ImGui::CalcTextSize(chip.text.c_str()).x + ImGui::CalcTextSize(countText(chip).c_str()).x + style.FramePadding.x * 2.0f;
     if (chip.kind != TagChip::Kind::REMOVED) {
+        width += ImGui::GetFontSize();
+    }
+    if (chip.isPartial()) {
         width += ImGui::GetFontSize();
     }
     return width;
 }
 
-bool TagInput::drawChip(const TagChip &chip, bool &closeClicked) {
+bool TagInput::drawChip(const TagChip &chip, bool &closeClicked, bool &addToAllClicked) {
     const ImGuiStyle &style = ImGui::GetStyle();
     const float fontSize = ImGui::GetFontSize();
     const float width = chipWidth(chip);
     const float height = ImGui::GetFrameHeight();
+    const std::string count = countText(chip);
     const float textWidth = ImGui::CalcTextSize(chip.text.c_str()).x;
+    const float countWidth = ImGui::CalcTextSize(count.c_str()).x;
     const ImVec2 topLeft = ImGui::GetCursorScreenPos();
     const ImVec2 bottomRight(topLeft.x + width, topLeft.y + height);
 
     const bool clicked = ImGui::InvisibleButton("##chip", ImVec2(width, height));
     const bool hovered = ImGui::IsItemHovered();
     const bool removable = chip.kind != TagChip::Kind::REMOVED;
-    const float closeLeft = topLeft.x + style.FramePadding.x + textWidth + style.FramePadding.x * 0.5f;
-    const bool closeHovered = removable && hovered && ImGui::GetIO().MousePos.x >= closeLeft;
+    const bool partial = chip.isPartial();
+    //plus first, then the cross, each one font size wide
+    const float buttonsLeft = topLeft.x + style.FramePadding.x + textWidth + countWidth + style.FramePadding.x * 0.5f;
+    const float plusLeft = buttonsLeft;
+    const float closeLeft = buttonsLeft + (partial ? fontSize : 0.0f);
+    const float mouseX = ImGui::GetIO().MousePos.x;
+    const bool plusHovered = partial && hovered && mouseX >= plusLeft && mouseX < plusLeft + fontSize;
+    const bool closeHovered = removable && hovered && mouseX >= closeLeft && mouseX < closeLeft + fontSize;
     closeClicked = clicked && closeHovered;
+    addToAllClicked = clicked && plusHovered;
+    const bool bodyHovered = hovered && !closeHovered && !plusHovered;
 
     //told apart by shape, not hue: filled is the object's own, outlined comes from below, struck through is removed
     ImDrawList *drawList = ImGui::GetWindowDrawList();
@@ -110,10 +131,10 @@ bool TagInput::drawChip(const TagChip &chip, bool &closeClicked) {
     ImU32 textColor = ImGui::GetColorU32(ImGuiCol_Text);
     switch (chip.kind) {
         case TagChip::Kind::ADDED:
-            drawList->AddRectFilled(topLeft, bottomRight, ImGui::GetColorU32(hovered && !closeHovered ? ImGuiCol_ButtonHovered : ImGuiCol_Button), rounding);
+            drawList->AddRectFilled(topLeft, bottomRight, ImGui::GetColorU32(bodyHovered ? ImGuiCol_ButtonHovered : ImGuiCol_Button), rounding);
             break;
         case TagChip::Kind::INHERITED:
-            if (hovered && !closeHovered) {
+            if (bodyHovered) {
                 drawList->AddRectFilled(topLeft, bottomRight, ImGui::GetColorU32(ImGuiCol_FrameBgHovered), rounding);
             }
             drawList->AddRect(topLeft, bottomRight, ImGui::GetColorU32(ImGuiCol_Text, 0.45f), rounding);
@@ -128,19 +149,32 @@ bool TagInput::drawChip(const TagChip &chip, bool &closeClicked) {
     }
     const ImVec2 textPosition(topLeft.x + style.FramePadding.x, topLeft.y + (height - fontSize) * 0.5f);
     drawList->AddText(textPosition, textColor, chip.text.c_str());
+    if (partial) {
+        drawList->AddText(ImVec2(textPosition.x + textWidth, textPosition.y), ImGui::GetColorU32(ImGuiCol_TextDisabled), count.c_str());
+    }
     if (chip.kind == TagChip::Kind::REMOVED) {
         const float strikeY = textPosition.y + fontSize * 0.55f;
         drawList->AddLine(ImVec2(textPosition.x, strikeY), ImVec2(textPosition.x + textWidth, strikeY), textColor, 1.0f);
     }
+    const float halfMark = fontSize * 0.22f;
+    const float centerY = topLeft.y + height * 0.5f;
+    if (partial) {
+        const ImVec2 plusCenter(plusLeft + fontSize * 0.5f, centerY);
+        if (plusHovered) {
+            drawList->AddCircleFilled(plusCenter, fontSize * 0.45f, ImGui::GetColorU32(ImGuiCol_ButtonHovered));
+        }
+        const ImU32 plusColor = ImGui::GetColorU32(plusHovered ? ImGuiCol_Text : ImGuiCol_TextDisabled);
+        drawList->AddLine(ImVec2(plusCenter.x - halfMark, plusCenter.y), ImVec2(plusCenter.x + halfMark, plusCenter.y), plusColor, 1.5f);
+        drawList->AddLine(ImVec2(plusCenter.x, plusCenter.y - halfMark), ImVec2(plusCenter.x, plusCenter.y + halfMark), plusColor, 1.5f);
+    }
     if (removable) {
-        const ImVec2 closeCenter(closeLeft + fontSize * 0.5f, topLeft.y + height * 0.5f);
-        const float halfCross = fontSize * 0.22f;
+        const ImVec2 closeCenter(closeLeft + fontSize * 0.5f, centerY);
         if (closeHovered) {
             drawList->AddCircleFilled(closeCenter, fontSize * 0.45f, ImGui::GetColorU32(ImGuiCol_ButtonHovered));
         }
         const ImU32 crossColor = ImGui::GetColorU32(closeHovered ? ImGuiCol_Text : ImGuiCol_TextDisabled);
-        drawList->AddLine(ImVec2(closeCenter.x - halfCross, closeCenter.y - halfCross), ImVec2(closeCenter.x + halfCross, closeCenter.y + halfCross), crossColor, 1.5f);
-        drawList->AddLine(ImVec2(closeCenter.x - halfCross, closeCenter.y + halfCross), ImVec2(closeCenter.x + halfCross, closeCenter.y - halfCross), crossColor, 1.5f);
+        drawList->AddLine(ImVec2(closeCenter.x - halfMark, closeCenter.y - halfMark), ImVec2(closeCenter.x + halfMark, closeCenter.y + halfMark), crossColor, 1.5f);
+        drawList->AddLine(ImVec2(closeCenter.x - halfMark, closeCenter.y + halfMark), ImVec2(closeCenter.x + halfMark, closeCenter.y - halfMark), crossColor, 1.5f);
     }
     if (hovered) {
         ImGui::BeginTooltip();
@@ -148,7 +182,9 @@ bool TagInput::drawChip(const TagChip &chip, bool &closeClicked) {
             ImGui::TextUnformatted(chip.tooltip.c_str());
         }
         if (closeHovered) {
-            ImGui::TextDisabled("Click to remove");
+            ImGui::TextDisabled(chip.totalMeshCount > 1 ? "Click to remove from every mesh" : "Click to remove");
+        } else if (plusHovered) {
+            ImGui::TextDisabled("Click to add to every mesh");
         } else if (chip.kind == TagChip::Kind::REMOVED) {
             ImGui::TextDisabled("Click to add it back");
         }
@@ -174,14 +210,15 @@ TagInputResult TagInput::draw(const char *label, const std::vector<TagChip> &chi
         }
         ImGui::PushID(static_cast<int>(chipIndex));
         bool closeClicked = false;
-        const bool clicked = drawChip(chip, closeClicked);
+        bool addToAllClicked = false;
+        const bool clicked = drawChip(chip, closeClicked, addToAllClicked);
         ImGui::PopID();
         lineEnd = ImGui::GetItemRectMax().x;
         firstItem = false;
         if (closeClicked) {
             result.action = TagInputResult::Action::REMOVE;
             result.tag = chip.text;
-        } else if (clicked && chip.kind == TagChip::Kind::REMOVED) {
+        } else if (addToAllClicked || (clicked && chip.kind == TagChip::Kind::REMOVED)) {
             result.action = TagInputResult::Action::ADD;
             result.tag = chip.text;
         }

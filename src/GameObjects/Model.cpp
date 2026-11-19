@@ -3,6 +3,7 @@
 //
 
 #include "Model.h"
+#include <algorithm>
 #include "../Assets/AssetTreeManager.h"
 
 #include <array>
@@ -18,6 +19,7 @@
 #include "ModelGroup.h"
 #include "Players/Player.h"
 #include "Editor/Widgets/TagInput.h"
+#include "Editor/Widgets/StageCoverage.h"
 
 #ifdef CEREAL_SUPPORT
 #include <cereal/archives/binary.hpp>
@@ -248,53 +250,6 @@ void Model::convertSavedTags(const std::vector<std::string> &savedTags) {
         }
     }
     refreshTags();
-}
-
-void Model::putTagsInGui(std::set<std::string> *knownTags) {
-    static const uint64_t pickedObjectTag = HashUtil::hashString(HardCodedTags::PICKED_OBJECT);//selection state, the next click sets it again anyway
-    ImGui::Text("Tags");
-    if (ImGui::IsItemHovered()) {
-        ImGui::BeginTooltip();
-        ImGui::Text("Render stages pick objects by these tags. Filled ones this object added, outlined ones come from");
-        ImGui::Text("the engine or the materials, struck through ones this object removed. An object with no tags renders nowhere.");
-        ImGui::EndTooltip();
-    }
-    std::vector<TagChip> chips;
-    for (const HashUtil::HashedString &currentTag : getTags()) {
-        if (currentTag.hash == pickedObjectTag) {
-            continue;
-        }
-        if (TagEdits::contains(tagEdits, currentTag.hash)) {
-            chips.push_back(TagChip{currentTag.text, TagChip::Kind::ADDED, "Added by this object"});
-            continue;
-        }
-        std::string source = "Set by the engine";
-        for (const MeshMeta *meshMeta : cullingEntry->meshMetaData) {
-            if (meshMeta->material != nullptr && TagEdits::contains(meshMeta->material->getTagEdits(), currentTag.hash)) {
-                source = "From material " + meshMeta->material->getName();
-                break;
-            }
-        }
-        chips.push_back(TagChip{currentTag.text, TagChip::Kind::INHERITED, source});
-    }
-    for (const TagEdit &tagEdit : tagEdits) {
-        if (!tagEdit.added && tagEdit.hash != pickedObjectTag) {
-            chips.push_back(TagChip{tagEdit.text, TagChip::Kind::REMOVED, "Removed by this object"});
-        }
-    }
-    TagInputResult result = TagInput::draw("##ModelTags", chips, knownTags);
-    if (result.action == TagInputResult::Action::NONE) {
-        return;
-    }
-    //drop the edit first, so the object only keeps one if what's below doesn't already give the wanted result
-    const uint64_t tagHash = HashUtil::hashString(result.tag);
-    TagEdits::erase(tagEdits, tagHash);
-    refreshTags();
-    if (result.action == TagInputResult::Action::ADD && !hasTag(tagHash)) {
-        addTag(result.tag);
-    } else if (result.action == TagInputResult::Action::REMOVE && hasTag(tagHash)) {
-        removeTag(result.tag);
-    }
 }
 
 void Model::copyTagEditsFrom(const Model &otherModel) {
@@ -1005,7 +960,116 @@ ImGuiResult Model::addImGuiEditorElements(const ImGuiRequest &request) {
         ImGui::EndTooltip();
     }
     ImGui::NewLine();
-    putTagsInGui(request.knownTags);
+    static const uint64_t pickedObjectTag = HashUtil::hashString(HardCodedTags::PICKED_OBJECT);//selection state, the next click sets it again anyway
+    ImGui::Text("Tags");
+    if (ImGui::IsItemHovered()) {
+        ImGui::BeginTooltip();
+        ImGui::Text("Render stages pick meshes by these tags, edits here apply to every mesh of the object.");
+        ImGui::Text("Filled ones this object added, outlined ones come from the engine or the materials, struck through ones this object removed.");
+        ImGui::Text("A count shows a tag only some meshes have. Edit one mesh through its material.");
+        ImGui::EndTooltip();
+    }
+    const uint32_t totalMeshCount = std::max<uint32_t>(1, static_cast<uint32_t>(cullingEntry->meshMetaData.size()));
+    std::vector<TagChip> chips;
+    for (const HashUtil::HashedString &currentTag : getTags()) {
+        if (currentTag.hash == pickedObjectTag) {
+            continue;
+        }
+        TagChip chip{currentTag.text, TagChip::Kind::INHERITED, "Set by the engine"};
+        chip.meshCount = cullingEntry->meshMetaData.empty() ? 1 : 0;
+        chip.totalMeshCount = totalMeshCount;
+        std::string meshesWithTag;
+        for (const MeshMeta *meshMeta : cullingEntry->meshMetaData) {
+            if (std::find(meshMeta->tagHashes.begin(), meshMeta->tagHashes.end(), currentTag.hash) != meshMeta->tagHashes.end()) {
+                chip.meshCount++;
+                meshesWithTag += "\n  " + meshMeta->mesh->getName();
+            }
+        }
+        if (TagEdits::contains(tagEdits, currentTag.hash)) {
+            chip.kind = TagChip::Kind::ADDED;
+            chip.tooltip = "Added by this object";
+        } else {
+            for (const MeshMeta *meshMeta : cullingEntry->meshMetaData) {
+                if (meshMeta->material != nullptr && TagEdits::contains(meshMeta->material->getTagEdits(), currentTag.hash)) {
+                    chip.tooltip = "From material " + meshMeta->material->getName();
+                    break;
+                }
+            }
+        }
+        if (chip.meshCount < chip.totalMeshCount) {
+            chip.tooltip += "\nOnly on:" + meshesWithTag;
+        }
+        chips.push_back(chip);
+    }
+    for (const TagEdit &tagEdit : tagEdits) {
+        if (!tagEdit.added && tagEdit.hash != pickedObjectTag) {
+            chips.push_back(TagChip{tagEdit.text, TagChip::Kind::REMOVED, "Removed by this object"});
+        }
+    }
+    TagInputResult tagResult = TagInput::draw("##ModelTags", chips, request.knownTags);
+    if (tagResult.action != TagInputResult::Action::NONE) {
+        //drop the edit first, so the object only keeps one if the meshes don't already give the wanted result
+        const uint64_t tagHash = HashUtil::hashString(tagResult.tag);
+        TagEdits::erase(tagEdits, tagHash);
+        refreshTags();
+        uint32_t meshCountWithTag = cullingEntry->meshMetaData.empty() && hasTag(tagHash) ? 1 : 0;
+        for (const MeshMeta *meshMeta : cullingEntry->meshMetaData) {
+            if (std::find(meshMeta->tagHashes.begin(), meshMeta->tagHashes.end(), tagHash) != meshMeta->tagHashes.end()) {
+                meshCountWithTag++;
+            }
+        }
+        if (tagResult.action == TagInputResult::Action::ADD && meshCountWithTag < totalMeshCount) {
+            addTag(tagResult.tag);
+        } else if (tagResult.action == TagInputResult::Action::REMOVE && meshCountWithTag > 0) {
+            removeTag(tagResult.tag);
+        }
+    }
+    int32_t meshToSelect = -1;//the material section below opens with this mesh picked
+    if (request.pipelineStages != nullptr) {
+        std::vector<std::string> modelLabels;
+        std::vector<size_t> meshesRenderingNowhere;
+        std::string perMeshTooltip;
+        for (size_t meshIndex = 0; meshIndex < cullingEntry->meshMetaData.size(); ++meshIndex) {
+            const MeshMeta *meshMeta = cullingEntry->meshMetaData[meshIndex];
+            std::vector<std::string> meshLabels;
+            StageCoverage::collectStageLabels(meshMeta->tagHashes, *request.pipelineStages, meshLabels);
+            if (meshLabels.empty()) {
+                meshesRenderingNowhere.push_back(meshIndex);
+            }
+            for (const std::string &meshLabel : meshLabels) {
+                if (std::find(modelLabels.begin(), modelLabels.end(), meshLabel) == modelLabels.end()) {
+                    modelLabels.push_back(meshLabel);
+                }
+            }
+            if (cullingEntry->meshMetaData.size() > 1) {
+                perMeshTooltip += meshMeta->mesh->getName() + ": " + (meshLabels.empty() ? std::string("nowhere") : StageCoverage::joinLabels(meshLabels)) + "\n";
+            }
+        }
+        StageCoverage::drawLine(modelLabels, perMeshTooltip);
+        if (!meshesRenderingNowhere.empty()) {
+            ImGui::Indent();
+            if (cullingEntry->meshMetaData.size() == 1) {
+                if (ImGui::SmallButton("Select mesh")) {
+                    meshToSelect = 0;
+                }
+            } else {
+                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.0f, 0.0f, 1.0f));
+                ImGui::TextWrapped("%u of %u meshes render nowhere in the current pipeline, their materials decide:",
+                                   static_cast<uint32_t>(meshesRenderingNowhere.size()), static_cast<uint32_t>(cullingEntry->meshMetaData.size()));
+                ImGui::PopStyleColor();
+                for (size_t meshIndex : meshesRenderingNowhere) {
+                    ImGui::PushID(static_cast<int>(meshIndex));
+                    ImGui::BulletText("%s", cullingEntry->meshMetaData[meshIndex]->mesh->getName().c_str());
+                    ImGui::SameLine();
+                    if (ImGui::SmallButton("Select mesh")) {
+                        meshToSelect = static_cast<int32_t>(meshIndex);
+                    }
+                    ImGui::PopID();
+                }
+            }
+            ImGui::Unindent();
+        }
+    }
 
     if (isAnimated()) {
         ImGui::TextDisabled("Mass: animated objects are kinematic");
@@ -1151,6 +1215,13 @@ ImGuiResult Model::addImGuiEditorElements(const ImGuiRequest &request) {
     if (this->getWorldObjectID() != selectedModel) {
         selectedIndex = -1;
         selectedModel = this->getWorldObjectID();
+    }
+    if (meshToSelect >= 0) {
+        ImGui::SetNextItemOpen(true);
+        if (selectedIndex != meshToSelect) {//same as picking it in the list, the editor shows its material
+            result.selectedMeshMaterial = cullingEntry->meshMetaData[meshToSelect]->material;
+        }
+        selectedIndex = meshToSelect;
     }
     if (ImGui::CollapsingHeader("Material properties")) {
         //add material listing

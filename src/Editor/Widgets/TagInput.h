@@ -5,6 +5,7 @@
 #ifndef LIMONENGINE_TAGINPUT_H
 #define LIMONENGINE_TAGINPUT_H
 
+#include <cstdint>
 #include <set>
 #include <string>
 #include <vector>
@@ -14,6 +15,13 @@ struct TagChip {
     std::string text;
     Kind kind;
     std::string tooltip;
+    //only the model panel sets these. If some of the model's meshes have the tag but not all, the chip shows "n/m" and a + that adds it to the rest
+    uint32_t meshCount = 0;//meshes that have this tag
+    uint32_t totalMeshCount = 0;//meshes the model has
+
+    bool isPartial() const {
+        return meshCount > 0 && meshCount < totalMeshCount;
+    }
 };
 
 struct TagInputResult {
@@ -30,7 +38,8 @@ public:
 
 private:
     static float chipWidth(const TagChip &chip);
-    static bool drawChip(const TagChip &chip, bool &closeClicked);
+    static bool drawChip(const TagChip &chip, bool &closeClicked, bool &addToAllClicked);
+    static std::string countText(const TagChip &chip);
     static bool isSuggestable(const std::string &knownTag, const std::string &typed, const std::vector<TagChip> &chips);
 };
 

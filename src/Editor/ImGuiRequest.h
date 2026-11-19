@@ -19,6 +19,7 @@ class ImGuiHelper;
 class Material;
 class Model;
 class ImGuiImageWrapper;
+struct PipelineStageTags;
 
 //Renders editable ImGui widgets for a parameter list and returns whether all parameters are set.
 //Implemented by the Editor; injected here as a callback so callers need not depend on the Editor type.
@@ -71,6 +72,9 @@ struct ImGuiRequest {
     std::shared_ptr<Material> materialSelectedInList = nullptr;
     //the editor's tag suggestions, tag inputs add what the user types
     std::set<std::string> *knownTags = nullptr;
+    //the current pipeline's object stages, and the tags its player camera stages draw by
+    const std::vector<PipelineStageTags> *pipelineStages = nullptr;
+    const std::vector<std::string> *suggestedTags = nullptr;
 
     ImGuiRequest(const glm::mat4 &perspectiveCameraMatrix, const glm::mat4 &perspectiveMatrix,
                  const glm::mat4 &orthogonalMatrix, const uint32_t &screenHeight, const uint32_t &screenWidth,

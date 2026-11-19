@@ -164,7 +164,6 @@ private:
     std::string colorSpaceNotice;//editor only, what the last pick changed
     //content, part of the hash. Asset materials never have any, so their hashes and every OriginalHash naming them stay put
     std::vector<TagEdit> tagEdits;
-    bool putTagEditsInGui(std::set<std::string> *knownTags);
     static bool compareTagEditText(const TagEdit *left, const TagEdit *right) {
         return left->text < right->text;
     }

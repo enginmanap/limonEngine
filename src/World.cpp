@@ -207,6 +207,7 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
     } else {
         setupRenderForPipeline();
     }
+    editor->extractPipelineStages(*renderPipeline);
 
     onLoadActions.push_back(new ActionForOnload());//this is here for editor, as if no action is added, editor would fail to allow setting the first one.
 
@@ -1681,7 +1682,7 @@ void World::activateRenderPipeline(const std::shared_ptr<GraphicsPipeline> &pipe
     renderPipeline = pipeline;
     setupRenderForPipeline();
     visibilityManager->onPipelineChange();
-    editor->addKnownTagsOfPipeline(*pipeline);
+    editor->extractPipelineStages(*pipeline);
 }
 
 void World::createEditorPlayerIfMissing(InputHandler &inputHandler) {

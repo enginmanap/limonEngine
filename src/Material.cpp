@@ -14,6 +14,7 @@
 #include "LimonFileSystem.h"
 #include "GameObjects/Model.h"
 #include "Editor/Widgets/TagInput.h"
+#include "Editor/Widgets/StageCoverage.h"
 
 #include "limonAPI/Graphics/GraphicsInterface.h"
 #include "limonAPI/Graphics/GraphicsProgram.h"
@@ -296,20 +297,6 @@ ImGuiResult Material::addImGuiEditorElements(const ImGuiRequest &request) {
         dirty = putRemoveTextureButton(slot) || dirty;
         putTextureColorSpace(slot, slotIndex);
     }
-    dirty = putTagEditsInGui(request.knownTags) || dirty;
-    if (!colorSpaceNotice.empty()) {
-        ImGui::TextWrapped("%s", colorSpaceNotice.c_str());
-    }
-    if(dirty) {
-        if (isLoaded()) {//slot 0 belongs to nobody
-            assetManager->getGraphicsWrapper()->setMaterial(*this);
-        }
-        result.materialDirty = true;//the pane needs to know before this edit can reach anything shared
-    }
-    return result;
-}
-
-bool Material::putTagEditsInGui(std::set<std::string> *knownTags) {
     //what the material gives an unanimated object on its own, the model panel shows the result for its own case
     std::vector<TagEdit> derivedTags;
     Model::addDerivedTags(derivedTags, false, hasAmbientMap(), Model::isMaterialTransparent(*this, false));
@@ -338,27 +325,68 @@ bool Material::putTagEditsInGui(std::set<std::string> *knownTags) {
         }
     }
     ImGui::PushID(this);
-    ImGui::Text("Tags for the objects using this material");
+    ImGui::SeparatorText("Tags for the objects using this material");
     if (ImGui::IsItemHovered()) {
         ImGui::BeginTooltip();
         ImGui::Text("Objects can still add or remove any of these for themselves.");
         ImGui::EndTooltip();
     }
-    TagInputResult result = TagInput::draw("##MaterialTags", chips, knownTags);
+    TagInputResult tagResult = TagInput::draw("##MaterialTags", chips, request.knownTags);
+    if (request.pipelineStages != nullptr) {
+        std::vector<TagEdit> ownTags = derivedTags;
+        TagEdits::apply(tagEdits, ownTags);
+        std::vector<uint64_t> ownTagHashes;
+        for (const TagEdit &ownTag : ownTags) {
+            ownTagHashes.push_back(ownTag.hash);
+        }
+        std::vector<std::string> labels;
+        StageCoverage::collectStageLabels(ownTagHashes, *request.pipelineStages, labels);
+        StageCoverage::drawLine(labels, "This material on its own. Objects using it add their own tags too, like static_model_object or animated_model_object.");
+        if (labels.empty() && request.suggestedTags != nullptr && !request.suggestedTags->empty()) {
+            const std::vector<std::string> &offeredTags = *request.suggestedTags;
+            ImGui::Indent();
+            ImGui::TextWrapped("Suggestion: add one of these so the current pipeline draws it:");
+            const ImGuiStyle &style = ImGui::GetStyle();
+            const float rightEdge = ImGui::GetWindowPos().x + ImGui::GetWindowContentRegionMax().x;
+            for (size_t offeredIndex = 0; offeredIndex < offeredTags.size(); ++offeredIndex) {
+                const std::string &offeredTag = offeredTags[offeredIndex];
+                if (offeredIndex > 0) {
+                    const float buttonWidth = ImGui::CalcTextSize(offeredTag.c_str()).x + style.FramePadding.x * 2.0f;
+                    if (ImGui::GetItemRectMax().x + style.ItemSpacing.x + buttonWidth <= rightEdge) {
+                        ImGui::SameLine();
+                    }
+                }
+                if (ImGui::SmallButton(offeredTag.c_str())) {
+                    TagEdits::set(tagEdits, offeredTag, true);
+                    dirty = true;
+                }
+            }
+            ImGui::Unindent();
+        }
+    }
     ImGui::PopID();
-    if (result.action == TagInputResult::Action::NONE) {
-        return false;
+    if (tagResult.action != TagInputResult::Action::NONE) {
+        //only an edit that differs from what the material gives anyway, any edit changes the hash
+        const uint64_t tagHash = HashUtil::hashString(tagResult.tag);
+        TagEdits::erase(tagEdits, tagHash);
+        const bool derived = TagEdits::contains(derivedTags, tagHash);
+        if (tagResult.action == TagInputResult::Action::ADD && !derived) {
+            TagEdits::set(tagEdits, tagResult.tag, true);
+        } else if (tagResult.action == TagInputResult::Action::REMOVE && derived) {
+            TagEdits::set(tagEdits, tagResult.tag, false);
+        }
+        dirty = true;
     }
-    //only an edit that differs from what the material gives anyway, any edit changes the hash
-    const uint64_t tagHash = HashUtil::hashString(result.tag);
-    TagEdits::erase(tagEdits, tagHash);
-    const bool derived = TagEdits::contains(derivedTags, tagHash);
-    if (result.action == TagInputResult::Action::ADD && !derived) {
-        TagEdits::set(tagEdits, result.tag, true);
-    } else if (result.action == TagInputResult::Action::REMOVE && derived) {
-        TagEdits::set(tagEdits, result.tag, false);
+    if (!colorSpaceNotice.empty()) {
+        ImGui::TextWrapped("%s", colorSpaceNotice.c_str());
     }
-    return true;
+    if(dirty) {
+        if (isLoaded()) {//slot 0 belongs to nobody
+            assetManager->getGraphicsWrapper()->setMaterial(*this);
+        }
+        result.materialDirty = true;//the pane needs to know before this edit can reach anything shared
+    }
+    return result;
 }
 
 void Material::assignTexture(const TextureSlot &slot, const std::shared_ptr<TextureAsset> &acquiredTexture) {
