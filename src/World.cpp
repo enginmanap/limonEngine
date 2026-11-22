@@ -2140,14 +2140,30 @@ void World::fillLightBlock() {
             lightBlock.addMat4(matrixPresent ? light->getShadowMatrices()[matrixIndex] : glm::mat4(0.0f));
         }
         if (light != nullptr) {
+            glm::vec3 pointAttenuationOrShadowTexels = light->getAttenuation();
+            float pointIntensityOrShadowTexel = light->getIntensity();
+            float pointRadiusOrShadowTexel = light->getActiveDistance();
+            float pointFalloffOrShadowTexel = light->getFalloffExponent();
+            if (light->getLightType() == Light::LightTypes::DIRECTIONAL) {
+                //directional lights carry cascade texel world sizes in the point fields, _ShadowTexelWorldSize reads them in this order
+                float texelWorldSizes[Light::MAX_DIRECTIONAL_CASCADES] = {};
+                const std::vector<Camera*>& cascadeCameras = light->getCameras();
+                for (size_t cascadeIndex = 0; cascadeIndex < cascadeCameras.size() && cascadeIndex < Light::MAX_DIRECTIONAL_CASCADES; ++cascadeIndex) {
+                    texelWorldSizes[cascadeIndex] = cascadeCameras[cascadeIndex]->getPixelSize();
+                }
+                pointAttenuationOrShadowTexels = glm::vec3(texelWorldSizes[0], texelWorldSizes[1], texelWorldSizes[2]);
+                pointIntensityOrShadowTexel = texelWorldSizes[3];
+                pointRadiusOrShadowTexel = texelWorldSizes[4];
+                pointFalloffOrShadowTexel = texelWorldSizes[5];
+            }
             lightBlock.addVec3(light->getPosition());
-            lightBlock.addFloat(light->getActiveDistance());
+            lightBlock.addFloat(pointRadiusOrShadowTexel);
             lightBlock.addVec3(light->getColor());
             lightBlock.addInt(static_cast<int32_t>(light->getLightType()));
-            lightBlock.addVec3(light->getAttenuation());
-            lightBlock.addFloat(light->getIntensity());
+            lightBlock.addVec3(pointAttenuationOrShadowTexels);
+            lightBlock.addFloat(pointIntensityOrShadowTexel);
             lightBlock.addVec3(light->getAmbientColor());
-            lightBlock.addFloat(light->getFalloffExponent());
+            lightBlock.addFloat(pointFalloffOrShadowTexel);
         } else {
             lightBlock.addVec3(glm::vec3(0.0f));
             lightBlock.addFloat(0.0f);

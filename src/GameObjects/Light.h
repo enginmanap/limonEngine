@@ -88,6 +88,9 @@ private:
     }
 
 public:
+    //LightSource in Lights.glsl has 6 shadow matrices and 6 point fields for texel sizes, change together
+    static constexpr size_t MAX_DIRECTIONAL_CASCADES = 6;
+
     Light(GraphicsInterface* graphicsWrapper, uint32_t objectID, LightTypes lightType, const glm::vec3 &position,
           const glm::vec3 &color) :
             graphicsWrapper(graphicsWrapper),

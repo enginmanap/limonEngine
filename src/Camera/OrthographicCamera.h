@@ -29,15 +29,12 @@ class OrthographicCamera : public Camera {
     OptionsUtil::Options::Option<bool> debugDrawLinesOption = options->getOption<bool>(HASH("debug_drawLines"));
     OptionsUtil::Options::Option<double> cascadeBlendFractionOption = options->getOption<double>(HASH("shadow_cascadeBlendFraction"));
     OptionsUtil::Options::Option<long> shadowMapSizeOption = options->getOption<long>(HASH("shadow_mapDirectionalSize"));
+    OptionsUtil::Options::Option<double> normalOffsetMinTexelsOption = options->getOption<double>(HASH("shadow_normalOffsetMinTexels"));
     std::vector<glm::vec4> playerFrustumPlanes;
     //only the planes a shadow can't reach by travelling along the light, the rest can never reject a caster
     glm::vec4 casterPlanes[6 + 12];//faces away from the light, plus one silhouette plane per frustum edge at most
     uint32_t casterPlaneCount = 0;
-
-    //these mirror DirectionalShadow.frag, receivers sample this far from themselves so casters there must survive culling
-    static constexpr float MAX_NORMAL_BIAS = 0.1f;
-    static constexpr float PCF_BASE_RADIUS = 2.0f;
-    static constexpr float PCF_RADIUS_PER_CASCADE = 0.5f;
+    float filterRadius = 0.0f;//pcf radius in texels, DirectionalShadow.frag reads the same option
 
     // Behaviour changes based on whether it is a player camera or a shadow camera, so we have a flag
     bool playerMode = false;
@@ -80,6 +77,15 @@ public:
         playerFrustumPlanes.resize(6);
         this->frustumCorners.resize(8);
         cascadeLimits = Camera::readCascadeLimits(options);
+
+        const OptionsUtil::Options::Option<std::vector<float>> filterRadiusListOption = options->getOption<std::vector<float>>(HASH("shadow_cascadeFilterRadiusList"));
+        const long cascadeCount = options->getOption<long>(HASH("shadow_cascadeCount")).getOrDefault(4L);
+        const std::vector<float> filterRadii = filterRadiusListOption.isUsable() ? filterRadiusListOption.get() : std::vector<float>();
+        if (filterRadii.size() != static_cast<size_t>(cascadeCount)) {
+            std::cerr << "shadow_cascadeFilterRadiusList needs one radius per cascade, the directional shadow shader can't compile without it. Exiting." << std::endl;
+            exit(-1);
+        }
+        filterRadius = filterRadii[cascadeIndex];
     }
 
     // Player-camera constructor: an orthographic player view driven by the attachment's projection.
@@ -281,10 +287,9 @@ public:
             playerFrustumPlanes[BACK] = glm::vec4(viewZRow, playerView[3][2] + farDepth);
         }
 
-        const float cascadeScale = cascadeLimits[cascadeIndex + 1] / cascadeLimits[1];
-        const float texelSize = (2.0f / orthogonalProjectionMatrix[0][0]) / (float)shadowMapSizeOption.getOrDefault(2048);
-        const float padding = MAX_NORMAL_BIAS * cascadeScale
-                            + (PCF_BASE_RADIUS + PCF_RADIUS_PER_CASCADE * cascadeIndex) * texelSize;//poisson disk radius is below 1
+        const float tapReach = filterRadius + 1.0f;//the 2x2 comparison reads 1 texel past the farthest tap
+        const float maxNormalOffset = (float)normalOffsetMinTexelsOption.getOrDefault(1.5) + tapReach;//grazing light, mirrors _NormalOffsetPosition
+        const float padding = (maxNormalOffset + tapReach) * getPixelSize();//receivers sample this far away, casters there must survive culling
 
         casterPlaneCount = 0;
         bool facesAwayFromLight[6];

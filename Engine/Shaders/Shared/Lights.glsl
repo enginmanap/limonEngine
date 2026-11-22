@@ -9,13 +9,14 @@ struct LightSource {
     //vec3 float, vec3 float is to make use of the std140 alignment, not mistake
     mat4 shadowMatrices[6];
     vec3 position;
-    float radius;
+    //directional lights carry their cascade texel sizes in the point fields, read them through _ShadowTexelWorldSize
+    float pointRadiusOrShadowTexel;
     vec3 color;
     int type; //1 Directional, 2 point
-    vec3 attenuation;
-    float intensity;
+    vec3 pointAttenuationOrShadowTexels;
+    float pointIntensityOrShadowTexel;
     vec3 ambient;
-    float falloffExponent;
+    float pointFalloffOrShadowTexel;
 };
 
 layout (std140) uniform LightSourceBlock

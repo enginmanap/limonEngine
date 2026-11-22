@@ -48,24 +48,24 @@ float _shadowDirectional(int lightIndex, vec3 biasedFragPos, float precise_view_
 float _shadowPoint(int lightIndex, vec3 biasedFragPos) {
     vec3 fragToLight = biasedFragPos - LightSources.lights[lightIndex].position;
     float fragDistance = length(fragToLight);
-    if (LightSources.lights[lightIndex].radius < fragDistance) {
+    if (LightSources.lights[lightIndex].pointRadiusOrShadowTexel < fragDistance) {
         return 0.0; // _pointAttenuation is already 0 out here, this only skips the cube map sample
     }
 
-    float normalizedFragDistance = fragDistance / LightSources.lights[lightIndex].radius;
+    float normalizedFragDistance = fragDistance / LightSources.lights[lightIndex].pointRadiusOrShadowTexel;
     float lit = texture(pre_shadowPoint, vec4(fragToLight, lightIndex), normalizedFragDistance);
 
     return 1.0 - lit;
 }
 
 float _pointAttenuation(int lightIndex, float fragDistance) {
-    float attenuationFactor = max(LightSources.lights[lightIndex].attenuation.x +
-                                  (LightSources.lights[lightIndex].attenuation.y * fragDistance) +
-                                  (LightSources.lights[lightIndex].attenuation.z * fragDistance * fragDistance), 0.0001);
-    float normalizedFragDistance = fragDistance / LightSources.lights[lightIndex].radius;
-    float window = clamp(1.0 - pow(normalizedFragDistance, LightSources.lights[lightIndex].falloffExponent), 0.0, 1.0);
+    float attenuationFactor = max(LightSources.lights[lightIndex].pointAttenuationOrShadowTexels.x +
+                                  (LightSources.lights[lightIndex].pointAttenuationOrShadowTexels.y * fragDistance) +
+                                  (LightSources.lights[lightIndex].pointAttenuationOrShadowTexels.z * fragDistance * fragDistance), 0.0001);
+    float normalizedFragDistance = fragDistance / LightSources.lights[lightIndex].pointRadiusOrShadowTexel;
+    float window = clamp(1.0 - pow(normalizedFragDistance, LightSources.lights[lightIndex].pointFalloffOrShadowTexel), 0.0, 1.0);
     window = window * window;
-    return clamp(LightSources.lights[lightIndex].intensity / attenuationFactor, 0.0, 1.0) * window;
+    return clamp(LightSources.lights[lightIndex].pointIntensityOrShadowTexel / attenuationFactor, 0.0, 1.0) * window;
 }
 
 //0 for directional, they have no position. Beyond the radius attenuation is exactly 0, so the light adds nothing
@@ -132,7 +132,7 @@ void main(void) {
         //lightType is the same for every pixel, a per-pixel test here would mask the directional light's work too (a continue or an if around the rest costs the same)
         if(lightType == 1) {
             _addLight(i, lightDirectory, 1.0, shadows[i], world_space_normal, viewReflection, shininess, diffuseAndAmbientLighting, specularLighting);
-        } else if(fragDistance < LightSources.lights[i].radius) {//out of range adds 0, ambient is attenuated too
+        } else if(fragDistance < LightSources.lights[i].pointRadiusOrShadowTexel) {//out of range adds 0, ambient is attenuated too
             _addLight(i, lightDirectory, _pointAttenuation(i, fragDistance), shadows[i], world_space_normal, viewReflection, shininess, diffuseAndAmbientLighting, specularLighting);
         }
     }

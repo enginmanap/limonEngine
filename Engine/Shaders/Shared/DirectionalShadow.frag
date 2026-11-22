@@ -4,10 +4,13 @@
 #define_option shadow_cascadeLimitList
 #define_option shadow_directionalSampleCount
 #define_option shadow_cascadeBlendFraction
+#define_option shadow_normalOffsetMinTexels
+#define_option shadow_cascadeFilterRadiusList
 
 uniform sampler2DArrayShadow pre_shadowDirectional;
 
 const float cascadePlaneDistances[shadow_cascadeCount] = float[](shadow_cascadeLimitList);
+const float cascadeFilterRadii[shadow_cascadeCount] = float[](shadow_cascadeFilterRadiusList);//OrthographicCamera pads caster culling with these too
 
 // Vogel Spiral Disk: Inherently progressive (any N prefix is well-distributed)
 // Prevents shadow crawling when changing sample counts (2, 4, 8, 16)
@@ -36,8 +39,21 @@ float _random(vec3 seed, int i){
     return fract(sin(dot_product) * 43758.5453);
 }
 
-float _SampleCascadeShadow(int lightIndex, int layer, vec3 world_space_frag_pos, mat2 rot) {
-    vec4 fragPosLightSpace = LightSources.lights[lightIndex].shadowMatrices[layer] * vec4(world_space_frag_pos, 1.0);
+//World::fillLightBlock writes the cascades in this order
+float _ShadowTexelWorldSize(int lightIndex, int layer) {
+    if (layer < 4) return vec4(LightSources.lights[lightIndex].pointAttenuationOrShadowTexels, LightSources.lights[lightIndex].pointIntensityOrShadowTexel)[layer];
+    if (layer == 4) return LightSources.lights[lightIndex].pointRadiusOrShadowTexel;
+    return LightSources.lights[lightIndex].pointFalloffOrShadowTexel;
+}
+
+//keep it out of _SampleCascadeShadow, there it is 0.1 ms slower on UHD 630
+vec3 _NormalOffsetPosition(int lightIndex, int layer, vec3 world_space_frag_pos, vec3 worldNormal, float sinLightAngle) {
+    float normalOffsetTexels = shadow_normalOffsetMinTexels + (cascadeFilterRadii[layer] + 1.0) * sinLightAngle;//less and the farthest tap (+1 for the 2x2 compare) goes under grazing surfaces, acne
+    return world_space_frag_pos + worldNormal * (normalOffsetTexels * _ShadowTexelWorldSize(lightIndex, layer));
+}
+
+float _SampleCascadeShadow(int lightIndex, int layer, vec3 biasedFragPos, mat2 rot) {
+    vec4 fragPosLightSpace = LightSources.lights[lightIndex].shadowMatrices[layer] * vec4(biasedFragPos, 1.0);
     vec3 projectedCoordinates = fragPosLightSpace.xyz / fragPosLightSpace.w;
     projectedCoordinates = projectedCoordinates * 0.5 + 0.5;
 
@@ -45,9 +61,8 @@ float _SampleCascadeShadow(int lightIndex, int layer, vec3 world_space_frag_pos,
     if (currentDepth >= 1.0) return 0.0;
 
     vec2 texelSize = 1.0 / vec2(textureSize(pre_shadowDirectional, 0).xy);
-    float filterRadius = 2.0 + float(layer) * 0.5;// mirrored in OrthographicCamera caster culling padding, change both
     float compareDepth = currentDepth;
-    vec2 tapScale = texelSize * filterRadius;
+    vec2 tapScale = texelSize * cascadeFilterRadii[layer];
 
     float shadow = 0.0;
     for (int i = 0; i < shadow_directionalSampleCount; ++i) {
@@ -71,11 +86,8 @@ float ShadowCalculationDirectional(int lightIndex, vec3 world_space_frag_pos, ve
     }
     if (layer == -1) layer = shadow_cascadeCount - 1;
 
-    // we calculate normal bias after cascade selection, so we can scale it based on the cascade.
-    // The bias needed for first cascade is tiny, compared to last cascade. We would need to pass
-    // texel size to calculate it correctly, this is an approxmate.
-    float baseNormalBias = mix(0.1, 0.010, diffuseRate);// max is mirrored in OrthographicCamera::MAX_NORMAL_BIAS, change both
-    vec3 biasedFragPos = world_space_frag_pos + worldNormal * (baseNormalBias * (cascadePlaneDistances[layer] / cascadePlaneDistances[0]));
+    float sinLightAngle = sqrt(max(1.0 - diffuseRate * diffuseRate, 0.0));
+    vec3 biasedFragPos = _NormalOffsetPosition(lightIndex, layer, world_space_frag_pos, worldNormal, sinLightAngle);
 
     // Calculate rotation matrix once per directional light
     float rotAngle = _random(biasedFragPos, 0) * 6.28318530718;
@@ -92,10 +104,7 @@ float ShadowCalculationDirectional(int lightIndex, vec3 world_space_frag_pos, ve
         float threshold = splitDist - blendRegion;
 
         if (precise_view_z > threshold) {
-            // layer+1 has a larger cascade scale (coarser texels) than layer, so it needs its own,
-            // bigger bias here -- reusing biasedFragPos (scaled for layer) would under-bias this
-            // sample and cause acne right in the blend band.
-            vec3 nextBiasedFragPos = world_space_frag_pos + worldNormal * (baseNormalBias * (cascadePlaneDistances[layer + 1] / cascadePlaneDistances[0]));
+            vec3 nextBiasedFragPos = _NormalOffsetPosition(lightIndex, layer + 1, world_space_frag_pos, worldNormal, sinLightAngle);
             float nextShadow = _SampleCascadeShadow(lightIndex, layer + 1, nextBiasedFragPos, rot);
             float factor = (precise_view_z - threshold) / blendRegion;
             factor = smoothstep(0.0, 1.0, factor);

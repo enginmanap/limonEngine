@@ -33,16 +33,16 @@ float ShadowCalculationPoint(vec3 world_space_frag_pos, float viewDistance, int 
 {
     vec3 fragToLight = world_space_frag_pos - LightSources.lights[lightIndex].position;
     float fragDistance = length(fragToLight);
-    if(LightSources.lights[lightIndex].radius < fragDistance) {
+    if(LightSources.lights[lightIndex].pointRadiusOrShadowTexel < fragDistance) {
         return 0.0;
     }
 
-    float normalizedFragDistance = fragDistance / LightSources.lights[lightIndex].radius;
+    float normalizedFragDistance = fragDistance / LightSources.lights[lightIndex].pointRadiusOrShadowTexel;
 
     float shadow = 0.0;
     int samples  = shadow_pointSampleCount;
     // Our pcf samples are also closer for lights with smaller radius
-    float diskRadius = LightSources.lights[lightIndex].radius * 0.01 * (1.0 + viewDistance / 100.0);
+    float diskRadius = LightSources.lights[lightIndex].pointRadiusOrShadowTexel * 0.01 * (1.0 + viewDistance / 100.0);
 
     for(int i = 0; i < samples; ++i) {
         // samplerCubeArrayShadow returns 1.0 if not in shadow (compareDepth <= texture_depth), 0.0 if in shadow

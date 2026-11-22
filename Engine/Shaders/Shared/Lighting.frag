@@ -6,15 +6,15 @@
 
 float pointLightAttenuation(int lightIndex, float fragDistance) {
     // zero or negative would cause numeric issues, max first.
-    float attenuationFactor = max(LightSources.lights[lightIndex].attenuation.x +
-                                  (LightSources.lights[lightIndex].attenuation.y * fragDistance) +
-                                  (LightSources.lights[lightIndex].attenuation.z * fragDistance * fragDistance), 0.0001);
+    float attenuationFactor = max(LightSources.lights[lightIndex].pointAttenuationOrShadowTexels.x +
+                                  (LightSources.lights[lightIndex].pointAttenuationOrShadowTexels.y * fragDistance) +
+                                  (LightSources.lights[lightIndex].pointAttenuationOrShadowTexels.z * fragDistance * fragDistance), 0.0001);
 
     // To reach 0 at the radius without a steep change, use double root
-    float normalizedFragDistance = fragDistance / LightSources.lights[lightIndex].radius;
-    float window = clamp(1.0 - pow(normalizedFragDistance, LightSources.lights[lightIndex].falloffExponent), 0.0, 1.0);
+    float normalizedFragDistance = fragDistance / LightSources.lights[lightIndex].pointRadiusOrShadowTexel;
+    float window = clamp(1.0 - pow(normalizedFragDistance, LightSources.lights[lightIndex].pointFalloffOrShadowTexel), 0.0, 1.0);
     window = window * window;
-    return clamp(LightSources.lights[lightIndex].intensity / attenuationFactor, 0.0, 1.0) * window;
+    return clamp(LightSources.lights[lightIndex].pointIntensityOrShadowTexel / attenuationFactor, 0.0, 1.0) * window;
 }
 
 //0 for directional, they have no position
@@ -72,7 +72,7 @@ void sumLights(vec3 fragPos, vec3 normal, float shininess, float viewDistance, f
             // We can't calculate bias of directional light because we don't know which cascade is selected
             // it has to be computed within.
             shadows[i] = ShadowCalculationDirectional(i, fragPos, normal, diffuseRate, precise_view_z);
-        } else if(fragDistance < LightSources.lights[i].radius) {//out of range, the light is skipped in the lighting loop too
+        } else if(fragDistance < LightSources.lights[i].pointRadiusOrShadowTexel) {//out of range, the light is skipped in the lighting loop too
             // Normal offset bias: push comparison point off the surface to avoid self-shadowing.
             // Point light is a perspective cube map where depth precision degrades with distance.
             float normalBias = mix(0.08, 0.02, diffuseRate);
@@ -95,7 +95,7 @@ void sumLights(vec3 fragPos, vec3 normal, float shininess, float viewDistance, f
         float fragDistance = lightDistance(i, fragPos, lightDirection);
         if(lightType == 1) {
             addLight(i, lightDirection, 1.0, shadows[i], normal, viewReflection, shininess, directLighting, specularLighting, lightAmbient);
-        } else if(fragDistance < LightSources.lights[i].radius) {//ambient is attenuated too, so out of range adds 0
+        } else if(fragDistance < LightSources.lights[i].pointRadiusOrShadowTexel) {//ambient is attenuated too, so out of range adds 0
             addLight(i, lightDirection, pointLightAttenuation(i, fragDistance), shadows[i], normal, viewReflection, shininess, directLighting, specularLighting, lightAmbient);
         }
     }

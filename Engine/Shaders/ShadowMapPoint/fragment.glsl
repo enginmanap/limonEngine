@@ -8,6 +8,6 @@ uniform int renderLightIndex;
 void main()
 {
     float lightDistance = length(FragPos.xyz - LightSources.lights[renderLightIndex].position);
-    lightDistance = lightDistance / LightSources.lights[renderLightIndex].radius;
+    lightDistance = lightDistance / LightSources.lights[renderLightIndex].pointRadiusOrShadowTexel;
     gl_FragDepth = lightDistance;
 }  
