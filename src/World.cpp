@@ -1338,6 +1338,8 @@ void World::deleteModel(Model *model) {
     }
     savedTagsToConvert.erase(model->getWorldObjectID());//a model added later can get the same id
     delete model;//before the entry goes, the destructor still reads it
+    const size_t entryIndex = (size_t)(entry - cullingEntries.data());
+    visibilityManager->moveCullingEntrySlots(cullingEntries.size() - 1, entryIndex);
     if (entry != &cullingEntries.back()) {
         *entry = std::move(cullingEntries.back());
         entry->model->setCullingEntry(entry);
@@ -2215,7 +2217,6 @@ void World::fillPlayerBlock(UniformBlockData &playerBlock, const glm::vec3 &came
            modelToClear->setPendingTransformUploads(nullptr);
            physicsSimulationActiveModels.erase(modelToClear->getWorldObjectID());//the ID is reused, the request must not carry over
            if (forRemoval) {
-               visibilityManager->resetPreviousLodLevel(modelToClear->getWorldObjectID());//or whoever reuses the id starts from its hysteresis
                unusedIDs.push(modelToClear->getWorldObjectID());
            }
        }

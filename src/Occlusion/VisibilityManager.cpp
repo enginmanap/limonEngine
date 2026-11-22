@@ -8,7 +8,7 @@
 #include "Utils/HardCodedTags.h"
 #include "../Profiler/ProfilerMacros.h"
 
-static_assert(MeshAsset::LOD_MAX_LEVEL_COUNT <= 256, "VisibilityRequest keeps the previous LOD level of each object in a uint8_t");
+static_assert(MeshAsset::LOD_MAX_LEVEL_COUNT < 256, "VisibilityRequest keeps the previous LOD level of each object in a uint8_t, 255 is none");
 
 VisibilityManager::VisibilityManager(World* world) : world(world) {
     OptionsUtil::Options::Option<bool> multiThreadCullingOption = world->options->getOption<bool>(HASH("performance_multiThreadedCulling"));
@@ -142,9 +142,10 @@ void VisibilityManager::clearAllRenderLists() {
     }
 }
 
-void VisibilityManager::resetPreviousLodLevel(uint32_t objectID) {
+void VisibilityManager::moveCullingEntrySlots(size_t from, size_t to) {
     for (const std::pair<VisibilityRequest *const, SDL2MultiThreading::InternalThread *> &item: visibilityThreadPool) {
-        item.first->setPreviousLodLevel(objectID, 0);
+        item.first->setPreviousLodLevel(to, item.first->getPreviousLodLevel(from));
+        item.first->setPreviousLodLevel(from, VisibilityRequest::NO_PREVIOUS_LOD_LEVEL);//the next entry added there is new
     }
 }
 
@@ -268,7 +269,7 @@ void VisibilityManager::fillVisibleObjectPerCamera(const VisibilityRequest* visi
     //even when the player is far. A directional light has no position, so its cascades follow the player
     const bool lodFromLightToo = visibilityRequest->camera->getType() == Camera::CameraTypes::CUBE;
     LodSelectionContext lodContext;
-    lodContext.hysteresis = static_cast<float>(visibilityRequest->lodSwitchHysteresisOption.getOrDefault(0.15));
+    const float switchHysteresis = static_cast<float>(visibilityRequest->lodSwitchHysteresisOption.getOrDefault(0.15));
     lodContext.forceLevel = visibilityRequest->lodForceLevelOption.getOrDefault(-1L);
     //a depth only pass is the one thing that may use welded levels, and that is the camera role, not its
     //projection. An orthographic player camera still samples textures
@@ -368,6 +369,7 @@ void VisibilityManager::fillVisibleObjectPerCamera(const VisibilityRequest* visi
         bool isVisible = !isHiddenPlayerAttachment && visibilityRequest->camera->isVisible(cullingEntry.aabbMin, cullingEntry.aabbMax);
         if (!isVisible) {
             frustumCulledCount++;//counts models, not meshes. The split mesh path is going away, it doesn't need its own count
+            visibilityRequest->setPreviousLodLevel(entryIndex, VisibilityRequest::NO_PREVIOUS_LOD_LEVEL);
             continue;
         }
         Model *currentModel = cullingEntry.model;
@@ -382,8 +384,13 @@ void VisibilityManager::fillVisibleObjectPerCamera(const VisibilityRequest* visi
             if (!modelLodSkipped) {
                 lodContext.objectDistance = lodFromLightToo ? std::min(objectDistance, distanceToBox(visibilityRequest->camera->getPosition(), cullingEntry.aabbMin, cullingEntry.aabbMax)) : objectDistance;
                 lodContext.objectScale = cullingEntry.lodScale;
-                modelLod = cullingEntry.modelAsset->getLodLadder().selectLevel(lodContext, visibilityRequest->getPreviousLodLevel(cullingEntry.worldObjectID));
-                visibilityRequest->setPreviousLodLevel(cullingEntry.worldObjectID, modelLod);
+                const uint32_t previousLod = visibilityRequest->getPreviousLodLevel(entryIndex);
+                //a model coming into view gets its level, not the hysteresis band past it
+                lodContext.hysteresis = previousLod == VisibilityRequest::NO_PREVIOUS_LOD_LEVEL ? 0.0f : switchHysteresis;
+                modelLod = cullingEntry.modelAsset->getLodLadder().selectLevel(lodContext, previousLod);
+                visibilityRequest->setPreviousLodLevel(entryIndex, modelLod);
+            } else {
+                visibilityRequest->setPreviousLodLevel(entryIndex, VisibilityRequest::NO_PREVIOUS_LOD_LEVEL);
             }
         }
         //which meshes occlude doesn't depend on the tag set, so the first matching set submits them. Every other set would rasterize them again

@@ -12,6 +12,7 @@
 #include "Occlusion/RenderList.h"
 #include "CullingEntry.h"
 #include "limonAPI/Graphics/GraphicsInterface.h"//NR_MAX_MODELS
+#include <limits>
 
 
 class PhysicalRenderable;
@@ -85,7 +86,7 @@ public:
         mutable RenderList debugOverlayRenderList;
         mutable OcclusionCullerHelper occlusionCuller;
         mutable std::unordered_map<uint32_t, const std::vector<glm::mat4>*> changedBoneTransforms;
-        mutable std::vector<uint8_t> previousLodLevels;//indexed by world object id, ids never reach NR_MAX_MODELS
+        mutable std::vector<uint8_t> previousLodLevels;//indexed like cullingEntries, which never pass NR_MAX_MODELS
         bool running = true; //non atomic because only used in between latch/barrier. But, must be checked before doing anything (because false means dangling pointers to camera and objects)
         bool cameraIsDirty = true; // cached by main thread before each signal; avoids Python GIL call from background thread
         bool playerDead = false; // same reason, isDead() reaches the player and we cannot touch that from here
@@ -109,17 +110,19 @@ public:
                 cullingEntries(cullingEntries), playerObject(playerObject), visibility(visibility),
                 occlusionCuller(options->getOption<long>(HASH("occlusion_renderWidth")),
                 options->getOption<long>(HASH("occlusion_renderHeight"))),
-                previousLodLevels(NR_MAX_MODELS, 0) {
+                previousLodLevels(NR_MAX_MODELS, NO_PREVIOUS_LOD_LEVEL) {
         }
 
-        //last level this camera chose per object, so a model sitting on a switch point does not flip every frame.
-        //Owned by this camera's culling thread, so it needs no locking. Removal resets it, so a reused id doesn't inherit it
-        uint32_t getPreviousLodLevel(uint32_t objectId) const {
-            return previousLodLevels[objectId];
+        static constexpr uint8_t NO_PREVIOUS_LOD_LEVEL = std::numeric_limits<uint8_t>::max();
+
+        //last level this camera chose per culling entry, so a model sitting on a switch point does not flip every frame.
+        //Owned by this camera's culling thread. NO_PREVIOUS_LOD_LEVEL until it is picked, World::deleteModel must move it with the entry
+        uint32_t getPreviousLodLevel(size_t entryIndex) const {
+            return previousLodLevels[entryIndex];
         }
 
-        void setPreviousLodLevel(uint32_t objectId, uint32_t level) const {
-            previousLodLevels[objectId] = (uint8_t)level;//the level fits, VisibilityManager.cpp checks LOD_MAX_LEVEL_COUNT
+        void setPreviousLodLevel(size_t entryIndex, uint32_t level) const {
+            previousLodLevels[entryIndex] = (uint8_t)level;//the level fits, VisibilityManager.cpp checks LOD_MAX_LEVEL_COUNT
         }
 
     static bool isAnyTagMatch(const std::vector<HashUtil::HashedString>& renderTags, const std::vector<HashUtil::HashedString> & objectTags) {

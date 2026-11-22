@@ -69,8 +69,8 @@ public:
     const RenderList* getDebugOverlayRenderList() const;
     //for an API change made mid tick, the pose pass still reads the lists. The scene draws nothing until the next tick rebuilds them
     void clearAllRenderLists();
-    //main thread only, between culling passes
-    void resetPreviousLodLevel(uint32_t objectID);
+    //main thread only, between culling passes. from == to is a removed last entry
+    void moveCullingEntrySlots(size_t from, size_t to);
     void addCamera(Camera* camera);
     void removeCamera(Camera* camera);
     void removeCameras(const std::vector<Camera*>& cameras);
