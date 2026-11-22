@@ -45,6 +45,7 @@ class VisibilityManager {
     static bool hasTag(const CullingEntry& cullingEntry, uint64_t tagHash);
 
     static uint32_t selectOccluderLod(const LodLadder& ladder, int32_t forcedFullLadderLevel, float occluderPixelSizeAtObject, float objectScale);
+    void setPlayerPixel(VisibilityRequest *request) const;
     //nearest point of the box, zero inside it
     static float distanceToBox(const glm::vec3 &point, const glm::vec3 &minAABB, const glm::vec3 &maxAABB);
 

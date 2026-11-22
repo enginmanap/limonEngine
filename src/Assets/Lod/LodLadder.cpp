@@ -584,11 +584,99 @@ uint32_t LodLadder::selectLevel(const LodSelectionContext &context, uint32_t pre
         }
         float switchDistance = step.distance * context.objectScale;
         float reach = outcome.meshLodIndex > previousLevel ? reachGoingCoarser : reachGoingFiner;
-        if (reach >= switchDistance) {
+        bool fits;
+        //a typed step is where the user wants it, a clipped check measured coarser than the screen and an all
+        //zero one may not have measured at all
+        if (!context.measuredErrors || step.userSet || outcome.clipped || outcome.measured == LodPixels()) {
+            fits = reach >= switchDistance;
+        } else {
+            LodPixels tolerance;
+            fits = reach >= switchDistance || (toleranceAt(reach, context.objectScale, tolerance) &&
+                                               errorsHidden(tolerance, outcome.measured, switchDistance, reach, context));
+        }
+        if (fits) {
             selected = outcome.meshLodIndex;//steps run fine to coarse, so the last one that fits is the coarsest
         }
     }
     return selected;
+}
+
+bool LodLadder::toleranceAt(float reach, float objectScale, LodPixels &tolerance) const {
+    const LodStep *nearer = nullptr;
+    const LodStep *farther = nullptr;
+    for (const LodStep &step: steps) {
+        if (step.distance <= 0.0f) {
+            continue;
+        }
+        if (reach >= step.distance * objectScale) {
+            nearer = &step;
+        } else {
+            farther = &step;
+            break;
+        }
+    }
+    if (nearer == nullptr) {
+        return false;
+    }
+    const float unscaledReach = reach / objectScale;
+    const float stepFraction = farther == nullptr ? 0.0f : (unscaledReach - nearer->distance) / (farther->distance - nearer->distance);
+    const LodPixels &farLimits = farther != nullptr ? farther->limits : nearer->limits;
+    tolerance.outline = limitBetween(nearer->limits.outline, farLimits.outline, *nearer, farther, stepFraction, unscaledReach);
+    tolerance.holes = limitBetween(nearer->limits.holes, farLimits.holes, *nearer, farther, stepFraction, unscaledReach);
+    tolerance.filled = limitBetween(nearer->limits.filled, farLimits.filled, *nearer, farther, stepFraction, unscaledReach);
+    tolerance.surface = limitBetween(nearer->limits.surface, farLimits.surface, *nearer, farther, stepFraction, unscaledReach);
+    tolerance.texture = limitBetween(nearer->limits.texture, farLimits.texture, *nearer, farther, stepFraction, unscaledReach);
+    tolerance.normal = limitBetween(nearer->limits.normal, farLimits.normal, *nearer, farther, stepFraction, unscaledReach);
+    return true;
+}
+
+float LodLadder::limitBetween(float nearLimit, float farLimit, const LodStep &nearer, const LodStep *farther,
+                              float stepFraction, float unscaledReach) {
+    if (nearLimit < 0.0f) {
+        return nearLimit;
+    }
+    //interpolate world size, not pixels: pixels would pass the farther limit before reaching it
+    const float nearWorld = nearLimit * nearer.distance;
+    const float farWorld = (farther == nullptr || farLimit < 0.0f) ? nearWorld : farLimit * farther->distance;
+    return (nearWorld + (farWorld - nearWorld) * stepFraction) / unscaledReach;
+}
+
+bool LodLadder::errorsHidden(const LodPixels &limits, const LodPixels &measured, float switchDistance, float reach,
+                             const LodSelectionContext &context) {
+    const float texel = context.shadowMapTexel;
+    bool anyChecked = false;
+    //a depth pass draws only coverage. Surface would show too, but the receiver's normal offset is tuned, not a
+    //bound, and holding levels to it took away all shadow LOD
+    bool allHidden = isErrorHidden(limits.outline, measured.outline, false, false, switchDistance, reach, texel, anyChecked) &&
+                     isErrorHidden(limits.holes, measured.holes, true, true, switchDistance, reach, texel, anyChecked) &&
+                     isErrorHidden(limits.filled, measured.filled, true, true, switchDistance, reach, texel, anyChecked);
+    if (!context.isShadowCamera) {
+        allHidden = allHidden && isErrorHidden(limits.surface, measured.surface, false, false, switchDistance, reach, texel, anyChecked) &&
+                    isErrorHidden(limits.texture, measured.texture, true, false, switchDistance, reach, texel, anyChecked) &&
+                    isErrorHidden(limits.normal, measured.normal, true, false, switchDistance, reach, texel, anyChecked);
+    }
+    return anyChecked ? allHidden : reach >= switchDistance;
+}
+
+bool LodLadder::isErrorHidden(float limit, float error, bool countedOnGrid, bool roundsToTexel, float switchDistance,
+                              float reach, float shadowMapTexel, bool &anyChecked) {
+    if (limit < 0.0f) {
+        return true;
+    }
+    anyChecked = true;
+    //measured pixels times the switch distance is the error's world size times the reference pixels per meter,
+    //the same unit reach is in. Under one supersample the check saw nothing, which doesn't mean nothing is there
+    const float smallestMeasured = 1.0f / LOD_SCORER_SUPERSAMPLING;
+    //widths counted on the pixel grid can read half a pixel low. Outline is averaged along the edge and surface is a
+    //depth, neither is counted
+    const float gridRounding = 0.5f;
+    float size = std::max(error + (countedOnGrid ? gridRounding : 0.0f), smallestMeasured) * switchDistance;
+    //a region the shadow map draws can't be narrower than its texel. The outline is a band averaged along the
+    //edge, the texels it flips average back to its width. Both roundings are taken once, they never add up
+    if (roundsToTexel && error > 0.0f) {
+        size = std::max(size, shadowMapTexel);
+    }
+    return size <= limit * reach;
 }
 
 uint32_t LodLadder::getMeshLodIndexForFullLadderLevel(uint32_t fullLadderLevel) const {

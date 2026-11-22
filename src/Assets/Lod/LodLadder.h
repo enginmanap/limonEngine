@@ -102,6 +102,10 @@ struct LodSelectionContext {
     bool isShadowCamera = false;    //depth only, so welded outcomes may be drawn
     float objectDistance = 1.0f;
     float objectScale = 1.0f;
+    //with measuredErrors objectDistance is the camera's pixel at the object in reference distance, shadowMapTexel
+    //the map's texel in the same unit
+    bool measuredErrors = false;
+    float shadowMapTexel = 0.0f;
 };
 
 //one model's LOD steps and where each one is used. Never include ModelAsset or MeshAsset here, taking plain
@@ -263,6 +267,16 @@ private:
     bool isWeldedStep(size_t stepIndex) const;
 
     static size_t countTriangles(const std::vector<MeshGeometry> &meshes);
+    //the user's limits at this reach, read between the two steps around it. False before the first step
+    bool toleranceAt(float reach, float objectScale, LodPixels &tolerance) const;
+    //a negative limit isn't checked, it stays negative
+    static float limitBetween(float nearLimit, float farLimit, const LodStep &nearer, const LodStep *farther,
+                              float stepFraction, float unscaledReach);
+    static bool errorsHidden(const LodPixels &limits, const LodPixels &measured, float switchDistance, float reach,
+                             const LodSelectionContext &context);
+    //anyChecked is only ever set, never cleared
+    static bool isErrorHidden(float limit, float error, bool countedOnGrid, bool roundsToTexel, float switchDistance,
+                              float reach, float shadowMapTexel, bool &anyChecked);
     void generateCandidate(const std::vector<MeshGeometry> &meshes, LodGenerator::GeneratorKind kind,
                            float targetError, Candidate &candidate) const;
     //coarsest target error whose candidate keeps at most this many triangles. Free, nothing is rendered

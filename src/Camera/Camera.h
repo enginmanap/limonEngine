@@ -167,6 +167,29 @@ public:
 
     virtual const glm::mat4& getProjectionMatrix() const = 0;
 
+    //world size of one pixel, per meter of getDepthTo where the pixel grows with depth. 0 is no pixel
+    virtual float getPixelSize() const {
+        return 0.0f;
+    }
+
+    virtual bool isPixelGrowingWithDepth() const {
+        return false;
+    }
+
+    virtual float getDepthTo(const glm::vec3& aabbMin [[gnu::unused]], const glm::vec3& aabbMax [[gnu::unused]]) const {
+        return 0.0f;
+    }
+
+    //a light's camera: the box's size over the biggest its shadow can be drawn, 1 for a directional light
+    virtual float getSmallestShadowScale(const glm::vec3& aabbMin [[gnu::unused]], const glm::vec3& aabbMax [[gnu::unused]]) const {
+        return 1.0f;
+    }
+
+    //a light's camera: the nearest the box's shadow can land to the viewer, over its magnification there
+    virtual float getNearestShadowTo(const glm::vec3& viewer [[gnu::unused]], const glm::vec3& aabbMin [[gnu::unused]], const glm::vec3& aabbMax [[gnu::unused]]) const {
+        return 0.0f;
+    }
+
     virtual const glm::vec3& getPosition() const = 0;
 
     virtual const glm::vec3& getCenter() const = 0;

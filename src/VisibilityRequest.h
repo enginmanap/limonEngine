@@ -12,12 +12,13 @@
 #include "Occlusion/RenderList.h"
 #include "CullingEntry.h"
 #include "limonAPI/Graphics/GraphicsInterface.h"//NR_MAX_MODELS
+#include "Camera/Camera.h"
+#include "Utils/HardCodedTags.h"
 #include <limits>
 
 
 class PhysicalRenderable;
 class Attachable;
-class Camera;
 
 class VisibilityRequest {
 public:
@@ -61,7 +62,13 @@ public:
         SDL2MultiThreading::Latch visibilityLatch; //Means we start the processing.
         SDL2MultiThreading::Barrier* frameBarrier = nullptr; // Barrier that we have that we signal when we are done.
         const Camera* const camera;
+        //read once, a camera's tags are added before addCamera builds its request
+        const bool isPlayerCamera;
+        const bool isDirectionalLightCamera;
         glm::vec3 playerPosition;
+        float playerPixelSize = 0.0f;//world size of one player screen pixel, per meter of distance unless orthographic. 0 is unknown
+        bool playerPixelOrthographic = false;
+        glm::vec3 playerCameraPosition = glm::vec3(0.0f);//shadows are judged from here, with or without the player pixel
         const OptionsUtil::Options* options;
         const OptionsUtil::Options::Option<double> skipRenderDistanceOption;
         const OptionsUtil::Options::Option<double> skipRenderSizeOption;
@@ -78,6 +85,8 @@ public:
         const OptionsUtil::Options::Option<long> occlusionBakeLodLevelOption;
         const OptionsUtil::Options::Option<double> lodSwitchHysteresisOption;
         const OptionsUtil::Options::Option<long> lodForceLevelOption;
+        const OptionsUtil::Options::Option<bool> lodPixelScalePlayerOption;
+        const OptionsUtil::Options::Option<bool> lodPixelScaleLightsOption;
 
         const std::vector<CullingEntry>* const cullingEntries;
         const Attachable* const playerObject;
@@ -92,7 +101,10 @@ public:
         bool playerDead = false; // same reason, isDead() reaches the player and we cannot touch that from here
 
         VisibilityRequest(Camera* camera, const std::vector<CullingEntry>* cullingEntries, const Attachable* playerObject, std::unordered_map<std::vector<uint64_t>, RenderList, uint64_vector_hasher> * visibility, const glm::vec3& playerPosition, const OptionsUtil::Options* options, SDL2MultiThreading::Barrier* frameBarrier, const std::string& cameraName) :
-                visibilityLatch(cameraName), frameBarrier(frameBarrier), camera(camera), playerPosition(playerPosition), options(options),
+                visibilityLatch(cameraName), frameBarrier(frameBarrier), camera(camera),
+                isPlayerCamera(camera->hasTag(HashUtil::hashString(HardCodedTags::CAMERA_PLAYER))),
+                isDirectionalLightCamera(camera->hasTag(HashUtil::hashString(HardCodedTags::CAMERA_LIGHT_DIRECTIONAL))),
+                playerPosition(playerPosition), options(options),
                 skipRenderDistanceOption(options->getOption<double>(HASH("LOD_skipRenderDistance"))),
                 skipRenderSizeOption(options->getOption<double>(HASH("LOD_skipRenderSize"))),
                 maxSkipRenderSizeOption(options->getOption<double>(HASH("LOD_maxSkipRenderSize"))),
@@ -107,6 +119,8 @@ public:
                 occlusionBakeLodLevelOption(options->getOption<long>(HASH("occlusion_bakeLodLevel"))),
                 lodSwitchHysteresisOption(options->getOption<double>(HASH("LOD_switchHysteresis"))),
                 lodForceLevelOption(options->getOption<long>(HASH("LOD_forceLevel"))),
+                lodPixelScalePlayerOption(options->getOption<bool>(HASH("LOD_pixelScalePlayer"))),
+                lodPixelScaleLightsOption(options->getOption<bool>(HASH("LOD_pixelScaleLights"))),
                 cullingEntries(cullingEntries), playerObject(playerObject), visibility(visibility),
                 occlusionCuller(options->getOption<long>(HASH("occlusion_renderWidth")),
                 options->getOption<long>(HASH("occlusion_renderHeight"))),

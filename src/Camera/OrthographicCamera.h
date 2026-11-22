@@ -185,6 +185,22 @@ public:
         return orthogonalProjectionMatrix;
     }
 
+    float getPixelSize() const override {
+        const float pixelCount = playerMode ? (float)options->getScreenHeight() : (float)shadowMapSizeOption.getOrDefault(2048);
+        return 2.0f / (orthogonalProjectionMatrix[1][1] * pixelCount);
+    }
+
+    float getNearestShadowTo(const glm::vec3& viewer, const glm::vec3& aabbMin, const glm::vec3& aabbMax) const override {
+        //the shadow is the box's bounding sphere slid along the light, seen in this cascade only from its near split
+        //on, the blend band below it included as calculateCasterPlanes cuts it
+        const float nearDepth = cascadeIndex == 0 ? cascadeLimits[0] : cascadeLimits[cascadeIndex] * (1.0f - (float)cascadeBlendFractionOption.getOrDefault(0.1));
+        const float lightLength = glm::length(position);//position is the direction light travels
+        const glm::vec3 lightDirection = lightLength > 0.0f ? position / lightLength : glm::vec3(0.0f);
+        const glm::vec3 boxCenter = (aabbMin + aabbMax) * 0.5f;
+        const float alongLight = std::max(0.0f, glm::dot(viewer - boxCenter, lightDirection));
+        return std::max(nearDepth, glm::distance(viewer, boxCenter + alongLight * lightDirection) - glm::length(aabbMax - aabbMin) * 0.5f);
+    }
+
     const glm::mat4& getOrthogonalCameraMatrix()  {
         return cameraProjectionMatrix;
     }

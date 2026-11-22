@@ -122,9 +122,8 @@ void VisibilityManager::removeCamera(Camera* camera) {
 }
 
 const RenderList* VisibilityManager::getDebugOverlayRenderList() const {
-    static const uint64_t playerCameraTag = HashUtil::hashString(HardCodedTags::CAMERA_PLAYER);
     for (const auto &item: visibilityThreadPool) {
-        if (item.first->camera->hasTag(playerCameraTag)) {
+        if (item.first->isPlayerCamera) {
             return &item.first->debugOverlayRenderList;
         }
     }
@@ -174,6 +173,7 @@ void VisibilityManager::fillVisibleObjectsUsingTags() {
         for (const auto &item: visibilityThreadPool) {
             item.first->cameraIsDirty = item.first->camera->isDirty();
             item.first->playerDead = world->currentPlayer->isDead();
+            setPlayerPixel(item.first);
             item.first->visibilityLatch.signal();
             wokenThreadCount++;
         }
@@ -193,6 +193,7 @@ void VisibilityManager::fillVisibleObjectsUsingTags() {
         for (const auto &item: visibilityThreadPool) {
             item.first->playerPosition = world->currentPlayer->getPosition();
             item.first->playerDead = world->currentPlayer->isDead();
+            setPlayerPixel(item.first);
             fillVisibleObjectPerCamera(item.first);
             item.first->playerPosition = world->currentPlayer->getPosition();
             for (auto& changedRigs:item.first->changedBoneTransforms) {
@@ -273,8 +274,14 @@ void VisibilityManager::fillVisibleObjectPerCamera(const VisibilityRequest* visi
     lodContext.forceLevel = visibilityRequest->lodForceLevelOption.getOrDefault(-1L);
     //a depth only pass is the one thing that may use welded levels, and that is the camera role, not its
     //projection. An orthographic player camera still samples textures
-    static const uint64_t lodPlayerCameraTag = HashUtil::hashString(HardCodedTags::CAMERA_PLAYER);
-    lodContext.isShadowCamera = !visibilityRequest->camera->hasTag(lodPlayerCameraTag);
+    lodContext.isShadowCamera = !visibilityRequest->isPlayerCamera;
+    const bool lodByPixel = lodContext.isShadowCamera ?
+                            (lodFromLightToo || visibilityRequest->isDirectionalLightCamera) && visibilityRequest->lodPixelScaleLightsOption.getOrDefault(true) :
+                            visibilityRequest->lodPixelScalePlayerOption.getOrDefault(true);
+    const float lodPixelSize = lodByPixel ? visibilityRequest->camera->getPixelSize() : 0.0f;
+    const bool lodPixelGrowsWithDepth = visibilityRequest->camera->isPixelGrowingWithDepth();
+    //a shadow's error is judged in the player's pixels, without them there is nothing to judge it in
+    lodContext.measuredErrors = lodByPixel && (!lodContext.isShadowCamera || visibilityRequest->playerPixelSize > 0.0f);
     bool softwareOcclusionRenderDump = false;
     long softwareOcclusionRenderDumpFrequency = 500;
     float softwareOcclusionOccluderSize = 0.25f;
@@ -304,12 +311,10 @@ void VisibilityManager::fillVisibleObjectPerCamera(const VisibilityRequest* visi
     // Software occlusion culling runs for the player camera and directional light cameras.
     // SDOC handles orthographic via auto-detection in the submodule (see snapdragon-oc
     // commit 42a9b69c): it detects ortho from the VP bottom row and carries clip-Z in the invW slot.
-    static const uint64_t playerCameraTag      = HashUtil::hashString(HardCodedTags::CAMERA_PLAYER);
-    static const uint64_t directionalLightTag  = HashUtil::hashString(HardCodedTags::CAMERA_LIGHT_DIRECTIONAL);
     static const uint64_t nonOccluderTag       = HashUtil::hashString(HardCodedTags::OBJECT_MODEL_NON_OCCLUDER);
     bool skipOcclusionCulling = false;
-    const bool isDirectionalLightCamera = visibilityRequest->camera->hasTag(directionalLightTag);
-    if (!visibilityRequest->camera->hasTag(playerCameraTag) &&
+    const bool isDirectionalLightCamera = visibilityRequest->isDirectionalLightCamera;
+    if (!visibilityRequest->isPlayerCamera &&
         !isDirectionalLightCamera) {
         skipOcclusionCulling = true;
     } else {
@@ -382,7 +387,31 @@ void VisibilityManager::fillVisibleObjectPerCamera(const VisibilityRequest* visi
         if (isVisible) {
             modelLodSkipped = isSkippedByLodDistance(skipRenderDistance, skipRenderSize, maxSkipRenderSize, cameraProjectionMatrix, visibilityRequest->playerPosition, cullingEntry.aabbMin, cullingEntry.aabbMax, objectAverageDepth, objectScreenSize, objectDistance);
             if (!modelLodSkipped) {
-                lodContext.objectDistance = lodFromLightToo ? std::min(objectDistance, distanceToBox(visibilityRequest->camera->getPosition(), cullingEntry.aabbMin, cullingEntry.aabbMax)) : objectDistance;
+                if (lodByPixel) {
+                    const float referencePixelsPerMeter = cullingEntry.modelAsset->getLodLadder().getReferencePixelsPerMeter();
+                    float pixelAtObject = lodPixelSize * referencePixelsPerMeter;
+                    if (lodPixelGrowsWithDepth) {
+                        pixelAtObject *= visibilityRequest->camera->getDepthTo(cullingEntry.aabbMin, cullingEntry.aabbMax);
+                    }
+                    if (!lodContext.isShadowCamera) {
+                        lodContext.objectDistance = pixelAtObject;
+                    } else {
+                        //where the shadow lands isn't known, the nearest place it can land shows its error biggest
+                        if (visibilityRequest->playerPixelSize <= 0.0f) {
+                            lodContext.objectDistance = visibilityRequest->camera->getNearestShadowTo(visibilityRequest->playerCameraPosition, cullingEntry.aabbMin, cullingEntry.aabbMax);
+                        } else if (visibilityRequest->playerPixelOrthographic) {
+                            //an orthographic player pixel doesn't grow with distance, a point light's shadow still grows
+                            lodContext.objectDistance = referencePixelsPerMeter * visibilityRequest->playerPixelSize *
+                                                        visibilityRequest->camera->getSmallestShadowScale(cullingEntry.aabbMin, cullingEntry.aabbMax);
+                        } else {
+                            lodContext.objectDistance = referencePixelsPerMeter * visibilityRequest->playerPixelSize *
+                                                        visibilityRequest->camera->getNearestShadowTo(visibilityRequest->playerCameraPosition, cullingEntry.aabbMin, cullingEntry.aabbMax);
+                        }
+                        lodContext.shadowMapTexel = pixelAtObject;
+                    }
+                } else {
+                    lodContext.objectDistance = lodFromLightToo ? std::min(objectDistance, distanceToBox(visibilityRequest->camera->getPosition(), cullingEntry.aabbMin, cullingEntry.aabbMax)) : objectDistance;
+                }
                 lodContext.objectScale = cullingEntry.lodScale;
                 const uint32_t previousLod = visibilityRequest->getPreviousLodLevel(entryIndex);
                 //a model coming into view gets its level, not the hysteresis band past it
@@ -439,7 +468,7 @@ void VisibilityManager::fillVisibleObjectPerCamera(const VisibilityRequest* visi
     //now we can actually check the occlusion:
     if (runOcclusion) {
         //shadow cascades keep their normal lists, the debug view is about what the player sees
-        const bool debugReverse = visibilityRequest->occlusionDebugReverseOption.getOrDefault(false) && visibilityRequest->camera->hasTag(playerCameraTag);
+        const bool debugReverse = visibilityRequest->occlusionDebugReverseOption.getOrDefault(false) && visibilityRequest->isPlayerCamera;
         std::vector<OcculudeeMetaData*> nonOccludedModels;
         std::vector<OcculudeeMetaData*> occludedModels;
         if (debugReverse) {
@@ -583,6 +612,20 @@ uint32_t VisibilityManager::selectOccluderLod(const LodLadder& ladder, int32_t f
     occluderContext.objectDistance = occluderPixelSizeAtObject * ladder.getReferencePixelsPerMeter();
     occluderContext.objectScale = objectScale;
     return ladder.selectLevel(occluderContext, 0);//no hysteresis, a switching occluder isn't seen
+}
+
+void VisibilityManager::setPlayerPixel(VisibilityRequest *request) const {
+    //read here because the player camera is the main thread's. Off, the shadow side falls back to plain distance
+    request->playerPixelSize = 0.0f;
+    if (world->playerCamera != nullptr) {
+        request->playerCameraPosition = world->playerCamera->getPosition();//the plain distance is measured from it too
+    }
+    if (world->playerCamera == nullptr || world->playerCamera->getType() == Camera::CameraTypes::CUBE ||
+        !request->lodPixelScalePlayerOption.getOrDefault(true)) {
+        return;
+    }
+    request->playerPixelSize = world->playerCamera->getPixelSize();
+    request->playerPixelOrthographic = !world->playerCamera->isPixelGrowingWithDepth();
 }
 
 float VisibilityManager::distanceToBox(const glm::vec3 &point, const glm::vec3 &minAABB, const glm::vec3 &maxAABB) {

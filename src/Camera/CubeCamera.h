@@ -99,6 +99,53 @@ public:
         this->cameraAttachment = cameraAttachment;
     }
 
+    float getPixelSize() const override {
+        return 2.0f / (float)shadowMapHeightOption.getOrDefault(512);
+    }
+
+    bool isPixelGrowingWithDepth() const override {
+        return true;
+    }
+
+    float getDepthTo(const glm::vec3& aabbMin, const glm::vec3& aabbMax) const override {
+        //the face that sees a point looks down the axis the point is farthest along, so that is its depth there
+        const glm::vec3 gap = getGapTo(aabbMin, aabbMax);
+        return std::max(gap.x, std::max(gap.y, gap.z));
+    }
+
+    float getSmallestShadowScale(const glm::vec3& aabbMin, const glm::vec3& aabbMax) const override {
+        //drawn biggest at the end of the range. A light inside the box gives 0
+        const float boxToLight = glm::length(getGapTo(aabbMin, aabbMax));
+        const float farthestShadow = std::max(activeDistance, boxToLight);
+        return farthestShadow > 0.0f ? boxToLight / farthestShadow : 0.0f;
+    }
+
+    float getNearestShadowTo(const glm::vec3& viewer, const glm::vec3& aabbMin, const glm::vec3& aabbMax) const override {
+        //the shadow lands in the cone from the light through the box's sphere, between the box and the range
+        const float boxToLight = glm::length(getGapTo(aabbMin, aabbMax));
+        const float viewerToLight = glm::distance(viewer, position);
+        if (boxToLight <= 0.0f || viewerToLight <= 0.0f) {
+            return boxToLight;//from the light every shadow is as near as it is magnified
+        }
+        const glm::vec3 lightToBox = (aabbMin + aabbMax) * 0.5f - position;
+        const float centerToLight = glm::length(lightToBox);
+        const float radius = glm::length(aabbMax - aabbMin) * 0.5f;
+        //cosine of the viewer's angle outside the cone's side. Inside it, or a light inside the sphere, it is 1
+        float cosOutside = 1.0f;
+        if (centerToLight > radius) {
+            const float sinCone = radius / centerToLight;
+            const float cosCone = std::sqrt(1.0f - sinCone * sinCone);
+            const float cosViewer = glm::dot(lightToBox / centerToLight, (viewer - position) / viewerToLight);
+            const float sinViewer = std::sqrt(std::max(0.0f, 1.0f - cosViewer * cosViewer));
+            if (sinViewer * cosCone - cosViewer * sinCone > 0.0f) {
+                cosOutside = cosViewer * cosCone + sinViewer * sinCone;
+            }
+        }
+        //distance over magnification is boxToLight * sqrt(x^2 - 2x cosOutside + 1), x = viewerToLight / the shadow's distance to the light
+        const float viewerOverShadowDistance = glm::clamp(cosOutside, viewerToLight / std::max(activeDistance, boxToLight), viewerToLight / boxToLight);
+        return boxToLight * std::sqrt(std::max(0.0f, viewerOverShadowDistance * viewerOverShadowDistance - 2.0f * viewerOverShadowDistance * cosOutside + 1.0f));
+    }
+
     float getActiveDistance() const {
         return activeDistance;
     }
@@ -110,6 +157,10 @@ public:
     }
 
 private:
+    glm::vec3 getGapTo(const glm::vec3& aabbMin, const glm::vec3& aabbMax) const {
+        return glm::max(glm::max(aabbMin - position, position - aabbMax), glm::vec3(0.0f));
+    }
+
     void setShadowMatricesForPosition(){
         long sWidth, sHeight;
         sWidth = shadowMapWidthOption.getOrDefault(512);

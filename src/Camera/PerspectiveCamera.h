@@ -100,6 +100,22 @@ public:
         return perspectiveProjectionMatrix;
     }
 
+    float getPixelSize() const override {
+        return 2.0f / (perspectiveProjectionMatrix[1][1] * (float)options->getScreenHeight());
+    }
+
+    bool isPixelGrowingWithDepth() const override {
+        return true;
+    }
+
+    float getDepthTo(const glm::vec3& aabbMin, const glm::vec3& aabbMax) const override {
+        //depth, not distance: off the view axis a pixel covers less
+        const glm::vec3 viewZRow(cameraTransformMatrix[0][2], cameraTransformMatrix[1][2], cameraTransformMatrix[2][2]);//looking down -z
+        const glm::vec3 nearestCorner(viewZRow.x < 0.0f ? aabbMin.x : aabbMax.x, viewZRow.y < 0.0f ? aabbMin.y : aabbMax.y,
+                                      viewZRow.z < 0.0f ? aabbMin.z : aabbMax.z);
+        return std::max(0.0f, -(glm::dot(viewZRow, nearestCorner) + cameraTransformMatrix[3][2]));
+    }
+
     bool isDirty() const override {
         return this->dirty || cameraAttachment->isDirty();
     }

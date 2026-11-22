@@ -268,6 +268,24 @@
         <Index>82</Index>
     </Parameter>
     <Parameter>
+        <RequestType>FreeText</RequestType>
+        <Description>LOD_pixelScalePlayer</Description>
+        <!--Pick the player camera's levels by its own pixel where the object is nearest in depth: a level is used from its own distance, and before it where each error it measured stays under the pixel limits there, read between the steps around that distance, at this resolution and field of view. Before the first step that is the full mesh. Off compares the plain distance. Per model distance overrides are scaled the same way; only LOD_forceLevel bypasses it-->
+        <Value>True</Value>
+        <valueType>Boolean</valueType>
+        <IsSet>True</IsSet>
+        <Index>115</Index>
+    </Parameter>
+    <Parameter>
+        <RequestType>FreeText</RequestType>
+        <Description>LOD_pixelScaleLights</Description>
+        <!--Pick light cameras' levels by what the player sees of the shadow: a caster's outline, hole and filled errors are drawn into the shadow map, where a hole or filled region is at least a texel wide, then seen in the player's pixels where the shadow lands, against the same limits as LOD_pixelScalePlayer. Not knowing where a shadow lands, it is judged at the nearest place it can: along the light from the caster, past the cascade's near split, or within a point light's range where it is drawn bigger the farther it lands. The texel is the cascade's from shadow_mapDirectionalSize, or shadow_mapPointHeight at the object's depth on the cube face that sees it. Without LOD_pixelScalePlayer the distance from the player camera to that place is used, for a point light divided by how much bigger the shadow is drawn there. Off uses the nearer of the player and light distances. Per model distance overrides are scaled the same way; only LOD_forceLevel bypasses it-->
+        <Value>True</Value>
+        <valueType>Boolean</valueType>
+        <IsSet>True</IsSet>
+        <Index>116</Index>
+    </Parameter>
+    <Parameter>
         <RequestType>FreeNumber</RequestType>
         <Description>LOD_calibrationMaxResolution</Description>
         <!--Largest image the check renders, twice the model's real size on screen at the level's distance. A big model close up needs more and is checked at reduced precision, the editor says so. Cost grows with the square of this. Changing it regenerates every level-->
