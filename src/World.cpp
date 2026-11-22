@@ -885,7 +885,8 @@ World::fillRouteInformation(std::vector<LimonTypes::GenericParameter> parameters
 
 void World::render() {
     PROFILE_RENDERING("World::render");
-    renderPipeline->render();
+    const std::shared_ptr<GraphicsPipeline> renderingPipeline = renderPipeline;//the editor's Revert replaces it from inside this render
+    renderingPipeline->render();
 }
 
 void World::renderGUIImages(const std::shared_ptr<GraphicsProgram>& renderProgram, const std::string &cameraName [[gnu::unused]], const std::vector<HashUtil::HashedString> &tags [[gnu::unused]]) const {

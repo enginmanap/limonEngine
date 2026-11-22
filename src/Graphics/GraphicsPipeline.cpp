@@ -40,8 +40,7 @@ void GraphicsPipeline::render() {
 }
 
 void GraphicsPipeline::finalize() {
-    for(auto& stageInfo:pipelineStages) {
-        stageInfo.stage->activate(stageInfo.clear);
+    for(auto& stageInfo:pipelineStages) {//no stage activation, the pipeline that replaced this one may be the bound one
         for(auto& renderMethod:stageInfo.renderMethods) {
             renderMethod.finalize();
         }

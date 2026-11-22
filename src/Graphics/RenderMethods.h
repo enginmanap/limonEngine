@@ -9,6 +9,7 @@
 #include <string>
 #include <functional>
 #include <utility>
+#include <algorithm>
 #include <limonAPI/Graphics/GraphicsProgram.h>
 #include <limonAPI/Graphics/RenderMethodInterface.h>
 #include "../GameObjects/Light.h"
@@ -67,7 +68,7 @@ public:
         }
 
         void finalize() {
-            if(this->finalizer != nullptr) {
+            if(isInitialized && this->finalizer != nullptr) {//an editor build that was never activated has nothing to clean
                 finalizer(glslProgram, parameters);
             }
             isInitialized = false;
@@ -129,7 +130,6 @@ private:
 
     std::function<void(const std::shared_ptr<GraphicsProgram>&, const std::string&, const std::vector<HashUtil::HashedString> &)> renderCameraByTag;//For 3d rendering
 
-    mutable std::unordered_map<std::string, RenderMethodInterface*> dynamicRenderMethodInstances;// Not allowing more than one instance for now, used like a cache so mutable
     //These methods are not exposed to the interface
     //They are also not possible to add to render pipeline, so a method should be created and assigned.
     std::function<std::vector<size_t>(Light::LightTypes)> getLightsByType;
@@ -201,21 +201,10 @@ public:
     }
 
     RenderMethod getRenderMethod(GraphicsInterface* graphicsInterface, const std::string& methodName, const std::shared_ptr<GraphicsProgram>& glslProgram, bool& isFound) const {
-        //First check if we already created an instance
-        if(dynamicRenderMethodInstances.find(methodName) == dynamicRenderMethodInstances.end()) {
-            //create an instance for usage
-            auto dynamicRenderMethodNames = RenderMethodInterface::getRenderMethodNames();
-            for (const std::string& dynamicMethodName:dynamicRenderMethodNames) {
-                if(dynamicMethodName == methodName) {
-                    RenderMethodInterface * methodInterface = RenderMethodInterface::createRenderMethodInterfaceInstance(methodName, graphicsInterface);
-                    dynamicRenderMethodInstances[methodName] = methodInterface;
-                    break;
-                }
-            }
-        }
-        if(dynamicRenderMethodInstances.find(methodName) != dynamicRenderMethodInstances.end()) {
-            //we built it at some point
-            RenderMethodInterface * methodInterface = dynamicRenderMethodInstances[methodName];
+        std::vector<std::string> pluginMethodNames = RenderMethodInterface::getRenderMethodNames();
+        if (std::find(pluginMethodNames.begin(), pluginMethodNames.end(), methodName) != pluginMethodNames.end()) {
+            //one instance per use, two stages sharing one would run initRender twice on the same state
+            std::shared_ptr<RenderMethodInterface> methodInterface(RenderMethodInterface::createRenderMethodInterfaceInstance(methodName, graphicsInterface));
             if(methodInterface != nullptr) {
                 return RenderMethod(methodName,
                                     methodInterface->getPriority(),
@@ -227,9 +216,8 @@ public:
                                     {return methodInterface->cleanupRender(program, params);},
                                     glslProgram
                 );
-            } else {
-                std::cerr << "Dynamic render method found but instance creation failed, check API doc for proper register steps." << std::endl;
             }
+            std::cerr << "Dynamic render method found but instance creation failed, check API doc for proper register steps." << std::endl;
         }
 
         //if we hit here, no dynamic match found, search for built in

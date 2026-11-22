@@ -87,6 +87,11 @@ private:
 public:
     explicit GraphicsPipeline(RenderMethods renderMethods) : renderMethods(std::move(renderMethods)) {}
 
+    //plugin render methods free their GPU resources here, so drop a pipeline only where its context is current
+    ~GraphicsPipeline() {
+        finalize();
+    }
+
     const RenderMethods &getRenderMethods() const {
         return renderMethods;
     }
