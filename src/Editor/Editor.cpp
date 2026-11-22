@@ -2914,7 +2914,7 @@ void Editor::drawWorldStatistics() const {
             animatedCount++;
         }
     }
-    ImGui::Text("Objects: %lu (%lu animated, %lu static)", (unsigned long) world->objects.size(), (unsigned long) animatedCount,
+    ImGui::Text("Objects: %lu (%lu animated, %lu not animated)", (unsigned long) world->objects.size(), (unsigned long) animatedCount,
                 (unsigned long) (world->objects.size() - animatedCount));
     ImGui::Text("Model groups: %lu", (unsigned long) world->modelGroups.size());
     ImGui::Text("Disconnected from physics: %lu", (unsigned long) world->disconnectedModels.size());
