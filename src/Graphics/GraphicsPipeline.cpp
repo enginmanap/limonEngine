@@ -277,6 +277,10 @@ GraphicsPipeline::deserialize(const std::string &graphicsPipelineFileName, Graph
                                   stageInfo, errors)) {
             return rejectPipeline(errors, graphicsPipelineFileName, "stage " + std::to_string(stageIndex) + " can't be loaded, the pipeline is not used.");
         }
+        if (stageInfo.cameraTags.size() != 1) {//saved before the editor required one, tagged objects draw nothing there
+            std::cerr << graphicsPipelineFileName << ": stage " << stageIndex << " (" << stageInfo.stage->getFoundName() << ") has " << stageInfo.cameraTags.size()
+                      << " camera tags, a stage draws for exactly one camera. Pick one in the pipeline editor and save again." << std::endl;
+        }
         graphicsPipeline->addNewStage(std::move(stageInfo));
         stageInfoElement =  stageInfoElement->NextSiblingElement("StageInformation");
         ++stageIndex;

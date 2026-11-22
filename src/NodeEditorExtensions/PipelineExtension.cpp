@@ -513,6 +513,18 @@ bool PipelineExtension::buildRenderPipelineStages(const std::vector<const Node *
     } else {
         std::unordered_map<const Node*, std::set<const Node*>> dependencies;
         buildDependencyInfoRecursive(rootNode, dependencies);
+        //only nodes that reach the screen are built, a stray one may stay unfinished
+        bool everyStageHasOneCamera = true;
+        for (const std::pair<const Node *const, std::set<const Node *>> &builtNode : dependencies) {
+            const PipelineStageExtension *stageExtension = dynamic_cast<const PipelineStageExtension *>(builtNode.first->getExtension());
+            if (stageExtension != nullptr && stageExtension->getCameraTags().size() != 1) {
+                addError("Node " + builtNode.first->getDisplayName() + " needs exactly one camera, it has " + std::to_string(stageExtension->getCameraTags().size()) + ".");
+                everyStageHasOneCamera = false;
+            }
+        }
+        if (!everyStageHasOneCamera) {
+            return false;
+        }
         for(const auto& node:dependencies) {
             std::cerr << "Node: " <<  node.first->getName() << std::endl;
             for(auto dependency: node.second) {

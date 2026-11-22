@@ -97,20 +97,21 @@ void PipelineStageExtension::drawDetailPane(Node *node) {
         }
         ImGui::EndChild();
     }
-    if (ImGui::CollapsingHeader("Camera tags to use##PipelineStageExtension")) {
-        std::string joinedString = StringUtils::join(cameraTags, ",");
-        memset(tempTags, 0, sizeof(tempTags));
-        strncpy(tempTags, joinedString.c_str(), joinedString.length());
-        ImGui::InputText("Camera Tags##perPipelineStage", tempTags, sizeof(tempTags), ImGuiInputTextFlags_CharsNoBlank);
-        if(ImGui::IsItemHovered()) {
-            ImGui::BeginTooltip();
-            ImGui::Text("Builtin Camera tags are:");
-            ImGui::Text("   %s", (HardCodedTags::CAMERA_PLAYER).c_str());
-            ImGui::Text("   %s", (HardCodedTags::CAMERA_LIGHT_DIRECTIONAL).c_str());
-            ImGui::Text("   %s", (HardCodedTags::CAMERA_LIGHT_POINT).c_str());
-            ImGui::EndTooltip();
+    if (ImGui::CollapsingHeader("Camera to use##PipelineStageExtension")) {
+        //shaders read one camera's matrices, so a stage draws one camera's culling results
+        const std::string cameraChoices[] = {HardCodedTags::CAMERA_PLAYER, HardCodedTags::CAMERA_LIGHT_DIRECTIONAL, HardCodedTags::CAMERA_LIGHT_POINT};
+        const std::string currentCamera = cameraTags.size() == 1 ? cameraTags[0] : (cameraTags.empty() ? std::string("None") : StringUtils::join(cameraTags, ","));
+        if (ImGui::BeginCombo("Camera##perPipelineStage", currentCamera.c_str())) {
+            for (const std::string &cameraChoice : cameraChoices) {
+                if (ImGui::Selectable(cameraChoice.c_str(), currentCamera == cameraChoice)) {
+                    cameraTags = {cameraChoice};
+                }
+            }
+            ImGui::EndCombo();
         }
-        cameraTags = StringUtils::split(std::string(tempTags), ",");
+        if (cameraTags.size() != 1) {
+            ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "Pick one camera, the pipeline doesn't build without it.");
+        }
     }
 
     if (ImGui::CollapsingHeader("Object Tags to render##PipelineStageExtension")) {
