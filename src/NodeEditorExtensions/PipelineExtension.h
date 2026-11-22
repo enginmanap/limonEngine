@@ -39,7 +39,6 @@ private:
     GenerateEditorElementsCallback generateEditorElementsForParameters;//used to draw GenericParameter editor widgets for render methods
     std::shared_ptr<AssetManager> assetManager; //TODO: used for deserialize textures, maybe it would be possible to avoid.
     OptionsUtil::Options* options;//TODO: used for texture de/serialize, maybe it would be possible to avoid.
-    const std::vector<std::string>& renderMethodNames;
     std::vector<std::string> messages;
     std::vector<std::string> errorMessages;
     RenderMethods renderMethods;
@@ -75,7 +74,7 @@ private:
 
 public:
     PipelineExtension(GraphicsInterface *graphicsWrapper, GenerateEditorElementsCallback generateEditorElementsForParameters, std::shared_ptr<GraphicsPipeline> currentGraphicsPipeline, std::shared_ptr<AssetManager> assetManager, OptionsUtil::Options* options,
-                      const std::vector<std::string> &renderMethodNames, RenderMethods renderMethods);
+                      RenderMethods renderMethods);
 
     void drawDetailPane(NodeGraph* nodeGraph, const std::vector<const Node *>& nodes, const Node* selectedNode) override;
 

@@ -176,7 +176,7 @@ void PipelineStageExtension::drawDetailPane(Node *node) {
         ImGui::InputText("Width Option##perPipelineStage",tempWidthOption, sizeof(tempWidthOption)-1, ImGuiInputTextFlags_CharsNoBlank);
 
         if (ImGui::BeginCombo("Render Method##RenderMethodCombo", currentMethodName.c_str())) {
-            static const std::vector<std::string> &methodNames = GraphicsPipeline::getRenderMethodNames();
+            const std::vector<std::string> methodNames = GraphicsPipeline::getRenderMethodNames();
             for (size_t i = 0; i < methodNames.size(); ++i) {
                 const std::string &methodName = methodNames.at(i);
                 if (ImGui::Selectable(methodName.c_str())) {

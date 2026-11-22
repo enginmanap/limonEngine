@@ -21,8 +21,8 @@
 
 
 PipelineExtension::PipelineExtension(GraphicsInterface *graphicsWrapper, GenerateEditorElementsCallback generateEditorElementsForParameters, std::shared_ptr<GraphicsPipeline> currentGraphicsPipeline, std::shared_ptr<AssetManager> assetManager, OptionsUtil::Options* options,
-                                     const std::vector<std::string> &renderMethodNames, RenderMethods renderMethods)
-        : graphicsWrapper(graphicsWrapper), generateEditorElementsForParameters(std::move(generateEditorElementsForParameters)), assetManager(assetManager), options(options), renderMethodNames(renderMethodNames), renderMethods(renderMethods) {
+                                     RenderMethods renderMethods)
+        : graphicsWrapper(graphicsWrapper), generateEditorElementsForParameters(std::move(generateEditorElementsForParameters)), assetManager(assetManager), options(options), renderMethods(renderMethods) {
     {
 
         for(std::shared_ptr<Texture> texture:currentGraphicsPipeline->getTextures()) {

@@ -3916,7 +3916,7 @@ void Editor::createNodeGraph() {
     GenerateEditorElementsCallback generateEditorElementsForParameters = [this](std::vector<LimonTypes::GenericParameter> &parameters, uint32_t index) {
         return this->generateEditorElementsForParameters(parameters, index);
     };
-    this->pipelineExtension = new PipelineExtension(world->graphicsWrapper, generateEditorElementsForParameters, world->renderPipeline, world->assetManager, world->options, GraphicsPipeline::getRenderMethodNames(), renderMethods);
+    this->pipelineExtension = new PipelineExtension(world->graphicsWrapper, generateEditorElementsForParameters, world->renderPipeline, world->assetManager, world->options, renderMethods);
 
     std::vector<NodeType*> nodeTypeVector = buildAvailableNodeTypes();
 

@@ -14,13 +14,6 @@
 #include "../LimonFileSystem.h"
 #include <algorithm>
 
-//Static initialize of the vector
-std::vector<std::string> GraphicsPipeline::renderMethodNames{"None", "All directional shadows", "All point shadows", "Render Tagged Objects", "Render Opaque Objects",
-                                                             "Render Animated Objects", "Render Transparent Objects", "Render GUI Texts", "Render GUI Images", "Render Editor",
-                                                             "Render Sky", "Render Debug Information", "Render Particle Emitters", "Render GPU Particle Emitters",
-                                                             "Render Opaque Player Attachment", "Render Animated Player Attachment","Render Transparent Player Attachment",
-                                                             "Render quad"};
-
 void GraphicsPipeline::initialize() {
     for(auto& stageInfo:pipelineStages) {
         stageInfo.stage->activate(stageInfo.clear);

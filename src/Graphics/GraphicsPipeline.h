@@ -85,22 +85,21 @@ private:
     GraphicsInterface* graphicsWrapper = nullptr;
 
 public:
-    static std::vector<std::string> renderMethodNames;//This is not array, because custom effects might be loaded on runtime as extensions.
-
-    explicit GraphicsPipeline(RenderMethods renderMethods) : renderMethods(std::move(renderMethods)) {
-        auto tempNameVector = RenderMethodInterface::getRenderMethodNames();
-        renderMethodNames.insert(renderMethodNames.end(),
-                                 tempNameVector.begin(),
-                                 tempNameVector.end());
-    }
+    explicit GraphicsPipeline(RenderMethods renderMethods) : renderMethods(std::move(renderMethods)) {}
 
     const RenderMethods &getRenderMethods() const {
         return renderMethods;
     }
 
-
-    static const std::vector<std::string> &getRenderMethodNames() {
-        return renderMethodNames;
+    //built on each call, plugins can register render methods after a pipeline is made
+    static std::vector<std::string> getRenderMethodNames() {
+        std::vector<std::string> names;
+        for (const RenderMethods::BuiltInRenderMethod &builtInMethod : RenderMethods::getBuiltInRenderMethods()) {
+            names.push_back(builtInMethod.name);
+        }
+        std::vector<std::string> pluginNames = RenderMethodInterface::getRenderMethodNames();
+        names.insert(names.end(), pluginNames.begin(), pluginNames.end());
+        return names;
     }
 
     void addNewStage(const StageInfo& stageInformation) {

@@ -142,39 +142,21 @@ private:
      * @return          The given method, or noop method
      */
     std::function<void(const std::shared_ptr<GraphicsProgram>&, const std::string &cameraName, const std::vector<HashUtil::HashedString> &)> getRenderMethodByName(const std::string& name, bool& found, uint32_t& priority) const {
-        found  = true;
-        if(name == "Render Tagged Objects") {
-            priority = 5;
-            return renderCameraByTag;
-        } else if(name == "Render Particle Emitters") {
-            priority = 13;
-            return renderParticleEmitters;
-        } else if(name == "Render GPU Particle Emitters") {
-            priority = 14;
-            return renderGPUParticleEmitters;
-        } else if(name == "Render GUI Texts") {
-            priority = 22;
-            return renderGUITexts;
-        } else if(name == "Render GUI Images") {
-            priority = 21;
-            return renderGUIImages;
-        } else if(name == "Render Editor") {
-            priority = 90;
-            return renderEditor;
-        } else if(name == "Render Sky") {
-            priority = 20;
-            return renderSky;
-        } else if(name == "Render Debug Information") {
-            priority = 24;
-            return renderDebug;
-        } else if(name == "Render quad") {
-            priority = 10;
-            return renderQuad;
-        } else if(name == "None") {
-            priority = 0;
-            std::cerr << "Building graphics pipeline with empty method, are you sure that was set correctly?" << std::endl;
-        } else {
-            found = false;
+        found = false;
+        for (const BuiltInRenderMethod &builtInMethod : getBuiltInRenderMethods()) {
+            if (name != builtInMethod.name) {
+                continue;
+            }
+            priority = builtInMethod.priority;
+            if (builtInMethod.method != nullptr) {
+                found = true;
+                return this->*builtInMethod.method;
+            }
+            if (name == "None") {
+                found = true;
+                std::cerr << "Building graphics pipeline with empty method, are you sure that was set correctly?" << std::endl;
+            }
+            break;//the shadow methods are built by getRenderMethodAll*Lights, they need the stage
         }
         return [](const std::shared_ptr<GraphicsProgram>& notUsed[[gnu::unused]], const std::string &cameraName [[gnu::unused]], const std::vector<HashUtil::HashedString> &tags [[gnu::unused]]){};//this is returned for both None and not found
     }
@@ -193,6 +175,31 @@ private:
     }
 
 public:
+    struct BuiltInRenderMethod {
+        std::string name;
+        uint32_t priority;
+        std::function<void(const std::shared_ptr<GraphicsProgram>&, const std::string&, const std::vector<HashUtil::HashedString> &)> RenderMethods::* method;//null for None and the shadow methods
+    };
+
+    //the editor lists these and the loader finds them here, so a name can't be offered that doesn't load
+    static const std::vector<BuiltInRenderMethod>& getBuiltInRenderMethods() {
+        static const std::vector<BuiltInRenderMethod> builtInRenderMethods = {
+                {"None",                         0,  nullptr},
+                {"All point shadows",            1,  nullptr},
+                {"All directional shadows",      2,  nullptr},
+                {"Render Tagged Objects",        5,  &RenderMethods::renderCameraByTag},
+                {"Render quad",                  10, &RenderMethods::renderQuad},
+                {"Render Particle Emitters",     13, &RenderMethods::renderParticleEmitters},
+                {"Render GPU Particle Emitters", 14, &RenderMethods::renderGPUParticleEmitters},
+                {"Render Sky",                   20, &RenderMethods::renderSky},
+                {"Render GUI Images",            21, &RenderMethods::renderGUIImages},
+                {"Render GUI Texts",             22, &RenderMethods::renderGUITexts},
+                {"Render Debug Information",     24, &RenderMethods::renderDebug},
+                {"Render Editor",                90, &RenderMethods::renderEditor},
+        };
+        return builtInRenderMethods;
+    }
+
     RenderMethod getRenderMethod(GraphicsInterface* graphicsInterface, const std::string& methodName, const std::shared_ptr<GraphicsProgram>& glslProgram, bool& isFound) const {
         //First check if we already created an instance
         if(dynamicRenderMethodInstances.find(methodName) == dynamicRenderMethodInstances.end()) {

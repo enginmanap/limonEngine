@@ -5,9 +5,7 @@
 #include <SDL3/SDL.h>
 #include <cmath>
 #include <memory>
-#ifdef _WIN32
-#include <windows.h>
-#endif
+#include "Graphics/RenderMethods.h"
 #ifdef HAS_WAYLAND
 #include "Wayland/viewporter-client-protocol.h"
 #endif
@@ -102,8 +100,7 @@ bool SDL3Helper::createContext() {
     }
 
 #ifdef _WIN32
-    HWND hwnd = (HWND)SDL_GetPointerProperty(SDL_GetWindowProperties(window), SDL_PROP_WINDOW_WIN32_HWND_POINTER, NULL);
-    options->setImeWindowHandle(hwnd);
+    options->setImeWindowHandle(SDL_GetPointerProperty(SDL_GetWindowProperties(window), SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr));
 #endif
     //if window has a scaling, we are setting the values to find out;
     int w, h;
@@ -213,7 +210,16 @@ bool SDL3Helper::loadCustomTriggers(const std::string &fileName) {
     result = loadActors(objectHandle) && result;
     result = loadPlayerExtensions(objectHandle) && result;
     result = loadCameraExtensions(objectHandle) && result;
-    return loadRenderMethods(objectHandle) && result;
+    return loadRenderMethods(objectHandle, fileName) && result;
+}
+
+bool SDL3Helper::isBuiltInRenderMethodName(const std::string &methodName) {
+    for (const RenderMethods::BuiltInRenderMethod &builtInMethod : RenderMethods::getBuiltInRenderMethods()) {
+        if (builtInMethod.name == methodName) {
+            return true;
+        }
+    }
+    return false;
 }
 
 bool SDL3Helper::loadPlayerExtensions(SDL_SharedObject *objectHandle) const {
@@ -300,7 +306,7 @@ bool SDL3Helper::loadActors(SDL_SharedObject *objectHandle) const {
     }
 }
 
-bool SDL3Helper::loadRenderMethods(SDL_SharedObject *objectHandle) const {
+bool SDL3Helper::loadRenderMethods(SDL_SharedObject *objectHandle, const std::string &fileName) const {
     const std::string registerFunctionName = "registerRenderMethodTypes";
     void(*registerFunction)(std::map<std::string, RenderMethodInterface::Registration>*);
     registerFunction = (void(*)(
@@ -312,6 +318,10 @@ bool SDL3Helper::loadRenderMethods(SDL_SharedObject *objectHandle) const {
         registerFunction(&elements);
         //now add this elements to registered map
         for (auto it = elements.begin(); it != elements.end(); it++) {
+            if (isBuiltInRenderMethodName(it->first)) {//plugins are looked up first, it would replace the built in one in every pipeline
+                std::cerr << fileName << " registers RenderMethod " << it->first << ", the name of a built in render method. Rename it, it is not registered." << std::endl;
+                continue;
+            }
             RenderMethodInterface::registerDynamicRenderMethod(it->first, it->second);
             std::cout << "registered RenderMethod: " << it->first << std::endl;
         }

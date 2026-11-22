@@ -76,7 +76,8 @@ public:
     bool loadPlayerExtensions(SDL_SharedObject *objectHandle) const;
     bool loadCameraExtensions(SDL_SharedObject *objectHandle) const;
     bool loadActors(SDL_SharedObject *objectHandle) const;
-    bool loadRenderMethods(SDL_SharedObject *objectHandle) const;
+    bool loadRenderMethods(SDL_SharedObject *objectHandle, const std::string &fileName) const;
+    static bool isBuiltInRenderMethodName(const std::string &methodName);
 
 };
 
