@@ -312,6 +312,9 @@ void bindLimonAPI(pybind11::module_& m) {
             .def("is_sound_playing", &LimonAPI::isSoundPlaying,
                  "Returns True if the sound is currently playing",
                  pybind11::arg("sound_id"))
+            .def("set_sound_temporary", &LimonAPI::setSoundTemporary,
+                 "A temporary sound is not written when the world is saved. False if the sound is not found",
+                 pybind11::arg("sound_id"), pybind11::arg("temporary"))
 
             // Music (dedicated MUSIC channel)
             .def("set_music", &LimonAPI::setMusic,
@@ -480,6 +483,9 @@ void bindLimonAPI(pybind11::module_& m) {
                  "Make the camera rig with this id drive the player camera (true if found)")
             .def("deactivate_camera_rig", &LimonAPI::deactivateCameraRig,
                  "Revert to the player's own camera")
+            .def("remove_camera_rig", &LimonAPI::removeCameraRig,
+                 "Remove a camera rig. False if no rig has this ID",
+                 pybind11::arg("rig_id"))
             .def("set_model_animation", &LimonAPI::setModelAnimation,
                  "Set an animation for a model",
                  pybind11::arg("model_id"), pybind11::arg("animation_name"),
