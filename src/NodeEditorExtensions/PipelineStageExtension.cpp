@@ -127,12 +127,14 @@ void PipelineStageExtension::drawDetailPane(Node *node) {
             ImGui::Text("   %s",HardCodedTags::OBJECT_MODEL_BASIC.c_str());
             ImGui::Text("   %s",HardCodedTags::OBJECT_MODEL_ANIMATED.c_str());
             ImGui::Text("   %s",HardCodedTags::OBJECT_MODEL_TRANSPARENT.c_str());
+            ImGui::Text("   %s",HardCodedTags::OBJECT_MODEL_AMBIENT.c_str());
+            ImGui::Text("   %s",HardCodedTags::OBJECT_MODEL_NON_OCCLUDER.c_str());
             ImGui::Text("   ");
             ImGui::Text("   %s",HardCodedTags::OBJECT_PLAYER_BASIC.c_str());
             ImGui::Text("   %s",HardCodedTags::OBJECT_PLAYER_ANIMATED.c_str());
             ImGui::Text("   %s",HardCodedTags::OBJECT_PLAYER_TRANSPARENT.c_str());
             ImGui::Text("   ");
-            ImGui::Text("Objects render in same order as the tags you set");
+            ImGui::Text("A mesh is drawn if any of its tags is listed here");
             ImGui::EndTooltip();
         }
         objectTags = StringUtils::split(std::string(tempTags), ",");
