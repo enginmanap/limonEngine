@@ -1495,7 +1495,7 @@
                     <AnyOutputMultiLayered>False</AnyOutputMultiLayered>
                     <ToScreen>True</ToScreen>
                     <CameraTags>player_camera</CameraTags>
-                    <ObjectTags>someObject</ObjectTags>
+                    <ObjectTags></ObjectTags>
                     <DefaultRenderResolution>
                         <X>1920</X>
                         <Y>1080</Y>
@@ -3181,7 +3181,7 @@
                     <ScissorEnabled>False</ScissorEnabled>
                     <ToScreen>True</ToScreen>
                     <CameraTags>player_camera</CameraTags>
-                    <ObjectTags>someObject</ObjectTags>
+                    <ObjectTags></ObjectTags>
                     <CullMode>BACK</CullMode>
                     <Inputs>
                         <Input Index="1" textureID="101"/>
