@@ -3673,7 +3673,7 @@ void Editor::drawNodeEditor() {
 
     ImGui::SetNextWindowSize(ImVec2(700, 600), ImGuiCond_FirstUseEver);
 
-    if (!ImGui::Begin("Example: Custom Node Graph", &this->showNodeGraph)) {
+    if (!ImGui::Begin("Render Pipeline Editor", &this->showNodeGraph)) {
         ImGui::End();
         return;
     }
@@ -3701,7 +3701,7 @@ void Editor::drawNodeEditor() {
         if(handleId == 0) {
             ImGui::CloseCurrentPopup();
         }
-        ImGui::Text("Do you want to keep the pipeline active?\n\nIt will reset automatically in 10 seconds of game time, after you close the editor.");
+        ImGui::Text("Do you want to keep the pipeline active?\n\nIt will revert automatically in 10 seconds.");
         ImGui::Separator();
 
         if (ImGui::Button("Keep", ImVec2(120, 0))) {
