@@ -42,7 +42,7 @@ class VisibilityManager {
     static bool passesOccluderSize(const ModelGroup* group, float ownScreenSize, const glm::mat4& cameraProjectionMatrix, float occluderSize, float groupMemberMinSize);
     static void staticOcclusionThread(VisibilityRequest* request);
     static bool isSkippedByLodDistance(float skipRenderDistance, float skipRenderSize, float maxSkipRenderSize, const glm::mat4 &cameraProjectionMatrix, const glm::vec3& playerPosition, glm::vec3 minAABB, glm::vec3 maxAABB, float &objectAverageDepth, float &objectScreenSize, float &objectDistance);
-    static bool hasTag(const CullingEntry& cullingEntry, uint64_t tagHash);
+    static bool hasNonOccluderTag(const Model::MeshMeta& meshMeta);
 
     static uint32_t selectOccluderLod(const LodLadder& ladder, int32_t forcedFullLadderLevel, float occluderPixelSizeAtObject, float objectScale);
     void setPlayerPixel(VisibilityRequest *request) const;

@@ -311,7 +311,6 @@ void VisibilityManager::fillVisibleObjectPerCamera(const VisibilityRequest* visi
     // Software occlusion culling runs for the player camera and directional light cameras.
     // SDOC handles orthographic via auto-detection in the submodule (see snapdragon-oc
     // commit 42a9b69c): it detects ortho from the VP bottom row and carries clip-Z in the invW slot.
-    static const uint64_t nonOccluderTag       = HashUtil::hashString(HardCodedTags::OBJECT_MODEL_NON_OCCLUDER);
     bool skipOcclusionCulling = false;
     const bool isDirectionalLightCamera = visibilityRequest->isDirectionalLightCamera;
     if (!visibilityRequest->isPlayerCamera &&
@@ -345,7 +344,9 @@ void VisibilityManager::fillVisibleObjectPerCamera(const VisibilityRequest* visi
     uint32_t frustumCulledCount = 0;
     uint32_t totalCounter = 0;
     uint32_t lodSkipCounter = 0;
-    uint32_t occluderCounter = 0;
+    uint32_t occluderModelCounter = 0;
+    uint32_t occluderMeshCounter = 0;//meshes rasterized into the occlusion buffer, non occluder meshes of an occluder model aren't
+    uint32_t directlyAddedCount = 0;//meshes added without the occlusion test, only when occlusion is off
     uint32_t occludedCounter = 0;
     uint32_t nonOccludedCount = 0; // meshes of the occludees and occluders that survived the depth test, like totalCounter
     float maxScreenSize = 0.0;
@@ -433,12 +434,24 @@ void VisibilityManager::fillVisibleObjectPerCamera(const VisibilityRequest* visi
                             if (objectScreenSize > maxScreenSize) {
                                 maxScreenSize = objectScreenSize;
                             }
-                            occluderCounter += meshCount;
                             //an animated occluder would need its node transform and pose, which we don't have here, so it only ever occludes itself
-                            if (runOcclusion && !cullingEntry.animated && !occludersSubmitted && !hasTag(cullingEntry, nonOccluderTag)) {
-                                visibilityRequest->occlusionCuller.renderOccluder(currentModel, selectOccluderLod(cullingEntry.modelAsset->getLodLadder(), forcedOccluderLodLevel,
-                                                                                                     occluderPixelSize * (occluderPixelGrowsWithDistance ? objectDistance : 1.0f), cullingEntry.lodScale));
-                                //std::cout << currentModel->getName() << ":" << " is occluder " << std::endl;
+                            const bool allMeshesNonOccluder = cullingEntry.meshTagsUniform && !meshMetas.empty() && hasNonOccluderTag(*meshMetas[0]);
+                            if (runOcclusion && !cullingEntry.animated && !occludersSubmitted && !allMeshesNonOccluder) {
+                                const uint32_t occluderLod = selectOccluderLod(cullingEntry.modelAsset->getLodLadder(), forcedOccluderLodLevel,
+                                                                               occluderPixelSize * (occluderPixelGrowsWithDistance ? objectDistance : 1.0f), cullingEntry.lodScale);
+                                const glm::mat4 &worldTransform = currentModel->getTransformation()->getWorldTransform();
+                                uint32_t submittedMeshCount = 0;
+                                for (const Model::MeshMeta* meshMeta : meshMetas) {
+                                    //a glass mesh is non occluder, the walls of the same model still occlude
+                                    if (cullingEntry.meshTagsUniform || !hasNonOccluderTag(*meshMeta)) {
+                                        visibilityRequest->occlusionCuller.renderOccluder(meshMeta, worldTransform, occluderLod);
+                                        submittedMeshCount++;
+                                    }
+                                }
+                                if (submittedMeshCount != 0) {
+                                    occluderModelCounter++;
+                                    occluderMeshCounter += submittedMeshCount;
+                                }
                             }
                             //an occluder can be hidden by another one too. Its own aabb is in front of its surface, so it can't hide itself
                             if (runOcclusion) {
@@ -447,6 +460,7 @@ void VisibilityManager::fillVisibleObjectPerCamera(const VisibilityRequest* visi
                                 for (const Model::MeshMeta* meshMeta : meshMetas) {
                                     if (cullingEntry.meshTagsUniform || VisibilityRequest::isAnyTagMatch(visibilityEntry.first, meshMeta->tagHashes)) {
                                         visibilityEntry.second.addMeshMaterial(meshMeta->material, meshMeta->mesh, currentModel, modelLod, objectAverageDepth);
+                                        directlyAddedCount++;
                                     }
                                 }
                             }
@@ -492,8 +506,8 @@ void VisibilityManager::fillVisibleObjectPerCamera(const VisibilityRequest* visi
             }
         }
         occludedCounter = totalCounter - nonOccludedCount;//occluders are queried too, so they are part of nonOccludedCount
-        if (occluderCounter != 0 && occludedCounter != 0) {
-            //std::cout << "Total occluder count is " << occluderCounter << " and it occluded " << occludedCounter << std::endl;
+        if (occluderMeshCounter != 0 && occludedCounter != 0) {
+            //std::cout << "Total occluder count is " << occluderMeshCounter << " and it occluded " << occludedCounter << std::endl;
         }
         frameCount++;
         if (frameCount == softwareOcclusionRenderDumpFrequency) {
@@ -545,9 +559,10 @@ void VisibilityManager::fillVisibleObjectPerCamera(const VisibilityRequest* visi
 
         tracy::Profiler::PlotData(stableName("Frustum Culled"), (int64_t)frustumCulledCount);
         tracy::Profiler::PlotData(stableName("LOD Skipped"),    (int64_t)lodSkipCounter);
-        tracy::Profiler::PlotData(stableName("Total Visible"),  (int64_t)(runOcclusion ? nonOccludedCount : occluderCounter));
+        tracy::Profiler::PlotData(stableName("Total Visible"),  (int64_t)(runOcclusion ? nonOccludedCount : directlyAddedCount));
         if (runOcclusion) {
-            tracy::Profiler::PlotData(stableName("Occluders"), (int64_t)occluderCounter);
+            tracy::Profiler::PlotData(stableName("Occluder Models"), (int64_t)occluderModelCounter);
+            tracy::Profiler::PlotData(stableName("Occluder Meshes"), (int64_t)occluderMeshCounter);
             tracy::Profiler::PlotData(stableName("Occluded"),  (int64_t)occludedCounter);
         }
     }
@@ -592,13 +607,9 @@ uint32_t VisibilityManager::addOccludeeMeshes(const OcculudeeMetaData* occludee,
     return (uint32_t)meshMetas.size();
 }
 
-bool VisibilityManager::hasTag(const CullingEntry& cullingEntry, uint64_t tagHash) {
-    for (const HashUtil::HashedString& tag : cullingEntry.tags) {
-        if (tag.hash == tagHash) {
-            return true;
-        }
-    }
-    return false;
+bool VisibilityManager::hasNonOccluderTag(const Model::MeshMeta& meshMeta) {
+    static const uint64_t nonOccluderTag = HashUtil::hashString(HardCodedTags::OBJECT_MODEL_NON_OCCLUDER);
+    return std::find(meshMeta.tagHashes.begin(), meshMeta.tagHashes.end(), nonOccluderTag) != meshMeta.tagHashes.end();
 }
 
 //levels are scored by what they show on the reference screen at a distance, so the occluder picks the level whose

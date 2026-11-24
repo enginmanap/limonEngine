@@ -136,12 +136,6 @@ public:
         }
     }
 
-    void renderOccluder(const Model* model, uint32_t requestedLodLevel) {
-        for (size_t i = 0; i < model->getMeshMetaData().size(); ++i) {
-            renderOccluder(model->getMeshMetaData()[i], model->getTransformation()->getWorldTransform(), requestedLodLevel);
-        }
-    }
-
     void renderOccluder(const Model::MeshMeta* meshMeta, const glm::mat4 &modelMatrix, uint32_t requestedLodLevel) {
         const std::vector<uint16_t, AlignedAllocator<uint16_t, 64>> &bakedOccluder = meshMeta->mesh->getBakedOccluder(requestedLodLevel);
         if (!bakedOccluder.empty()) {
