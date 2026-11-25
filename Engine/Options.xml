@@ -331,6 +331,15 @@
         <Index>60</Index>
     </Parameter>
     <Parameter>
+        <RequestType>FreeNumber</RequestType>
+        <Description>occlusion_lodFilledPixels</Description>
+        <!--How wide a region an occluder's level may cover beyond the full mesh, in occlusion buffer pixels at the object. Covering more culls what is visible, so this keeps occluders conservative; covering less only lets more be drawn and is held to the LOD level limits like a shadow. The scorer reads about a pixel for any edge that moved, so much under 1 leaves occluders at the full mesh-->
+        <Value>1.0</Value>
+        <valueType>Double</valueType>
+        <IsSet>True</IsSet>
+        <Index>119</Index>
+    </Parameter>
+    <Parameter>
         <RequestType>FreeText</RequestType>
         <Description>occlusion_enabled</Description>
         <!--Enables software occlusion culling for the player camera. Can be toggled at runtime from the editor.-->

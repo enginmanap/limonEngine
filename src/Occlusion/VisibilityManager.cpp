@@ -275,6 +275,8 @@ void VisibilityManager::fillVisibleObjectPerCamera(const VisibilityRequest* visi
     //a depth only pass is the one thing that may use welded levels, and that is the camera role, not its
     //projection. An orthographic player camera still samples textures
     lodContext.isShadowCamera = !visibilityRequest->isPlayerCamera;
+    lodContext.errorDeclarations = lodContext.isShadowCamera ? LodErrorDeclarations::forShadow() : LodErrorDeclarations::forPlayer();
+    const float occluderFilledPixels = static_cast<float>(visibilityRequest->occlusionLodFilledPixelsOption.getOrDefault(1.0));
     const bool lodByPixel = lodContext.isShadowCamera ?
                             (lodFromLightToo || visibilityRequest->isDirectionalLightCamera) && visibilityRequest->lodPixelScaleLightsOption.getOrDefault(true) :
                             visibilityRequest->lodPixelScalePlayerOption.getOrDefault(true);
@@ -288,7 +290,7 @@ void VisibilityManager::fillVisibleObjectPerCamera(const VisibilityRequest* visi
     glm::mat4 cameraProjectionMatrix;
     glm::vec3 viewDirection;
     glm::vec3 cameraPos;
-    //world size of one occlusion buffer pixel along its coarser axis, per unit of distance for a perspective camera
+    //world size of one occlusion buffer pixel along its coarser axis, per unit of depth for a perspective camera
     float occluderPixelSize = 0.0f;
     bool occluderPixelGrowsWithDistance = false;
     if(visibilityRequest->camera->getType() == Camera::CameraTypes::PERSPECTIVE ||
@@ -438,7 +440,8 @@ void VisibilityManager::fillVisibleObjectPerCamera(const VisibilityRequest* visi
                             const bool allMeshesNonOccluder = cullingEntry.meshTagsUniform && !meshMetas.empty() && hasNonOccluderTag(*meshMetas[0]);
                             if (runOcclusion && !cullingEntry.animated && !occludersSubmitted && !allMeshesNonOccluder) {
                                 const uint32_t occluderLod = selectOccluderLod(cullingEntry.modelAsset->getLodLadder(), forcedOccluderLodLevel,
-                                                                               occluderPixelSize * (occluderPixelGrowsWithDistance ? objectDistance : 1.0f), cullingEntry.lodScale);
+                                                                               occluderPixelSize * (occluderPixelGrowsWithDistance ? visibilityRequest->camera->getDepthTo(cullingEntry.aabbMin, cullingEntry.aabbMax) : 1.0f),
+                                                                               cullingEntry.lodScale, occluderFilledPixels);
                                 const glm::mat4 &worldTransform = currentModel->getTransformation()->getWorldTransform();
                                 uint32_t submittedMeshCount = 0;
                                 for (const Model::MeshMeta* meshMeta : meshMetas) {
@@ -612,9 +615,10 @@ bool VisibilityManager::hasNonOccluderTag(const Model::MeshMeta& meshMeta) {
     return std::find(meshMeta.tagHashes.begin(), meshMeta.tagHashes.end(), nonOccluderTag) != meshMeta.tagHashes.end();
 }
 
-//levels are scored by what they show on the reference screen at a distance, so the occluder picks the level whose
-//reference pixel is as big as an occlusion buffer pixel at the object. The occluder is depth only, so welded levels qualify
-uint32_t VisibilityManager::selectOccluderLod(const LodLadder& ladder, int32_t forcedFullLadderLevel, float occluderPixelSizeAtObject, float objectScale) {
+//selected like a shadow camera with the occlusion buffer pixel as both the pixel and the texel. The occluder is depth
+//only, so welded levels qualify
+uint32_t VisibilityManager::selectOccluderLod(const LodLadder& ladder, int32_t forcedFullLadderLevel, float occluderPixelSizeAtObject,
+                                              float objectScale, float filledPixels) {
     if (forcedFullLadderLevel >= 0) {
         return ladder.getMeshLodIndexForFullLadderLevel(static_cast<uint32_t>(forcedFullLadderLevel));
     }
@@ -622,6 +626,9 @@ uint32_t VisibilityManager::selectOccluderLod(const LodLadder& ladder, int32_t f
     occluderContext.isShadowCamera = true;
     occluderContext.objectDistance = occluderPixelSizeAtObject * ladder.getReferencePixelsPerMeter();
     occluderContext.objectScale = objectScale;
+    occluderContext.measuredErrors = true;
+    occluderContext.shadowMapTexel = occluderContext.objectDistance;
+    occluderContext.errorDeclarations = LodErrorDeclarations::forOccluder(filledPixels);
     return ladder.selectLevel(occluderContext, 0);//no hysteresis, a switching occluder isn't seen
 }
 

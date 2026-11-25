@@ -97,6 +97,38 @@ struct LodStep {
 #endif
 };
 
+//how a camera role judges one kind of error: not at all, against the step's limit, or against a fixed number of
+//its own pixels at the object
+enum class LodErrorRule : uint8_t {
+    OFF,
+    STEP,
+    FIXED
+};
+
+struct LodErrorDeclaration {
+    LodErrorRule rule = LodErrorRule::STEP;
+    float fixedPixels = 0.0f;
+};
+
+//what each kind of error means to the camera drawing the level. A fixed rule is checked past the switch too, the
+//step limits only hold where the step was judged
+struct LodErrorDeclarations {
+    LodErrorDeclaration surface;
+    LodErrorDeclaration outline;
+    LodErrorDeclaration holes;
+    LodErrorDeclaration filled;
+    LodErrorDeclaration texture;
+    LodErrorDeclaration normal;
+
+    static LodErrorDeclarations forPlayer();
+    //a depth pass draws only coverage. Surface would show too, but the receiver's normal offset is tuned, not a
+    //bound, and holding levels to it took away all shadow LOD
+    static LodErrorDeclarations forShadow();
+    //a hole only lets something behind be drawn, gained coverage culls what is visible. Outline mixes the two
+    static LodErrorDeclarations forOccluder(float filledPixels);
+    bool hasFixedRules() const;
+};
+
 struct LodSelectionContext {
     float hysteresis = 0.0f;
     long forceLevel = -1;
@@ -107,6 +139,7 @@ struct LodSelectionContext {
     //the map's texel in the same unit
     bool measuredErrors = false;
     float shadowMapTexel = 0.0f;
+    LodErrorDeclarations errorDeclarations = LodErrorDeclarations::forPlayer();
 };
 
 //one model's LOD steps and where each one is used. Never include ModelAsset or MeshAsset here, taking plain
@@ -290,8 +323,12 @@ private:
     //a negative limit isn't checked, it stays negative
     static float limitBetween(float nearLimit, float farLimit, const LodStep &nearer, const LodStep *farther,
                               float stepFraction, float unscaledReach);
+    //only the kinds the context declares with this rule. limits are the step's at reach, a fixed rule brings its own
     static bool errorsHidden(const LodPixels &limits, const LodPixels &measured, float switchDistance, float reach,
-                             const LodSelectionContext &context);
+                             const LodSelectionContext &context, LodErrorRule rule);
+    static bool isDeclaredErrorHidden(const LodErrorDeclaration &declaration, LodErrorRule rule, float stepLimit,
+                                      float error, bool countedOnGrid, bool roundsToTexel, float switchDistance,
+                                      float reach, float shadowMapTexel, bool &anyChecked);
     //anyChecked is only ever set, never cleared
     static bool isErrorHidden(float limit, float error, bool countedOnGrid, bool roundsToTexel, float switchDistance,
                               float reach, float shadowMapTexel, bool &anyChecked);

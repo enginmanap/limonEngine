@@ -618,6 +618,7 @@ uint32_t LodLadder::selectLevel(const LodSelectionContext &context, uint32_t pre
     const float reachGoingFiner = context.objectDistance * (1.0f + context.hysteresis);
     //the factor makes the object count as bigger on screen, so its errors are read bigger too, not only its switches moved
     const float objectScale = context.objectScale * switchDistanceFactor;
+    const bool fixedRulesDeclared = context.measuredErrors && context.errorDeclarations.hasFixedRules();
     uint32_t selected = 0;
     for (size_t stepIndex = 0; stepIndex < steps.size(); ++stepIndex) {
         //welded outcomes drop UVs and normals, so only a depth camera may draw one. Where a step has no twin the
@@ -637,7 +638,13 @@ uint32_t LodLadder::selectLevel(const LodSelectionContext &context, uint32_t pre
         } else {
             LodPixels tolerance;
             fits = reach >= switchDistance || (toleranceAt(reach, objectScale, tolerance) &&
-                                               errorsHidden(tolerance, outcome.measured, switchDistance, reach, context));
+                                               errorsHidden(tolerance, outcome.measured, switchDistance, reach, context,
+                                                            LodErrorRule::STEP));
+        }
+        if (fits && fixedRulesDeclared) {
+            //a fixed rule holds at every reach, and an outcome nothing measured can't be shown to keep it
+            fits = !(outcome.measured == LodPixels()) &&
+                   errorsHidden(LodPixels(), outcome.measured, switchDistance, reach, context, LodErrorRule::FIXED);
         }
         if (fits) {
             selected = outcome.meshLodIndex;//steps run fine to coarse, so the last one that fits is the coarsest
@@ -687,20 +694,55 @@ float LodLadder::limitBetween(float nearLimit, float farLimit, const LodStep &ne
 }
 
 bool LodLadder::errorsHidden(const LodPixels &limits, const LodPixels &measured, float switchDistance, float reach,
-                             const LodSelectionContext &context) {
+                             const LodSelectionContext &context, LodErrorRule rule) {
     const float texel = context.shadowMapTexel;
+    const LodErrorDeclarations &declarations = context.errorDeclarations;
     bool anyChecked = false;
-    //a depth pass draws only coverage. Surface would show too, but the receiver's normal offset is tuned, not a
-    //bound, and holding levels to it took away all shadow LOD
-    bool allHidden = isErrorHidden(limits.outline, measured.outline, false, false, switchDistance, reach, texel, anyChecked) &&
-                     isErrorHidden(limits.holes, measured.holes, true, true, switchDistance, reach, texel, anyChecked) &&
-                     isErrorHidden(limits.filled, measured.filled, true, true, switchDistance, reach, texel, anyChecked);
-    if (!context.isShadowCamera) {
-        allHidden = allHidden && isErrorHidden(limits.surface, measured.surface, false, false, switchDistance, reach, texel, anyChecked) &&
-                    isErrorHidden(limits.texture, measured.texture, true, false, switchDistance, reach, texel, anyChecked) &&
-                    isErrorHidden(limits.normal, measured.normal, true, false, switchDistance, reach, texel, anyChecked);
+    bool allHidden = isDeclaredErrorHidden(declarations.outline, rule, limits.outline, measured.outline, false, false, switchDistance, reach, texel, anyChecked) &&
+                     isDeclaredErrorHidden(declarations.holes, rule, limits.holes, measured.holes, true, true, switchDistance, reach, texel, anyChecked) &&
+                     isDeclaredErrorHidden(declarations.filled, rule, limits.filled, measured.filled, true, true, switchDistance, reach, texel, anyChecked) &&
+                     isDeclaredErrorHidden(declarations.surface, rule, limits.surface, measured.surface, false, false, switchDistance, reach, texel, anyChecked) &&
+                     isDeclaredErrorHidden(declarations.texture, rule, limits.texture, measured.texture, true, false, switchDistance, reach, texel, anyChecked) &&
+                     isDeclaredErrorHidden(declarations.normal, rule, limits.normal, measured.normal, true, false, switchDistance, reach, texel, anyChecked);
+    if (rule == LodErrorRule::FIXED) {
+        return allHidden;
     }
     return anyChecked ? allHidden : reach >= switchDistance;
+}
+
+bool LodLadder::isDeclaredErrorHidden(const LodErrorDeclaration &declaration, LodErrorRule rule, float stepLimit,
+                                      float error, bool countedOnGrid, bool roundsToTexel, float switchDistance,
+                                      float reach, float shadowMapTexel, bool &anyChecked) {
+    if (declaration.rule != rule) {
+        return true;
+    }
+    const float limit = rule == LodErrorRule::FIXED ? declaration.fixedPixels : stepLimit;
+    return isErrorHidden(limit, error, countedOnGrid, roundsToTexel, switchDistance, reach, shadowMapTexel, anyChecked);
+}
+
+LodErrorDeclarations LodErrorDeclarations::forPlayer() {
+    return LodErrorDeclarations();
+}
+
+LodErrorDeclarations LodErrorDeclarations::forShadow() {
+    LodErrorDeclarations declarations;
+    declarations.surface.rule = LodErrorRule::OFF;
+    declarations.texture.rule = LodErrorRule::OFF;
+    declarations.normal.rule = LodErrorRule::OFF;
+    return declarations;
+}
+
+LodErrorDeclarations LodErrorDeclarations::forOccluder(float filledPixels) {
+    LodErrorDeclarations declarations = forShadow();
+    declarations.outline.rule = LodErrorRule::OFF;
+    declarations.filled.rule = LodErrorRule::FIXED;
+    declarations.filled.fixedPixels = filledPixels;
+    return declarations;
+}
+
+bool LodErrorDeclarations::hasFixedRules() const {
+    return surface.rule == LodErrorRule::FIXED || outline.rule == LodErrorRule::FIXED || holes.rule == LodErrorRule::FIXED ||
+           filled.rule == LodErrorRule::FIXED || texture.rule == LodErrorRule::FIXED || normal.rule == LodErrorRule::FIXED;
 }
 
 bool LodLadder::isErrorHidden(float limit, float error, bool countedOnGrid, bool roundsToTexel, float switchDistance,

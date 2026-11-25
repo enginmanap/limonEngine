@@ -83,6 +83,7 @@ public:
         const OptionsUtil::Options::Option<bool> occlusionOccluderSizeByGroupOption;
         const OptionsUtil::Options::Option<double> occlusionOccluderGroupMemberMinFractionOption;
         const OptionsUtil::Options::Option<long> occlusionBakeLodLevelOption;
+        const OptionsUtil::Options::Option<double> occlusionLodFilledPixelsOption;
         const OptionsUtil::Options::Option<double> lodSwitchHysteresisOption;
         const OptionsUtil::Options::Option<long> lodForceLevelOption;
         const OptionsUtil::Options::Option<bool> lodPixelScalePlayerOption;
@@ -117,6 +118,7 @@ public:
                 occlusionOccluderSizeByGroupOption(options->getOption<bool>(HASH("occlusion_occluderSizeByGroup"))),
                 occlusionOccluderGroupMemberMinFractionOption(options->getOption<double>(HASH("occlusion_occluderGroupMemberMinFraction"))),
                 occlusionBakeLodLevelOption(options->getOption<long>(HASH("occlusion_bakeLodLevel"))),
+                occlusionLodFilledPixelsOption(options->getOption<double>(HASH("occlusion_lodFilledPixels"))),
                 lodSwitchHysteresisOption(options->getOption<double>(HASH("LOD_switchHysteresis"))),
                 lodForceLevelOption(options->getOption<long>(HASH("LOD_forceLevel"))),
                 lodPixelScalePlayerOption(options->getOption<bool>(HASH("LOD_pixelScalePlayer"))),

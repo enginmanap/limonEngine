@@ -44,7 +44,8 @@ class VisibilityManager {
     static bool isSkippedByLodDistance(float skipRenderDistance, float skipRenderSize, float maxSkipRenderSize, const glm::mat4 &cameraProjectionMatrix, const glm::vec3& playerPosition, glm::vec3 minAABB, glm::vec3 maxAABB, float &objectAverageDepth, float &objectScreenSize, float &objectDistance);
     static bool hasNonOccluderTag(const Model::MeshMeta& meshMeta);
 
-    static uint32_t selectOccluderLod(const LodLadder& ladder, int32_t forcedFullLadderLevel, float occluderPixelSizeAtObject, float objectScale);
+    static uint32_t selectOccluderLod(const LodLadder& ladder, int32_t forcedFullLadderLevel, float occluderPixelSizeAtObject,
+                                      float objectScale, float filledPixels);
     void setPlayerPixel(VisibilityRequest *request) const;
     //nearest point of the box, zero inside it
     static float distanceToBox(const glm::vec3 &point, const glm::vec3 &minAABB, const glm::vec3 &maxAABB);
