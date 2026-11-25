@@ -16,6 +16,12 @@ class LodLadder;
 class RenderList;
 class GraphicsPipeline;
 class VisibilityManager {
+    //a camera's tag set as culling matches it, and the list its objects go to
+    struct TagSetTarget {
+        TagMask mask;
+        RenderList* renderList;
+    };
+
     World* world;
 
     /**

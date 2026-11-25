@@ -14,6 +14,7 @@
 
 #include "../PhysicalRenderable.h"
 #include "../CullingEntry.h"
+#include "../Occlusion/RenderTagBits.h"
 #include "../Assets/TextureAsset.h"
 #include "../Material.h"
 #include "../Assets/ModelAsset.h"
@@ -28,7 +29,8 @@ class RenderList;
 struct MeshMeta {
     std::shared_ptr<MeshAsset> mesh = nullptr;
     std::shared_ptr<const Material> material = nullptr;
-    std::vector<uint64_t> tagHashes;//written by Model::refreshTags, culling reads it only for models whose meshes differ
+    std::vector<uint64_t> tagHashes;//written by Model::refreshTags, culling reads tagMask instead
+    TagMask tagMask;//culling reads it only for models whose meshes differ
 };
 
 class Model : public PhysicalRenderable, public GameObject {
@@ -36,6 +38,7 @@ public:
     typedef ::MeshMeta MeshMeta;
 private:
     std::unordered_set<Model*>* pendingTransformUploads = nullptr;//only set while a world holds this model
+    const RenderTagBits* renderTagBits = nullptr;//the world's, only set while a world holds this model
     CullingEntry* cullingEntry;//a world's entry, or a standalone one for models drawn outside a world. Valid for the model's whole life
 
     ActorInterface *AIActor = nullptr;
@@ -225,6 +228,12 @@ public:
     // FIXME: I hate that the model updates a component of the world, but creating a cache coherent memory layout required this. I could not think a better pattern
     void setPendingTransformUploads(std::unordered_set<Model*>* pendingUploads) {
         this->pendingTransformUploads = pendingUploads;
+    }
+
+    //also how a pipeline change reaches the model, the bits are renumbered then
+    void setRenderTagBits(const RenderTagBits* bits) {
+        this->renderTagBits = bits;
+        refreshTagMasks();
     }
 
     void markTransformChanged() {
@@ -472,13 +481,7 @@ public:
         return cullingEntry;
     }
 
-    //HashedString can't be assigned, so the copy is rebuilt element by element
-    void copyTagsToCullingEntry() {
-        cullingEntry->tags.clear();
-        for (const HashUtil::HashedString& tag : getTags()) {
-            cullingEntry->tags.emplace_back(tag);
-        }
-    }
+    void refreshTagMasks();
 
     //World moves the last entry into a released one, the model whose entry moved is pointed at its new place
     void setCullingEntry(CullingEntry* newCullingEntry) {

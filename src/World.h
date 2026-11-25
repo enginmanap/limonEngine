@@ -251,6 +251,7 @@ private:
     std::unordered_map<uint32_t, Model *> objects;
     std::unordered_map<uint32_t, const std::vector<glm::mat4>*> changedBoneTransforms;//These are used for uploading to GPU. Don't put in if not passing culling.
     std::unordered_set<Model*> pendingTransformUploads;//filled by the models during ticks, uploaded in prepareFrame
+    RenderTagBits renderTagBits;//numbered from renderPipeline by refreshRenderTagBits, every model and culling read it
     std::vector<CullingEntry> cullingEntries;//reserved once, models point into it. Removal moves the last entry into the hole
     CullingEntry playerPlaceHolderCullingEntry;//the placeholder is drawn but isn't a world model, culling must not see it
     std::unordered_set<uint32_t> tempRenderedObjectsSet;
@@ -480,6 +481,7 @@ private:
           LimonAPI *limonAPI);
 
     void afterLoadFinished();
+    void refreshRenderTagBits();
 
     void switchPlayer(Player* targetPlayer, InputHandler &inputHandler);
     void createEditorPlayerIfMissing(InputHandler &inputHandler);

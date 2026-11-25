@@ -1359,6 +1359,7 @@ void World::addModelToWorld(Model *xmlModel) {
     editor->markMaterialListDirty();
     xmlModel->setPendingTransformUploads(&pendingTransformUploads);
     pendingTransformUploads.insert(xmlModel);//anything set before joining the world was never uploaded
+    xmlModel->setRenderTagBits(&renderTagBits);
     if (xmlModel->isAnimated() && xmlModel->getRigId() == 0) {
         xmlModel->setRigId(getNextRigId());
     }
@@ -1509,6 +1510,7 @@ void World::afterLoadFinished() {
         applyMaterialOverrides(objectIt->second);
     }
     alHelper->setDistanceModel(soundDistanceModel);
+    refreshRenderTagBits();
     visibilityManager->onPipelineChange();
     for (size_t i = 0; i < onLoadActions.size(); ++i) {
         if(onLoadActions[i]->action == nullptr) {
@@ -1681,9 +1683,21 @@ void World::removeCameraRig(uint32_t rigID) {
     unusedIDs.push(rigID);
 }
 
+void World::refreshRenderTagBits() {
+    uint32_t tagCount = 0;
+    if (!renderTagBits.rebuild(renderPipeline->getCameraTagToRenderTagSetMap(), tagCount)) {
+        std::cerr << "Render pipeline with " << tagCount << " object tags was activated, loading and building refuse more than " << RenderTagBits::MAX_TAG_COUNT << "." << std::endl;
+        std::exit(-1);
+    }
+    for (std::unordered_map<uint32_t, Model *>::iterator objectIt = objects.begin(); objectIt != objects.end(); ++objectIt) {
+        objectIt->second->setRenderTagBits(&renderTagBits);
+    }
+}
+
 void World::activateRenderPipeline(const std::shared_ptr<GraphicsPipeline> &pipeline) {
     renderPipeline = pipeline;
     setupRenderForPipeline();
+    refreshRenderTagBits();
     visibilityManager->onPipelineChange();
     editor->extractPipelineStages(*pipeline);
 }

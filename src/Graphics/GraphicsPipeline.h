@@ -130,6 +130,9 @@ public:
         pipelineStages.push_back(stageInformation);
     }
 
+    //culling gives each object tag of the stages one bit of a TagMask, a pipeline with more can't be culled
+    bool fitsObjectTagLimit(std::string &error) const;
+
     void addTexture(const std::shared_ptr<Texture>& texture) {
         textures.emplace_back(texture);
     }

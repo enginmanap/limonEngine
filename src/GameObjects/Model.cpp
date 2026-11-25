@@ -169,8 +169,22 @@ void Model::refreshTags() {
         hashedTags.emplace_back(unionTag.text);
     }
     replaceTags(hashedTags);
-    copyTagsToCullingEntry();
+    refreshTagMasks();
     setDirtyForFrustum();
+}
+
+void Model::refreshTagMasks() {
+    if (renderTagBits == nullptr) {
+        cullingEntry->tagMask = TagMask();
+        for (MeshMeta *meshMeta : cullingEntry->meshMetaData) {
+            meshMeta->tagMask = TagMask();
+        }
+        return;
+    }
+    cullingEntry->tagMask = renderTagBits->maskOf(getTags());
+    for (MeshMeta *meshMeta : cullingEntry->meshMetaData) {
+        meshMeta->tagMask = renderTagBits->maskOf(meshMeta->tagHashes);
+    }
 }
 
 void Model::addModelLevelDerivedTags(std::vector<TagEdit> &derivedTags) const {

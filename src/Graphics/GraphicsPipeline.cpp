@@ -3,6 +3,7 @@
 //
 
 #include "GraphicsPipeline.h"
+#include "../Occlusion/RenderTagBits.h"
 #include "limonAPI/Graphics/GraphicsProgram.h"
 #include "GraphicsProgramLoader.h"
 #include "limonAPI/Graphics/RenderMethodInterface.h"
@@ -181,6 +182,16 @@ bool GraphicsPipeline::acceptsScreenColorFormat(GraphicsInterface::ScreenColorFo
     return true;
 }
 
+bool GraphicsPipeline::fitsObjectTagLimit(std::string &error) const {
+    const uint32_t tagCount = RenderTagBits::countTags(cameraTagToRenderTagMap);
+    if (tagCount <= RenderTagBits::MAX_TAG_COUNT) {
+        return true;
+    }
+    error = "draws " + std::to_string(tagCount) + " distinct object tags, culling supports " + std::to_string(RenderTagBits::MAX_TAG_COUNT) +
+            ". Make the stages share tags in the pipeline editor.";
+    return false;
+}
+
 static std::unique_ptr<GraphicsPipeline> rejectPipeline(std::vector<std::string> &errors, const std::string &graphicsPipelineFileName, const std::string &message) {
     std::cerr << graphicsPipelineFileName << ": " << message << std::endl;
     errors.emplace_back(graphicsPipelineFileName + ": " + message);
@@ -276,6 +287,11 @@ GraphicsPipeline::deserialize(const std::string &graphicsPipelineFileName, Graph
         graphicsPipeline->addNewStage(std::move(stageInfo));
         stageInfoElement =  stageInfoElement->NextSiblingElement("StageInformation");
         ++stageIndex;
+    }
+
+    std::string objectTagError;
+    if (!graphicsPipeline->fitsObjectTagLimit(objectTagError)) {
+        return rejectPipeline(errors, graphicsPipelineFileName, objectTagError);
     }
 
     if (!graphicsPipeline->acceptsScreenColorFormat(graphicsWrapper->getScreenColorFormat())) {

@@ -11,6 +11,7 @@
 #include "Occlusion/OcclusionCullerHelper.h"
 #include "Occlusion/RenderList.h"
 #include "CullingEntry.h"
+#include "Occlusion/RenderTagBits.h"
 #include "limonAPI/Graphics/GraphicsInterface.h"//NR_MAX_MODELS
 #include "Camera/Camera.h"
 #include "Utils/HardCodedTags.h"
@@ -90,6 +91,7 @@ public:
         const OptionsUtil::Options::Option<bool> lodPixelScaleLightsOption;
 
         const std::vector<CullingEntry>* const cullingEntries;
+        const RenderTagBits* const renderTagBits;//the world's, culling turns its tag sets into masks with it
         const Attachable* const playerObject;
         std::unordered_map<std::vector<uint64_t>, RenderList, uint64_vector_hasher>* visibility;
         //occlusion_debugReverse parks the meshes that survived the occlusion test here, World draws it translucent. Empty unless that option is on
@@ -101,7 +103,7 @@ public:
         bool cameraIsDirty = true; // cached by main thread before each signal; avoids Python GIL call from background thread
         bool playerDead = false; // same reason, isDead() reaches the player and we cannot touch that from here
 
-        VisibilityRequest(Camera* camera, const std::vector<CullingEntry>* cullingEntries, const Attachable* playerObject, std::unordered_map<std::vector<uint64_t>, RenderList, uint64_vector_hasher> * visibility, const glm::vec3& playerPosition, const OptionsUtil::Options* options, SDL2MultiThreading::Barrier* frameBarrier, const std::string& cameraName) :
+        VisibilityRequest(Camera* camera, const std::vector<CullingEntry>* cullingEntries, const RenderTagBits* renderTagBits, const Attachable* playerObject, std::unordered_map<std::vector<uint64_t>, RenderList, uint64_vector_hasher> * visibility, const glm::vec3& playerPosition, const OptionsUtil::Options* options, SDL2MultiThreading::Barrier* frameBarrier, const std::string& cameraName) :
                 visibilityLatch(cameraName), frameBarrier(frameBarrier), camera(camera),
                 isPlayerCamera(camera->hasTag(HashUtil::hashString(HardCodedTags::CAMERA_PLAYER))),
                 isDirectionalLightCamera(camera->hasTag(HashUtil::hashString(HardCodedTags::CAMERA_LIGHT_DIRECTIONAL))),
@@ -123,7 +125,7 @@ public:
                 lodForceLevelOption(options->getOption<long>(HASH("LOD_forceLevel"))),
                 lodPixelScalePlayerOption(options->getOption<bool>(HASH("LOD_pixelScalePlayer"))),
                 lodPixelScaleLightsOption(options->getOption<bool>(HASH("LOD_pixelScaleLights"))),
-                cullingEntries(cullingEntries), playerObject(playerObject), visibility(visibility),
+                cullingEntries(cullingEntries), renderTagBits(renderTagBits), playerObject(playerObject), visibility(visibility),
                 occlusionCuller(options->getOption<long>(HASH("occlusion_renderWidth")),
                 options->getOption<long>(HASH("occlusion_renderHeight"))),
                 previousLodLevels(NR_MAX_MODELS, NO_PREVIOUS_LOD_LEVEL) {
@@ -141,38 +143,6 @@ public:
             previousLodLevels[entryIndex] = (uint8_t)level;//the level fits, VisibilityManager.cpp checks LOD_MAX_LEVEL_COUNT
         }
 
-    static bool isAnyTagMatch(const std::vector<HashUtil::HashedString>& renderTags, const std::vector<HashUtil::HashedString> & objectTags) {
-            for (const auto& renderTag:renderTags) {
-                for (const auto& objectTag:objectTags) {
-                    if (renderTag.hash == objectTag.hash) {
-                        return true;
-                    }
-                }
-            }
-            return false;
-        }
-
-    static bool isAnyTagMatch(const std::vector<uint64_t>& renderTags, const std::vector<HashUtil::HashedString> & objectTags) {
-            for (const auto& renderTag:renderTags) {
-                for (const auto& objectTag:objectTags) {
-                    if (renderTag == objectTag.hash) {
-                        return true;
-                    }
-                }
-            }
-            return false;
-        }
-
-    static bool isAnyTagMatch(const std::vector<uint64_t>& renderTags, const std::vector<uint64_t> & meshTags) {
-            for (uint64_t renderTag : renderTags) {
-                for (uint64_t meshTag : meshTags) {
-                    if (renderTag == meshTag) {
-                        return true;
-                    }
-                }
-            }
-            return false;
-        }
 };
 
 

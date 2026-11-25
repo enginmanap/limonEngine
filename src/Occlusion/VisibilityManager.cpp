@@ -39,7 +39,7 @@ void VisibilityManager::start() {
     } else {
         if(visibilityThreadPool.empty()) {
             for (auto &cameraVisibility: cullingResults) {
-                VisibilityRequest* request = new VisibilityRequest(cameraVisibility.first, &world->cullingEntries, world->getStartingPlayer(), cameraVisibility.second, world->currentPlayer->getPosition(), world->options, &cullingBarrier, cameraVisibility.first->getName());
+                VisibilityRequest* request = new VisibilityRequest(cameraVisibility.first, &world->cullingEntries, &world->renderTagBits, world->getStartingPlayer(), cameraVisibility.second, world->currentPlayer->getPosition(), world->options, &cullingBarrier, cameraVisibility.first->getName());
                 visibilityThreadPool[request] = nullptr;
             }
         }
@@ -86,7 +86,7 @@ void VisibilityManager::addCamera(Camera* camera) {
     // fillVisibleObjectsUsingTags processes this camera. During initial load the pool is empty and start()
     // creates the threads.
     if (!visibilityThreadPool.empty()) {
-        VisibilityRequest* request = new VisibilityRequest(camera, &world->cullingEntries, world->getStartingPlayer(), tagMap,
+        VisibilityRequest* request = new VisibilityRequest(camera, &world->cullingEntries, &world->renderTagBits, world->getStartingPlayer(), tagMap,
                                                            world->currentPlayer->getPosition(),
                                                            world->options, &cullingBarrier, camera->getName());
         if (multiThreadedCulling) {
@@ -212,7 +212,7 @@ void VisibilityManager::fillVisibleObjectsUsingTags() {
 std::map<VisibilityRequest*, SDL2MultiThreading::InternalThread*> VisibilityManager::occlusionThreadManager() {
     std::map<VisibilityRequest*, SDL2MultiThreading::InternalThread*> visibilityProcessing;
     for (auto &cameraVisibility: cullingResults) {
-        VisibilityRequest* request = new VisibilityRequest(cameraVisibility.first, &world->cullingEntries, world->getStartingPlayer(), cameraVisibility.second, world->currentPlayer->getPosition(), world->options, &cullingBarrier, cameraVisibility.first->getName());
+        VisibilityRequest* request = new VisibilityRequest(cameraVisibility.first, &world->cullingEntries, &world->renderTagBits, world->getStartingPlayer(), cameraVisibility.second, world->currentPlayer->getPosition(), world->options, &cullingBarrier, cameraVisibility.first->getName());
         SDL2MultiThreading::InternalThread* thread = new SDL2MultiThreading::InternalThread(
             request->camera->getName(),
             [request]() { VisibilityManager::staticOcclusionThread(request); }
@@ -354,6 +354,12 @@ void VisibilityManager::fillVisibleObjectPerCamera(const VisibilityRequest* visi
     float maxScreenSize = 0.0;
     {
     PROFILE_VISIBILITY("Culling::ObjectLoop");
+    //remade every frame, a pipeline change renumbers the bits. thread_local because each camera culls on its own thread
+    thread_local std::vector<TagSetTarget> tagSets;
+    tagSets.clear();
+    for (std::pair<const std::vector<uint64_t>, RenderList> &visibilityEntry : *visibilityRequest->visibility) {
+        tagSets.push_back(TagSetTarget{visibilityRequest->renderTagBits->maskOf(visibilityEntry.first), &visibilityEntry.second});
+    }
     const std::vector<CullingEntry>& cullingEntries = *visibilityRequest->cullingEntries;
     const bool occluderSizeByGroup = runOcclusion && visibilityRequest->occlusionOccluderSizeByGroupOption.getOrDefault(true);
     const float groupMemberMinSize = softwareOcclusionOccluderSize * static_cast<float>(visibilityRequest->occlusionOccluderGroupMemberMinFractionOption.getOrDefault(0.1));
@@ -427,8 +433,8 @@ void VisibilityManager::fillVisibleObjectPerCamera(const VisibilityRequest* visi
         }
         //which meshes occlude doesn't depend on the tag set, so the first matching set submits them. Every other set would rasterize them again
         bool occludersSubmitted = false;
-        for (auto& visibilityEntry: *visibilityRequest->visibility) {
-            if (VisibilityRequest::isAnyTagMatch(visibilityEntry.first, cullingEntry.tags)) {
+        for (const TagSetTarget& tagSet : tagSets) {
+            if (cullingEntry.tagMask.intersects(tagSet.mask)) {
                 if(isVisible) {
                     totalCounter += meshCount;
                     if (!modelLodSkipped) {
@@ -458,17 +464,17 @@ void VisibilityManager::fillVisibleObjectPerCamera(const VisibilityRequest* visi
                             }
                             //an occluder can be hidden by another one too. Its own aabb is in front of its surface, so it can't hide itself
                             if (runOcclusion) {
-                                visibilityRequest->occlusionCuller.addOccludee(cullingEntry, modelLod, objectAverageDepth, &visibilityEntry.second, &visibilityEntry.first);
+                                visibilityRequest->occlusionCuller.addOccludee(cullingEntry, modelLod, objectAverageDepth, tagSet.renderList, tagSet.mask);
                             } else {
                                 for (const Model::MeshMeta* meshMeta : meshMetas) {
-                                    if (cullingEntry.meshTagsUniform || VisibilityRequest::isAnyTagMatch(visibilityEntry.first, meshMeta->tagHashes)) {
-                                        visibilityEntry.second.addMeshMaterial(meshMeta->material, meshMeta->mesh, cullingEntry, modelLod, objectAverageDepth);
+                                    if (cullingEntry.meshTagsUniform || meshMeta->tagMask.intersects(tagSet.mask)) {
+                                        tagSet.renderList->addMeshMaterial(meshMeta->material, meshMeta->mesh, cullingEntry, modelLod, objectAverageDepth);
                                         directlyAddedCount++;
                                     }
                                 }
                             }
                         } else {
-                            visibilityRequest->occlusionCuller.addOccludee(cullingEntry, modelLod, objectAverageDepth, &visibilityEntry.second, &visibilityEntry.first);
+                            visibilityRequest->occlusionCuller.addOccludee(cullingEntry, modelLod, objectAverageDepth, tagSet.renderList, tagSet.mask);
                         }
                     } else {
                         lodSkipCounter++;
@@ -604,7 +610,7 @@ uint32_t VisibilityManager::addOccludeeMeshes(const OcculudeeMetaData* occludee,
     const std::vector<Model::MeshMeta*>& meshMetas = cullingEntry.meshMetaData;
     const bool meshTagsUniform = cullingEntry.meshTagsUniform;
     for (const Model::MeshMeta* meshMeta : meshMetas) {
-        if (meshTagsUniform || VisibilityRequest::isAnyTagMatch(*occludee->renderTags, meshMeta->tagHashes)) {
+        if (meshTagsUniform || meshMeta->tagMask.intersects(occludee->renderTagMask)) {
             renderList->addMeshMaterial(meshMeta->material, meshMeta->mesh, cullingEntry, occludee->lod, occludee->averageDepth);
         }
     }

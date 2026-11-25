@@ -131,6 +131,11 @@ public:
         for (size_t i = 0; i < orderedStages.size(); ++i) {
             builtGraphicsPipeline->addNewStage(*(orderedStages[i].second));
         }
+        std::string objectTagError;
+        if (!builtGraphicsPipeline->fitsObjectTagLimit(objectTagError)) {
+            addError("Pipeline " + objectTagError);
+            return nullptr;
+        }
         std::string assignmentError;
         if (!builtGraphicsPipeline->assignTextureUnits(graphicsWrapper, assignmentError)) {
             addError(assignmentError);

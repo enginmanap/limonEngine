@@ -5,7 +5,7 @@
 #include <vector>
 #include <memory>
 #include <glm/glm.hpp>
-#include "Utils/HashUtil.h"
+#include "Occlusion/TagMask.h"
 
 class Model;
 class ModelGroup;
@@ -26,10 +26,9 @@ struct CullingEntry {
     bool hangsFromBone = false;//the pose pass has to run for it. Model::parentBoneChanged keeps it
     Model* model = nullptr;
     ModelGroup* nearestModelGroup = nullptr;//kept by WorldAPIAccessor::refreshNearestModelGroup on every parent change, culling never walks parents
+    TagMask tagMask;//union of the meshes' tags, Model::refreshTagMasks keeps it. Empty outside a world, nothing culls those
     std::vector<MeshMeta*> meshMetaData;//the model owns the MeshMetas, it deletes them
     std::shared_ptr<ModelAsset> modelAsset;//shared between models, read through here, never copied out
-    //TODO: we should not copy the tags, but moving out of game object is too big to fold in. Model::addTag and removeTag keep it in sync
-    std::vector<HashUtil::HashedString> tags;
 };
 
 #endif //LIMONENGINE_CULLINGENTRY_H
