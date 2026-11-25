@@ -154,7 +154,7 @@
         <RequestType>FreeNumber</RequestType>
         <Description>LOD_shadowWeldedFromLevel</Description>
         <!--First level to get a welded twin for depth only cameras, which drop uvs and normals. Shadows use the original and the levels before it as they are. Changing this invalidates every cached calibration, so the next load recalibrates and regenerates every source model. A limonmodel keeps the levels it was exported with until it is re-exported-->
-        <Value>2</Value>
+        <Value>1</Value>
         <valueType>Long</valueType>
         <IsSet>True</IsSet>
         <Index>70</Index>

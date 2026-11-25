@@ -509,7 +509,7 @@ float Model::getLodObjectScale() const {
 
 static const char *lodSkipReasonText(LodSkipReason reason) {
     switch (reason) {
-        case LodSkipReason::NO_GAIN: return "not built: saves too few triangles over the step before it";
+        case LodSkipReason::NO_GAIN: return "not built: saves too few triangles over the step before it, or for a shadow level over this step's textured level";
         case LodSkipReason::NOTHING_FITS: return "not built: even the smallest simplification breaks a limit at this size";
         case LodSkipReason::EMPTY: return "not built: simplifies away to nothing";
         default: return "not built";
@@ -610,7 +610,7 @@ void Model::putLodTableInGui(ImGuiResult &result, std::vector<float> &editedTria
                                                limitWidth, limitWidth, limitWidth, limitWidth, limitWidth, limitWidth};
     size_t rowCount = 2 + steps.size();//header and original
     for (size_t step = 0; step < steps.size(); ++step) {
-        if (steps[step].welded.built) {
+        if (steps[step].welded.built || steps[step].welded.skipReason != LodSkipReason::NONE) {
             rowCount++;
         }
     }
@@ -648,8 +648,8 @@ void Model::putLodTableInGui(ImGuiResult &result, std::vector<float> &editedTria
         for (size_t step = 0; step < steps.size(); ++step) {
             const LodStep &entry = steps[step];
             const LodStep::Outcome &outcome = shadowPass ? entry.welded : entry.structure;
-            if (shadowPass && !outcome.built) {
-                continue;//a shadow level only exists once built, its settings live on the textured row
+            if (shadowPass && !outcome.built && outcome.skipReason == LodSkipReason::NONE) {
+                continue;//never searched, this step has no shadow twin. Its settings live on the textured row
             }
             ImGui::PushID((int) (step + pass * steps.size()));
             ImGui::TableNextRow();
@@ -718,7 +718,11 @@ void Model::putLodTableInGui(ImGuiResult &result, std::vector<float> &editedTria
 
             ImGui::TableSetColumnIndex(4);
             if (shadowPass) {
-                ImGui::Text("%.0f", outcome.achievedRatio * 100.0f);
+                if (outcome.built) {
+                    ImGui::Text("%.0f", outcome.achievedRatio * 100.0f);
+                } else {
+                    ImGui::TextDisabled("-");
+                }
             } else {
                 //each step has to stay between its neighbours, or the ladder would go backwards. The gain heuristic
                 //does not apply to a number that was typed here, so the bounds are just the neighbours

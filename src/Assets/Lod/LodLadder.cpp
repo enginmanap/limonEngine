@@ -17,7 +17,7 @@
 #include "limonAPI/util/HashUtil.h"
 
 //bumped by hand whenever the scorer, the search or a generator changes what it produces
-static const uint32_t LOD_CALIBRATOR_VERSION = 15;
+static const uint32_t LOD_CALIBRATOR_VERSION = 16;
 
 //a 3 m model at 50, 100 and 200 m, the distances every model used before steps were sizes on screen
 static const uint32_t LOD_DEFAULT_STEP_COUNT = 3;
@@ -1151,7 +1151,9 @@ bool LodLadder::measureCandidate(const std::vector<MeshGeometry> &meshes, float 
     }
 
     const LodPixels &measured = candidate.measured;
-    if (limits.surface >= 0.0f && measured.surface > limits.surface) {
+    //a depth pass shows surface movement only through the receiver's normal offset, which selection doesn't hold
+    //shadows to either, see LodErrorDeclarations::forShadow
+    if (!candidate.silhouetteOnly && limits.surface >= 0.0f && measured.surface > limits.surface) {
         candidate.failedBy = LodLimitKind::SURFACE;
         return false;
     }
