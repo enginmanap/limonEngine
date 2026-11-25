@@ -5,12 +5,8 @@
 #ifndef RENDERLIST_H
 #define RENDERLIST_H
 
-#ifdef RENDER_LIST_BAND_MAP
-#include "BandMapRenderList.h"
-#else
 #include "RenderListData.h"
 #include "RenderListFinalizer.h"
-#endif
 #include "../Utils/ForceInline.h"
 
 /**
@@ -29,18 +25,13 @@
  * The data and the code are in RenderListInternals: RenderListData holds the list and what reads it in each
  * state, RenderListFinalizer step 3. This class only checks the order of the calls. Every call here must stay
  * in the header and force inlined, or it adds a call per add.
- * The RENDER_LIST_BAND_MAP cmake option swaps both for the old BandMapRenderList, to compare the two.
  */
 class RenderList {
     //clear leaves a list empty, which renders as nothing and takes adds. finalize closes it, an add after that exits
     enum class BuildState { EMPTY, BUILDING, FINALIZED };
 
-#ifdef RENDER_LIST_BAND_MAP
-    RenderListInternals::BandMapRenderList bandMap;
-#else
     RenderListInternals::RenderListData data;
     RenderListInternals::RenderListFinalizer finalizer;
-#endif
     BuildState buildState = BuildState::EMPTY;
 
     //out of line so the error printing isn't copied into every caller's add loop, and the header needs no iostream
@@ -62,47 +53,29 @@ public:
     //everything read per model comes from the culling entry, culling never touches the Model to add
     LIMON_FORCE_INLINE void addMeshMaterial(const std::shared_ptr<const Material> &material, const std::shared_ptr<MeshAsset> &meshAsset, const CullingEntry &cullingEntry, uint32_t lod, float maxDepth, int32_t rigIdOverride = -1) {
         exitIfFinalized("got an add");
-#ifdef RENDER_LIST_BAND_MAP
-        bandMap.addMeshMaterial(material, meshAsset, cullingEntry, lod, maxDepth, rigIdOverride);
-#else
         data.addMeshMaterial(material, meshAsset, cullingEntry, lod, maxDepth, rigIdOverride);
-#endif
         buildState = BuildState::BUILDING;
     }
 
     LIMON_FORCE_INLINE void finalize() {
         exitIfFinalized("finalized twice");
-#ifndef RENDER_LIST_BAND_MAP
         finalizer.finalize(data);
-#endif
         buildState = BuildState::FINALIZED;
     }
 
     //appends the model of every instance whose draw needs a pose, a model with several meshes comes more than once
     LIMON_FORCE_INLINE void collectModelsNeedingPose(std::vector<uint32_t> &modelIds) const {
         exitIfBuilding("read for poses");
-#ifdef RENDER_LIST_BAND_MAP
-        bandMap.collectModelsNeedingPose(modelIds);
-#else
         data.collectModelsNeedingPose(modelIds);
-#endif
     }
 
     LIMON_FORCE_INLINE void render(GraphicsInterface* graphicsWrapper, const std::shared_ptr<GraphicsProgram> &renderProgram, bool forceNotAnimated = false) const {
         exitIfBuilding("rendered");
-#ifdef RENDER_LIST_BAND_MAP
-        bandMap.render(graphicsWrapper, renderProgram, forceNotAnimated);
-#else
         data.render(graphicsWrapper, renderProgram, forceNotAnimated);
-#endif
     }
 
     LIMON_FORCE_INLINE void clear() {
-#ifdef RENDER_LIST_BAND_MAP
-        bandMap.clear();
-#else
         data.clear();
-#endif
         buildState = BuildState::EMPTY;
     }
 };
