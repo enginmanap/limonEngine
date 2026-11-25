@@ -182,6 +182,14 @@ void AnimationSequenceInterface::Duplicate(int index) {
     selectedEntry = index + 1;
 }
 
+void AnimationSequenceInterface::insertSectionAtStart() {
+    for (AnimationSequenceItem &item : sections) {
+        item.mFrameEnd += NEW_SECTION_LENGTH;
+    }
+    sections.insert(sections.begin(), createSection(startTime + NEW_SECTION_LENGTH));
+    selectedEntry = 0;
+}
+
 void AnimationSequenceInterface::Del(int index) {
     //don't allow deleting last element
     if(sections.size() <= 1) {
@@ -241,6 +249,10 @@ bool AnimationSequenceInterface::addAnimationSequencerToEditor(bool nameTaken, b
     ImGui::InputText("##newAnimationNameField", animationNameBuffer, sizeof(animationNameBuffer), ImGuiInputTextFlags_CharsNoBlank);
 
     ImGui::InputInt("Frame count", &mFrameCount);
+    //ImSequencer only adds at the end or after a row, before the selection check so the object moves this frame
+    if (ImGui::Button("Add section at start")) {
+        insertSectionAtStart();
+    }
 
     sectionDeleted = false;
     std::vector<int> boundariesBefore = getBoundaries();

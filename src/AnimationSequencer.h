@@ -60,6 +60,7 @@ private:
     std::string reapplySound;
 
     void rebuildSectionsFromAnimation(const AnimationCustom &animation);
+    void insertSectionAtStart();
     std::vector<int> getBoundaries() const;//start time, then every section's end
     void pushLaterSections(const std::vector<int> &boundariesBefore);
     void pushMatrixToAnimationTime(std::shared_ptr<AnimationNode> animationNode, float time, const glm::mat4 &transform) const;
