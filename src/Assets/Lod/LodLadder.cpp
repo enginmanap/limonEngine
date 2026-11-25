@@ -619,6 +619,10 @@ uint32_t LodLadder::selectLevel(const LodSelectionContext &context, uint32_t pre
     //the factor makes the object count as bigger on screen, so its errors are read bigger too, not only its switches moved
     const float objectScale = context.objectScale * switchDistanceFactor;
     const bool fixedRulesDeclared = context.measuredErrors && context.errorDeclarations.hasFixedRules();
+    //the tolerance depends only on the reach and the scale, and there are only two reaches, so each is worked out once
+    //per call instead of once per step
+    LodPixels toleranceCoarser, toleranceFiner;
+    int toleranceCoarserState = -1, toleranceFinerState = -1;//-1 not computed, 0 toleranceAt failed, 1 valid
     uint32_t selected = 0;
     for (size_t stepIndex = 0; stepIndex < steps.size(); ++stepIndex) {
         //welded outcomes drop UVs and normals, so only a depth camera may draw one. Where a step has no twin the
@@ -629,17 +633,23 @@ uint32_t LodLadder::selectLevel(const LodSelectionContext &context, uint32_t pre
             continue;
         }
         float switchDistance = step.distance * objectScale;
-        float reach = outcome.meshLodIndex > previousLevel ? reachGoingCoarser : reachGoingFiner;
+        const bool goingCoarser = outcome.meshLodIndex > previousLevel;
+        float reach = goingCoarser ? reachGoingCoarser : reachGoingFiner;
         bool fits;
         //a typed step is where the user wants it, a clipped check measured coarser than the screen and an all
         //zero one may not have measured at all
         if (!context.measuredErrors || step.userSet || outcome.clipped || outcome.measured == LodPixels()) {
             fits = reach >= switchDistance;
+        } else if (reach >= switchDistance) {
+            fits = true;
         } else {
-            LodPixels tolerance;
-            fits = reach >= switchDistance || (toleranceAt(reach, objectScale, tolerance) &&
-                                               errorsHidden(tolerance, outcome.measured, switchDistance, reach, context,
-                                                            LodErrorRule::STEP));
+            LodPixels &tolerance = goingCoarser ? toleranceCoarser : toleranceFiner;
+            int &toleranceState = goingCoarser ? toleranceCoarserState : toleranceFinerState;
+            if (toleranceState < 0) {
+                toleranceState = toleranceAt(reach, objectScale, tolerance) ? 1 : 0;
+            }
+            fits = toleranceState == 1 && errorsHidden(tolerance, outcome.measured, switchDistance, reach, context,
+                                                       LodErrorRule::STEP);
         }
         if (fits && fixedRulesDeclared) {
             //a fixed rule holds at every reach, and an outcome nothing measured can't be shown to keep it
