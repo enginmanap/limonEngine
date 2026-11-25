@@ -176,6 +176,7 @@ public:
         int32_t stepSettingsLevel = -1;
         float stepPresence = 0.0f;
         LodPixels stepLimits;
+        float switchDistanceFactor = 0.0f;//zero when this is not a factor request
     };
     std::vector<LodRegenerationRequest> pendingLodRequests;
     std::set<std::shared_ptr<ModelAsset>> pendingAssetSaves;//a set, a world save and the panel can ask for the same asset
@@ -231,6 +232,7 @@ public:
     void requestLodRegeneration(std::shared_ptr<ModelAsset> modelAsset, bool clearOverrides);
     void requestLodTriangleTarget(std::shared_ptr<ModelAsset> modelAsset, size_t levelIndex, float targetRatio);
     void requestLodStepSettings(std::shared_ptr<ModelAsset> modelAsset, size_t levelIndex, float presence, const LodPixels &limits);
+    void requestLodSwitchDistanceFactor(std::shared_ptr<ModelAsset> modelAsset, float factor);
     void requestAssetSave(std::shared_ptr<ModelAsset> modelAsset);
     //assets first, so the log only says successful when the world and everything it uses reached disk. False if either failed
     bool saveWorldFile(const std::string &worldName, bool allAssetsSaved);

@@ -170,6 +170,10 @@ public:
     //ladder to the model: no project option applies to it again until clearOverrides. Caller rebuilds after
     void requestStepSettings(size_t stepIndex, float presence, const LodPixels &limits);
 
+    //every level of this model switches this many times farther. Levels stay as they are, so nothing rebuilds,
+    //and the project steps still apply
+    void requestSwitchDistanceFactor(float factor);
+
     //back to the project defaults, dropping this model's own targets. Leaves the step list empty, so the caller
     //calls readSettings again before rebuilding
     void clearOverrides();
@@ -189,6 +193,10 @@ public:
     //largest side of the model as authored, zero until the first build
     float getAuthoredExtent() const {
         return authoredExtent;
+    }
+
+    float getSwitchDistanceFactor() const {
+        return switchDistanceFactor;
     }
 
     const std::vector<LodStep> &getSteps() const {
@@ -230,7 +238,7 @@ public:
 #ifdef CEREAL_SUPPORT
     template<class Archive>
     void serialize(Archive &archive) {
-        archive(steps, originalTriangleCount, meshLodCount, builtSettingsHash, overridesPresent);
+        archive(steps, originalTriangleCount, meshLodCount, builtSettingsHash, overridesPresent, switchDistanceFactor);
     }
 #endif
 
@@ -328,6 +336,7 @@ private:
 
     std::vector<LodStep> steps;
     float authoredExtent = 0.0f;
+    float switchDistanceFactor = 1.0f;
     uint32_t originalTriangleCount = 0;
     uint32_t meshLodCount = 1;
     std::vector<std::unique_ptr<LodGenerator>> generators;//prepared inputs, reused by every candidate and mesh

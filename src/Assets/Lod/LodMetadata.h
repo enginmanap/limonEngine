@@ -31,14 +31,14 @@ public:
     static bool write(const std::string &assetPath, const std::string &flipAxes, uint64_t settingsHash,
                       uint64_t geometryHash, const std::vector<LodStep> &steps);
 
-    //the asked half only, for a model that owns its steps: presence, limits and any typed share per step. A step
-    //written in meters is read as presenceAtOneMeter / meters
-    static bool readOverrides(const std::string &assetPath, const std::string &flipAxes, float presenceAtOneMeter,
-                              std::vector<LodStep> &outSteps);
+    //the asked half only, for a model that owns its steps: presence, limits and any typed share per step. The
+    //factor is read even when no step is
+    static bool readOverrides(const std::string &assetPath, const std::string &flipAxes,
+                              std::vector<LodStep> &outSteps, float &outSwitchDistanceFactor);
 
     //an empty list removes the overrides, which is how the editor goes back to the project defaults
     static bool writeOverrides(const std::string &assetPath, const std::string &flipAxes,
-                               const std::vector<LodStep> &steps);
+                               const std::vector<LodStep> &steps, float switchDistanceFactor);
 
     //anything writing the metadata file has to hold this and merge, the animation sections share the file
     static std::mutex &getFileMutex();

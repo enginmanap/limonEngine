@@ -1965,6 +1965,10 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
                                            objectEditorResult.lodPanel.stepPresence,
                                            objectEditorResult.lodPanel.stepLimits);
                 }
+                if (objectEditorResult.lodPanel.switchDistanceFactor > 0.0f) {
+                    //selection reads it on the culling threads
+                    requestLodSwitchDistanceFactor(selectedModel->getModelAsset(), objectEditorResult.lodPanel.switchDistanceFactor);
+                }
                 if (objectEditorResult.lodPanel.recalibrate || objectEditorResult.lodPanel.clearOverrides) {
                     //queued, not applied here: this is mid frame and the render lists in hand still index the old levels
                     requestLodRegeneration(selectedModel->getModelAsset(), objectEditorResult.lodPanel.clearOverrides);
@@ -2955,6 +2959,13 @@ void Editor::requestLodStepSettings(std::shared_ptr<ModelAsset> modelAsset, size
     pendingLodRequests.push_back(request);
 }
 
+void Editor::requestLodSwitchDistanceFactor(std::shared_ptr<ModelAsset> modelAsset, float factor) {
+    LodRegenerationRequest request;
+    request.modelAsset = modelAsset;
+    request.switchDistanceFactor = factor;
+    pendingLodRequests.push_back(request);
+}
+
 void Editor::requestAssetSave(std::shared_ptr<ModelAsset> modelAsset) {
     pendingAssetSaves.insert(modelAsset);
 }
@@ -3208,6 +3219,9 @@ void Editor::applyDeferredAssetChanges() {
             request.modelAsset->getLodLadder().requestStepSettings((size_t) request.stepSettingsLevel,
                                                                    request.stepPresence, request.stepLimits);
             request.modelAsset->regenerateLods(LodLadder::BuildMode::EDITOR_CHANGE);
+        } else if (request.switchDistanceFactor > 0.0f) {
+            //the levels stay, only where they are used moves. Still marked regenerated, a static camera re-selects only dirty objects
+            request.modelAsset->getLodLadder().requestSwitchDistanceFactor(request.switchDistanceFactor);
         } else if (request.clearOverrides) {
             request.modelAsset->getLodLadder().clearOverrides();
             request.modelAsset->regenerateLods(LodLadder::BuildMode::EDITOR_CHANGE);

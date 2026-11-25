@@ -537,9 +537,8 @@ void LodLadder::loadIntent() {
         return;//the steps came with the archive
     }
     std::vector<LodStep> overriddenSteps;
-    //a sidecar from before presence holds meters, which mean one presence at this model's size
-    const float presenceAtOneMeter = authoredExtent * referencePixelsPerMeter;
-    if (!LodMetadata::readOverrides(assetPath, flipAxes, presenceAtOneMeter, overriddenSteps) || overriddenSteps.empty()) {
+    if (!LodMetadata::readOverrides(assetPath, flipAxes, overriddenSteps, switchDistanceFactor) ||
+        overriddenSteps.empty()) {
         return;
     }
     //the model owns its steps, so the project ones are replaced outright, step count included. Only the asked
@@ -552,7 +551,8 @@ bool LodLadder::saveIntent() {
     if (storeIsBinary || !unsavedChanges) {
         return true;
     }
-    if (!LodMetadata::writeOverrides(assetPath, flipAxes, overridesPresent ? steps : std::vector<LodStep>())) {
+    if (!LodMetadata::writeOverrides(assetPath, flipAxes, overridesPresent ? steps : std::vector<LodStep>(),
+                                     switchDistanceFactor)) {
         return false;
     }
     unsavedChanges = false;
@@ -586,6 +586,14 @@ void LodLadder::requestStepSettings(size_t stepIndex, float presence, const LodP
     deriveStepDistances();
 }
 
+void LodLadder::requestSwitchDistanceFactor(float factor) {
+    if (factor <= 0.0f || factor == switchDistanceFactor) {
+        return;
+    }
+    switchDistanceFactor = factor;
+    unsavedChanges = true;
+}
+
 void LodLadder::clearOverrides() {
     overridesPresent = false;
     for (size_t stepIndex = 0; stepIndex < steps.size(); ++stepIndex) {
@@ -608,6 +616,8 @@ uint32_t LodLadder::selectLevel(const LodSelectionContext &context, uint32_t pre
     //down clearly before it
     const float reachGoingCoarser = context.objectDistance * (1.0f - context.hysteresis);
     const float reachGoingFiner = context.objectDistance * (1.0f + context.hysteresis);
+    //the factor makes the object count as bigger on screen, so its errors are read bigger too, not only its switches moved
+    const float objectScale = context.objectScale * switchDistanceFactor;
     uint32_t selected = 0;
     for (size_t stepIndex = 0; stepIndex < steps.size(); ++stepIndex) {
         //welded outcomes drop UVs and normals, so only a depth camera may draw one. Where a step has no twin the
@@ -617,7 +627,7 @@ uint32_t LodLadder::selectLevel(const LodSelectionContext &context, uint32_t pre
         if (!outcome.built || step.distance <= 0.0f) {
             continue;
         }
-        float switchDistance = step.distance * context.objectScale;
+        float switchDistance = step.distance * objectScale;
         float reach = outcome.meshLodIndex > previousLevel ? reachGoingCoarser : reachGoingFiner;
         bool fits;
         //a typed step is where the user wants it, a clipped check measured coarser than the screen and an all
@@ -626,7 +636,7 @@ uint32_t LodLadder::selectLevel(const LodSelectionContext &context, uint32_t pre
             fits = reach >= switchDistance;
         } else {
             LodPixels tolerance;
-            fits = reach >= switchDistance || (toleranceAt(reach, context.objectScale, tolerance) &&
+            fits = reach >= switchDistance || (toleranceAt(reach, objectScale, tolerance) &&
                                                errorsHidden(tolerance, outcome.measured, switchDistance, reach, context));
         }
         if (fits) {

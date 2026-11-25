@@ -245,22 +245,24 @@ bool LodMetadata::write(const std::string &assetPath, const std::string &flipAxe
     return saveOverExisting(document, path);
 }
 
-bool LodMetadata::readOverrides(const std::string &assetPath, const std::string &flipAxes, float presenceAtOneMeter,
-                                std::vector<LodStep> &outSteps) {
+bool LodMetadata::readOverrides(const std::string &assetPath, const std::string &flipAxes,
+                                std::vector<LodStep> &outSteps, float &outSwitchDistanceFactor) {
+    outSwitchDistanceFactor = 1.0f;
     tinyxml2::XMLDocument document;
     tinyxml2::XMLElement *variantNode = findVariant(document, assetPath, "LodOverrides", flipAxes);
     if (variantNode == nullptr) {
         return false;
+    }
+    outSwitchDistanceFactor = variantNode->FloatAttribute("switchDistanceFactor", 1.0f);
+    if (outSwitchDistanceFactor <= 0.0f) {
+        std::cerr << "LOD switch distance factor for " << assetPath << " is not positive, using 1" << std::endl;
+        outSwitchDistanceFactor = 1.0f;
     }
     outSteps.clear();
     for (tinyxml2::XMLElement *stepNode = variantNode->FirstChildElement("Step");
          stepNode != nullptr; stepNode = stepNode->NextSiblingElement("Step")) {
         LodStep step;
         step.presence = stepNode->FloatAttribute("presence");
-        if (stepNode->Attribute("presence") == nullptr && stepNode->FloatAttribute("distance") > 0.0f) {
-            //written when steps were meters, this is the presence that switches at the same distance
-            step.presence = presenceAtOneMeter / stepNode->FloatAttribute("distance");
-        }
         readPixels(stepNode, "limit", step.limits);
         step.triangleTarget = stepNode->FloatAttribute("triangleTarget");
         step.userSet = stepNode->BoolAttribute("userSet");
@@ -286,12 +288,13 @@ bool LodMetadata::readOverrides(const std::string &assetPath, const std::string 
 }
 
 bool LodMetadata::writeOverrides(const std::string &assetPath, const std::string &flipAxes,
-                                 const std::vector<LodStep> &steps) {
+                                 const std::vector<LodStep> &steps, float switchDistanceFactor) {
     const std::lock_guard<std::mutex> lock(lodMetadataWriteMutex);
     std::string path = metadataPathOf(assetPath);
     tinyxml2::XMLDocument document;
     tinyxml2::XMLElement *rootNode = openForMerge(path, document);
     tinyxml2::XMLElement *variantNode = replaceVariant(document, rootNode, "LodOverrides", flipAxes);
+    setFloatAttribute(variantNode, "switchDistanceFactor", switchDistanceFactor);
     for (size_t stepIndex = 0; stepIndex < steps.size(); ++stepIndex) {
         tinyxml2::XMLElement *stepNode = document.NewElement("Step");
         stepNode->SetAttribute("index", (uint32_t) (stepIndex + 1));

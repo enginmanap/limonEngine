@@ -60,6 +60,7 @@ struct ImGuiResult {
         int32_t stepSettingsLevel = -1;
         float stepPresence = 0.0f;
         LodPixels stepLimits;
+        float switchDistanceFactor = 0.0f;  //zero when not typed this frame
     };
     LodPanelInput lodPanel;
     std::string actorTypeName;

@@ -594,7 +594,7 @@ static void putLodLimitCell(const char *inputId, float measured, bool measuredKn
 }
 
 void Model::putLodTableInGui(ImGuiResult &result, std::vector<float> &editedTrianglePercents,
-                             std::vector<std::array<float, 8>> &editedStepSettings) {
+                             std::vector<std::array<float, 7>> &editedStepSettings) {
     const LodLadder &ladder = cullingEntry->modelAsset->getLodLadder();
     const std::vector<LodStep> &steps = ladder.getSteps();
     const uint32_t originalTriangleCount = ladder.getOriginalTriangleCount();
@@ -635,9 +635,7 @@ void Model::putLodTableInGui(ImGuiResult &result, std::vector<float> &editedTria
     ImGui::TableSetColumnIndex(3);
     ImGui::Text("%u", originalTriangleCount);
 
-    const float objectScale = getLodObjectScale();
-    //a typed distance is stored as the presence the model has there, so both boxes edit one value
-    const float presenceAtOneMeter = ladder.getAuthoredExtent() * ladder.getReferencePixelsPerMeter();
+    const float objectScale = getLodObjectScale() * ladder.getSwitchDistanceFactor();
     const uint32_t LIMIT_COUNT = 6;
     const uint32_t FIRST_SHADING_LIMIT = 4;//a shadow level is only judged on what a depth pass can show, the limits before this
     const LodLimitKind kinds[LIMIT_COUNT] = {LodLimitKind::SURFACE, LodLimitKind::OUTLINE, LodLimitKind::HOLES,
@@ -677,9 +675,9 @@ void Model::putLodTableInGui(ImGuiResult &result, std::vector<float> &editedTria
                 }
             }
 
-            const std::array<float, 8> currentSettings = {entry.presence, entry.limits.surface, entry.limits.outline,
+            const std::array<float, 7> currentSettings = {entry.presence, entry.limits.surface, entry.limits.outline,
                                                           entry.limits.holes, entry.limits.filled, entry.limits.texture,
-                                                          entry.limits.normal, entry.distance * objectScale};
+                                                          entry.limits.normal};
             if (!shadowPass && editedStepSettings.size() <= step) {
                 editedStepSettings.resize(step + 1, currentSettings);
             }
@@ -702,22 +700,12 @@ void Model::putLodTableInGui(ImGuiResult &result, std::vector<float> &editedTria
             }
 
             ImGui::TableSetColumnIndex(2);
-            if (shadowPass || presenceAtOneMeter <= 0.0f || objectScale <= 0.0f) {
+            if (shadowPass) {
                 ImGui::TextDisabled("%.0f", entry.distance * objectScale);
             } else {
-                ImGui::SetNextItemWidth(lodInputWidth());
-                ImGui::InputFloat("##distance", &editedStepSettings[step][7], 0.0f, 0.0f, "%.0f");
-                if (ImGui::IsItemDeactivatedAfterEdit()) {
-                    if (editedStepSettings[step][7] > 0.0f) {
-                        //the size is the model's, so every other object using it moves too
-                        editedStepSettings[step][0] = presenceAtOneMeter * objectScale / editedStepSettings[step][7];
-                        settingsCommitted = true;
-                    }
-                } else if (!ImGui::IsItemActive()) {
-                    editedStepSettings[step][7] = currentSettings[7];
-                }
+                ImGui::Text("%.0f", entry.distance * objectScale);
                 if (ImGui::IsItemHovered()) {
-                    ImGui::SetTooltip("Where this object, at its scale, has that size on screen. Other objects using this model switch where they have it");
+                    ImGui::SetTooltip("Where this object, at its scale, switches. Change Size px or the switch distance factor to move it");
                 }
             }
 
@@ -816,12 +804,25 @@ void Model::putLodPanelInGui(ImGuiResult &result, const ImGuiRequest &request, b
     //what is in the triangle boxes while they are being typed into, so a half finished number never commits
     static std::vector<float> editedTrianglePercents;
     //the same for each step's presence, six limits and distance, in that order
-    static std::vector<std::array<float, 8>> editedStepSettings;
+    static std::vector<std::array<float, 7>> editedStepSettings;
+    static float editedSwitchDistanceFactor = 1.0f;
     if (editedObjectID != this->getWorldObjectID()) {
         editedObjectID = this->getWorldObjectID();
         editedTrianglePercents.clear();
         editedStepSettings.clear();
     }
+
+    ImGui::SetNextItemWidth(lodInputWidth());
+    ImGui::InputFloat("Switch distance factor", &editedSwitchDistanceFactor, 0.0f, 0.0f, "%.2f");
+    if (ImGui::IsItemDeactivatedAfterEdit()) {
+        if (editedSwitchDistanceFactor > 0.0f) {
+            result.lodPanel.switchDistanceFactor = editedSwitchDistanceFactor;
+        }
+    } else if (!ImGui::IsItemActive()) {
+        editedSwitchDistanceFactor = ladder.getSwitchDistanceFactor();
+    }
+    ImGui::SameLine();
+    ImGuiHelper::ShowHelpMarker("Every level of this model is used this many times farther, as if the model was this much bigger on screen. Above 1 keeps it finer. The levels themselves don't change, and the project steps still apply.");
 
     if (ladder.hasOverrides()) {
         ImGui::TextWrapped("This model controls its own LOD settings, the project options don't apply to it.");
