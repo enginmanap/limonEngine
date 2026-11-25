@@ -23,6 +23,10 @@ class Attachable;
 
 class VisibilityRequest {
 public:
+    struct TagSetTarget {
+        TagMask mask;
+        RenderList* renderList;
+    };
     /**
      * Culling keys one render list per stage, by that stage's own tag list. This answers "is this list mine",
      * so every tag has to match, one tag in common would hand {basic,static} the {basic,animated} list as well.
@@ -96,6 +100,10 @@ public:
         std::unordered_map<std::vector<uint64_t>, RenderList, uint64_vector_hasher>* visibility;
         //occlusion_debugReverse parks the meshes that survived the occlusion test here, World draws it translucent. Empty unless that option is on
         mutable RenderList debugOverlayRenderList;
+        //a tag set of this camera as culling matches it, and the list its objects go to
+        //remade every frame from visibility, a pipeline change renumbers the bits
+        mutable std::vector<TagSetTarget> tagSets;
+        mutable TagMask anyTagSetMask;//all of tagSets, an object outside it is skipped before anything else
         mutable OcclusionCullerHelper occlusionCuller;
         mutable std::unordered_map<uint32_t, const std::vector<glm::mat4>*> changedBoneTransforms;
         mutable std::vector<uint8_t> previousLodLevels;//indexed like cullingEntries, which never pass NR_MAX_MODELS

@@ -354,11 +354,11 @@ void VisibilityManager::fillVisibleObjectPerCamera(const VisibilityRequest* visi
     float maxScreenSize = 0.0;
     {
     PROFILE_VISIBILITY("Culling::ObjectLoop");
-    //remade every frame, a pipeline change renumbers the bits. thread_local because each camera culls on its own thread
-    thread_local std::vector<TagSetTarget> tagSets;
-    tagSets.clear();
+    visibilityRequest->tagSets.clear();
+    visibilityRequest->anyTagSetMask = TagMask();
     for (std::pair<const std::vector<uint64_t>, RenderList> &visibilityEntry : *visibilityRequest->visibility) {
-        tagSets.push_back(TagSetTarget{visibilityRequest->renderTagBits->maskOf(visibilityEntry.first), &visibilityEntry.second});
+        visibilityRequest->tagSets.push_back(VisibilityRequest::TagSetTarget{visibilityRequest->renderTagBits->maskOf(visibilityEntry.first), &visibilityEntry.second});
+        visibilityRequest->anyTagSetMask.add(visibilityRequest->tagSets.back().mask);
     }
     const std::vector<CullingEntry>& cullingEntries = *visibilityRequest->cullingEntries;
     const bool occluderSizeByGroup = runOcclusion && visibilityRequest->occlusionOccluderSizeByGroupOption.getOrDefault(true);
@@ -371,6 +371,11 @@ void VisibilityManager::fillVisibleObjectPerCamera(const VisibilityRequest* visi
             std::exit(-1);
         }
 #endif
+        //an object in several of this camera's tag sets is culled and tested once, its meshes go to each matching list after
+        if (!cullingEntry.tagMask.intersects(visibilityRequest->anyTagSetMask)) {
+            visibilityRequest->setPreviousLodLevel(entryIndex, VisibilityRequest::NO_PREVIOUS_LOD_LEVEL);
+            continue;
+        }
         const ModelGroup* occluderGroup = occluderSizeByGroup ? cullingEntry.nearestModelGroup : nullptr;
         bool isHiddenPlayerAttachment = false;
         if (visibilityRequest->playerDead) {
@@ -431,60 +436,45 @@ void VisibilityManager::fillVisibleObjectPerCamera(const VisibilityRequest* visi
                 visibilityRequest->setPreviousLodLevel(entryIndex, VisibilityRequest::NO_PREVIOUS_LOD_LEVEL);
             }
         }
-        //which meshes occlude doesn't depend on the tag set, so the first matching set submits them. Every other set would rasterize them again
-        bool occludersSubmitted = false;
-        for (const TagSetTarget& tagSet : tagSets) {
-            if (cullingEntry.tagMask.intersects(tagSet.mask)) {
-                if(isVisible) {
-                    totalCounter += meshCount;
-                    if (!modelLodSkipped) {
-                        if (!runOcclusion || passesOccluderSize(occluderGroup, objectScreenSize, cameraProjectionMatrix, softwareOcclusionOccluderSize, groupMemberMinSize)) {
-                            if (objectScreenSize > maxScreenSize) {
-                                maxScreenSize = objectScreenSize;
-                            }
-                            //an animated occluder would need its node transform and pose, which we don't have here, so it only ever occludes itself
-                            const bool allMeshesNonOccluder = cullingEntry.meshTagsUniform && !meshMetas.empty() && hasNonOccluderTag(*meshMetas[0]);
-                            if (runOcclusion && !cullingEntry.animated && !occludersSubmitted && !allMeshesNonOccluder) {
-                                const uint32_t occluderLod = selectOccluderLod(cullingEntry.modelAsset->getLodLadder(), forcedOccluderLodLevel,
-                                                                               occluderPixelSize * (occluderPixelGrowsWithDistance ? visibilityRequest->camera->getDepthTo(cullingEntry.aabbMin, cullingEntry.aabbMax) : 1.0f),
-                                                                               cullingEntry.lodScale, occluderFilledPixels);
-                                const glm::mat4 &worldTransform = currentModel->getTransformation()->getWorldTransform();
-                                uint32_t submittedMeshCount = 0;
-                                for (const Model::MeshMeta* meshMeta : meshMetas) {
-                                    //a glass mesh is non occluder, the walls of the same model still occlude
-                                    if (cullingEntry.meshTagsUniform || !hasNonOccluderTag(*meshMeta)) {
-                                        visibilityRequest->occlusionCuller.renderOccluder(meshMeta, worldTransform, occluderLod);
-                                        submittedMeshCount++;
-                                    }
-                                }
-                                if (submittedMeshCount != 0) {
-                                    occluderModelCounter++;
-                                    occluderMeshCounter += submittedMeshCount;
-                                }
-                            }
-                            //an occluder can be hidden by another one too. Its own aabb is in front of its surface, so it can't hide itself
-                            if (runOcclusion) {
-                                visibilityRequest->occlusionCuller.addOccludee(cullingEntry, modelLod, objectAverageDepth, tagSet.renderList, tagSet.mask);
-                            } else {
-                                for (const Model::MeshMeta* meshMeta : meshMetas) {
-                                    if (cullingEntry.meshTagsUniform || meshMeta->tagMask.intersects(tagSet.mask)) {
-                                        tagSet.renderList->addMeshMaterial(meshMeta->material, meshMeta->mesh, cullingEntry, modelLod, objectAverageDepth);
-                                        directlyAddedCount++;
-                                    }
-                                }
-                            }
-                        } else {
-                            visibilityRequest->occlusionCuller.addOccludee(cullingEntry, modelLod, objectAverageDepth, tagSet.renderList, tagSet.mask);
+        totalCounter += meshCount;
+        if (modelLodSkipped) {
+            lodSkipCounter++;
+        } else if (!runOcclusion) {
+            if (objectScreenSize > maxScreenSize) {
+                maxScreenSize = objectScreenSize;
+            }
+            directlyAddedCount += addToMatchingLists(cullingEntry, visibilityRequest, modelLod, objectAverageDepth);
+        } else {
+            if (passesOccluderSize(occluderGroup, objectScreenSize, cameraProjectionMatrix, softwareOcclusionOccluderSize, groupMemberMinSize)) {
+                if (objectScreenSize > maxScreenSize) {
+                    maxScreenSize = objectScreenSize;
+                }
+                //an animated occluder would need its node transform and pose, which we don't have here, so it only ever occludes itself
+                const bool allMeshesNonOccluder = cullingEntry.meshTagsUniform && !meshMetas.empty() && hasNonOccluderTag(*meshMetas[0]);
+                if (!cullingEntry.animated && !allMeshesNonOccluder) {
+                    const uint32_t occluderLod = selectOccluderLod(cullingEntry.modelAsset->getLodLadder(), forcedOccluderLodLevel,
+                                                                   occluderPixelSize * (occluderPixelGrowsWithDistance ? visibilityRequest->camera->getDepthTo(cullingEntry.aabbMin, cullingEntry.aabbMax) : 1.0f),
+                                                                   cullingEntry.lodScale, occluderFilledPixels);
+                    const glm::mat4 &worldTransform = currentModel->getTransformation()->getWorldTransform();
+                    uint32_t submittedMeshCount = 0;
+                    for (const Model::MeshMeta* meshMeta : meshMetas) {
+                        //a glass mesh is non occluder, the walls of the same model still occlude
+                        if (cullingEntry.meshTagsUniform || !hasNonOccluderTag(*meshMeta)) {
+                            visibilityRequest->occlusionCuller.renderOccluder(meshMeta, worldTransform, occluderLod);
+                            submittedMeshCount++;
                         }
-                    } else {
-                        lodSkipCounter++;
                     }
-                    occludersSubmitted = true;
-                    if (cullingEntry.animated) {
-                        visibilityRequest->changedBoneTransforms[currentModel->getRigId()] = currentModel->getBoneTransforms();
+                    if (submittedMeshCount != 0) {
+                        occluderModelCounter++;
+                        occluderMeshCounter += submittedMeshCount;
                     }
                 }
             }
+            //an occluder can be hidden by another one too. Its own aabb is in front of its surface, so it can't hide itself
+            visibilityRequest->occlusionCuller.addOccludee(cullingEntry, modelLod, objectAverageDepth);
+        }
+        if (cullingEntry.animated) {
+            visibilityRequest->changedBoneTransforms[currentModel->getRigId()] = currentModel->getBoneTransforms();
         }
     }
     }
@@ -502,16 +492,18 @@ void VisibilityManager::fillVisibleObjectPerCamera(const VisibilityRequest* visi
         if (debugReverse) {
             PROFILE_VISIBILITY("Culling::AddVisibleDebugReverse");
             for (const OcculudeeMetaData* metaData : occludedModels) {
-                addOccludeeMeshes(metaData, metaData->renderList);
+                addToMatchingLists(*metaData->cullingEntry, visibilityRequest, metaData->lod, metaData->averageDepth);
             }
-            //every tag list of the player camera holds the same mesh, the overlay list keeps it once
+            //every tag list of the player camera would hold the same mesh, the overlay list keeps it once
             for (const OcculudeeMetaData* metaData : nonOccludedModels) {
-                nonOccludedCount += addOccludeeMeshes(metaData, &visibilityRequest->debugOverlayRenderList);
+                addMeshesMatching(*metaData->cullingEntry, visibilityRequest->anyTagSetMask, metaData->lod, metaData->averageDepth, &visibilityRequest->debugOverlayRenderList);
+                nonOccludedCount += (uint32_t)metaData->cullingEntry->meshMetaData.size();
             }
         } else {
             PROFILE_VISIBILITY("Culling::AddVisible");
             for (const OcculudeeMetaData* metaData : nonOccludedModels) {
-                nonOccludedCount += addOccludeeMeshes(metaData, metaData->renderList);
+                addToMatchingLists(*metaData->cullingEntry, visibilityRequest, metaData->lod, metaData->averageDepth);
+                nonOccludedCount += (uint32_t)metaData->cullingEntry->meshMetaData.size();
             }
         }
         occludedCounter = totalCounter - nonOccludedCount;//occluders are queried too, so they are part of nonOccludedCount
@@ -605,16 +597,25 @@ bool VisibilityManager::passesOccluderSize(const ModelGroup* group, float ownScr
     return ((ndcMax.x - ndcMin.x) / 2.0f) * ((ndcMax.y - ndcMin.y) / 2.0f) > occluderSize;//same measure isSkippedByLodDistance gives a model
 }
 
-uint32_t VisibilityManager::addOccludeeMeshes(const OcculudeeMetaData* occludee, RenderList* renderList) {
-    const CullingEntry& cullingEntry = *occludee->cullingEntry;//everything per model comes from the entry, not the Model
-    const std::vector<Model::MeshMeta*>& meshMetas = cullingEntry.meshMetaData;
-    const bool meshTagsUniform = cullingEntry.meshTagsUniform;
-    for (const Model::MeshMeta* meshMeta : meshMetas) {
-        if (meshTagsUniform || meshMeta->tagMask.intersects(occludee->renderTagMask)) {
-            renderList->addMeshMaterial(meshMeta->material, meshMeta->mesh, cullingEntry, occludee->lod, occludee->averageDepth);
+uint32_t VisibilityManager::addMeshesMatching(const CullingEntry& cullingEntry, const TagMask& listTagMask, uint32_t lod, float depth, RenderList* renderList) {
+    uint32_t addedCount = 0;
+    for (const Model::MeshMeta* meshMeta : cullingEntry.meshMetaData) {
+        if (cullingEntry.meshTagsUniform || meshMeta->tagMask.intersects(listTagMask)) {
+            renderList->addMeshMaterial(meshMeta->material, meshMeta->mesh, cullingEntry, lod, depth);
+            addedCount++;
         }
     }
-    return (uint32_t)meshMetas.size();
+    return addedCount;
+}
+
+uint32_t VisibilityManager::addToMatchingLists(const CullingEntry& cullingEntry, const VisibilityRequest* visibilityRequest, uint32_t lod, float depth) {
+    uint32_t addedCount = 0;
+    for (const VisibilityRequest::TagSetTarget& tagSet : visibilityRequest->tagSets) {
+        if (cullingEntry.tagMask.intersects(tagSet.mask)) {
+            addedCount += addMeshesMatching(cullingEntry, tagSet.mask, lod, depth, tagSet.renderList);
+        }
+    }
+    return addedCount;
 }
 
 bool VisibilityManager::hasNonOccluderTag(const Model::MeshMeta& meshMeta) {

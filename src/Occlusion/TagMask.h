@@ -16,6 +16,11 @@ struct TagMask {
         }
     }
 
+    void add(const TagMask &other) {
+        low |= other.low;
+        high |= other.high;
+    }
+
     bool intersects(const TagMask &other) const {
         return ((low & other.low) | (high & other.high)) != 0;
     }

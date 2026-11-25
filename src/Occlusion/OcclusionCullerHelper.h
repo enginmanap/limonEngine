@@ -159,8 +159,8 @@ public:
             true);
     }
 
-    void addOccludee(const CullingEntry& cullingEntry, uint32_t lod, float averageDepth, RenderList* renderList, const TagMask &renderTagMask) {
-        possibleVisibleSet.push_back(OcculudeeMetaData(&cullingEntry, lod, averageDepth, renderList, renderTagMask));
+    void addOccludee(const CullingEntry& cullingEntry, uint32_t lod, float averageDepth) {
+        possibleVisibleSet.push_back(OcculudeeMetaData(&cullingEntry, lod, averageDepth));
         const glm::vec3& minWorldAABB = cullingEntry.aabbMin;
         const glm::vec3& maxWorldAABB = cullingEntry.aabbMax;
         possibleVisibleSetAABBs.push_back(minWorldAABB.x);
