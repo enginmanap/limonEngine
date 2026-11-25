@@ -2062,6 +2062,10 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
                                     world->loadedAnimations[world->activeAnimations[selectedObject]->animationIndex].getName()).c_str())) {
                                 ImGui::OpenPopup("How To Remove Custom Animation");
                             }
+                            ImGui::SameLine();
+                            if (ImGui::Button("Edit##EditActiveCustomAnimation")) {
+                                editActiveCustomAnimation(selectedObject);
+                            }
                             if (ImGui::BeginPopupModal("How To Remove Custom Animation")) {
                                 AnimationCustom &animationToRemove = world->loadedAnimations[world->activeAnimations[selectedObject]->animationIndex];
                                 World::AnimationStatus *animationStatusToRemove = world->activeAnimations[selectedObject];
@@ -2241,17 +2245,15 @@ void Editor::addAnimationDefinitionToEditor() {
             }
 
             ImGui::SameLine();
+            if (ImGui::Button("Edit selected") && listbox_item_current >= 0 && (size_t)listbox_item_current < world->loadedAnimations.size()) {
+                startAnimationDefinition(new AnimationSequenceInterface(dynamic_cast<Renderable *>(this->pickedObject), this->pickedObject->getWorldObjectID(),
+                                                                        world->loadedAnimations[listbox_item_current], listbox_item_current));
+            }
+
+            ImGui::SameLine();
             if (ImGui::Button("Create new")) {
-                //deleting puts the old object back to where it started
-                if (world->animationInProgress != nullptr) {
-                    Attachable* oldAnimatedAttachable = dynamic_cast<Attachable*>(world->animationInProgress->getAnimatingObject());
-                    delete world->animationInProgress;
-                    if (oldAnimatedAttachable != nullptr) {
-                        world->apiAccessor->refreshBroadphaseAabbs(oldAnimatedAttachable);
-                    }
-                }
-                world->animationInProgress = new AnimationSequenceInterface(
-                        dynamic_cast<Renderable *>(this->pickedObject), this->pickedObject->getWorldObjectID());
+                startAnimationDefinition(new AnimationSequenceInterface(
+                        dynamic_cast<Renderable *>(this->pickedObject), this->pickedObject->getWorldObjectID()));
             }
         } else {
             ImGui::Text("Please use animation definition window.");
@@ -2259,29 +2261,96 @@ void Editor::addAnimationDefinitionToEditor() {
     }
 }
 
-//drawn outside the object window, picking something else must not hide it
-void Editor::renderAnimationDefinitionWindow() {
+void Editor::editActiveCustomAnimation(Renderable *animatedObject) {
+    World::AnimationStatus* animationStatus = world->activeAnimations[animatedObject];
+    uint32_t animationIndex = animationStatus->animationIndex;
+    bool looped = animationStatus->loop;
+    bool startOnLoad = world->onLoadAnimations.count(animatedObject) != 0;
+    std::string soundName = animationStatus->sound != nullptr ? animationStatus->sound->getName() : "";
+    discardAnimationDefinition(true);//a sequence on another object gives that one its animation back
+    //puts the object where the animation starts and deletes the status
+    world->removeActiveCustomAnimation(world->loadedAnimations[animationIndex], animationStatus, 0);
+    Attachable* animatedAttachable = dynamic_cast<Attachable*>(animatedObject);
+    if (animatedAttachable != nullptr) {
+        world->apiAccessor->refreshBroadphaseAabbs(animatedAttachable);
+    }
+    AnimationSequenceInterface* sequence = new AnimationSequenceInterface(animatedObject, this->pickedObject->getWorldObjectID(),
+                                                                          world->loadedAnimations[animationIndex], animationIndex);
+    sequence->setAppliedBeforeEdit(looped, startOnLoad, soundName);
+    world->animationInProgress = sequence;
+}
+
+void Editor::startAnimationDefinition(AnimationSequenceInterface *sequence) {
+    discardAnimationDefinition(true);
+    world->animationInProgress = sequence;
+}
+
+//deleting puts the object back to where it started, an edited animation it was playing comes back only if reapply is set
+void Editor::discardAnimationDefinition(bool reapply) {
     if (world->animationInProgress == nullptr) {
         return;
     }
-    bool finished, cancelled;
-    Attachable* animatedAttachable = dynamic_cast<Attachable*>(world->animationInProgress->getAnimatingObject());//null after finish or cancel
+    AnimationSequenceInterface* sequence = world->animationInProgress;
+    world->animationInProgress = nullptr;
+    Attachable* animatedAttachable = dynamic_cast<Attachable*>(sequence->getAnimatingObject());//null after finish or cancel
+    uint32_t objectID = sequence->getAnimatingObjectID();
+    bool reapplyEdited = reapply && sequence->isAppliedBeforeEdit();
+    uint32_t editedIndex = sequence->getEditedAnimationIndex();
+    bool looped = sequence->getReapplyLooped();
+    bool startOnLoad = sequence->getReapplyStartOnLoad();
+    std::string soundName = sequence->getReapplySound();
+    delete sequence;
+    if (animatedAttachable != nullptr) {
+        world->apiAccessor->refreshBroadphaseAabbs(animatedAttachable);
+    }
+    if (reapplyEdited) {
+        world->apiAccessor->addAnimationToObjectWithSound(objectID, editedIndex, looped, startOnLoad, soundName);
+    }
+}
+
+//drawn outside the object window, picking something else must not hide it
+void Editor::renderAnimationDefinitionWindow() {
+    AnimationSequenceInterface* sequence = world->animationInProgress;
+    if (sequence == nullptr) {
+        return;
+    }
+    uint32_t editedIndex = sequence->getEditedAnimationIndex();
+    bool nameTaken = false;
+    if (editedIndex != AnimationSequenceInterface::NO_ANIMATION) {//new ones never checked names, kept that way
+        std::string name = sequence->getAnimationName();
+        for (size_t i = 0; i < world->loadedAnimations.size(); i++) {
+            if (i != editedIndex && world->loadedAnimations[i].getName() == name) {
+                nameTaken = true;
+                break;
+            }
+        }
+    }
+    bool finished, savedAsNew, cancelled;
+    Attachable* animatedAttachable = dynamic_cast<Attachable*>(sequence->getAnimatingObject());//null after finish or cancel
     ImGui::BeginDisabled(isPacking());
-    bool objectMoved = world->animationInProgress->addAnimationSequencerToEditor(finished, cancelled);
+    bool objectMoved = sequence->addAnimationSequencerToEditor(nameTaken, finished, savedAsNew, cancelled);
     ImGui::EndDisabled();
     if (objectMoved && animatedAttachable != nullptr) {
         world->apiAccessor->refreshBroadphaseAabbs(animatedAttachable);//moved outside a tick, picking would miss it otherwise
     }
-    if (finished) {
-        world->loadedAnimations.push_back(world->animationInProgress->buildAnimationFromCurrentItems());
-
-        world->apiAccessor->addAnimationToObject(world->animationInProgress->getAnimatingObjectID(),
-                             world->loadedAnimations.size() - 1, true, true);
+    if (cancelled) {
+        discardAnimationDefinition(true);
+        return;
     }
-    if (finished || cancelled) {
-        delete world->animationInProgress;
-        world->animationInProgress = nullptr;
+    if (!finished && !savedAsNew) {
+        return;
     }
+    uint32_t resultIndex;
+    if (finished && editedIndex != AnimationSequenceInterface::NO_ANIMATION) {
+        world->loadedAnimations[editedIndex] = sequence->buildAnimationFromCurrentItems();//everything playing it changes too
+        resultIndex = editedIndex;
+    } else {
+        world->loadedAnimations.push_back(sequence->buildAnimationFromCurrentItems());
+        resultIndex = world->loadedAnimations.size() - 1;
+    }
+    world->apiAccessor->addAnimationToObjectWithSound(sequence->getAnimatingObjectID(), resultIndex, sequence->getReapplyLooped(),
+                                                      sequence->getReapplyStartOnLoad(), sequence->getReapplySound());
+    discardAnimationDefinition(false);
 }
 
 void Editor::saveAnimationDefinitionPoseFor(uint32_t objectID) {
@@ -2293,8 +2362,7 @@ void Editor::saveAnimationDefinitionPoseFor(uint32_t objectID) {
 //must run while the object is still alive, deleting the sequence puts it back to its original transform
 void Editor::cancelAnimationDefinitionFor(uint32_t objectID) {
     if (world->animationInProgress != nullptr && world->animationInProgress->getAnimatingObjectID() == objectID) {
-        delete world->animationInProgress;
-        world->animationInProgress = nullptr;
+        discardAnimationDefinition(false);//it is going away, nothing to play on
     }
 }
 

@@ -6,6 +6,8 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtx/matrix_decompose.hpp>
+#include <algorithm>
+#include <cmath>
 #include "Renderable.h"
 #include "../libs/ImGui/imgui.h"
 
@@ -17,6 +19,59 @@ AnimationSequenceInterface::AnimationSequenceInterface(Renderable* animatingObje
         originalTransformation(*animatingObject->getTransformation()), animatingObject(animatingObject), animatingObjectID(animatingObjectID) {
     sections.push_back(createSection(30));//put one element to sections by default
     selectedSectionID = sections[0].sectionID;
+}
+
+AnimationSequenceInterface::AnimationSequenceInterface(Renderable* animatingObject, uint32_t animatingObjectID, const AnimationCustom &animationToEdit, uint32_t animationIndex) :
+        originalTransformation(*animatingObject->getTransformation()), animatingObject(animatingObject), animatingObjectID(animatingObjectID),
+        editedAnimationIndex(animationIndex), editedAnimationName(animationToEdit.getName()) {
+    rebuildSectionsFromAnimation(animationToEdit);
+    snprintf(animationNameBuffer, sizeof(animationNameBuffer), "%s", animationToEdit.getName().c_str());
+    //object stands at the start, selecting a section would need a move
+    selectedEntry = -1;
+    selectedSectionID = NO_SECTION;
+    mFrameCount = std::max(mFrameCount, sections.back().mFrameEnd);
+}
+
+//every key becomes a section end. The first key is where the object stands, so animations not starting from identity are re-based to it
+void AnimationSequenceInterface::rebuildSectionsFromAnimation(const AnimationCustom &animation) {
+    const AnimationNode &node = *animation.animationNode;
+    std::vector<float> keyTimes;
+    keyTimes.insert(keyTimes.end(), node.translateTimes.begin(), node.translateTimes.end());
+    keyTimes.insert(keyTimes.end(), node.scaleTimes.begin(), node.scaleTimes.end());
+    keyTimes.insert(keyTimes.end(), node.rotationTimes.begin(), node.rotationTimes.end());
+    std::sort(keyTimes.begin(), keyTimes.end());
+    keyTimes.erase(std::unique(keyTimes.begin(), keyTimes.end()), keyTimes.end());
+
+    sections.clear();
+    if (keyTimes.empty()) {
+        sections.push_back(createSection(30));
+        return;
+    }
+    float ticksPerSecond = animation.getTicksPerSecond() != 0 ? animation.getTicksPerSecond() : TICK_PER_SECOND;
+    float frameScale = TICK_PER_SECOND / ticksPerSecond;//sections are in our ticks, the file may use another rate
+
+    glm::mat4 previousPose = composeLocalMatrix(node.getPositionVector(keyTimes[0]), node.getRotationQuat(keyTimes[0]), node.getScalingVector(keyTimes[0]));
+    int previousEnd = 0;
+    int firstKeyFrame = (int)std::lround(keyTimes[0] * frameScale);
+    if (firstKeyFrame > 0) {
+        sections.push_back(createSection(firstKeyFrame));//the wait before the first key
+        previousEnd = firstKeyFrame;
+    }
+    for (size_t i = 1; i < keyTimes.size(); i++) {
+        glm::mat4 pose = composeLocalMatrix(node.getPositionVector(keyTimes[i]), node.getRotationQuat(keyTimes[i]), node.getScalingVector(keyTimes[i]));
+        AnimationSequenceItem item = createSection(std::max((int)std::lround(keyTimes[i] * frameScale), previousEnd));
+        item.relativeTransform = glm::inverse(previousPose) * pose;
+        sections.push_back(item);
+        previousPose = pose;
+        previousEnd = item.mFrameEnd;
+    }
+    int durationFrame = (int)std::lround(animation.getDuration() * frameScale);
+    if (durationFrame > previousEnd) {
+        sections.push_back(createSection(durationFrame));//duration may run past the last key
+    }
+    if (sections.empty()) {
+        sections.push_back(createSection(30));
+    }
 }
 
 AnimationSequenceInterface::~AnimationSequenceInterface(){
@@ -168,8 +223,8 @@ void AnimationSequenceInterface::pushMatrixToAnimationTime(std::shared_ptr<Anima
     animationNode->rotationTimes.push_back(time);
 }
 
-bool AnimationSequenceInterface::addAnimationSequencerToEditor(bool &finished, bool &cancelled) {
-    finished = cancelled = false;
+bool AnimationSequenceInterface::addAnimationSequencerToEditor(bool nameTaken, bool &finished, bool &savedAsNew, bool &cancelled) {
+    finished = savedAsNew = cancelled = false;
     objectMoved = false;
 
     ImGui::Begin("Animation Definition");
@@ -222,21 +277,38 @@ bool AnimationSequenceInterface::addAnimationSequencerToEditor(bool &finished, b
         ImGui::Text("Selected section ends at the original transform, for loops");
     }
 
-    if (strcmp(animationNameBuffer,"") != 0) {
-        if(ImGui::Button("Finish")) {
-            finished = true;
-        }
-    } else {
+    bool nameEmpty = strcmp(animationNameBuffer,"") == 0;
+    if (nameTaken) {
+        ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "Another animation already has this name");
+    }
+    if (nameEmpty || nameTaken) {
         ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
         ImGui::Button("Finish");
         ImGui::PopStyleVar();
+    } else if(ImGui::Button("Finish")) {
+        finished = true;
+    }
+
+    if (editedAnimationIndex != NO_ANIMATION) {
+        ImGui::SameLine();
+        //the copy would save over the original's file
+        if (nameEmpty || nameTaken || editedAnimationName == animationNameBuffer) {
+            ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
+            ImGui::Button("Save as new");
+            ImGui::PopStyleVar();
+            if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
+                ImGui::SetTooltip("Give it a new name first");
+            }
+        } else if (ImGui::Button("Save as new")) {
+            savedAsNew = true;
+        }
     }
 
     ImGui::SameLine();
     if(ImGui::Button("Cancel ")) {
         cancelled = true;
     }
-    if(cancelled ||finished) {
+    if(cancelled || finished || savedAsNew) {
         restoreOriginalTransformation();
         //since return to origin is done, invalidate the object so destructor doesn't mess with it
         animatingObject = nullptr;

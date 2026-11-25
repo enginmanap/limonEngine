@@ -41,6 +41,8 @@ class PipelineExtension;
 class IterationExtension;
 class ImGuiHelper;
 class PreviewRenderer;
+class AnimationSequenceInterface;
+class Renderable;
 
 class PackageBuilder;
 
@@ -299,6 +301,9 @@ private:
     void renderAnimationDefinitionWindow();
     void cancelAnimationDefinitionFor(uint32_t objectID);
     void saveAnimationDefinitionPoseFor(uint32_t objectID);//call after every editor move of the object
+    void startAnimationDefinition(AnimationSequenceInterface *sequence);
+    void discardAnimationDefinition(bool reapply);
+    void editActiveCustomAnimation(Renderable *animatedObject);
     void createObjectTreeRecursive(Attachable *attachable, uint32_t pickedObjectID,
                                           ImGuiTreeNodeFlags nodeFlags, ImGuiTreeNodeFlags leafFlags,
                                           std::vector<uint32_t> parentage,

@@ -17,6 +17,9 @@ class Renderable;
 class AnimationNode;
 
 class AnimationSequenceInterface : public ImSequencer::SequenceInterface {
+public:
+    static const uint32_t NO_ANIMATION = UINT32_MAX;
+private:
     static const uint32_t NO_SECTION = UINT32_MAX;
     static const int NEW_SECTION_LENGTH = 60;
 
@@ -48,6 +51,15 @@ class AnimationSequenceInterface : public ImSequencer::SequenceInterface {
     void moveObjectToSelectedSection();
     void restoreOriginalTransformation();
     bool objectMoved = false;
+
+    uint32_t editedAnimationIndex = NO_ANIMATION;
+    std::string editedAnimationName;
+    bool appliedBeforeEdit = false;//the object was playing it, cancel must put it back
+    bool reapplyLooped = true;
+    bool reapplyStartOnLoad = true;
+    std::string reapplySound;
+
+    void rebuildSectionsFromAnimation(const AnimationCustom &animation);
     std::vector<int> getBoundaries() const;//start time, then every section's end
     void pushLaterSections(const std::vector<int> &boundariesBefore);
     void pushMatrixToAnimationTime(std::shared_ptr<AnimationNode> animationNode, float time, const glm::mat4 &transform) const;
@@ -101,10 +113,27 @@ public:
     void saveObjectToSelectedSection();
 
     AnimationSequenceInterface(Renderable* animatingObject, uint32_t animatingObjectID);
+    //object must already be where the animation starts
+    AnimationSequenceInterface(Renderable* animatingObject, uint32_t animatingObjectID, const AnimationCustom &animationToEdit, uint32_t animationIndex);
     ~AnimationSequenceInterface() override;
     AnimationCustom buildAnimationFromCurrentItems() const;
 
-    bool addAnimationSequencerToEditor(bool &finished, bool &cancelled);//true if it moved the object
+    void setAppliedBeforeEdit(bool looped, bool startOnLoad, const std::string &soundName) {
+        appliedBeforeEdit = true;
+        reapplyLooped = looped;
+        reapplyStartOnLoad = startOnLoad;
+        reapplySound = soundName;
+    }
+
+    uint32_t getEditedAnimationIndex() const { return editedAnimationIndex; }
+    bool isAppliedBeforeEdit() const { return appliedBeforeEdit; }
+    bool getReapplyLooped() const { return reapplyLooped; }
+    bool getReapplyStartOnLoad() const { return reapplyStartOnLoad; }
+    const std::string &getReapplySound() const { return reapplySound; }
+    std::string getAnimationName() const { return animationNameBuffer; }
+
+    //nameTaken is for the name in the field, by an animation other than the edited one
+    bool addAnimationSequencerToEditor(bool nameTaken, bool &finished, bool &savedAsNew, bool &cancelled);//true if it moved the object
 
     int GetFrameMin() const override {return 0;};
     int GetFrameMax() const override {return mFrameCount;};
