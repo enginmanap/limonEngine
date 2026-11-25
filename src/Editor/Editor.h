@@ -296,6 +296,9 @@ private:
     void putPickReferencedObjectButton(GameObject* referencedObject, const std::string& label);
     std::unique_ptr<ClosestNotMeConvexResultCallback> convexSweepTestDown(Model * selectedObject) const;
     void addAnimationDefinitionToEditor();
+    void renderAnimationDefinitionWindow();
+    void cancelAnimationDefinitionFor(uint32_t objectID);
+    void saveAnimationDefinitionPoseFor(uint32_t objectID);//call after every editor move of the object
     void createObjectTreeRecursive(Attachable *attachable, uint32_t pickedObjectID,
                                           ImGuiTreeNodeFlags nodeFlags, ImGuiTreeNodeFlags leafFlags,
                                           std::vector<uint32_t> parentage,

@@ -8,41 +8,49 @@
 
 #include <vector>
 #include <memory>
+#include <glm/glm.hpp>
 #include "../libs/ImGuizmo/ImSequencer.h"
 #include "Transformation.h"
+#include "Assets/Animations/AnimationCustom.h"
 
 class Renderable;
-class AnimationCustom;
 class AnimationNode;
 
 class AnimationSequenceInterface : public ImSequencer::SequenceInterface {
+    static const uint32_t NO_SECTION = UINT32_MAX;
+    static const int NEW_SECTION_LENGTH = 60;
+
     int startTime = 0;
     Transformation originalTransformation;
     struct AnimationSequenceItem {
+        uint32_t sectionID;
         int mFrameEnd;
-        //it should save a transformation, that is the difference from start. We can safely assume point 0 is ineffective transform
-        Transformation transformation;
+        glm::mat4 relativeTransform;//from where the previous section ends, first one from the original
+        char name[32];
     };
     std::vector<AnimationSequenceItem> sections;
     Renderable* animatingObject;
-    AnimationCustom* animationInProgress = nullptr;
+    uint32_t animatingObjectID;
+    uint32_t nextSectionID = 0;
 
     /********************IMGUI variables *************************/
     char animationNameBuffer[32] {0};
     int selectedEntry = 0;//to show this, we must have created 1 element. that one is selected
+    uint32_t selectedSectionID = NO_SECTION;//ImSequencer only gives us an index, deleting shifts what it points to
+    bool sectionDeleted = false;
     int firstFrame = 0;
     bool expanded = true;
     /********************IMGUI variables *************************/
 
-    /**
-     * Animation to fill should be created(not null, and its animation node set to not null too), and empty.
-     *
-     * @param item
-     * @param animationToFill
-     */
-    void fillAnimationFromItem(uint32_t itemIndex, AnimationCustom *animationToFill, const Transformation& sourceTransform,  bool useStacked) const;
-    void pushTransformToAnimationTime(std::shared_ptr<AnimationNode> animationNode, float time, const Transformation &transformation) const;
-    void pushIdentityToAnimationTime(std::shared_ptr<AnimationNode> animationNode, float time) const;
+    AnimationSequenceItem createSection(int frameEnd);
+    glm::mat4 getOriginalLocal() const;
+    glm::mat4 getSectionEndTransform(int sectionIndex) const;//relative to original, -1 is the original itself
+    void moveObjectToSelectedSection();
+    void restoreOriginalTransformation();
+    bool objectMoved = false;
+    std::vector<int> getBoundaries() const;//start time, then every section's end
+    void pushLaterSections(const std::vector<int> &boundariesBefore);
+    void pushMatrixToAnimationTime(std::shared_ptr<AnimationNode> animationNode, float time, const glm::mat4 &transform) const;
 
 
 public:
@@ -55,7 +63,7 @@ public:
     const char *GetItemTypeName(int typeIndex [[gnu::unused]]) const override { return "Section"; }
     const char *GetItemLabel(int index) const override {
         static char tmps[512];
-        sprintf(tmps, "[%02d] %s", index, "Section");
+        snprintf(tmps, sizeof(tmps), "[%02d] %s", index, sections[index].name);
         return tmps;
     }
 
@@ -79,31 +87,24 @@ public:
         }
     }
     void Add(int type [[gnu::unused]]) override;
-    void setTransform(int32_t indexToSet);
+    void Del(int index) override;
+    void Duplicate(int index) override;//the + on a section row, we insert an empty section after it instead of copying
 
-
-    void Del(int index) override {
-        //don't allow deleting last element
-        if(sections.size()>1) {
-            sections.erase(sections.begin() + index);
-        }
-    }
-
-    void Duplicate(int index) override;
-
-    const Renderable *getAnimatingObject() const {
+    Renderable *getAnimatingObject() const {
         return animatingObject;
     }
 
-    explicit AnimationSequenceInterface(Renderable* animatingObject);
-    ~AnimationSequenceInterface() override;
-    AnimationCustom* buildAnimationFromCurrentItems();
+    uint32_t getAnimatingObjectID() const {
+        return animatingObjectID;
+    }
 
-    /**
-     * Returns whether animation finished or not
-     * @return
-     */
-    void addAnimationSequencerToEditor(bool &finished, bool &cancelled);
+    void saveObjectToSelectedSection();
+
+    AnimationSequenceInterface(Renderable* animatingObject, uint32_t animatingObjectID);
+    ~AnimationSequenceInterface() override;
+    AnimationCustom buildAnimationFromCurrentItems() const;
+
+    bool addAnimationSequencerToEditor(bool &finished, bool &cancelled);//true if it moved the object
 
     int GetFrameMin() const override {return 0;};
     int GetFrameMax() const override {return mFrameCount;};

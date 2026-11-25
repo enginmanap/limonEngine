@@ -2116,10 +2116,12 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
                         ModelGroup* ancestorGroup = dynamic_cast<ModelGroup*>(parentAttachable);
                         if (ancestorGroup != nullptr) {
                             ancestorGroup->recenterOnChildren();
+                            saveAnimationDefinitionPoseFor(ancestorGroup->getWorldObjectID());//recentering moves the group itself
                         }
                         parentAttachable = parentAttachable->getParentObject();
                     }
                 }
+                saveAnimationDefinitionPoseFor(this->pickedObject->getWorldObjectID());
             }
 
             // after this, remove and physics disconnect
@@ -2158,6 +2160,7 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
                 case GameObject::ObjectTypes::GUI_BUTTON:
                 case GameObject::ObjectTypes::GUI_ANIMATION: {
                     if(objectEditorResult.remove) {
+                        cancelAnimationDefinitionFor(this->pickedObject->getWorldObjectID());
                         world->guiElements.erase(this->pickedObject->getWorldObjectID());
                         world->unusedIDs.push(this->pickedObject->getWorldObjectID());
                         delete this->pickedObject;
@@ -2209,6 +2212,8 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
         ImGui::End();
     }
 
+    renderAnimationDefinitionWindow();
+
     if (world->showProfilerOverlay) {
         ProfilerUI::DrawProfilerWindow(world->profilerSystem, world->frameTimeTracker, world->graphicsWrapper,
                                        &world->showProfilerOverlay);
@@ -2223,7 +2228,7 @@ void Editor::addAnimationDefinitionToEditor() {
         //If there is no animation setup ongoing, or there is one, but not for this model,
         //put start animation button.
         //else put time input, add and finalize buttons.
-        if (world->animationInProgress == nullptr || world->animationInProgress->getAnimatingObject() != dynamic_cast<Renderable *>(this->pickedObject)) {
+        if (world->animationInProgress == nullptr || world->animationInProgress->getAnimatingObjectID() != this->pickedObject->getWorldObjectID()) {
 
             static int listbox_item_current = 0;
             ImGui::Text("Loaded animations list");
@@ -2237,34 +2242,59 @@ void Editor::addAnimationDefinitionToEditor() {
 
             ImGui::SameLine();
             if (ImGui::Button("Create new")) {
-                if (world->animationInProgress == nullptr) {
-                    world->animationInProgress = new AnimationSequenceInterface(
-                            dynamic_cast<Renderable *>(this->pickedObject));
-                } else {
-                    //ask for removal of the old work
+                //deleting puts the old object back to where it started
+                if (world->animationInProgress != nullptr) {
+                    Attachable* oldAnimatedAttachable = dynamic_cast<Attachable*>(world->animationInProgress->getAnimatingObject());
                     delete world->animationInProgress;
-                    world->animationInProgress = new AnimationSequenceInterface(
-                            dynamic_cast<Renderable *>(this->pickedObject));
+                    if (oldAnimatedAttachable != nullptr) {
+                        world->apiAccessor->refreshBroadphaseAabbs(oldAnimatedAttachable);
+                    }
                 }
-                // At this point we should know the animationInProgress is for current object
+                world->animationInProgress = new AnimationSequenceInterface(
+                        dynamic_cast<Renderable *>(this->pickedObject), this->pickedObject->getWorldObjectID());
             }
         } else {
             ImGui::Text("Please use animation definition window.");
-            bool finished, cancelled;
-            world->animationInProgress->addAnimationSequencerToEditor(finished, cancelled);
-            if (finished) {
-                world->loadedAnimations.push_back(AnimationCustom(*world->animationInProgress->buildAnimationFromCurrentItems()));
-
-                world->apiAccessor->addAnimationToObject(this->pickedObject->getWorldObjectID(),
-                                     world->loadedAnimations.size() - 1, true, true);
-                delete world->animationInProgress;
-                world->animationInProgress = nullptr;
-            }
-            if (cancelled) {
-                delete world->animationInProgress;
-                world->animationInProgress = nullptr;
-            }
         }
+    }
+}
+
+//drawn outside the object window, picking something else must not hide it
+void Editor::renderAnimationDefinitionWindow() {
+    if (world->animationInProgress == nullptr) {
+        return;
+    }
+    bool finished, cancelled;
+    Attachable* animatedAttachable = dynamic_cast<Attachable*>(world->animationInProgress->getAnimatingObject());//null after finish or cancel
+    ImGui::BeginDisabled(isPacking());
+    bool objectMoved = world->animationInProgress->addAnimationSequencerToEditor(finished, cancelled);
+    ImGui::EndDisabled();
+    if (objectMoved && animatedAttachable != nullptr) {
+        world->apiAccessor->refreshBroadphaseAabbs(animatedAttachable);//moved outside a tick, picking would miss it otherwise
+    }
+    if (finished) {
+        world->loadedAnimations.push_back(world->animationInProgress->buildAnimationFromCurrentItems());
+
+        world->apiAccessor->addAnimationToObject(world->animationInProgress->getAnimatingObjectID(),
+                             world->loadedAnimations.size() - 1, true, true);
+    }
+    if (finished || cancelled) {
+        delete world->animationInProgress;
+        world->animationInProgress = nullptr;
+    }
+}
+
+void Editor::saveAnimationDefinitionPoseFor(uint32_t objectID) {
+    if (world->animationInProgress != nullptr && world->animationInProgress->getAnimatingObjectID() == objectID) {
+        world->animationInProgress->saveObjectToSelectedSection();
+    }
+}
+
+//must run while the object is still alive, deleting the sequence puts it back to its original transform
+void Editor::cancelAnimationDefinitionFor(uint32_t objectID) {
+    if (world->animationInProgress != nullptr && world->animationInProgress->getAnimatingObjectID() == objectID) {
+        delete world->animationInProgress;
+        world->animationInProgress = nullptr;
     }
 }
 
@@ -3074,6 +3104,7 @@ void Editor::applyRevertAlteredMaterial(const EditorCommand &command) {
 
 //removeObject takes the model children along, the editor must not keep pointers to any of them
 void Editor::forgetRemovedModelTree(Model *model) {
+    cancelAnimationDefinitionFor(model->getWorldObjectID());
     //picked again between the click and the tick
     if (this->pickedObject != nullptr && this->pickedObject->getWorldObjectID() == model->getWorldObjectID()) {
         this->pickedObject = nullptr;

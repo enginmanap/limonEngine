@@ -3,239 +3,174 @@
 //
 
 #include "AnimationSequencer.h"
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/quaternion.hpp>
+#include <glm/gtx/matrix_decompose.hpp>
 #include "Renderable.h"
 #include "../libs/ImGui/imgui.h"
-#include "Assets/Animations/AnimationCustom.h"
 
-AnimationSequenceInterface::AnimationSequenceInterface(Renderable* animatingObject) :
-        originalTransformation(*animatingObject->getTransformation()), animatingObject(animatingObject) {
-    sections.push_back(AnimationSequenceInterface::AnimationSequenceItem{ 30, Transformation() });//put one element to sections by default
+static glm::mat4 composeLocalMatrix(const glm::vec3 &translate, const glm::quat &orientation, const glm::vec3 &scale) {
+    return glm::translate(glm::mat4(1.0f), translate) * glm::mat4_cast(orientation) * glm::scale(glm::mat4(1.0f), scale);
+}
+
+AnimationSequenceInterface::AnimationSequenceInterface(Renderable* animatingObject, uint32_t animatingObjectID) :
+        originalTransformation(*animatingObject->getTransformation()), animatingObject(animatingObject), animatingObjectID(animatingObjectID) {
+    sections.push_back(createSection(30));//put one element to sections by default
+    selectedSectionID = sections[0].sectionID;
 }
 
 AnimationSequenceInterface::~AnimationSequenceInterface(){
-    //put object back to original position
     if(animatingObject != nullptr) { //if cancelled or finalized, this is already done, and animating object is null
-        animatingObject->getTransformation()->setTransformations(originalTransformation.getTranslate(), originalTransformation.getScale(),originalTransformation.getOrientation());
+        restoreOriginalTransformation();
     }
 }
 
-void AnimationSequenceInterface::Duplicate(int index) {
-    //before duplication, set current transform to the item.
-    setTransform(index);
-    //the plan is, push the next element, and add this in between
-    sections.insert(sections.begin() + index, sections[index]);
-    selectedEntry = index+1;
-    //get the length of the section we are duplicating
-    uint32_t length;
-    if(index == 0) {
-        length = sections[index].mFrameEnd - startTime;
-    } else {
-        length = sections[index].mFrameEnd - sections[index-1].mFrameEnd;
+AnimationSequenceInterface::AnimationSequenceItem AnimationSequenceInterface::createSection(int frameEnd) {
+    AnimationSequenceItem item{nextSectionID++, frameEnd, glm::mat4(1.0f), {0}};
+    snprintf(item.name, sizeof(item.name), "Section");
+    return item;
+}
+
+//Single values, the original may sit on a parent and world values would apply it twice
+glm::mat4 AnimationSequenceInterface::getOriginalLocal() const {
+    return composeLocalMatrix(originalTransformation.getTranslateSingle(), originalTransformation.getOrientationSingle(), originalTransformation.getScaleSingle());
+}
+
+glm::mat4 AnimationSequenceInterface::getSectionEndTransform(int sectionIndex) const {
+    glm::mat4 endTransform(1.0f);
+    for (int i = 0; i <= sectionIndex; i++) {
+        endTransform = endTransform * sections[i].relativeTransform;
     }
+    return endTransform;
+}
 
-    sections[index+1].mFrameEnd = sections[index].mFrameEnd+length;
+void AnimationSequenceInterface::saveObjectToSelectedSection() {
+    if (selectedEntry < 0 || selectedEntry >= (int)sections.size()) {
+        return;
+    }
+    const Transformation* current = animatingObject->getTransformation();
+    glm::mat4 currentLocal = composeLocalMatrix(current->getTranslateSingle(), current->getOrientationSingle(), current->getScaleSingle());
+    glm::mat4 sectionStart = getOriginalLocal() * getSectionEndTransform(selectedEntry - 1);
+    sections[selectedEntry].relativeTransform = glm::inverse(sectionStart) * currentLocal;
+}
 
-    // now we pushed the element after index 1 more, so it is +2.
-    uint32_t indexPlus2 = index + 2; //this is just to prevent the warning signed/unsigned comparison
-    if(sections.size() > indexPlus2) {
-        //move all the elements after
-        for(size_t i = indexPlus2; i < sections.size(); i++) {
-            sections[i].mFrameEnd += length;
+void AnimationSequenceInterface::moveObjectToSelectedSection() {
+    if (selectedEntry < 0 || selectedEntry >= (int)sections.size()) {
+        restoreOriginalTransformation();
+        return;
+    }
+    glm::mat4 objectLocal = getOriginalLocal() * getSectionEndTransform(selectedEntry);
+    glm::vec3 translate, scale, skew;
+    glm::vec4 perspective;
+    glm::quat orientation;
+    glm::decompose(objectLocal, scale, orientation, translate, skew, perspective);
+    animatingObject->getTransformation()->setTransformations(translate, scale, glm::normalize(orientation));
+    objectMoved = true;
+}
+
+void AnimationSequenceInterface::restoreOriginalTransformation() {
+    animatingObject->getTransformation()->setTransformations(originalTransformation.getTranslateSingle(),
+                                                             originalTransformation.getScaleSingle(),
+                                                             originalTransformation.getOrientationSingle());
+    objectMoved = true;
+}
+
+std::vector<int> AnimationSequenceInterface::getBoundaries() const {
+    std::vector<int> boundaries;
+    boundaries.reserve(sections.size() + 1);
+    boundaries.push_back(startTime);
+    for (const AnimationSequenceItem &item : sections) {
+        boundaries.push_back(item.mFrameEnd);
+    }
+    return boundaries;
+}
+
+//a section's start is the previous one's end, so ImSequencer can't tell us which handle moved, only which boundary did.
+//moving a whole bar changes two boundaries by the same amount, so the last changed one is the one to push from
+void AnimationSequenceInterface::pushLaterSections(const std::vector<int> &boundariesBefore) {
+    std::vector<int> boundariesAfter = getBoundaries();
+    if (boundariesAfter.size() != boundariesBefore.size()) {
+        return;//added or removed this frame, those shift the rest themselves
+    }
+    for (size_t i = boundariesAfter.size(); i-- > 0;) {
+        int delta = boundariesAfter[i] - boundariesBefore[i];
+        if (delta != 0) {
+            for (size_t later = i; later < sections.size(); later++) {//boundary i + 1 is sections[i] end
+                sections[later].mFrameEnd += delta;
+            }
+            break;
+        }
+    }
+    //ImSequencer only keeps a start before its own end, a start dragged past the previous section's start would make keys go back in time
+    boundariesAfter = getBoundaries();
+    for (size_t i = 1; i < boundariesAfter.size(); i++) {
+        if (boundariesAfter[i] < boundariesAfter[i - 1]) {
+            startTime = boundariesBefore[0];
+            for (size_t sectionIndex = 0; sectionIndex < sections.size(); sectionIndex++) {
+                sections[sectionIndex].mFrameEnd = boundariesBefore[sectionIndex + 1];
+            }
+            return;
         }
     }
 }
 
 void AnimationSequenceInterface::Add(int type [[gnu::unused]]) {
-    setTransform(selectedEntry);
-    Transformation tempTr = sections[sections.size()-1].transformation;//we don't allow removing last element, so this is valid.
-    sections.push_back(AnimationSequenceInterface::AnimationSequenceItem{ sections[sections.size()-1].mFrameEnd+60,  tempTr});
-    selectedEntry = sections.size()-1;//select last element
+    sections.push_back(createSection(sections.back().mFrameEnd + NEW_SECTION_LENGTH));//we don't allow removing last element, so back() is valid
+    selectedEntry = sections.size() - 1;
 }
 
-void AnimationSequenceInterface::setTransform(int32_t indexToSet) {
-    if(indexToSet == -1) {
-        //no element is selected, this transform is not going to be set to anything;
+void AnimationSequenceInterface::Duplicate(int index) {
+    for (size_t i = index + 1; i < sections.size(); i++) {
+        sections[i].mFrameEnd += NEW_SECTION_LENGTH;
+    }
+    sections.insert(sections.begin() + index + 1, createSection(sections[index].mFrameEnd + NEW_SECTION_LENGTH));
+    selectedEntry = index + 1;
+}
+
+void AnimationSequenceInterface::Del(int index) {
+    //don't allow deleting last element
+    if(sections.size() <= 1) {
         return;
     }
-    glm::vec3 translate, scale;
-    glm::quat rotation;
-    originalTransformation.getDifferenceStacked(*animatingObject->getTransformation(), translate, scale, rotation);
-    AnimationSequenceInterface::AnimationSequenceItem &item = sections[indexToSet];
-    item.transformation.setTransformationsNotPropagate(translate,rotation,scale);
+    //next one takes over the motion, so everything after ends up where it did
+    if ((size_t)index + 1 < sections.size()) {
+        sections[index + 1].relativeTransform = sections[index].relativeTransform * sections[index + 1].relativeTransform;
+    }
+    sections.erase(sections.begin() + index);
+    sectionDeleted = true;
 }
 
-AnimationCustom* AnimationSequenceInterface::buildAnimationFromCurrentItems() {
-    //first, delete old one
-    delete animationInProgress;
-    //create new ones
+AnimationCustom AnimationSequenceInterface::buildAnimationFromCurrentItems() const {
     std::shared_ptr<AnimationNode> animationNode = std::make_shared<AnimationNode>();
-    animationInProgress = new AnimationCustom(animationNameBuffer, animationNode, 0);// we don't have a duration yet. it will be determined afterwards
-
-    if(sections.size() == 0) {
-        pushIdentityToAnimationTime(animationInProgress->animationNode, 0);
-        return animationInProgress;
+    pushMatrixToAnimationTime(animationNode, 0, glm::mat4(1.0f));
+    if (startTime != 0) {
+        pushMatrixToAnimationTime(animationNode, startTime, glm::mat4(1.0f));
     }
-
-    //add starting position position
-    fillAnimationFromItem(0, animationInProgress, Transformation(), true);//for the first element, we push identity transform
-    int maxDuration = sections[0].mFrameEnd;
-
-    //now iterate over the list, combining the animations
-
-    /**
-     * lets look at what we have here
-     * 1) We have first items animation that is in animationBase
-     * 2) we have an empty animation in progress.
-     *
-     * what we want to do?
-     * 1) we will sample both animation base, and item animation. we need all the key frame times
-     * 2) for each and every frame we will sample both animation, combine the result and save the result in animationInProgress
-     * check if sample time is not with in animation time, then for before animation assume 0, after animation assume last.
-     *
-     * after this is done, copy animationInProgress to base, clear it, iterate.
-     *
-     */
-
-    AnimationCustom* animationBase = nullptr;
-
-
-//        AnimationNode* animationNodeInProgress = animationInProgress->animationNode;
-
-    for(size_t i = 1; i < sections.size(); i++) {
-        delete animationBase;
-        animationBase = new AnimationCustom(*animationInProgress);
-        delete animationInProgress;
-        auto animationNode = std::make_shared<AnimationNode>();
-        animationInProgress = new AnimationCustom(animationNameBuffer, animationNode, maxDuration);
-
-        //setup done, build animation for current item.
-        AnimationSequenceItem& item = sections[i];
-        auto animationNode2 = std::make_shared<AnimationNode>();
-        AnimationCustom* itemsAnimation = new AnimationCustom("item", animationNode2, 0);
-        fillAnimationFromItem(i, itemsAnimation, sections[i-1].transformation, false);
-
-        //sample both, join
-        //how to sample both? we know they both start from 0, just get which one is shorter, sample until the shorter end.
-        float minDuration = std::fmin(animationBase->getDuration(), itemsAnimation->getDuration());
-
-        uint32_t baseIndex=0, itemIndex=0;
-        while(baseIndex < animationBase->animationNode->rotationTimes.size() &&
-              itemIndex < itemsAnimation->animationNode->rotationTimes.size()) {
-            float baseTime = animationBase->animationNode->rotationTimes[baseIndex];
-            float itemTime = itemsAnimation->animationNode->rotationTimes[itemIndex];
-            if(baseTime > minDuration && itemTime > minDuration) {
-                break;
-            }
-            float time;
-            if(baseTime == itemTime) {
-                //if they are both equal do this
-                time = baseTime;
-                itemIndex++;
-                baseIndex++;
-            } else {
-                //they are not the same;
-                if(baseTime < itemTime) {
-                    //if base animation has a time smaller at the moment
-                    time = baseTime;
-                    baseIndex++;
-                } else {
-                    //if item animation time is smaller
-                    time = itemTime;
-                    itemIndex++;
-                }
-            }
-            Transformation totalTr;
-            Transformation animTr;
-            animationBase->calculateTransform("", time, totalTr);
-            itemsAnimation->calculateTransform("", time, animTr);
-            totalTr.combine(animTr);
-            pushTransformToAnimationTime(animationInProgress->animationNode, time, totalTr);
-        }
-        //now we have the short part fully joined, we need to repeat the short ones last transform
-        AnimationCustom* longerAnimation;
-        Transformation shortAnimationLastTr;
-        uint32_t longerStartIndex;
-
-        if(itemsAnimation->getDuration() > animationBase->getDuration()) {
-            longerAnimation = itemsAnimation;
-            animationBase->calculateTransform("", animationBase->getDuration(), shortAnimationLastTr);
-            longerStartIndex = itemIndex;
-        } else {
-            longerAnimation = animationBase;
-            itemsAnimation->calculateTransform("", itemsAnimation->getDuration(), shortAnimationLastTr);
-            longerStartIndex = baseIndex;
-        }
-        for (size_t j = longerStartIndex; j < longerAnimation->animationNode->rotationTimes.size(); ++j) {
-            float time = longerAnimation->animationNode->rotationTimes[j];
-            Transformation longerTr;
-            longerAnimation->calculateTransform("", time, longerTr);
-            longerTr.combine(shortAnimationLastTr);
-            pushTransformToAnimationTime(animationInProgress->animationNode, time, longerTr);
-        }
-
-        maxDuration = std::max(maxDuration, item.mFrameEnd);
-        animationInProgress->duration = maxDuration;
+    //equal times are fine, the node picks the later key so a zero length section is a jump
+    glm::mat4 endTransform(1.0f);
+    for (const AnimationSequenceItem &item : sections) {
+        endTransform = endTransform * item.relativeTransform;
+        pushMatrixToAnimationTime(animationNode, item.mFrameEnd, endTransform);
     }
-
-    return animationInProgress;
+    return AnimationCustom(animationNameBuffer, animationNode, sections.back().mFrameEnd);
 }
 
-/**
- * We should calculate the difference for stacking, but only first one is actually stacked, the rest is added to first transform, so the useStacked flag. We should have used index, but I want this to be easy to understand
- *
- * @param itemIndex
- * @param animationToFill
- * @param sourceTransform
- * @param useStacked
- */
-void AnimationSequenceInterface::fillAnimationFromItem(uint32_t itemIndex, AnimationCustom *animationToFill, const Transformation& sourceTransform, bool useStacked) const {
-    AnimationSequenceItem item = sections[itemIndex];
-    int animationStartTime = this->startTime;
-    if(itemIndex > 0) {
-        animationStartTime = sections[itemIndex -1].mFrameEnd;
-    }
-    assert(animationToFill != nullptr);
-    if(animationStartTime != 0) {
-        //start with identity, if we are not already
-        pushIdentityToAnimationTime(animationToFill->animationNode, 0);
-    }
-
-    pushIdentityToAnimationTime(animationToFill->animationNode, animationStartTime);
-
-    glm::vec3 translate, scale;
-    glm::quat rotation;
-    if(useStacked) {
-        sourceTransform.getDifferenceStacked(item.transformation, translate, scale, rotation);
-    } else {
-        sourceTransform.getDifferenceAddition(item.transformation, translate, scale, rotation);
-    }
-
-    Transformation difference;
-    difference.setTransformationsNotPropagate(translate,rotation,scale);
-    pushTransformToAnimationTime(animationToFill->animationNode, item.mFrameEnd, difference);
-    animationToFill->duration = item.mFrameEnd;
-}
-
-void AnimationSequenceInterface::pushTransformToAnimationTime(std::shared_ptr<AnimationNode> animationNode, float time, const Transformation &transformation) const {
-    animationNode->translates.push_back(transformation.getTranslate());
+void AnimationSequenceInterface::pushMatrixToAnimationTime(std::shared_ptr<AnimationNode> animationNode, float time, const glm::mat4 &transform) const {
+    glm::vec3 translate, scale, skew;
+    glm::vec4 perspective;
+    glm::quat orientation;
+    glm::decompose(transform, scale, orientation, translate, skew, perspective);
+    animationNode->translates.push_back(translate);
     animationNode->translateTimes.push_back(time);
-    animationNode->scales.push_back(transformation.getScale());
+    animationNode->scales.push_back(scale);
     animationNode->scaleTimes.push_back(time);
-    animationNode->rotations.push_back(transformation.getOrientation());
+    animationNode->rotations.push_back(glm::normalize(orientation));
     animationNode->rotationTimes.push_back(time);
 }
 
-void AnimationSequenceInterface::pushIdentityToAnimationTime(std::shared_ptr<AnimationNode>animationNode, float time) const {
-    animationNode->translates.push_back(glm::vec3(0.0f, 0.0f, 0.0f));
-    animationNode->translateTimes.push_back(time);
-    animationNode->scales.push_back(glm::vec3(1.0f, 1.0f, 1.0f));
-    animationNode->scaleTimes.push_back(time);
-    animationNode->rotations.push_back(glm::quat(1.0f, 0.0f, 0.0f, 0.0f));
-    animationNode->rotationTimes.push_back(time);
-}
-
-void AnimationSequenceInterface::addAnimationSequencerToEditor(bool &finished, bool &cancelled) {
+bool AnimationSequenceInterface::addAnimationSequencerToEditor(bool &finished, bool &cancelled) {
     finished = cancelled = false;
+    objectMoved = false;
 
     ImGui::Begin("Animation Definition");
 
@@ -250,39 +185,45 @@ void AnimationSequenceInterface::addAnimationSequencerToEditor(bool &finished, b
     //double # because I don't want to show it
     ImGui::InputText("##newAnimationNameField", animationNameBuffer, sizeof(animationNameBuffer), ImGuiInputTextFlags_CharsNoBlank);
 
-
-
     ImGui::InputInt("Frame count", &mFrameCount);
 
-    int oldSelectedEntry = selectedEntry;
-    bool isSelectionUpdated = Sequencer(this, NULL, &expanded, &selectedEntry, &firstFrame, ImSequencer::SEQUENCER_EDIT_STARTEND | ImSequencer::SEQUENCER_ADD | ImSequencer::SEQUENCER_DEL );
-    ImGui::Text("Every 60 frames is 1 second in game time");
-    if(isSelectionUpdated) {
-        if (selectedEntry != oldSelectedEntry) {
-            //set the current position of the attached model to old selected entry, then, move the model to new selected entries transformation
-            setTransform(oldSelectedEntry);
-
-            //we set the transformation to item. now move the object:
-            if (selectedEntry == -1) {
-                //means nothing is selected, can happen when sequence removed.
-                animatingObject->getTransformation()->setTransformations(originalTransformation.getTranslate()
-                ,originalTransformation.getScale()
-                ,originalTransformation.getOrientation());
-            } else {
-                Transformation itemTransformation(originalTransformation);
-                itemTransformation.combine(sections[selectedEntry].transformation);
-                //If there is a parent, they share the parent so single is appropriate. If no parent, single works as normal
-                animatingObject->getTransformation()->setTransformations(itemTransformation.getTranslateSingle()
-                ,itemTransformation.getScaleSingle()
-                ,itemTransformation.getOrientationSingle());
+    sectionDeleted = false;
+    std::vector<int> boundariesBefore = getBoundaries();
+    Sequencer(this, NULL, &expanded, &selectedEntry, &firstFrame, ImSequencer::SEQUENCER_EDIT_STARTEND | ImSequencer::SEQUENCER_ADD | ImSequencer::SEQUENCER_DEL );
+    pushLaterSections(boundariesBefore);
+    if (sectionDeleted) {
+        //ImSequencer drops the selection on any delete that shifts it, keep it if the section survived
+        for (size_t i = 0; i < sections.size(); i++) {
+            if (sections[i].sectionID == selectedSectionID) {
+                selectedEntry = i;
+                break;
             }
         }
     }
+    uint32_t newSelectedSectionID = NO_SECTION;
+    if (selectedEntry >= 0 && selectedEntry < (int)sections.size()) {
+        newSelectedSectionID = sections[selectedEntry].sectionID;
+    } else {
+        selectedEntry = -1;
+    }
+    if (newSelectedSectionID != selectedSectionID) {
+        selectedSectionID = newSelectedSectionID;
+        moveObjectToSelectedSection();
+    }
+    ImGui::Text("Every 60 frames is 1 second in game time");
 
+    if (selectedEntry >= 0) {
+        ImGui::InputText("Section name", sections[selectedEntry].name, sizeof(sections[selectedEntry].name));
+        if (ImGui::Button("Return to start")) {
+            sections[selectedEntry].relativeTransform = glm::inverse(getSectionEndTransform(selectedEntry - 1));
+            moveObjectToSelectedSection();
+        }
+        ImGui::SameLine();
+        ImGui::Text("Selected section ends at the original transform, for loops");
+    }
 
     if (strcmp(animationNameBuffer,"") != 0) {
         if(ImGui::Button("Finish")) {
-            setTransform(selectedEntry);
             finished = true;
         }
     } else {
@@ -296,12 +237,10 @@ void AnimationSequenceInterface::addAnimationSequencerToEditor(bool &finished, b
         cancelled = true;
     }
     if(cancelled ||finished) {
-        //Single works both parented and not parented transforms.
-        animatingObject->getTransformation()->setTranslate(originalTransformation.getTranslateSingle());
-        animatingObject->getTransformation()->setScale(originalTransformation.getScaleSingle());
-        animatingObject->getTransformation()->setOrientation(originalTransformation.getOrientationSingle());
+        restoreOriginalTransformation();
         //since return to origin is done, invalidate the object so destructor doesn't mess with it
         animatingObject = nullptr;
     }
     ImGui::End();
+    return objectMoved;
 }
