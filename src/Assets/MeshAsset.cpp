@@ -334,12 +334,27 @@ void MeshAsset::bakeOccluderLod(uint32_t lodLevel) {
         triangleCount[lodLevel] == 0 || !bakedOccluders[lodLevel].empty()) {
         return;
     }
+    //every level indexes the whole vertex buffer, and a level that merges no quads keeps every vertex it was handed
+    //and quantizes against all of them, so each level is baked from only the vertices it uses
+    const uint16_t *levelIndices = (const uint16_t *) &(faces.data()->x) + offsets[lodLevel];
+    const uint32_t levelIndexCount = triangleCount[lodLevel] * 3;
+    std::vector<uint32_t> levelIndexOfVertex(vertices.size(), UINT32_MAX);
+    std::vector<glm::vec3> levelVertices;
+    std::vector<uint16_t> levelLocalIndices(levelIndexCount);
+    for (uint32_t index = 0; index < levelIndexCount; ++index) {
+        uint32_t &levelIndex = levelIndexOfVertex[levelIndices[index]];
+        if (levelIndex == UINT32_MAX) {
+            levelIndex = static_cast<uint32_t>(levelVertices.size());
+            levelVertices.push_back(vertices[levelIndices[index]]);
+        }
+        levelLocalIndices[index] = static_cast<uint16_t>(levelIndex);
+    }
     int bakedShortCount = 0;//SDOC counts uint16s here, SDOCAPI.h says ints
     unsigned short *bakedData = sdocMeshBake(&bakedShortCount,
-                                             &vertices[0].x,
-                                             (const unsigned short *) &(faces.data()->x) + offsets[lodLevel],
-                                             static_cast<unsigned int>(vertices.size()),
-                                             triangleCount[lodLevel] * 3,
+                                             &levelVertices[0].x,
+                                             levelLocalIndices.data(),
+                                             static_cast<unsigned int>(levelVertices.size()),
+                                             levelIndexCount,
                                              15.0f, true, true, 0);
     if (bakedData == nullptr || bakedShortCount <= 0) {
         return;//baker refused this level, a request for it falls back to the raw index range

@@ -146,7 +146,7 @@ public:
         uint32_t lodLevel = meshMeta->mesh->getSimplestLodLevel(requestedLodLevel);
         const uint32_t *triangleCounts = meshMeta->mesh->getTriangleCount();
         const uint32_t *offsets = meshMeta->mesh->getOffsets();
-        size_t vertCount = meshMeta->mesh->getVertices().size();//lod indices still address the full vertex buffer
+        size_t vertCount = meshMeta->mesh->getVertices().size();//lod indices still address the full vertex buffer, so a coarse level is processed with every vertex, see MeshAsset::bakeOccluderLod
         size_t idxCount = triangleCounts[lodLevel] * 3;
 
         sdocRenderOccluder(sdocInstance,
