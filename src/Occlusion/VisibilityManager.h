@@ -41,7 +41,8 @@ class VisibilityManager {
     //a mesh goes in where the list's tags match its own, all of them when the model's meshes share their tags. Both return how many they added
     static uint32_t addMeshesMatching(const CullingEntry& cullingEntry, const TagMask& listTagMask, uint32_t lod, float depth, RenderList* renderList);
     static uint32_t addToMatchingLists(const CullingEntry& cullingEntry, const VisibilityRequest* visibilityRequest, uint32_t lod, float depth);
-    static bool passesOccluderSize(const ModelGroup* group, float ownScreenSize, const glm::mat4& cameraProjectionMatrix, float occluderSize, float groupMemberMinSize);
+    static bool passesOccluderSize(const VisibilityRequest* visibilityRequest, const ModelGroup* group, float ownScreenSize, const glm::mat4& cameraProjectionMatrix, float occluderSize, float groupMemberMinSize);
+    static float groupScreenSize(const VisibilityRequest* visibilityRequest, const ModelGroup* group, const glm::mat4& cameraProjectionMatrix);
     static void staticOcclusionThread(VisibilityRequest* request);
     static bool isSkippedByLodDistance(float skipRenderDistance, float skipRenderSize, float maxSkipRenderSize, const glm::mat4 &cameraProjectionMatrix, const glm::vec3& playerPosition, glm::vec3 minAABB, glm::vec3 maxAABB, float &objectAverageDepth, float &objectScreenSize, float &objectDistance);
     static bool hasNonOccluderTag(const Model::MeshMeta& meshMeta);

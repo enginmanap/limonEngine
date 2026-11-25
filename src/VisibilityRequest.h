@@ -107,6 +107,11 @@ public:
         mutable OcclusionCullerHelper occlusionCuller;
         mutable std::unordered_map<uint32_t, const std::vector<glm::mat4>*> changedBoneTransforms;
         mutable std::vector<uint8_t> previousLodLevels;//indexed like cullingEntries, which never pass NR_MAX_MODELS
+        //a group's screen size is the same for all its members, projected once per pass. Indexed by the group's world id,
+        //a slot whose pass isn't cullingPass is from an earlier frame
+        mutable std::vector<float> groupScreenSizes;
+        mutable std::vector<uint32_t> groupScreenSizePasses;
+        mutable uint32_t cullingPass = 0;
         bool running = true; //non atomic because only used in between latch/barrier. But, must be checked before doing anything (because false means dangling pointers to camera and objects)
         bool cameraIsDirty = true; // cached by main thread before each signal; avoids Python GIL call from background thread
         bool playerDead = false; // same reason, isDead() reaches the player and we cannot touch that from here

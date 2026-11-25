@@ -354,6 +354,7 @@ void VisibilityManager::fillVisibleObjectPerCamera(const VisibilityRequest* visi
     float maxScreenSize = 0.0;
     {
     PROFILE_VISIBILITY("Culling::ObjectLoop");
+    visibilityRequest->cullingPass++;
     visibilityRequest->tagSets.clear();
     visibilityRequest->anyTagSetMask = TagMask();
     for (std::pair<const std::vector<uint64_t>, RenderList> &visibilityEntry : *visibilityRequest->visibility) {
@@ -445,7 +446,7 @@ void VisibilityManager::fillVisibleObjectPerCamera(const VisibilityRequest* visi
             }
             directlyAddedCount += addToMatchingLists(cullingEntry, visibilityRequest, modelLod, objectAverageDepth);
         } else {
-            if (passesOccluderSize(occluderGroup, objectScreenSize, cameraProjectionMatrix, softwareOcclusionOccluderSize, groupMemberMinSize)) {
+            if (passesOccluderSize(visibilityRequest, occluderGroup, objectScreenSize, cameraProjectionMatrix, softwareOcclusionOccluderSize, groupMemberMinSize)) {
                 if (objectScreenSize > maxScreenSize) {
                     maxScreenSize = objectScreenSize;
                 }
@@ -585,16 +586,29 @@ void VisibilityManager::staticOcclusionThread(VisibilityRequest* visibilityReque
 
 //a grouped model is judged by its group's box, so a building's floors don't drop out of the occluders one by one.
 //It still needs groupMemberMinSize itself, otherwise every small prop of a big group would be rasterized
-bool VisibilityManager::passesOccluderSize(const ModelGroup* group, float ownScreenSize, const glm::mat4& cameraProjectionMatrix, float occluderSize, float groupMemberMinSize) {
+bool VisibilityManager::passesOccluderSize(const VisibilityRequest* visibilityRequest, const ModelGroup* group, float ownScreenSize, const glm::mat4& cameraProjectionMatrix, float occluderSize, float groupMemberMinSize) {
     if (group == nullptr) {
         return ownScreenSize > occluderSize;
     }
     if (ownScreenSize < groupMemberMinSize) {
         return false;
     }
-    glm::vec3 ndcMin, ndcMax;
-    AABBConverter::getNCDAABB(group->getAabbMin(), group->getAabbMax(), cameraProjectionMatrix, ndcMin, ndcMax);
-    return ((ndcMax.x - ndcMin.x) / 2.0f) * ((ndcMax.y - ndcMin.y) / 2.0f) > occluderSize;//same measure isSkippedByLodDistance gives a model
+    return groupScreenSize(visibilityRequest, group, cameraProjectionMatrix) > occluderSize;
+}
+
+float VisibilityManager::groupScreenSize(const VisibilityRequest* visibilityRequest, const ModelGroup* group, const glm::mat4& cameraProjectionMatrix) {
+    const uint32_t groupId = group->getWorldObjectID();
+    if (groupId >= visibilityRequest->groupScreenSizes.size()) {
+        visibilityRequest->groupScreenSizes.resize(groupId + 1, 0.0f);
+        visibilityRequest->groupScreenSizePasses.resize(groupId + 1, 0);
+    }
+    if (visibilityRequest->groupScreenSizePasses[groupId] != visibilityRequest->cullingPass) {
+        glm::vec3 ndcMin, ndcMax;
+        AABBConverter::getNCDAABB(group->getAabbMin(), group->getAabbMax(), cameraProjectionMatrix, ndcMin, ndcMax);
+        visibilityRequest->groupScreenSizes[groupId] = ((ndcMax.x - ndcMin.x) / 2.0f) * ((ndcMax.y - ndcMin.y) / 2.0f);//same measure isSkippedByLodDistance gives a model
+        visibilityRequest->groupScreenSizePasses[groupId] = visibilityRequest->cullingPass;
+    }
+    return visibilityRequest->groupScreenSizes[groupId];
 }
 
 uint32_t VisibilityManager::addMeshesMatching(const CullingEntry& cullingEntry, const TagMask& listTagMask, uint32_t lod, float depth, RenderList* renderList) {
