@@ -18,8 +18,16 @@ class LimonAPI;
 class Attachable : public virtual HasTransform {
 protected:
     Attachable* parentObject = nullptr;
-    int32_t parentBoneID = -1;
+    int32_t parentBoneID = -1;//written only through setParent, so parentBoneChanged sees every change
+    virtual void parentBoneChanged() {}
     std::vector<Attachable*> children;
+
+private:
+    void setParent(Attachable* parent, int32_t boneID) {
+        this->parentObject = parent;
+        this->parentBoneID = boneID;
+        parentBoneChanged();
+    }
 
 public:
     virtual ~Attachable() noexcept {
@@ -45,8 +53,7 @@ public:
     // Use this when the caller has already computed the desired local-space transform and
     // created the object there.
     void attachToWithLocalOffset(Attachable* parent, int32_t boneID = -1) {
-        this->parentObject = parent;
-        this->parentBoneID = boneID;
+        setParent(parent, boneID);
         parent->addChild(this);
 
         Transformation* myTransform    = this->getTransformation();
@@ -66,8 +73,7 @@ public:
     // The child keeps its current WORLD position; the local offset is derived automatically.
     // Use this when the child was created at the intended world position (e.g. from a raycast hit).
     void attachTo(Attachable* parent, int32_t boneID = -1) {
-        this->parentObject = parent;
-        this->parentBoneID = boneID;
+        setParent(parent, boneID);
         parent->addChild(this);
 
         Transformation* myTransform    = this->getTransformation();
@@ -101,20 +107,17 @@ public:
         if (!parentObject) return;
         this->getTransformation()->removeParentTransform();
         parentObject->removeChild(this);
-        parentObject = nullptr;
-        parentBoneID = -1;
+        setParent(nullptr, -1);
     }
 
     virtual void setParentObject(Attachable* parent, int32_t boneID = -1) {
-        this->parentObject = parent;
-        this->parentBoneID = boneID;
+        setParent(parent, boneID);
     }
 
     virtual void removeParentObject() {
         if (this->parentObject) {
             this->parentObject->removeChild(this);
-            this->parentObject = nullptr;
-            this->parentBoneID = -1;
+            setParent(nullptr, -1);
         }
     }
 

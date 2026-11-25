@@ -35,7 +35,6 @@ class Model : public PhysicalRenderable, public GameObject {
 public:
     typedef ::MeshMeta MeshMeta;
 private:
-    uint32_t rigID = 0; //initialize as 0, because thats the value for non animated.
     std::unordered_set<Model*>* pendingTransformUploads = nullptr;//only set while a world holds this model
     CullingEntry* cullingEntry;//a world's entry, or a standalone one for models drawn outside a world. Valid for the model's whole life
 
@@ -146,11 +145,17 @@ public:
     void finishLoadingMaterials();
 
     void setRigId(uint32_t rigId) {
-        this->rigID = rigId;
+        cullingEntry->rigId = rigId;
     }
 
+protected:
+    void parentBoneChanged() override {
+        cullingEntry->hangsFromBone = parentBoneID != -1;
+    }
+public:
+
     uint32_t getRigId() const {
-        return rigID;
+        return cullingEntry->rigId;
     }
 
     Model(uint32_t objectID,  std::shared_ptr<AssetManager> assetManager, const std::string &modelFile, CullingEntry* cullingEntry) :

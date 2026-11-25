@@ -4,8 +4,10 @@
 
 #include "BandMapRenderList.h"
 
-#include "../GameObjects/Model.h"
+#include "../CullingEntry.h"
+#include "../Assets/ModelAsset.h"
 #include "../Assets/MeshAsset.h"
+#include "../limonAPI/Graphics/GraphicsProgram.h"
 #include <algorithm>
 #include <iostream>
 
@@ -14,14 +16,14 @@ namespace RenderListInternals {
 static_assert(BandMapRenderList::LOD_BAND_COUNT == MeshAsset::LOD_MAX_LEVEL_COUNT, "a LOD level with no band would index past the bands");
 static_assert(BandMapRenderList::LOD_BAND_COUNT <= 16, "band masks are uint16_t");
 
-void BandMapRenderList::addMeshMaterial(const std::shared_ptr<const Material> &material, const std::shared_ptr<MeshAsset> &meshAsset, const Model *model, uint32_t lod, float maxDepth, int32_t rigIdOverride) {
+void BandMapRenderList::addMeshMaterial(const std::shared_ptr<const Material> &material, const std::shared_ptr<MeshAsset> &meshAsset, const CullingEntry &cullingEntry, uint32_t lod, float maxDepth, int32_t rigIdOverride) {
     //a model that never simplified stays at level 0 at any distance, the last band keeps a far one from being drawn first
-    const uint32_t bandIndex = model->getModelAsset()->getLodLadder().getMeshLodCount() <= 1 ? LOD_BAND_COUNT - 1 : lod;
+    const uint32_t bandIndex = cullingEntry.modelAsset->getLodLadder().getMeshLodCount() <= 1 ? LOD_BAND_COUNT - 1 : lod;
     Band& band = bands[bandIndex];
     PerMaterialRenderInformation& perMaterialRenderInformation = band.materials[material];
     PerMeshRenderInformation& perMeshRenderInformation = perMaterialRenderInformation.meshes[meshAsset];
     perMeshRenderInformation.lod = lod;
-    const uint32_t modelId = model->getWorldObjectID();
+    const uint32_t modelId = cullingEntry.worldObjectID;
     std::vector<glm::uvec4>::const_iterator requestedObjectIterator = std::find_if(perMeshRenderInformation.indices.begin(), perMeshRenderInformation.indices.end(), [modelId](const glm::uvec4& entry) { return entry.x == modelId; });
     if (requestedObjectIterator == perMeshRenderInformation.indices.end()) {
         uint16_t& bandMask = meshBandMasks[meshAsset];
@@ -31,16 +33,16 @@ void BandMapRenderList::addMeshMaterial(const std::shared_ptr<const Material> &m
             removeFromBands(material, meshAsset, modelId, otherBands);
         }
         bandMask |= (uint16_t)(1u << bandIndex);
-        uint32_t rigId = rigIdOverride >= 0 ? (uint32_t)rigIdOverride : model->getRigId();
+        uint32_t rigId = rigIdOverride >= 0 ? (uint32_t)rigIdOverride : cullingEntry.rigId;
         perMeshRenderInformation.indices.emplace_back(modelId, material->getMaterialIndex(), rigId, 0);
-        perMeshRenderInformation.isAnimated = perMeshRenderInformation.isAnimated || model->isAnimated();
+        perMeshRenderInformation.isAnimated = perMeshRenderInformation.isAnimated || cullingEntry.animated;
         perMeshRenderInformation.depth = std::max(perMeshRenderInformation.depth, maxDepth);
         perMaterialRenderInformation.depth = std::max(perMaterialRenderInformation.depth, maxDepth);
         perMaterialRenderInformation.meshOrder.clear();
         band.materialOrder.clear();
     }
     //outside the add, a model kept in a list that isn't cleared can be attached to a bone later
-    perMeshRenderInformation.needsPose = perMeshRenderInformation.needsPose || model->isAnimated() || model->getParentBoneID() != -1;
+    perMeshRenderInformation.needsPose = perMeshRenderInformation.needsPose || cullingEntry.animated || cullingEntry.hangsFromBone;
 }
 
 void BandMapRenderList::removeFromBands(const std::shared_ptr<const Material> &material, const std::shared_ptr<MeshAsset> &meshAsset, uint32_t modelId, uint16_t bandMask) {

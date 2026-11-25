@@ -9,7 +9,7 @@
 
 //one per model, its box is the model's. A visible one adds all of its meshes
 struct OcculudeeMetaData {
-    const Model* model;
+    const CullingEntry* cullingEntry;
     uint32_t lod;
     float averageDepth;
     RenderList* renderList;
@@ -17,7 +17,7 @@ struct OcculudeeMetaData {
 
     OcculudeeMetaData() = default;
 
-    OcculudeeMetaData(const Model * model, uint32_t lod, float averageDepth, RenderList* renderList, const std::vector<uint64_t>* renderTags) :
-    model(model), lod(lod), averageDepth(averageDepth), renderList(renderList), renderTags(renderTags) {};
+    OcculudeeMetaData(const CullingEntry* cullingEntry, uint32_t lod, float averageDepth, RenderList* renderList, const std::vector<uint64_t>* renderTags) :
+    cullingEntry(cullingEntry), lod(lod), averageDepth(averageDepth), renderList(renderList), renderTags(renderTags) {};
 };
 #endif //LIMONENGINE_OCCLUDERMETADATA_H

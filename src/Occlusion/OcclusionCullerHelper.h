@@ -159,8 +159,10 @@ public:
             true);
     }
 
-    void addOccludee(const Model* model, const glm::vec3& minWorldAABB, const glm::vec3& maxWorldAABB, uint32_t lod, float averageDepth, RenderList* renderList, const std::vector<uint64_t>* renderTags) {
-        possibleVisibleSet.push_back(OcculudeeMetaData(model, lod, averageDepth, renderList, renderTags));
+    void addOccludee(const CullingEntry& cullingEntry, uint32_t lod, float averageDepth, RenderList* renderList, const std::vector<uint64_t>* renderTags) {
+        possibleVisibleSet.push_back(OcculudeeMetaData(&cullingEntry, lod, averageDepth, renderList, renderTags));
+        const glm::vec3& minWorldAABB = cullingEntry.aabbMin;
+        const glm::vec3& maxWorldAABB = cullingEntry.aabbMax;
         possibleVisibleSetAABBs.push_back(minWorldAABB.x);
         possibleVisibleSetAABBs.push_back(minWorldAABB.y);
         possibleVisibleSetAABBs.push_back(minWorldAABB.z);

@@ -16,7 +16,7 @@
 class GraphicsProgram;
 class MeshAsset;
 class Material;
-class Model;
+struct CullingEntry;
 class RenderList;
 
 //the insides of RenderList, everything in here is private and only RenderList and RenderListFinalizer are friends
@@ -128,13 +128,13 @@ class RenderListData {
     //the steps of addMeshMaterial
     static DrawDataListIndex findOrAppendDrawData(DrawDataSet &drawDataSet, BuildData &buildData, uint32_t lod, bool neverSimplified,
                                                   const std::shared_ptr<const Material> &material, const std::shared_ptr<MeshAsset> &meshAsset);
-    static void updateDrawData(DrawData &draw, const Model *model, uint32_t lod, float maxDepth);
+    static void updateDrawData(DrawData &draw, const CullingEntry &cullingEntry, uint32_t lod, float maxDepth);
     static void appendDrawInstanceRequest(BuildData &buildData, DrawDataListIndex drawIndex, const glm::uvec4 &instance);
 
     void processRenderBatch(GraphicsInterface* graphicsWrapper, const std::shared_ptr<GraphicsProgram> &renderProgram, bool forceNotAnimated,
                     bool &lastAnimationState, std::shared_ptr<const Material> &lastMaterial) const;
 
-    void addMeshMaterial(const std::shared_ptr<const Material> &material, const std::shared_ptr<MeshAsset> &meshAsset, const Model *model, uint32_t lod, float maxDepth, int32_t rigIdOverride);
+    void addMeshMaterial(const std::shared_ptr<const Material> &material, const std::shared_ptr<MeshAsset> &meshAsset, const CullingEntry &cullingEntry, uint32_t lod, float maxDepth, int32_t rigIdOverride);
     void collectModelsNeedingPose(std::vector<uint32_t> &modelIds) const;
     void render(GraphicsInterface* graphicsWrapper, const std::shared_ptr<GraphicsProgram> &renderProgram, bool forceNotAnimated) const;
     void clear();

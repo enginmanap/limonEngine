@@ -4,8 +4,10 @@
 
 #include "RenderListData.h"
 
-#include "../GameObjects/Model.h"
+#include "../CullingEntry.h"
+#include "../Assets/ModelAsset.h"
 #include "../Assets/MeshAsset.h"
+#include "../limonAPI/Graphics/GraphicsProgram.h"
 #include <algorithm>
 #include <iostream>
 
@@ -20,16 +22,16 @@ uint32_t RenderListData::drawOrderBand(uint32_t lod, bool neverSimplified) {
     return neverSimplified ? LOD_BAND_COUNT - 1 : lod;
 }
 
-void RenderListData::addMeshMaterial(const std::shared_ptr<const Material> &material, const std::shared_ptr<MeshAsset> &meshAsset, const Model *model, uint32_t lod, float maxDepth, int32_t rigIdOverride) {
+void RenderListData::addMeshMaterial(const std::shared_ptr<const Material> &material, const std::shared_ptr<MeshAsset> &meshAsset, const CullingEntry &cullingEntry, uint32_t lod, float maxDepth, int32_t rigIdOverride) {
     if (meshAsset->getRenderListId() == MeshAsset::NO_RENDER_LIST_ID) {
-        std::cerr << "Mesh of model " << model->getWorldObjectID() << " reached a render list without its GPU part, or after its model was freed!" << std::endl;
+        std::cerr << "Mesh of model " << cullingEntry.worldObjectID << " reached a render list without its GPU part, or after its model was freed!" << std::endl;
         exit(-1);
     }
-    const bool neverSimplified = model->getModelAsset()->getLodLadder().getMeshLodCount() <= 1;
+    const bool neverSimplified = cullingEntry.modelAsset->getLodLadder().getMeshLodCount() <= 1;
     const DrawDataListIndex drawIndex = findOrAppendDrawData(drawDataSet, buildData, lod, neverSimplified, material, meshAsset);
-    updateDrawData(drawDataSet.drawDataList[drawIndex], model, lod, maxDepth);
-    const uint32_t rigId = rigIdOverride >= 0 ? (uint32_t)rigIdOverride : model->getRigId();
-    appendDrawInstanceRequest(buildData, drawIndex, glm::uvec4(model->getWorldObjectID(), material->getMaterialIndex(), rigId, 0));
+    updateDrawData(drawDataSet.drawDataList[drawIndex], cullingEntry, lod, maxDepth);
+    const uint32_t rigId = rigIdOverride >= 0 ? (uint32_t)rigIdOverride : cullingEntry.rigId;
+    appendDrawInstanceRequest(buildData, drawIndex, glm::uvec4(cullingEntry.worldObjectID, material->getMaterialIndex(), rigId, 0));
 }
 
 RenderListData::DrawDataListIndex RenderListData::findOrAppendDrawData(DrawDataSet &drawDataSet, BuildData &buildData, uint32_t lod, bool neverSimplified,
@@ -62,10 +64,10 @@ RenderListData::DrawDataListIndex RenderListData::findOrAppendDrawData(DrawDataS
     return drawIndex;
 }
 
-void RenderListData::updateDrawData(DrawData &draw, const Model *model, uint32_t lod, float maxDepth) {
+void RenderListData::updateDrawData(DrawData &draw, const CullingEntry &cullingEntry, uint32_t lod, float maxDepth) {
     draw.lod = lod;
-    draw.isAnimated = draw.isAnimated || model->isAnimated();
-    draw.needsPose = draw.needsPose || model->isAnimated() || model->getParentBoneID() != -1;
+    draw.isAnimated = draw.isAnimated || cullingEntry.animated;
+    draw.needsPose = draw.needsPose || cullingEntry.animated || cullingEntry.hangsFromBone;
     draw.depth = std::max(draw.depth, maxDepth);
 }
 

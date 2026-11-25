@@ -378,7 +378,7 @@ RenderList Model::convertSingleModelToRenderList(uint32_t lodLevel, float depth,
     RenderList renderList;
 
     for (auto iter = cullingEntry->meshMetaData.begin(); iter != cullingEntry->meshMetaData.end(); ++iter) {
-        renderList.addMeshMaterial((*iter)->material, (*iter)->mesh, this, lodLevel, depth, rigIdOverride);
+        renderList.addMeshMaterial((*iter)->material, (*iter)->mesh, *cullingEntry, lodLevel, depth, rigIdOverride);
     }
     renderList.finalize();
     return renderList;

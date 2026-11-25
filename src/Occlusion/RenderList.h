@@ -59,12 +59,13 @@ class RenderList {
     }
 
 public:
-    LIMON_FORCE_INLINE void addMeshMaterial(const std::shared_ptr<const Material> &material, const std::shared_ptr<MeshAsset> &meshAsset, const Model *model, uint32_t lod, float maxDepth, int32_t rigIdOverride = -1) {
+    //everything read per model comes from the culling entry, culling never touches the Model to add
+    LIMON_FORCE_INLINE void addMeshMaterial(const std::shared_ptr<const Material> &material, const std::shared_ptr<MeshAsset> &meshAsset, const CullingEntry &cullingEntry, uint32_t lod, float maxDepth, int32_t rigIdOverride = -1) {
         exitIfFinalized("got an add");
 #ifdef RENDER_LIST_BAND_MAP
-        bandMap.addMeshMaterial(material, meshAsset, model, lod, maxDepth, rigIdOverride);
+        bandMap.addMeshMaterial(material, meshAsset, cullingEntry, lod, maxDepth, rigIdOverride);
 #else
-        data.addMeshMaterial(material, meshAsset, model, lod, maxDepth, rigIdOverride);
+        data.addMeshMaterial(material, meshAsset, cullingEntry, lod, maxDepth, rigIdOverride);
 #endif
         buildState = BuildState::BUILDING;
     }
