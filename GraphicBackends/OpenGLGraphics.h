@@ -207,6 +207,15 @@ private:
     GLenum error;
     GLint maxTextureImageUnits;
     OpenglState *state;
+    //the vertex array the context has bound, so a draw only rebinds when it changes. Unknown after GL code outside this
+    //class runs (state restore, a new frame), then the next bind always happens
+    GLuint boundVertexArray = UINT32_MAX;
+    void bindVertexArray(GLuint vertexArray) {
+        if (vertexArray != boundVertexArray) {
+            glBindVertexArray(vertexArray);
+            boundVertexArray = vertexArray;
+        }
+    }
 #ifdef TRACY_ENABLE
     std::vector<tracy::GpuCtxScope*> gpuZoneStack;//inactive begins push nullptr, so toggling tracing mid-frame can't unbalance the ends
 #endif
@@ -434,6 +443,7 @@ public:
     void collectGpuProfilingData() override;
 
     void clearFrame() override {
+        boundVertexArray = UINT32_MAX;//anything may have bound one since the last frame
 
         //additional depths for Directional is not needed, but depth for point is reqired, because there is no way to clear
         //it per layer, so we are clearing per frame. This also means, lights should not reuse the textures.

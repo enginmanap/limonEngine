@@ -627,6 +627,9 @@ GLuint OpenGLGraphics::generateVAO(const GLuint number) {
 }
 
 bool OpenGLGraphics::deleteVAO(const GLuint number, const GLuint bufferID) {
+    if (bufferID == boundVertexArray) {
+        boundVertexArray = UINT32_MAX;//deleting the bound one drops the binding to 0
+    }
     if (glIsBuffer(bufferID)) {
         glDeleteVertexArrays(number, &bufferID);
         checkErrors("deleteVAO");
@@ -637,6 +640,9 @@ bool OpenGLGraphics::deleteVAO(const GLuint number, const GLuint bufferID) {
 }
 
 bool OpenGLGraphics::freeVAO(const GLuint bufferID) {
+    if (bufferID == boundVertexArray) {
+        boundVertexArray = UINT32_MAX;
+    }
     for (unsigned int i = 0; i < vertexArrays.size(); ++i) {
         if (vertexArrays[i] == bufferID) {
             deleteBuffer(1, vertexArrays[i]);
@@ -658,7 +664,7 @@ void OpenGLGraphics::bufferVertexData(const std::vector<glm::vec3> &vertices,
     //FIXME this temp should not be needed, but uint_fast32_t requires a cast. re evaluate using uint32_t
     uint32_t temp;
     glGenVertexArrays(1, &temp);
-    glBindVertexArray(temp);
+    bindVertexArray(temp);
     vao = temp;
 
     // Set up the element array buffer
@@ -674,20 +680,18 @@ void OpenGLGraphics::bufferVertexData(const std::vector<glm::vec3> &vertices,
 
     glVertexAttribPointer(attachPointer, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
     glEnableVertexAttribArray(attachPointer);
-    glBindVertexArray(0);
     checkErrors("bufferVertexData");
 }
 
 void OpenGLGraphics::bufferNormalData(const std::vector<glm::vec3> &normals,
                                       uint32_t &vao, uint32_t &vbo, const uint32_t attachPointer) {
-    glBindVertexArray(vao);
+    bindVertexArray(vao);
     vbo = generateBuffer(1);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBufferData(GL_ARRAY_BUFFER, normals.size() * sizeof(glm::vec3), normals.data(), GL_STATIC_DRAW);
 
     glVertexAttribPointer(attachPointer, 3, GL_FLOAT, GL_FALSE, 0, 0);
     glEnableVertexAttribArray(attachPointer);
-    glBindVertexArray(0);
     checkErrors("bufferNormalData");
 }
 
@@ -707,7 +711,7 @@ void OpenGLGraphics::bufferExtraVertexData(const std::vector<glm::lowp_uvec4> &e
 void OpenGLGraphics::bufferExtraVertexData(uint32_t elementPerVertexCount, GLenum elementType, uint32_t dataSize,
                                               const void *extraData, uint32_t &vao, uint32_t &vbo,
                                               const uint32_t attachPointer) {
-    glBindVertexArray(vao);
+    bindVertexArray(vao);
     vbo = generateBuffer(1);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBufferData(GL_ARRAY_BUFFER, dataSize, extraData, GL_STATIC_DRAW);
@@ -722,13 +726,12 @@ void OpenGLGraphics::bufferExtraVertexData(uint32_t elementPerVertexCount, GLenu
     }
 
     glEnableVertexAttribArray(attachPointer);
-    glBindVertexArray(0);
     checkErrors("bufferExtraVertexDataInternal");
 }
 
 void OpenGLGraphics::bufferVertexTextureCoordinates(const std::vector<glm::vec2> &textureCoordinates,
                                                     uint32_t &vao, uint32_t &vbo, const uint32_t attachPointer) {
-    glBindVertexArray(vao);
+    bindVertexArray(vao);
     vbo = generateBuffer(1);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
 
@@ -737,13 +740,13 @@ void OpenGLGraphics::bufferVertexTextureCoordinates(const std::vector<glm::vec2>
 
     glVertexAttribPointer(attachPointer, 2, GL_FLOAT, GL_FALSE, 0, 0);
     glEnableVertexAttribArray(attachPointer);
-    glBindVertexArray(0);
     checkErrors("bufferVertexTextureCoordinates");
 }
 
 void
 OpenGLGraphics::updateVertexData(const std::vector<glm::vec3> &vertices, const std::vector<glm::u16vec3> &faces,
                                  uint32_t &vbo, uint32_t &ebo) {
+    bindVertexArray(0);//binding an element buffer with a draw's VAO still bound would change that VAO
     // Set up the element array buffer
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, faces.size() * sizeof(glm::u16vec3), faces.data(), GL_STATIC_DRAW);
@@ -758,7 +761,6 @@ void OpenGLGraphics::updateNormalData(const std::vector<glm::vec3> &normals, uin
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBufferData(GL_ARRAY_BUFFER, normals.size() * sizeof(glm::vec3), normals.data(), GL_STATIC_DRAW);
 
-    glBindVertexArray(0);
     checkErrors("updateNormalData");
 }
 void OpenGLGraphics::updateExtraVertexData(const std::vector<glm::vec4> &extraData, uint32_t &vbo) {
@@ -906,13 +908,12 @@ void OpenGLGraphics::render(const uint32_t program, const uint32_t vao, const ui
     state->setProgram(program);
 
     // Set up for a glDrawElements call
-    glBindVertexArray(vao);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+    //the VAO holds its element buffer, bound when it was created
+    bindVertexArray(vao);
 
     frameStats.triangleCount += elementCount / 3;
     ++frameStats.drawCallCount;
     glDrawElements(GL_TRIANGLES, elementCount, GL_UNSIGNED_SHORT, startIndex);
-    glBindVertexArray(0);
 
     checkErrors("render");
 }
@@ -925,15 +926,13 @@ void OpenGLGraphics::renderInstanced(uint32_t program, uint32_t VAO, uint32_t EB
     }
     state->setProgram(program);
 
-    // Set up for a glDrawElements call
-    glBindVertexArray(VAO);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+    //the VAO holds its element buffer, bound when it was created, and stays bound until another one is needed
+    bindVertexArray(VAO);
 
     frameStats.triangleCount += (elementCount / 3) * instanceCount;
     frameStats.instanceCount += instanceCount;
     ++frameStats.drawCallCount;
     glDrawElementsInstanced(GL_TRIANGLES, elementCount, GL_UNSIGNED_SHORT, nullptr, instanceCount);
-    glBindVertexArray(0);
     //state->setProgram(0);
     checkErrors("renderInstanced");
 }
@@ -946,15 +945,13 @@ void OpenGLGraphics::renderInstanced(uint32_t program, uint32_t VAO, uint32_t EB
     }
     state->setProgram(program);
 
-    // Set up for a glDrawElements call
-    glBindVertexArray(VAO);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+    //the VAO holds its element buffer, bound when it was created, and stays bound until another one is needed
+    bindVertexArray(VAO);
 
     frameStats.triangleCount += (elementCount / 3) * instanceCount;
     frameStats.instanceCount += instanceCount;
     ++frameStats.drawCallCount;
     glDrawElementsInstanced(GL_TRIANGLES, elementCount, GL_UNSIGNED_SHORT, (void*)(startOffset*sizeof(GLushort)), instanceCount);
-    glBindVertexArray(0);
     //state->setProgram(0);
     checkErrors("renderInstancedOffset");
 }
@@ -1601,7 +1598,7 @@ bool OpenGLGraphics::getUniformLocation(const uint32_t programID, const std::str
 
 void OpenGLGraphics::createDebugVAOVBO(uint32_t &vao, uint32_t &vbo, uint32_t bufferSize) {
     glGenVertexArrays(1, &vao);
-    glBindVertexArray(vao);
+    bindVertexArray(vao);
     vbo = generateBuffer(1);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBufferData(GL_ARRAY_BUFFER, bufferSize * sizeof(Line), nullptr, GL_DYNAMIC_DRAW);
@@ -1628,7 +1625,7 @@ void OpenGLGraphics::createDebugVAOVBO(uint32_t &vao, uint32_t &vbo, uint32_t bu
  */
 void OpenGLGraphics::drawLines(GraphicsProgram &program, uint32_t vao, uint32_t vbo, const std::vector<Line> &lines) {
     state->setProgram(program.getID());
-    glBindVertexArray(vao);
+    bindVertexArray(vao);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);//FIXME something is broking the vao so we need to attach again
     glBufferSubData(GL_ARRAY_BUFFER, 0, lines.size() * sizeof(Line), lines.data());
 
@@ -1636,7 +1633,6 @@ void OpenGLGraphics::drawLines(GraphicsProgram &program, uint32_t vao, uint32_t 
     ++frameStats.drawCallCount;
     glDrawArrays(GL_LINES, 0, lines.size()*2);
 
-    glBindVertexArray(0);
     checkErrors("drawLines");
 }
 
@@ -1822,6 +1818,7 @@ void OpenGLGraphics::backupCurrentState() {
 
 void OpenGLGraphics::restoreLastState() {
     this->state->restoreState();
+    boundVertexArray = UINT32_MAX;//the restore bound whatever was bound before
 }
 
 bool OpenGLGraphics::getFallbackContextInformation(GraphicsInterface::ContextInformation& fallbackContext) {
