@@ -58,6 +58,23 @@ bool AnimationLoader::loadAnimationFromXML(const std::string &fileName, Animatio
     }
     loadingAnimation->ticksPerSecond = std::stof(animationTicksPerSecond->GetText());
 
+    tinyxml2::XMLElement* sectionsNode = animationNode->FirstChildElement("Sections");//optional, only the editor uses it
+    if (sectionsNode != nullptr) {
+        for (tinyxml2::XMLElement* sectionNode = sectionsNode->FirstChildElement("Section"); sectionNode != nullptr;
+             sectionNode = sectionNode->NextSiblingElement("Section")) {
+            tinyxml2::XMLElement* sectionEnd = sectionNode->FirstChildElement("End");
+            tinyxml2::XMLElement* sectionName = sectionNode->FirstChildElement("Name");
+            if (sectionEnd == nullptr || sectionEnd->GetText() == nullptr) {
+                std::cerr << "Animation " << loadingAnimation->name << " has a section without end, skipping it." << std::endl;
+                continue;
+            }
+            AnimationCustom::SectionName loadedSectionName;
+            loadedSectionName.frameEnd = std::stoi(sectionEnd->GetText());
+            loadedSectionName.name = (sectionName != nullptr && sectionName->GetText() != nullptr) ? sectionName->GetText() : "";
+            loadingAnimation->sectionNames.push_back(loadedSectionName);
+        }
+    }
+
     //load objects
     tinyxml2::XMLElement* nodesNode =  animationNode->FirstChildElement("Nodes");
     animationNode->InsertEndChild(nodesNode);

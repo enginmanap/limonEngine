@@ -10,6 +10,8 @@
 #include "../../Transformation.h"
 #include "AnimationInterface.h"
 #include <memory>
+#include <string>
+#include <vector>
 #ifdef CEREAL_SUPPORT
 #include <cereal/access.hpp>
 #endif
@@ -17,6 +19,12 @@
 class AnimationCustom : public AnimationInterface {
     friend class AnimationLoader;
     friend struct AnimationSequenceInterface;
+public:
+    struct SectionName {
+        int frameEnd;
+        std::string name;
+    };
+private:
 
     float ticksPerSecond;
     float duration;
@@ -24,6 +32,7 @@ class AnimationCustom : public AnimationInterface {
     std::shared_ptr<AnimationNode> animationNode;
 
     std::string name;
+    std::vector<SectionName> sectionNames;//editor only, in section order. Not in cereal, custom animations only go to XML
 #ifdef CEREAL_SUPPORT
     friend class cereal::access;
 #endif
@@ -40,7 +49,16 @@ public:
         this->ticksPerSecond = otherAnimation.ticksPerSecond;
         this->duration = otherAnimation.duration;
         this->name = otherAnimation.name;
+        this->sectionNames = otherAnimation.sectionNames;
         this->animationNode = std::make_shared<AnimationNode>(*(otherAnimation.animationNode));//default copy constructor used
+    }
+
+    const std::vector<SectionName> &getSectionNames() const {
+        return sectionNames;
+    }
+
+    void setSectionNames(const std::vector<SectionName> &newSectionNames) {
+        sectionNames = newSectionNames;
     }
 
     bool calculateTransform(const std::string& nodeName __attribute((unused)), float time __attribute((unused)), Transformation& transformation) const;

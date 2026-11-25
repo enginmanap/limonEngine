@@ -42,6 +42,21 @@ bool AnimationCustom::serializeAnimation(const std::string &path) const {
     currentElement->SetText(std::to_string(this->ticksPerSecond).c_str());
     rootNode->InsertEndChild(currentElement);//add ticks per second
 
+    if (!sectionNames.empty()) {//optional, older files and older builds do without
+        tinyxml2::XMLElement *sectionsElement = animationDocument.NewElement("Sections");
+        for (const SectionName &sectionName : sectionNames) {
+            tinyxml2::XMLElement *sectionElement = animationDocument.NewElement("Section");
+            tinyxml2::XMLElement *sectionAttribute = animationDocument.NewElement("End");
+            sectionAttribute->SetText(std::to_string(sectionName.frameEnd).c_str());
+            sectionElement->InsertEndChild(sectionAttribute);
+            sectionAttribute = animationDocument.NewElement("Name");
+            sectionAttribute->SetText(sectionName.name.c_str());
+            sectionElement->InsertEndChild(sectionAttribute);
+            sectionsElement->InsertEndChild(sectionElement);
+        }
+        rootNode->InsertEndChild(sectionsElement);
+    }
+
     tinyxml2::XMLError eResult = animationDocument.SaveFile((path + this->name + ".xml").c_str());
     if (eResult != tinyxml2::XML_SUCCESS) {
         std::cout << "ERROR " << eResult << std::endl;

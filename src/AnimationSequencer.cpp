@@ -72,6 +72,19 @@ void AnimationSequenceInterface::rebuildSectionsFromAnimation(const AnimationCus
     if (sections.empty()) {
         sections.push_back(createSection(30));
     }
+    //in order, so zero length sections sharing an end keep their own names. A section with no saved name, like the wait before the first key, keeps the default
+    const std::vector<AnimationCustom::SectionName> &savedNames = animation.getSectionNames();
+    size_t savedNameIndex = 0;
+    for (AnimationSequenceItem &item : sections) {
+        //zero length sections collapse into one key, their extra names have nothing to land on
+        while (savedNameIndex < savedNames.size() && (int)std::lround(savedNames[savedNameIndex].frameEnd * frameScale) < item.mFrameEnd) {
+            savedNameIndex++;
+        }
+        if (savedNameIndex < savedNames.size() && (int)std::lround(savedNames[savedNameIndex].frameEnd * frameScale) == item.mFrameEnd) {
+            snprintf(item.name, sizeof(item.name), "%s", savedNames[savedNameIndex].name.c_str());
+            savedNameIndex++;
+        }
+    }
 }
 
 AnimationSequenceInterface::~AnimationSequenceInterface(){
@@ -211,11 +224,15 @@ AnimationCustom AnimationSequenceInterface::buildAnimationFromCurrentItems() con
     }
     //equal times are fine, the node picks the later key so a zero length section is a jump
     glm::mat4 endTransform(1.0f);
+    std::vector<AnimationCustom::SectionName> sectionNames;
     for (const AnimationSequenceItem &item : sections) {
         endTransform = endTransform * item.relativeTransform;
         pushMatrixToAnimationTime(animationNode, item.mFrameEnd, endTransform);
+        sectionNames.push_back(AnimationCustom::SectionName{item.mFrameEnd, item.name});
     }
-    return AnimationCustom(animationNameBuffer, animationNode, sections.back().mFrameEnd);
+    AnimationCustom builtAnimation(animationNameBuffer, animationNode, sections.back().mFrameEnd);
+    builtAnimation.setSectionNames(sectionNames);
+    return builtAnimation;
 }
 
 void AnimationSequenceInterface::pushMatrixToAnimationTime(std::shared_ptr<AnimationNode> animationNode, float time, const glm::mat4 &transform) const {
