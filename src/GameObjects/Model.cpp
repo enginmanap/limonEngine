@@ -112,15 +112,36 @@ bool Model::isPlayerAttachmentTag(uint64_t tagHash) {
     return tagHash == playerBasicTag || tagHash == playerAnimatedTag || tagHash == playerTransparentTag;
 }
 
+//a mesh made transparent by a tag edit, not by its texture, is seen through just the same, so it doesn't occlude
+//either. Only an edit that removes non_occluder itself keeps it out
+static void addNonOccluderForTransparentTag(std::vector<TagEdit> &meshTags, const std::vector<TagEdit> &materialEdits, const std::vector<TagEdit> &modelEdits) {
+    static const uint64_t transparentTag = HashUtil::hashString(HardCodedTags::OBJECT_MODEL_TRANSPARENT);
+    static const uint64_t nonOccluderTag = HashUtil::hashString(HardCodedTags::OBJECT_MODEL_NON_OCCLUDER);
+    if (!TagEdits::contains(meshTags, transparentTag) || TagEdits::contains(meshTags, nonOccluderTag)) {
+        return;
+    }
+    for (const std::vector<TagEdit>* edits : {&materialEdits, &modelEdits}) {
+        for (const TagEdit &edit : *edits) {
+            if (edit.hash == nonOccluderTag && !edit.added) {
+                return;
+            }
+        }
+    }
+    TagEdits::addUnique(meshTags, HardCodedTags::OBJECT_MODEL_NON_OCCLUDER, nonOccluderTag);
+}
+
 void Model::resolveMeshTags(const Material *material, bool animated, bool underPlayer, std::vector<TagEdit> &meshTags) const {
+    static const std::vector<TagEdit> noEdits;
+    const std::vector<TagEdit> &materialEdits = material != nullptr ? material->getTagEdits() : noEdits;
     if (material != nullptr) {
         addDerivedTags(meshTags, animated, material->hasAmbientMap(), isMaterialTransparent(*material, animated));
-        TagEdits::apply(material->getTagEdits(), meshTags);
+        TagEdits::apply(materialEdits, meshTags);
     } else {
         addDerivedTags(meshTags, animated, false, false);
     }
     TagEdits::addUnique(meshTags, this->mass > 0 ? HardCodedTags::OBJECT_MODEL_PHYSICAL : HardCodedTags::OBJECT_MODEL_STATIC);
     TagEdits::apply(tagEdits, meshTags);
+    addNonOccluderForTransparentTag(meshTags, materialEdits, tagEdits);
     if (underPlayer) {
         //mirrors the kind tag, so removing basic_model_object opts the mesh out of basic_player_attachment too
         if (TagEdits::contains(meshTags, HashUtil::hashString(HardCodedTags::OBJECT_MODEL_BASIC))) {
