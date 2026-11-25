@@ -55,10 +55,10 @@ struct ImGuiResult {
         //one step at a time: the developer types a triangle share, the engine finds the simplification that hits it
         int32_t triangleTargetLevel = -1;
         float triangleTargetRatio = 0.0f;
-        //one step at a time as well: its distance and limits for this model. The first such edit hands the whole
+        //one step at a time as well: its presence and limits for this model. The first such edit hands the whole
         //ladder to the model
         int32_t stepSettingsLevel = -1;
-        float stepDistance = 0.0f;
+        float stepPresence = 0.0f;
         LodPixels stepLimits;
     };
     LodPanelInput lodPanel;

@@ -17,11 +17,11 @@
 #include "limonAPI/util/HashUtil.h"
 
 //bumped by hand whenever the scorer, the search or a generator changes what it produces
-static const uint32_t LOD_CALIBRATOR_VERSION = 14;
+static const uint32_t LOD_CALIBRATOR_VERSION = 15;
 
-//the tuned defaults: maps keep about 80, 60 and 40 percent of their triangles at these distances
+//a 3 m model at 50, 100 and 200 m, the distances every model used before steps were sizes on screen
 static const uint32_t LOD_DEFAULT_STEP_COUNT = 3;
-static const float LOD_DEFAULT_DISTANCES[LOD_DEFAULT_STEP_COUNT] = {50.0f, 100.0f, 200.0f};
+static const float LOD_DEFAULT_PRESENCE_PIXELS[LOD_DEFAULT_STEP_COUNT] = {56.0f, 28.0f, 14.0f};
 static const float LOD_DEFAULT_TRIANGLE_TARGETS[LOD_DEFAULT_STEP_COUNT] = {80.0f, 60.0f, 40.0f};
 static const float LOD_DEFAULT_SURFACE_PIXELS[LOD_DEFAULT_STEP_COUNT] = {4.0f, 3.0f, 4.0f};
 static const float LOD_DEFAULT_OUTLINE_PIXELS[LOD_DEFAULT_STEP_COUNT] = {4.0f, 3.0f, 4.0f};
@@ -60,7 +60,7 @@ void LodLadder::appendDefaultSteps() {
     steps.clear();
     for (uint32_t step = 0; step < LOD_DEFAULT_STEP_COUNT; ++step) {
         LodStep entry;
-        entry.distance = LOD_DEFAULT_DISTANCES[step];
+        entry.presence = LOD_DEFAULT_PRESENCE_PIXELS[step];
         entry.triangleTarget = LOD_DEFAULT_TRIANGLE_TARGETS[step] / 100.0f;
         entry.limits.surface = LOD_DEFAULT_SURFACE_PIXELS[step];
         entry.limits.outline = LOD_DEFAULT_OUTLINE_PIXELS[step];
@@ -97,17 +97,17 @@ void LodLadder::computeSettingsHash() {
     settingsHash = hash(packed, strlen(packed));
 }
 
-//one list per field, one entry per step. An empty distance list is how a project switches levels off
+//one list per field, one entry per step. An empty presence list is how a project switches levels off
 void LodLadder::readStepsFromOptions(OptionsUtil::Options *options) {
     steps.clear();
-    OptionsUtil::Options::Option<std::vector<float>> distanceOption =
-            options->getOption<std::vector<float>>(HASH("LOD_levelDistances"));
-    if (!distanceOption.isUsable()) {
-        std::cerr << "LOD_levelDistances is missing, no LOD level is generated" << std::endl;
+    OptionsUtil::Options::Option<std::vector<float>> presenceOption =
+            options->getOption<std::vector<float>>(HASH("LOD_levelPresencePixels"));
+    if (!presenceOption.isUsable()) {
+        std::cerr << "LOD_levelPresencePixels is missing, no LOD level is generated" << std::endl;
         return;
     }
-    std::vector<float> distances = distanceOption.get();
-    if (distances.empty()) {
+    std::vector<float> presences = presenceOption.get();
+    if (presences.empty()) {
         return;
     }
     const uint32_t LIST_COUNT = 7;
@@ -121,21 +121,21 @@ void LodLadder::readStepsFromOptions(OptionsUtil::Options *options) {
         if (option.isUsable()) {
             lists[list] = option.get();
         }
-        if (lists[list].size() != distances.size()) {
+        if (lists[list].size() != presences.size()) {
             //a level judged with another level's limit would be built wrong in silence, so none is built
-            std::cerr << listNames[list] << " has " << lists[list].size() << " entries but LOD_levelDistances has "
-                      << distances.size() << ", no LOD level is generated" << std::endl;
+            std::cerr << listNames[list] << " has " << lists[list].size() << " entries but LOD_levelPresencePixels has "
+                      << presences.size() << ", no LOD level is generated" << std::endl;
             return;
         }
     }
-    if (distances.size() > LOD_MAX_STEPS_FROM_OPTIONS) {
-        std::cerr << "LOD_levelDistances asks for " << distances.size() << " levels, only the first "
+    if (presences.size() > LOD_MAX_STEPS_FROM_OPTIONS) {
+        std::cerr << "LOD_levelPresencePixels asks for " << presences.size() << " levels, only the first "
                   << LOD_MAX_STEPS_FROM_OPTIONS << " are used" << std::endl;
-        distances.resize(LOD_MAX_STEPS_FROM_OPTIONS);
+        presences.resize(LOD_MAX_STEPS_FROM_OPTIONS);
     }
-    for (size_t step = 0; step < distances.size(); ++step) {
+    for (size_t step = 0; step < presences.size(); ++step) {
         LodStep entry;
-        entry.distance = distances[step];
+        entry.presence = presences[step];
         entry.triangleTarget = lists[0][step] / 100.0f;//authored as percent, like the panel reads
         entry.limits.surface = lists[1][step];
         entry.limits.outline = lists[2][step];
@@ -174,7 +174,37 @@ void LodLadder::readSettings(OptionsUtil::Options *options) {
             readStepsFromOptions(options);
         }
     }
+    deriveStepDistances();
     computeSettingsHash();
+}
+
+void LodLadder::deriveStepDistances() {
+    for (size_t stepIndex = 0; stepIndex < steps.size(); ++stepIndex) {
+        LodStep &step = steps[stepIndex];
+        //a zero distance is a step nothing selects or measures, which is what it should be before the extent is known
+        step.distance = step.presence > 0.0f && authoredExtent > 0.0f
+                        ? authoredExtent * referencePixelsPerMeter / step.presence : 0.0f;
+    }
+}
+
+//the same box measureCandidate frames, so a step is selected at the size it was judged at
+float LodLadder::computeExtent(const std::vector<MeshGeometry> &meshes) {
+    glm::vec3 low(FLT_MAX);
+    glm::vec3 high(-FLT_MAX);
+    for (size_t meshIndex = 0; meshIndex < meshes.size(); ++meshIndex) {
+        const std::vector<glm::vec3> &vertices = *meshes[meshIndex].vertices;
+        const glm::mat4 *transform = meshes[meshIndex].transform;
+        for (size_t vertex = 0; vertex < vertices.size(); ++vertex) {
+            glm::vec3 position = transform == nullptr ? vertices[vertex] : glm::vec3(*transform * glm::vec4(vertices[vertex], 1.0f));
+            low = glm::min(low, position);
+            high = glm::max(high, position);
+        }
+    }
+    if (low.x > high.x) {
+        return 0.0f;
+    }
+    glm::vec3 size = high - low;
+    return std::max(size.x, std::max(size.y, size.z));
 }
 
 void LodLadder::prepareGenerators(const std::vector<MeshGeometry> &meshes) {
@@ -331,7 +361,7 @@ bool LodLadder::findCachedOutcome(const std::vector<LodStep> &cachedSteps, const
                                   LodStep::Outcome &outOutcome) {
     for (size_t cachedIndex = 0; cachedIndex < cachedSteps.size(); ++cachedIndex) {
         const LodStep &cached = cachedSteps[cachedIndex];
-        if (cached.distance != step.distance || !(cached.limits == step.limits) ||
+        if (cached.presence != step.presence || !(cached.limits == step.limits) ||
             std::fabs(cached.requestedRatio - step.requestedRatio) > 1e-9f) {
             continue;
         }
@@ -432,11 +462,13 @@ void LodLadder::build(const std::vector<MeshGeometry> &meshes, BuildMode buildMo
     if (meshes.empty() || steps.empty()) {
         return;
     }
+    authoredExtent = computeExtent(meshes);
     //intent comes off disk when the asset loads and never again: an editor rebuild is running because memory
     //already holds a newer target than the file, and the file is only written once this build has derived it
     if (buildMode == BuildMode::NORMAL) {
         loadIntent();
     }
+    deriveStepDistances();
     //an outcome stays until something drops it, and these two are the only things that drop all of them at once.
     //Never clear them all here and restore the good ones after, that hands a retargeted step its old mesh back
     if (builtSettingsHash != settingsHash || buildMode == BuildMode::FULL_RECALIBRATE) {
@@ -505,7 +537,9 @@ void LodLadder::loadIntent() {
         return;//the steps came with the archive
     }
     std::vector<LodStep> overriddenSteps;
-    if (!LodMetadata::readOverrides(assetPath, flipAxes, overriddenSteps) || overriddenSteps.empty()) {
+    //a sidecar from before presence holds meters, which mean one presence at this model's size
+    const float presenceAtOneMeter = authoredExtent * referencePixelsPerMeter;
+    if (!LodMetadata::readOverrides(assetPath, flipAxes, presenceAtOneMeter, overriddenSteps) || overriddenSteps.empty()) {
         return;
     }
     //the model owns its steps, so the project ones are replaced outright, step count included. Only the asked
@@ -539,16 +573,17 @@ void LodLadder::requestTriangleTarget(size_t stepIndex, float targetRatio) {
     steps[stepIndex].welded = LodStep::Outcome();
 }
 
-void LodLadder::requestStepSettings(size_t stepIndex, float distance, const LodPixels &limits) {
-    if (stepIndex >= steps.size() || distance <= 0.0f) {
+void LodLadder::requestStepSettings(size_t stepIndex, float presence, const LodPixels &limits) {
+    if (stepIndex >= steps.size() || presence <= 0.0f) {
         return;
     }
-    steps[stepIndex].distance = distance;
+    steps[stepIndex].presence = presence;
     steps[stepIndex].limits = limits;
     overridesPresent = true;
     unsavedChanges = true;
     steps[stepIndex].structure = LodStep::Outcome();
     steps[stepIndex].welded = LodStep::Outcome();
+    deriveStepDistances();
 }
 
 void LodLadder::clearOverrides() {

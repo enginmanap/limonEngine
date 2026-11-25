@@ -179,9 +179,9 @@
     </Parameter>
     <Parameter>
         <RequestType>FreeNumber</RequestType>
-        <Description>LOD_levelDistances</Description>
-        <!--Where each level is used, in meters, times the instance scale. Each level is generated as the coarsest simplification that stays inside its pixel limits when seen from exactly this distance, so the triangle count is a result, not a setting. The first number is the element count plus one, not a value. Every LOD_level list must have the same length; an empty list means no levels at all. Changing a distance regenerates that level only-->
-        <Value>4, 50, 100, 200</Value>
+        <Description>LOD_levelPresencePixels</Description>
+        <!--Where each level is used, as the size of the object's largest side on the reference screen in pixels, finest level first. Each level is generated as the coarsest simplification that stays inside its pixel limits when the model is exactly this big on screen, so the triangle count is a result, not a setting, and a small prop and a big building are judged the same. An object uses a level once it is smaller than this, its instance scale included. The defaults are where a 3 m model was at 50, 100 and 200 m. The first number is the element count plus one, not a value. Every LOD_level list must have the same length; an empty list means no levels at all. Changing a size regenerates that level only-->
+        <Value>6, 200, 100, 50, 25, 12</Value>
         <valueType>FloatArray</valueType>
         <IsSet>True</IsSet>
         <Index>74</Index>
@@ -190,7 +190,7 @@
         <RequestType>FreeNumber</RequestType>
         <Description>LOD_levelTriangleTargets</Description>
         <!--Percent of the original each level is hoped to keep. Only reported in the editor next to what was reached, it decides nothing, except for animated models, which can not be rendered for a check and are built straight to these-->
-        <Value>4, 80, 60, 40</Value>
+        <Value>6, 80, 60, 40, 25, 15</Value>
         <valueType>FloatArray</valueType>
         <IsSet>True</IsSet>
         <Index>75</Index>
@@ -198,8 +198,8 @@
     <Parameter>
         <RequestType>FreeNumber</RequestType>
         <Description>LOD_levelSurfacePixels</Description>
-        <!--How far the visible surface may move at the level's distance, in pixels of the reference screen. A texture sliding a few texels counts here too. Negative switches the check off-->
-        <Value>4, 4, 3, 4</Value>
+        <!--How far the visible surface may move at the level's size, in pixels of the reference screen. A texture sliding a few texels counts here too. Negative switches the check off-->
+        <Value>6, 4, 3, 3.5, 4, 4</Value>
         <valueType>FloatArray</valueType>
         <IsSet>True</IsSet>
         <Index>76</Index>
@@ -207,8 +207,8 @@
     <Parameter>
         <RequestType>FreeNumber</RequestType>
         <Description>LOD_levelOutlinePixels</Description>
-        <!--How far the silhouette may move at the level's distance, in pixels of the reference screen. Negative switches the check off-->
-        <Value>4, 4, 3, 4</Value>
+        <!--How far the silhouette may move at the level's size, in pixels of the reference screen. Negative switches the check off-->
+        <Value>6, 4, 3, 3, 3, 2</Value>
         <valueType>FloatArray</valueType>
         <IsSet>True</IsSet>
         <Index>77</Index>
@@ -216,8 +216,8 @@
     <Parameter>
         <RequestType>FreeNumber</RequestType>
         <Description>LOD_levelHolePixels</Description>
-        <!--How wide the widest hole may be at the level's distance, where something behind shows through, in pixels of the reference screen. Negative switches the check off-->
-        <Value>4, 2, 6, 8</Value>
+        <!--How wide the widest hole may be at the level's size, where something behind shows through, in pixels of the reference screen. Negative switches the check off-->
+        <Value>6, 2, 4, 4, 3, 2</Value>
         <valueType>FloatArray</valueType>
         <IsSet>True</IsSet>
         <Index>78</Index>
@@ -225,8 +225,8 @@
     <Parameter>
         <RequestType>FreeNumber</RequestType>
         <Description>LOD_levelFilledPixels</Description>
-        <!--How wide the widest filled opening may be at the level's distance, where the level draws over something that showed through, like a closed window, in pixels of the reference screen. Negative switches the check off-->
-        <Value>4, 2, 6, 8</Value>
+        <!--How wide the widest filled opening may be at the level's size, where the level draws over something that showed through, like a closed window, in pixels of the reference screen. Negative switches the check off-->
+        <Value>6, 2, 4, 4, 3, 2</Value>
         <valueType>FloatArray</valueType>
         <IsSet>True</IsSet>
         <Index>114</Index>
@@ -234,8 +234,8 @@
     <Parameter>
         <RequestType>FreeNumber</RequestType>
         <Description>LOD_levelTexturePixels</Description>
-        <!--How wide the widest patch may be where the uv jumped to another part of the texture, at the level's distance, in pixels of the reference screen. Negative switches the check off-->
-        <Value>4, 8, 12, 16</Value>
+        <!--How wide the widest patch may be where the uv jumped to another part of the texture, at the level's size, in pixels of the reference screen. Negative switches the check off-->
+        <Value>6, 8, 12, 16, 16, 16</Value>
         <valueType>FloatArray</valueType>
         <IsSet>True</IsSet>
         <Index>79</Index>
@@ -243,8 +243,8 @@
     <Parameter>
         <RequestType>FreeNumber</RequestType>
         <Description>LOD_levelNormalPixels</Description>
-        <!--How wide the widest patch may be whose shading changed past LOD_normalDeviation, at the level's distance, in pixels of the reference screen. Negative switches the check off-->
-        <Value>4, 8, 12, 16</Value>
+        <!--How wide the widest patch may be whose shading changed past LOD_normalDeviation, at the level's size, in pixels of the reference screen. Negative switches the check off-->
+        <Value>6, 8, 12, 16, 16, 16</Value>
         <valueType>FloatArray</valueType>
         <IsSet>True</IsSet>
         <Index>80</Index>
@@ -288,7 +288,7 @@
     <Parameter>
         <RequestType>FreeNumber</RequestType>
         <Description>LOD_calibrationMaxResolution</Description>
-        <!--Largest image the check renders, twice the model's real size on screen at the level's distance. A big model close up needs more and is checked at reduced precision, the editor says so. Cost grows with the square of this. Changing it regenerates every level-->
+        <!--Largest image the check renders, twice the level's size on screen. At 2048 a level above about 570 pixels needs more and is checked at reduced precision, the editor says so. Cost grows with the square of this. Changing it regenerates every level-->
         <Value>2048</Value>
         <valueType>Long</valueType>
         <IsSet>True</IsSet>

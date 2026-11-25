@@ -203,7 +203,7 @@ bool LodMetadata::read(const std::string &assetPath, const std::string &flipAxes
     for (tinyxml2::XMLElement *stepNode = variantNode->FirstChildElement("Step");
          stepNode != nullptr; stepNode = stepNode->NextSiblingElement("Step")) {
         LodStep step;
-        step.distance = stepNode->FloatAttribute("distance");
+        step.presence = stepNode->FloatAttribute("presence");
         readPixels(stepNode, "limit", step.limits);
         step.triangleTarget = stepNode->FloatAttribute("triangleTarget");
         step.requestedRatio = stepNode->FloatAttribute("requestedRatio");
@@ -233,7 +233,7 @@ bool LodMetadata::write(const std::string &assetPath, const std::string &flipAxe
     for (size_t stepIndex = 0; stepIndex < steps.size(); ++stepIndex) {
         tinyxml2::XMLElement *stepNode = document.NewElement("Step");
         stepNode->SetAttribute("index", (uint32_t) (stepIndex + 1));
-        setFloatAttribute(stepNode, "distance", steps[stepIndex].distance);
+        setFloatAttribute(stepNode, "presence", steps[stepIndex].presence);
         writePixels(stepNode, "limit", steps[stepIndex].limits);
         setFloatAttribute(stepNode, "triangleTarget", steps[stepIndex].triangleTarget);
         setFloatAttribute(stepNode, "requestedRatio", steps[stepIndex].requestedRatio);
@@ -245,7 +245,7 @@ bool LodMetadata::write(const std::string &assetPath, const std::string &flipAxe
     return saveOverExisting(document, path);
 }
 
-bool LodMetadata::readOverrides(const std::string &assetPath, const std::string &flipAxes,
+bool LodMetadata::readOverrides(const std::string &assetPath, const std::string &flipAxes, float presenceAtOneMeter,
                                 std::vector<LodStep> &outSteps) {
     tinyxml2::XMLDocument document;
     tinyxml2::XMLElement *variantNode = findVariant(document, assetPath, "LodOverrides", flipAxes);
@@ -256,16 +256,20 @@ bool LodMetadata::readOverrides(const std::string &assetPath, const std::string 
     for (tinyxml2::XMLElement *stepNode = variantNode->FirstChildElement("Step");
          stepNode != nullptr; stepNode = stepNode->NextSiblingElement("Step")) {
         LodStep step;
-        step.distance = stepNode->FloatAttribute("distance");
+        step.presence = stepNode->FloatAttribute("presence");
+        if (stepNode->Attribute("presence") == nullptr && stepNode->FloatAttribute("distance") > 0.0f) {
+            //written when steps were meters, this is the presence that switches at the same distance
+            step.presence = presenceAtOneMeter / stepNode->FloatAttribute("distance");
+        }
         readPixels(stepNode, "limit", step.limits);
         step.triangleTarget = stepNode->FloatAttribute("triangleTarget");
         step.userSet = stepNode->BoolAttribute("userSet");
         step.requestedRatio = stepNode->FloatAttribute("requestedRatio");
-        if (step.distance <= 0.0f) {
-            //a level with no distance is never used, so the record is broken rather than strict. Dropping the
+        if (step.presence <= 0.0f) {
+            //a level with no presence is never used, so the record is broken rather than strict. Dropping the
             //whole list would hand the model back to the project behind the developer's back
             std::cerr << "LOD override step " << outSteps.size() + 1 << " for " << assetPath
-                      << " has no usable distance, skipping that step" << std::endl;
+                      << " has no usable presence, skipping that step" << std::endl;
             continue;
         }
         if (step.userSet && (step.requestedRatio <= 0.0f || step.requestedRatio >= 1.0f)) {
@@ -291,7 +295,7 @@ bool LodMetadata::writeOverrides(const std::string &assetPath, const std::string
     for (size_t stepIndex = 0; stepIndex < steps.size(); ++stepIndex) {
         tinyxml2::XMLElement *stepNode = document.NewElement("Step");
         stepNode->SetAttribute("index", (uint32_t) (stepIndex + 1));
-        setFloatAttribute(stepNode, "distance", steps[stepIndex].distance);
+        setFloatAttribute(stepNode, "presence", steps[stepIndex].presence);
         writePixels(stepNode, "limit", steps[stepIndex].limits);
         setFloatAttribute(stepNode, "triangleTarget", steps[stepIndex].triangleTarget);
         stepNode->SetAttribute("userSet", steps[stepIndex].userSet);

@@ -1962,7 +1962,7 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
                 if (objectEditorResult.lodPanel.stepSettingsLevel >= 0) {
                     requestLodStepSettings(selectedModel->getModelAsset(),
                                            (size_t) objectEditorResult.lodPanel.stepSettingsLevel,
-                                           objectEditorResult.lodPanel.stepDistance,
+                                           objectEditorResult.lodPanel.stepPresence,
                                            objectEditorResult.lodPanel.stepLimits);
                 }
                 if (objectEditorResult.lodPanel.recalibrate || objectEditorResult.lodPanel.clearOverrides) {
@@ -2945,12 +2945,12 @@ void Editor::requestLodTriangleTarget(std::shared_ptr<ModelAsset> modelAsset, si
     pendingLodRequests.push_back(request);
 }
 
-void Editor::requestLodStepSettings(std::shared_ptr<ModelAsset> modelAsset, size_t levelIndex, float distance,
+void Editor::requestLodStepSettings(std::shared_ptr<ModelAsset> modelAsset, size_t levelIndex, float presence,
                                     const LodPixels &limits) {
     LodRegenerationRequest request;
     request.modelAsset = modelAsset;
     request.stepSettingsLevel = (int32_t) levelIndex;
-    request.stepDistance = distance;
+    request.stepPresence = presence;
     request.stepLimits = limits;
     pendingLodRequests.push_back(request);
 }
@@ -3206,7 +3206,7 @@ void Editor::applyDeferredAssetChanges() {
             request.modelAsset->regenerateLods(LodLadder::BuildMode::EDITOR_CHANGE);
         } else if (request.stepSettingsLevel >= 0) {
             request.modelAsset->getLodLadder().requestStepSettings((size_t) request.stepSettingsLevel,
-                                                                   request.stepDistance, request.stepLimits);
+                                                                   request.stepPresence, request.stepLimits);
             request.modelAsset->regenerateLods(LodLadder::BuildMode::EDITOR_CHANGE);
         } else if (request.clearOverrides) {
             request.modelAsset->getLodLadder().clearOverrides();

@@ -240,7 +240,7 @@ public:
     //written before the archive and checked before it is read, so a file in another layout is refused instead of parsed.
     //Any change to what the file stores bumps the version, in any class it holds: MeshAsset, LodLadder, LevelPlan...
     static constexpr uint32_t LIMONMODEL_MAGIC = 0x4C444D4C;//"LMDL" in file order
-    static constexpr uint32_t LIMONMODEL_VERSION = 6;//2: embedded textures belong to the file itself, 4: materials keep the texture path the asset asked for, never the file a lookup found, 5: LOD steps judge filled openings, 6: bone hulls come from the vertex weights, the per bone vertex lists are gone
+    static constexpr uint32_t LIMONMODEL_VERSION = 7;//2: embedded textures belong to the file itself, 4: materials keep the texture path the asset asked for, never the file a lookup found, 5: LOD steps judge filled openings, 6: bone hulls come from the vertex weights, the per bone vertex lists are gone, 7: LOD steps are sizes on screen
 
     //true for an asset loaded from a limonmodel, where the file itself is the store rather than a sidecar
     bool isConvertedAsset() const;

@@ -31,8 +31,9 @@ public:
     static bool write(const std::string &assetPath, const std::string &flipAxes, uint64_t settingsHash,
                       uint64_t geometryHash, const std::vector<LodStep> &steps);
 
-    //the asked half only, for a model that owns its steps: distance, limits and any typed share per step
-    static bool readOverrides(const std::string &assetPath, const std::string &flipAxes,
+    //the asked half only, for a model that owns its steps: presence, limits and any typed share per step. A step
+    //written in meters is read as presenceAtOneMeter / meters
+    static bool readOverrides(const std::string &assetPath, const std::string &flipAxes, float presenceAtOneMeter,
                               std::vector<LodStep> &outSteps);
 
     //an empty list removes the overrides, which is how the editor goes back to the project defaults

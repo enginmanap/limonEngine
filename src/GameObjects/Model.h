@@ -93,7 +93,7 @@ private:
     void drawModelPreview(const ImGuiRequest &request, ImGuiResult &result, uint32_t previewWidth, uint32_t previewHeight);
     void putLodPanelInGui(ImGuiResult &result, const ImGuiRequest &request, bool isLimonModel);
     void putLodTableInGui(ImGuiResult &result, std::vector<float> &editedTrianglePercents,
-                          std::vector<std::array<float, 7>> &editedStepSettings);
+                          std::vector<std::array<float, 8>> &editedStepSettings);
     //the context the engine would use for this object, so the panel and selection cannot drift apart
     float getLodObjectScale() const;
 

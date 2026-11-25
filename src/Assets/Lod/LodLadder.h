@@ -61,7 +61,8 @@ struct LodPixels {
 //what was asked of one step and what came out. A welded twin is this step's second outcome, not a step of its own
 struct LodStep {
     //asked for, from the options
-    float distance = 0.0f;           //meters, times the instance scale. The limits are judged at exactly this distance
+    float presence = 0.0f;           //reference pixels the model's largest side covers where this step starts. The limits are judged at exactly this size
+    float distance = 0.0f;           //meters where the model as authored has that presence, derived from it and never stored
     LodPixels limits;
     float triangleTarget = 0.0f;     //what the project hopes this step keeps, reported but never used to decide
     float requestedRatio = 0.0f;     //triangle share typed in the editor, overrides the limits for this model
@@ -91,7 +92,7 @@ struct LodStep {
 #ifdef CEREAL_SUPPORT
     template<class Archive>
     void serialize(Archive &archive) {
-        archive(distance, limits, triangleTarget, requestedRatio, userSet, structure, welded);
+        archive(presence, limits, triangleTarget, requestedRatio, userSet, structure, welded);
     }
 #endif
 };
@@ -165,9 +166,9 @@ public:
     //records the share only, the next build finds the simplification that lands there. Caller rebuilds after
     void requestTriangleTarget(size_t stepIndex, float targetRatio);
 
-    //the step's distance and limits for this model alone. Like a typed share, the first edit hands the whole
+    //the step's presence and limits for this model alone. Like a typed share, the first edit hands the whole
     //ladder to the model: no project option applies to it again until clearOverrides. Caller rebuilds after
-    void requestStepSettings(size_t stepIndex, float distance, const LodPixels &limits);
+    void requestStepSettings(size_t stepIndex, float presence, const LodPixels &limits);
 
     //back to the project defaults, dropping this model's own targets. Leaves the step list empty, so the caller
     //calls readSettings again before rebuilding
@@ -183,6 +184,11 @@ public:
 
     float getReferencePixelsPerMeter() const {
         return referencePixelsPerMeter;
+    }
+
+    //largest side of the model as authored, zero until the first build
+    float getAuthoredExtent() const {
+        return authoredExtent;
     }
 
     const std::vector<LodStep> &getSteps() const {
@@ -262,6 +268,10 @@ private:
 
     void appendDefaultSteps();
     void readStepsFromOptions(OptionsUtil::Options *options);
+    //every step's distance from its presence, the model's extent and the reference screen. Selection and
+    //calibration both read the distance, so it has to follow any of the three
+    void deriveStepDistances();
+    static float computeExtent(const std::vector<MeshGeometry> &meshes);
     void computeSettingsHash();
     //the coarse steps get a welded twin, depth cameras use the original and the finer steps as they are
     bool isWeldedStep(size_t stepIndex) const;
@@ -317,6 +327,7 @@ private:
                           const std::vector<float> &meshPositionPerUv, RasterTarget &target);
 
     std::vector<LodStep> steps;
+    float authoredExtent = 0.0f;
     uint32_t originalTriangleCount = 0;
     uint32_t meshLodCount = 1;
     std::vector<std::unique_ptr<LodGenerator>> generators;//prepared inputs, reused by every candidate and mesh

@@ -510,7 +510,7 @@ float Model::getLodObjectScale() const {
 static const char *lodSkipReasonText(LodSkipReason reason) {
     switch (reason) {
         case LodSkipReason::NO_GAIN: return "not built: saves too few triangles over the step before it";
-        case LodSkipReason::NOTHING_FITS: return "not built: even the smallest simplification breaks a limit at this distance";
+        case LodSkipReason::NOTHING_FITS: return "not built: even the smallest simplification breaks a limit at this size";
         case LodSkipReason::EMPTY: return "not built: simplifies away to nothing";
         default: return "not built";
     }
@@ -594,7 +594,7 @@ static void putLodLimitCell(const char *inputId, float measured, bool measuredKn
 }
 
 void Model::putLodTableInGui(ImGuiResult &result, std::vector<float> &editedTrianglePercents,
-                             std::vector<std::array<float, 7>> &editedStepSettings) {
+                             std::vector<std::array<float, 8>> &editedStepSettings) {
     const LodLadder &ladder = cullingEntry->modelAsset->getLodLadder();
     const std::vector<LodStep> &steps = ladder.getSteps();
     const uint32_t originalTriangleCount = ladder.getOriginalTriangleCount();
@@ -603,9 +603,9 @@ void Model::putLodTableInGui(ImGuiResult &result, std::vector<float> &editedTria
     const ImGuiStyle &style = ImGui::GetStyle();
     const float inputWidth = lodInputWidth();
     const float limitWidth = ImGui::CalcTextSize("000.0*").x + style.ItemSpacing.x + inputWidth;
-    const uint32_t COLUMN_COUNT = 10;
-    const char *headers[COLUMN_COUNT] = {"Level", "Distance m", "Triangles", "Share %", "Surface", "Outline", "Holes", "Filled", "Texture", "Normal"};
-    const float contentWidths[COLUMN_COUNT] = {ImGui::CalcTextSize("0: LOD3 shadow ~").x, inputWidth, ImGui::CalcTextSize("0000000").x,
+    const uint32_t COLUMN_COUNT = 11;
+    const char *headers[COLUMN_COUNT] = {"Level", "Size px", "Distance m", "Triangles", "Share %", "Surface", "Outline", "Holes", "Filled", "Texture", "Normal"};
+    const float contentWidths[COLUMN_COUNT] = {ImGui::CalcTextSize("0: LOD3 shadow ~").x, inputWidth, inputWidth, ImGui::CalcTextSize("0000000").x,
                                                inputWidth + style.ItemSpacing.x + ImGui::CalcTextSize("forced").x,
                                                limitWidth, limitWidth, limitWidth, limitWidth, limitWidth, limitWidth};
     size_t rowCount = 2 + steps.size();//header and original
@@ -632,10 +632,12 @@ void Model::putLodTableInGui(ImGuiResult &result, std::vector<float> &editedTria
         previewPanel.level = 0;
         previewPanel.openRequested = true;
     }
-    ImGui::TableSetColumnIndex(2);
+    ImGui::TableSetColumnIndex(3);
     ImGui::Text("%u", originalTriangleCount);
 
     const float objectScale = getLodObjectScale();
+    //a typed distance is stored as the presence the model has there, so both boxes edit one value
+    const float presenceAtOneMeter = ladder.getAuthoredExtent() * ladder.getReferencePixelsPerMeter();
     const uint32_t LIMIT_COUNT = 6;
     const uint32_t FIRST_SHADING_LIMIT = 4;//a shadow level is only judged on what a depth pass can show, the limits before this
     const LodLimitKind kinds[LIMIT_COUNT] = {LodLimitKind::SURFACE, LodLimitKind::OUTLINE, LodLimitKind::HOLES,
@@ -675,8 +677,9 @@ void Model::putLodTableInGui(ImGuiResult &result, std::vector<float> &editedTria
                 }
             }
 
-            const std::array<float, 7> currentSettings = {entry.distance, entry.limits.surface, entry.limits.outline,
-                                                          entry.limits.holes, entry.limits.filled, entry.limits.texture, entry.limits.normal};
+            const std::array<float, 8> currentSettings = {entry.presence, entry.limits.surface, entry.limits.outline,
+                                                          entry.limits.holes, entry.limits.filled, entry.limits.texture,
+                                                          entry.limits.normal, entry.distance * objectScale};
             if (!shadowPass && editedStepSettings.size() <= step) {
                 editedStepSettings.resize(step + 1, currentSettings);
             }
@@ -684,28 +687,48 @@ void Model::putLodTableInGui(ImGuiResult &result, std::vector<float> &editedTria
 
             ImGui::TableSetColumnIndex(1);
             if (shadowPass) {
-                ImGui::TextDisabled("%.0f", entry.distance);
+                ImGui::TextDisabled("%.1f", entry.presence);
             } else {
                 ImGui::SetNextItemWidth(lodInputWidth());
-                ImGui::InputFloat("##distance", &editedStepSettings[step][0], 0.0f, 0.0f, "%.0f");
+                ImGui::InputFloat("##presence", &editedStepSettings[step][0], 0.0f, 0.0f, "%.1f");
                 if (ImGui::IsItemDeactivatedAfterEdit()) {
                     settingsCommitted = true;
                 } else if (!ImGui::IsItemActive()) {
                     editedStepSettings[step][0] = currentSettings[0];
                 }
-                if (objectScale != 1.0f && ImGui::IsItemHovered()) {
-                    ImGui::SetTooltip("Used from %.0f m at this object's scale", entry.distance * objectScale);
+                if (ImGui::IsItemHovered()) {
+                    ImGui::SetTooltip("Used once the model's largest side covers fewer pixels than this on the reference screen. The limits are judged at this size");
                 }
             }
 
             ImGui::TableSetColumnIndex(2);
+            if (shadowPass || presenceAtOneMeter <= 0.0f || objectScale <= 0.0f) {
+                ImGui::TextDisabled("%.0f", entry.distance * objectScale);
+            } else {
+                ImGui::SetNextItemWidth(lodInputWidth());
+                ImGui::InputFloat("##distance", &editedStepSettings[step][7], 0.0f, 0.0f, "%.0f");
+                if (ImGui::IsItemDeactivatedAfterEdit()) {
+                    if (editedStepSettings[step][7] > 0.0f) {
+                        //the size is the model's, so every other object using it moves too
+                        editedStepSettings[step][0] = presenceAtOneMeter * objectScale / editedStepSettings[step][7];
+                        settingsCommitted = true;
+                    }
+                } else if (!ImGui::IsItemActive()) {
+                    editedStepSettings[step][7] = currentSettings[7];
+                }
+                if (ImGui::IsItemHovered()) {
+                    ImGui::SetTooltip("Where this object, at its scale, has that size on screen. Other objects using this model switch where they have it");
+                }
+            }
+
+            ImGui::TableSetColumnIndex(3);
             if (outcome.built) {
                 ImGui::Text("%u", outcome.triangleCount);
             } else {
                 ImGui::TextDisabled("-");
             }
 
-            ImGui::TableSetColumnIndex(3);
+            ImGui::TableSetColumnIndex(4);
             if (shadowPass) {
                 ImGui::Text("%.0f", outcome.achievedRatio * 100.0f);
             } else {
@@ -754,7 +777,7 @@ void Model::putLodTableInGui(ImGuiResult &result, std::vector<float> &editedTria
             const float measuredValues[LIMIT_COUNT] = {outcome.measured.surface, outcome.measured.outline, outcome.measured.holes,
                                                        outcome.measured.filled, outcome.measured.texture, outcome.measured.normal};
             for (uint32_t limit = 0; limit < LIMIT_COUNT; ++limit) {
-                ImGui::TableSetColumnIndex(4 + (int) limit);
+                ImGui::TableSetColumnIndex(5 + (int) limit);
                 if (shadowPass && limit >= FIRST_SHADING_LIMIT) {
                     ImGui::TextDisabled("-");
                     continue;
@@ -766,7 +789,7 @@ void Model::putLodTableInGui(ImGuiResult &result, std::vector<float> &editedTria
             if (settingsCommitted) {
                 //the whole step goes, so a request never mixes a typed value with one still being typed elsewhere
                 result.lodPanel.stepSettingsLevel = (int32_t) step;
-                result.lodPanel.stepDistance = editedStepSettings[step][0];
+                result.lodPanel.stepPresence = editedStepSettings[step][0];
                 result.lodPanel.stepLimits.surface = editedStepSettings[step][1];
                 result.lodPanel.stepLimits.outline = editedStepSettings[step][2];
                 result.lodPanel.stepLimits.holes = editedStepSettings[step][3];
@@ -778,7 +801,7 @@ void Model::putLodTableInGui(ImGuiResult &result, std::vector<float> &editedTria
         }
     }
     ImGui::EndTable();
-    ImGui::TextDisabled("Measured, then the limit, in pixels at the level's distance. * marks the limit that stopped the level: raise it for more simplification. ~ means it was checked at reduced resolution. Click a level to preview it.");
+    ImGui::TextDisabled("Measured, then the limit, in pixels at the level's size. * marks the limit that stopped the level: raise it for more simplification. ~ means it was checked at reduced resolution. Click a level to preview it.");
 }
 
 void Model::putLodPanelInGui(ImGuiResult &result, const ImGuiRequest &request, bool isLimonModel) {
@@ -792,8 +815,8 @@ void Model::putLodPanelInGui(ImGuiResult &result, const ImGuiRequest &request, b
     static uint32_t editedObjectID = 0xFFFFFFFF;
     //what is in the triangle boxes while they are being typed into, so a half finished number never commits
     static std::vector<float> editedTrianglePercents;
-    //the same for each step's distance and five limits, in that order
-    static std::vector<std::array<float, 7>> editedStepSettings;
+    //the same for each step's presence, six limits and distance, in that order
+    static std::vector<std::array<float, 8>> editedStepSettings;
     if (editedObjectID != this->getWorldObjectID()) {
         editedObjectID = this->getWorldObjectID();
         editedTrianglePercents.clear();
